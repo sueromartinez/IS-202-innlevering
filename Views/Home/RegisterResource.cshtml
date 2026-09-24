@@ -1,0 +1,51 @@
+@model FirstWebAppInDocker.Models.PositionModel
+
+<h2>Registrer ressurs</h2>
+
+<form asp-action="RegisterResource" method="post">
+    <div class="mb-3">
+        <label asp-for="ResourceType"></label>
+        <input asp-for="ResourceType" class="form-control" placeholder="f.eks. Traktor, Drone, Aggregat" />
+        <span asp-validation-for="ResourceType" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Description"></label>
+        <textarea asp-for="Description" class="form-control" placeholder="Beskriv ressursen (kapasitet, tilstand, osv.)"></textarea>
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="ContactInfo"></label>
+        <input asp-for="ContactInfo" class="form-control" placeholder="Telefon eller e-post" />
+    </div>
+    <div class="mb-3">
+        <label>Latitude</label>
+        <input asp-for="Latitude" id="latitude" class="form-control" readonly />
+    </div>
+    <div class="mb-3">
+        <label>Longitude</label>
+        <input asp-for="Longitude" id="longitude" class="form-control" readonly />
+    </div>
+    <button type="submit" class="btn btn-primary">Registrer ressurs</button>
+</form>
+
+<p class="text-muted mt-2">Klikk i kartet for å angi hvor ressursen befinner seg.</p>
+
+<div id="map" style="height: 400px; margin-top: 20px;"></div>
+
+<script>
+    var map = L.map('map').setView([58.15, 8.0], 10); // f.eks. Agder-området
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    map.on('click', function (e) {
+        var lat = e.latlng.lat;
+        var lng = e.latlng.lng;
+
+        document.getElementById('latitude').value = lat;
+        document.getElementById('longitude').value = lng;
+
+        L.marker([lat, lng]).addTo(map);
+    });
+</script>
