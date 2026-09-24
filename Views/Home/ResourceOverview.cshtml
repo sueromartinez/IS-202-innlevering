@@ -1,0 +1,58 @@
+@model List<FirstWebAppInDocker.Models.PositionModel>
+
+<h2>Oversikt over tilgjengelige ressurser</h2>
+
+<div id="map" style="height: 400px; margin-top: 20px;"></div>
+
+<table class="table mt-4">
+    <thead>
+        <tr>
+            <th>Type ressurs</th>
+            <th>Beskrivelse</th>
+            <th>Kontaktinfo</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.ResourceType</td>
+                <td>@item.Description</td>
+                <td>@item.ContactInfo</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<script>
+    var map = L.map('map').setView([58.15, 8.0], 8); // sentrert rundt Agder
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    var positions = @Json.Serialize(Model);
+
+    positions.forEach(function (position) {
+        var marker = L.marker([position.latitude, position.longitude]).addTo(map);
+
+        var url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.latitude}&lon=${position.longitude}`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                var address = data.display_name ? data.display_name : "Adresse ikke funnet";
+                marker.bindPopup(
+                    "<b>" + position.resourceType + "</b><br>" +
+                    position.description + "<br>" +
+                    address
+                ).openPopup();
+            })
+            .catch(error => {
+                marker.bindPopup(
+                    "<b>" + position.resourceType + "</b><br>" +
+                    position.description
+                ).openPopup();
+            });
+    });
+</script>
