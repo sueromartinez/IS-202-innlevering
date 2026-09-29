@@ -1,13 +1,25 @@
+<!-- Forteller at dette er et ASP.NET Core webprosjekt -->
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
+
+    <!-- Prosjektet bruker .NET 10 -->
     <TargetFramework>net10.0</TargetFramework>
+
+    <!-- Hjelper med å unngå feil med null-verdier -->
     <Nullable>enable</Nullable>
+
+    <!-- Gjør at vanlige using-linjer legges til automatisk -->
     <ImplicitUsings>enable</ImplicitUsings>
+
   </PropertyGroup>
 
+
   <ItemGroup>
+
+    <!-- Gjør at filer i testmappen ikke blir en del av hovedprosjektet -->
     <Compile Remove="FirstWebAppInDocker.Tests/**" />
+
   </ItemGroup>
   
 </Project>

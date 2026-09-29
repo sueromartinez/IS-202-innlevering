@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\henri\\OneDrive\\Dokumenter\\GitHub\\IS-202-innlevering\\FirstWebAppInDocker.csproj": {}
+    "C:\\Users\\chris\\OneDrive\\Dokumenter\\github 202\\IS-202-innlevering\\FirstWebAppInDocker.csproj": {}
   },
   "projects": {
-    "C:\\Users\\henri\\OneDrive\\Dokumenter\\GitHub\\IS-202-innlevering\\FirstWebAppInDocker.csproj": {
+    "C:\\Users\\chris\\OneDrive\\Dokumenter\\github 202\\IS-202-innlevering\\FirstWebAppInDocker.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\henri\\OneDrive\\Dokumenter\\GitHub\\IS-202-innlevering\\FirstWebAppInDocker.csproj",
+        "projectUniqueName": "C:\\Users\\chris\\OneDrive\\Dokumenter\\github 202\\IS-202-innlevering\\FirstWebAppInDocker.csproj",
         "projectName": "FirstWebAppInDocker",
-        "projectPath": "C:\\Users\\henri\\OneDrive\\Dokumenter\\GitHub\\IS-202-innlevering\\FirstWebAppInDocker.csproj",
-        "packagesPath": "C:\\Users\\henri\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\henri\\OneDrive\\Dokumenter\\GitHub\\IS-202-innlevering\\obj\\",
+        "projectPath": "C:\\Users\\chris\\OneDrive\\Dokumenter\\github 202\\IS-202-innlevering\\FirstWebAppInDocker.csproj",
+        "packagesPath": "C:\\Users\\chris\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\chris\\OneDrive\\Dokumenter\\github 202\\IS-202-innlevering\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\henri\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\chris\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -46,7 +46,7 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.300"
+        "SdkAnalysisLevel": "10.0.400"
       },
       "frameworks": {
         "net10.0": {
@@ -71,7 +71,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.300/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.401/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.AspNetCore": "(,10.0.32767]",
             "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",
