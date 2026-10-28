@@ -1,0 +1,522 @@
+@using FirstWebAppInDocker.Models
+@model FirstWebAppInDocker.ViewModels.RegisterResourceViewModel
+
+@{
+    ViewData["Title"] = "Registrer ressurs";
+}
+
+<link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+
+<div class="resource-page">
+
+    <div class="resource-header">
+        <h1>Registrer ressurs</h1>
+
+        <p>
+            Registrer en ressurs som kan være tilgjengelig
+            ved en beredskapssituasjon.
+        </p>
+    </div>
+
+
+    <div class="resource-grid">
+
+        <!-- SKJEMA -->
+        <section class="resource-card">
+
+            <h2>Informasjon om ressursen</h2>
+
+            <form
+                asp-controller="Resource"
+                asp-action="RegisterResource"
+                method="post">
+
+                <div
+                    asp-validation-summary="ModelOnly"
+                    class="validation-message">
+                </div>
+
+
+                <!-- Ressurstype -->
+                <div class="form-group">
+
+                    <label asp-for="ResourceType"></label>
+
+                    <select
+                        asp-for="ResourceType"
+                        asp-items="Html.GetEnumSelectList<ResourceType>()"
+                        class="form-control">
+
+                        <option value="">
+                            Velg type ressurs
+                        </option>
+
+                    </select>
+
+                    <span
+                        asp-validation-for="ResourceType"
+                        class="validation-message">
+                    </span>
+
+                </div>
+
+
+                <!-- Beskrivelse -->
+                <div class="form-group">
+
+                    <label asp-for="Description"></label>
+
+                    <textarea
+                        asp-for="Description"
+                        class="form-control"
+                        rows="5"
+                        placeholder="Beskriv ressursen og hva den kan brukes til">
+                    </textarea>
+
+                    <span
+                        asp-validation-for="Description"
+                        class="validation-message">
+                    </span>
+
+                </div>
+
+
+                <!-- Kontakt-e-post -->
+                <div class="form-group">
+
+                    <label asp-for="ContactEmail"></label>
+
+                    <input
+                        asp-for="ContactEmail"
+                        class="form-control"
+                        placeholder="navn@eksempel.no"
+                    />
+
+                    <span
+                        asp-validation-for="ContactEmail"
+                        class="validation-message">
+                    </span>
+
+                </div>
+
+
+                <!-- Telefonnummer -->
+                <div class="form-group">
+
+                    <label>Telefonnummer</label>
+
+                    <div class="phone-row">
+
+                        <select
+                            asp-for="ContactPhoneCountryCode"
+                            class="country-code">
+
+                            <option value="+47">
+                                +47
+                            </option>
+
+                            <option value="+45">
+                                +45
+                            </option>
+
+                            <option value="+46">
+                                +46
+                            </option>
+
+                        </select>
+
+
+                        <input
+                            asp-for="ContactPhoneNumber"
+                            class="form-control"
+                            placeholder="12345678"
+                        />
+
+                    </div>
+
+                    <span
+                        asp-validation-for="ContactPhoneNumber"
+                        class="validation-message">
+                    </span>
+
+                </div>
+
+
+                <!-- Koordinater fra kart -->
+                <input
+                    asp-for="Latitude"
+                    type="hidden"
+                    id="Latitude"
+                />
+
+                <input
+                    asp-for="Longitude"
+                    type="hidden"
+                    id="Longitude"
+                />
+
+
+                <div class="selected-position">
+
+                    <strong>Valgt plassering:</strong>
+
+                    <span id="positionText">
+                        Ingen plassering valgt
+                    </span>
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="primary-button">
+
+                    Registrer ressurs
+
+                </button>
+
+            </form>
+
+        </section>
+
+
+        <!-- KART -->
+        <section class="resource-card map-card">
+
+            <h2>Velg plassering</h2>
+
+            <p>
+                Klikk i kartet for å angi hvor ressursen
+                befinner seg.
+            </p>
+
+            <div id="resourceMap"></div>
+
+        </section>
+
+    </div>
+
+</div>
+
+
+<style>
+
+    .resource-page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 32px 20px;
+    }
+
+
+    .resource-header {
+        margin-bottom: 28px;
+    }
+
+
+    .resource-header h1 {
+        color: #123047;
+        margin-bottom: 8px;
+    }
+
+
+    .resource-header p {
+        color: #667085;
+        margin: 0;
+    }
+
+
+    .resource-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        align-items: start;
+    }
+
+
+    .resource-card {
+        background: white;
+        border: 1px solid #dfe4e8;
+        border-radius: 12px;
+        padding: 24px;
+    }
+
+
+    .resource-card h2 {
+        color: #123047;
+        margin-top: 0;
+        margin-bottom: 20px;
+        font-size: 1.25rem;
+    }
+
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+
+    .form-group label {
+        display: block;
+        margin-bottom: 7px;
+        font-weight: 600;
+        color: #17212b;
+    }
+
+
+    .form-control,
+    .country-code {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid #d0d5dd;
+        border-radius: 8px;
+        padding: 11px 12px;
+        font: inherit;
+        background: white;
+    }
+
+
+    .form-control:focus,
+    .country-code:focus {
+        outline: 2px solid #176b87;
+        outline-offset: 1px;
+    }
+
+
+    textarea.form-control {
+        resize: vertical;
+    }
+
+
+    .phone-row {
+        display: grid;
+        grid-template-columns: 100px 1fr;
+        gap: 10px;
+    }
+
+
+    .validation-message {
+        display: block;
+        color: #c63d3d;
+        margin-top: 5px;
+        font-size: 0.9rem;
+    }
+
+
+    .selected-position {
+        background: #f4f6f8;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 20px;
+        color: #17212b;
+    }
+
+
+    .primary-button {
+        width: 100%;
+        border: none;
+        border-radius: 8px;
+        padding: 13px 18px;
+        background: #176b87;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+
+    .primary-button:hover {
+        background: #125770;
+    }
+
+
+    #resourceMap {
+        width: 100%;
+        height: 500px;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+
+    @@media (max-width: 800px) {
+
+        .resource-grid {
+            grid-template-columns: 1fr;
+        }
+
+
+        #resourceMap {
+            height: 350px;
+        }
+
+    }
+
+</style>
+
+
+<script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+</script>
+
+
+<script>
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
+
+            const latitudeInput =
+                document.getElementById("Latitude");
+
+            const longitudeInput =
+                document.getElementById("Longitude");
+
+            const positionText =
+                document.getElementById("positionText");
+
+
+            const defaultLatitude = 58.1467;
+            const defaultLongitude = 7.9956;
+
+
+            const map = L.map(
+                "resourceMap"
+            ).setView(
+                [
+                    defaultLatitude,
+                    defaultLongitude
+                ],
+                11
+            );
+
+
+            L.tileLayer(
+                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+                    maxZoom: 19,
+                    attribution:
+                        "&copy; OpenStreetMap"
+                }
+            ).addTo(map);
+
+
+            let marker = null;
+
+
+            /*
+             * Dersom skjemaet returneres etter
+             * valideringsfeil, behold valgt punkt.
+             */
+            const existingLatitude =
+                parseFloat(
+                    latitudeInput.value
+                );
+
+            const existingLongitude =
+                parseFloat(
+                    longitudeInput.value
+                );
+
+
+            if (
+                !Number.isNaN(existingLatitude)
+                &&
+                !Number.isNaN(existingLongitude)
+                &&
+                (
+                    existingLatitude !== 0
+                    ||
+                    existingLongitude !== 0
+                )
+            ) {
+
+                marker =
+                    L.marker(
+                        [
+                            existingLatitude,
+                            existingLongitude
+                        ]
+                    ).addTo(map);
+
+
+                map.setView(
+                    [
+                        existingLatitude,
+                        existingLongitude
+                    ],
+                    14
+                );
+
+
+                updatePositionText(
+                    existingLatitude,
+                    existingLongitude
+                );
+            }
+
+
+            map.on(
+                "click",
+                function (event) {
+
+                    const latitude =
+                        event.latlng.lat;
+
+                    const longitude =
+                        event.latlng.lng;
+
+
+                    latitudeInput.value =
+                        latitude;
+
+                    longitudeInput.value =
+                        longitude;
+
+
+                    if (marker === null) {
+
+                        marker =
+                            L.marker(
+                                [
+                                    latitude,
+                                    longitude
+                                ]
+                            ).addTo(map);
+
+                    }
+                    else {
+
+                        marker.setLatLng(
+                            [
+                                latitude,
+                                longitude
+                            ]
+                        );
+
+                    }
+
+
+                    updatePositionText(
+                        latitude,
+                        longitude
+                    );
+                }
+            );
+
+
+            function updatePositionText(
+                latitude,
+                longitude
+            ) {
+
+                positionText.textContent =
+                    latitude.toFixed(5)
+                    + ", "
+                    + longitude.toFixed(5);
+
+            }
+
+        }
+    );
+
+</script>

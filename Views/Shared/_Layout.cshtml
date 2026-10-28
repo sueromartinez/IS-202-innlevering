@@ -1,138 +1,171 @@
+@{
+    string? userEmail = Context.Session.GetString("UserEmail");
+    string? userRole = Context.Session.GetString("UserRole");
+
+    bool isLoggedIn = !string.IsNullOrWhiteSpace(userEmail);
+}
+
 <!DOCTYPE html>
-<html lang="en">
+
+<html lang="no">
+
 <head>
-    <link rel="stylesheet"
-          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIIN+..."
-          crossorigin="" />
 
     <meta charset="utf-8" />
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0" />
 
-    <title>@ViewData["Title"] - FirstWebAppInDocker</title>
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    />
 
-    <script type="importmap"></script>
+    <title>
+        @ViewData["Title"] - Beredskapsportal
+    </title>
 
-    <link rel="stylesheet"
-          href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link
+        rel="stylesheet"
+        href="~/css/site.css"
+        asp-append-version="true"
+    />
 
-    <link rel="stylesheet"
-          href="~/css/site.css"
-          asp-append-version="true" />
-
-    <link rel="stylesheet"
-          href="~/FirstWebAppInDocker.styles.css"
-          asp-append-version="true" />
 </head>
 
 <body>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kN..."
-            crossorigin="">
-    </script>
+    <header class="site-header">
 
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <div class="site-header-inner">
 
-            <div class="container-fluid">
+            <a
+                asp-controller="Home"
+                asp-action="Index"
+                class="site-logo">
 
-                <a class="navbar-brand"
-                   asp-area=""
-                   asp-controller="Home"
-                   asp-action="Index">
-                    FirstWebAppInDocker
-                </a>
+                <span class="site-logo-icon">
+                    ✓
+                </span>
 
-                <button class="navbar-toggler"
-                        type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target=".navbar-collapse"
-                        aria-controls="navbarSupportedContent"
-                        aria-expanded="false"
-                        aria-label="Toggle navigation">
+                <span class="site-logo-text">
 
-                    <span class="navbar-toggler-icon"></span>
+                    <strong>
+                        Beredskapsportal
+                    </strong>
 
-                </button>
+                    <small>
+                        TOTALFORSVARET
+                    </small>
 
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                </span>
 
-                    <ul class="navbar-nav flex-grow-1">
-
-                        <li class="nav-item">
-                            <a class="nav-link text-dark"
-                               asp-area=""
-                               asp-controller="Home"
-                               asp-action="Index">
-                                Home
-                            </a>
-                        </li>
-
-                        <li class="nav-item">
-                            <a class="nav-link text-dark"
-                               asp-area=""
-                               asp-controller="Home"
-                               asp-action="Privacy">
-                                Privacy
-                            </a>
-                        </li>
-
-                        <li class="nav-item">
-                            <a class="nav-link text-dark"
-                               asp-area=""
-                               asp-controller="Resource"
-                               asp-action="RegisterResource">
-                                Registrer ressurs
-                            </a>
-                        </li>
-
-                    </ul>
-
-                </div>
-
-            </div>
-
-        </nav>
-    </header>
-
-    <div class="container">
-
-        <main role="main"
-              class="pb-3">
-
-            @RenderBody()
-
-        </main>
-
-    </div>
-
-    <footer class="border-top footer text-muted">
-
-        <div class="container">
-
-            &copy; 2026 - FirstWebAppInDocker -
-
-            <a asp-area=""
-               asp-controller="Home"
-               asp-action="Privacy">
-                Privacy
             </a>
+
+
+            @if (!isLoggedIn)
+            {
+                <nav class="public-nav">
+
+                    <a href="/#howItWorks">
+                        Slik fungerer det
+                    </a>
+
+                    <a
+                        href="/#loginSection"
+                        class="nav-login-button">
+
+                        Logg inn
+
+                    </a>
+
+                </nav>
+            }
+            else
+            {
+                <nav class="logged-nav">
+
+                    <a
+                        asp-controller="Home"
+                        asp-action="Dashboard">
+
+                        Oversikt
+
+                    </a>
+
+
+                    @if (userRole == "ResourceProvider")
+                    {
+                        <a
+                            asp-controller="Resource"
+                            asp-action="RegisterResource">
+
+                            Registrer ressurs
+
+                        </a>
+
+                        <a
+                            asp-controller="Resource"
+                            asp-action="ResourceOverview">
+
+                            Mine ressurser
+
+                        </a>
+
+                        <a
+                            asp-controller="Account"
+                            asp-action="Profile">
+
+                            Profil
+
+                        </a>
+                    }
+
+
+                    @if (userRole == "PublicActor")
+                    {
+                        <a
+                            asp-controller="Resource"
+                            asp-action="ResourceOverview">
+
+                            Ressurser
+
+                        </a>
+                    }
+
+
+                    <form
+                        asp-controller="Account"
+                        asp-action="Logout"
+                        method="post">
+
+                        <button
+                            type="submit"
+                            class="nav-logout-button">
+
+                            Logg ut
+
+                        </button>
+
+                    </form>
+
+                </nav>
+            }
 
         </div>
 
-    </footer>
+    </header>
 
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
 
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <main>
 
-    <script src="~/js/site.js"
-            asp-append-version="true">
-    </script>
+        @RenderBody()
 
-    @await RenderSectionAsync("Scripts", required: false)
+    </main>
+
+
+    @await RenderSectionAsync(
+        "Scripts",
+        required: false
+    )
 
 </body>
+
 </html>

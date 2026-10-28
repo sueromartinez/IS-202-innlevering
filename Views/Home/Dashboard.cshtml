@@ -1,0 +1,842 @@
+@{
+    ViewData["Title"] = "Oversikt";
+
+    string? userName =
+        Context.Session.GetString("UserName");
+
+    string? userRole =
+        Context.Session.GetString("UserRole");
+
+    string displayName =
+        string.IsNullOrWhiteSpace(userName)
+            ? "bruker"
+            : userName;
+}
+
+
+@if (userRole == "ResourceProvider")
+{
+    <!-- =====================================
+         RESSURSLEVERANDØR
+         ===================================== -->
+
+    <section class="dashboard-page">
+
+        <div class="dashboard-container">
+
+            <!-- TOPP -->
+            <div class="dashboard-welcome">
+
+                <div>
+
+                    <span class="dashboard-label">
+                        Ressursleverandør
+                    </span>
+
+                    <h1>
+                        Hei, @displayName
+                    </h1>
+
+                    <p>
+                        Her kan du registrere ressurser du kan
+                        stille til disposisjon og holde oversikt
+                        over det du allerede har registrert.
+                    </p>
+
+                </div>
+
+                <a
+                    asp-controller="Resource"
+                    asp-action="RegisterResource"
+                    class="dashboard-primary-button">
+
+                    + Registrer ressurs
+
+                </a>
+
+            </div>
+
+
+            <!-- SNARVEIER -->
+            <div class="dashboard-section-heading">
+
+                <div>
+                    <span class="dashboard-label">
+                        Kom i gang
+                    </span>
+
+                    <h2>
+                        Hva vil du gjøre?
+                    </h2>
+                </div>
+
+            </div>
+
+
+            <div class="dashboard-actions">
+
+                <a
+                    asp-controller="Resource"
+                    asp-action="RegisterResource"
+                    class="dashboard-action-card">
+
+                    <div class="action-icon">
+                        +
+                    </div>
+
+                    <div>
+                        <h3>
+                            Registrer ressurs
+                        </h3>
+
+                        <p>
+                            Legg inn transport, maskiner,
+                            lokaler, utstyr eller andre
+                            ressurser.
+                        </p>
+
+                        <span class="action-link">
+                            Registrer nå →
+                        </span>
+                    </div>
+
+                </a>
+
+
+                <a
+                    asp-controller="Resource"
+                    asp-action="ResourceOverview"
+                    class="dashboard-action-card">
+
+                    <div class="action-icon">
+                        ◎
+                    </div>
+
+                    <div>
+                        <h3>
+                            Mine ressurser
+                        </h3>
+
+                        <p>
+                            Se ressursene du allerede har
+                            registrert og hvor de befinner seg.
+                        </p>
+
+                        <span class="action-link">
+                            Se oversikt →
+                        </span>
+                    </div>
+
+                </a>
+
+
+                <a
+                    asp-controller="Account"
+                    asp-action="Profile"
+                    class="dashboard-action-card">
+
+                    <div class="action-icon">
+                        ○
+                    </div>
+
+                    <div>
+                        <h3>
+                            Min profil
+                        </h3>
+
+                        <p>
+                            Se og oppdater kontaktinformasjonen
+                            som brukes i portalen.
+                        </p>
+
+                        <span class="action-link">
+                            Åpne profil →
+                        </span>
+                    </div>
+
+                </a>
+
+            </div>
+
+
+            <!-- INFORMASJON -->
+            <section class="dashboard-info-section">
+
+                <div class="dashboard-info-content">
+
+                    <span class="dashboard-label dashboard-label-light">
+                        Ditt bidrag betyr noe
+                    </span>
+
+                    <h2>
+                        Ressurser som allerede finnes
+                        kan gjøre en forskjell.
+                    </h2>
+
+                    <p>
+                        Ved å registrere tilgjengelige ressurser
+                        på forhånd kan offentlige aktører raskere
+                        få oversikt dersom en beredskapssituasjon
+                        oppstår.
+                    </p>
+
+                </div>
+
+
+                <div class="dashboard-info-steps">
+
+                    <div class="info-step">
+
+                        <span>01</span>
+
+                        <div>
+                            <strong>
+                                Registrer
+                            </strong>
+
+                            <p>
+                                Beskriv ressursen og marker
+                                plasseringen i kartet.
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <div class="info-step">
+
+                        <span>02</span>
+
+                        <div>
+                            <strong>
+                                Hold oversikt
+                            </strong>
+
+                            <p>
+                                Ressursene dine samles på
+                                ett sted.
+                            </p>
+                        </div>
+
+                    </div>
+
+
+                    <div class="info-step">
+
+                        <span>03</span>
+
+                        <div>
+                            <strong>
+                                Bidra
+                            </strong>
+
+                            <p>
+                                Offentlige aktører kan finne
+                                tilgjengelige ressurser.
+                            </p>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+        </div>
+
+    </section>
+}
+else if (userRole == "PublicActor")
+{
+    <!-- =====================================
+         OFFENTLIG AKTØR
+         ===================================== -->
+
+    <section class="dashboard-page">
+
+        <div class="dashboard-container">
+
+            <div class="dashboard-welcome">
+
+                <div>
+
+                    <span class="dashboard-label">
+                        Offentlig aktør
+                    </span>
+
+                    <h1>
+                        Beredskapsoversikt
+                    </h1>
+
+                    <p>
+                        Få oversikt over registrerte ressurser
+                        som kan være tilgjengelige ved en
+                        beredskapssituasjon.
+                    </p>
+
+                </div>
+
+                <a
+                    asp-controller="Resource"
+                    asp-action="ResourceOverview"
+                    class="dashboard-primary-button">
+
+                    Se ressurser
+
+                </a>
+
+            </div>
+
+
+            <div class="dashboard-section-heading">
+
+                <div>
+                    <span class="dashboard-label">
+                        Operativ oversikt
+                    </span>
+
+                    <h2>
+                        Tilgjengelige funksjoner
+                    </h2>
+                </div>
+
+            </div>
+
+
+            <div class="public-dashboard-grid">
+
+                <a
+                    asp-controller="Resource"
+                    asp-action="ResourceOverview"
+                    class="dashboard-action-card">
+
+                    <div class="action-icon">
+                        ◎
+                    </div>
+
+                    <div>
+
+                        <h3>
+                            Ressursoversikt
+                        </h3>
+
+                        <p>
+                            Se registrerte ressurser og
+                            geografisk plassering i kart.
+                        </p>
+
+                        <span class="action-link">
+                            Åpne ressursoversikt →
+                        </span>
+
+                    </div>
+
+                </a>
+
+
+                <div class="dashboard-status-card">
+
+                    <span class="status-indicator"></span>
+
+                    <div>
+
+                        <strong>
+                            System tilgjengelig
+                        </strong>
+
+                        <p>
+                            Beredskapsportalen er klar for
+                            registrering og oversikt.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+}
+else
+{
+    <section class="dashboard-page">
+
+        <div class="dashboard-container">
+
+            <div class="dashboard-empty">
+
+                <h1>
+                    Ingen rolle funnet
+                </h1>
+
+                <p>
+                    Logg ut og inn igjen for å fortsette.
+                </p>
+
+            </div>
+
+        </div>
+
+    </section>
+}
+
+
+<style>
+
+    .dashboard-page {
+        min-height: calc(100vh - 140px);
+        background: #f4f6f8;
+        padding: 58px 20px 80px;
+    }
+
+
+    .dashboard-container {
+        width: min(1160px, 100%);
+        margin: 0 auto;
+    }
+
+
+    /* =========================
+       WELCOME
+       ========================= */
+
+    .dashboard-welcome {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 30px;
+
+        margin-bottom: 65px;
+    }
+
+
+    .dashboard-label {
+        display: inline-block;
+
+        margin-bottom: 10px;
+
+        color: #176b87;
+
+        font-size: 0.76rem;
+        font-weight: 700;
+
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+    }
+
+
+    .dashboard-welcome h1 {
+        margin: 0 0 14px;
+
+        color: #123047;
+
+        font-size: clamp(
+            2.2rem,
+            5vw,
+            3.8rem
+        );
+
+        line-height: 1;
+
+        letter-spacing: -0.045em;
+    }
+
+
+    .dashboard-welcome p {
+        max-width: 680px;
+
+        margin: 0;
+
+        color: #667085;
+
+        font-size: 1rem;
+        line-height: 1.7;
+    }
+
+
+    .dashboard-primary-button {
+        flex: 0 0 auto;
+
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        min-height: 48px;
+
+        padding: 0 20px;
+
+        border-radius: 8px;
+
+        background: #176b87;
+
+        color: white;
+
+        text-decoration: none;
+
+        font-weight: 650;
+    }
+
+
+    .dashboard-primary-button:hover {
+        background: #125770;
+        color: white;
+    }
+
+
+    /* =========================
+       SECTIONS
+       ========================= */
+
+    .dashboard-section-heading {
+        margin-bottom: 22px;
+    }
+
+
+    .dashboard-section-heading h2 {
+        margin: 0;
+
+        color: #123047;
+
+        font-size: 1.8rem;
+
+        letter-spacing: -0.025em;
+    }
+
+
+    /* =========================
+       ACTION CARDS
+       ========================= */
+
+    .dashboard-actions {
+        display: grid;
+
+        grid-template-columns:
+            repeat(3, 1fr);
+
+        gap: 18px;
+
+        margin-bottom: 70px;
+    }
+
+
+    .dashboard-action-card {
+        min-height: 260px;
+
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+
+        padding: 25px;
+
+        border: 1px solid #dfe4e8;
+        border-radius: 12px;
+
+        background: white;
+
+        color: inherit;
+
+        text-decoration: none;
+
+        transition:
+            transform 0.16s ease,
+            border-color 0.16s ease,
+            box-shadow 0.16s ease;
+    }
+
+
+    .dashboard-action-card:hover {
+        transform: translateY(-3px);
+
+        border-color: #bdd2db;
+
+        box-shadow:
+            0 15px 35px
+            rgba(18, 48, 71, 0.08);
+
+        color: inherit;
+    }
+
+
+    .action-icon {
+        width: 44px;
+        height: 44px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        margin-bottom: 30px;
+
+        border-radius: 9px;
+
+        background: #e8f2f5;
+
+        color: #176b87;
+
+        font-size: 1.3rem;
+        font-weight: 700;
+    }
+
+
+    .dashboard-action-card h3 {
+        margin: 0 0 9px;
+
+        color: #123047;
+
+        font-size: 1.15rem;
+    }
+
+
+    .dashboard-action-card p {
+        margin: 0 0 22px;
+
+        color: #667085;
+
+        line-height: 1.6;
+    }
+
+
+    .action-link {
+        color: #176b87;
+
+        font-size: 0.9rem;
+        font-weight: 650;
+    }
+
+
+    /* =========================
+       INFO SECTION
+       ========================= */
+
+    .dashboard-info-section {
+        display: grid;
+
+        grid-template-columns:
+            1fr 1fr;
+
+        gap: 70px;
+
+        padding: 48px;
+
+        border-radius: 14px;
+
+        background: #123047;
+    }
+
+
+    .dashboard-label-light {
+        color: #65b3ca;
+    }
+
+
+    .dashboard-info-content h2 {
+        max-width: 520px;
+
+        margin: 0 0 18px;
+
+        color: white;
+
+        font-size: clamp(
+            1.9rem,
+            4vw,
+            2.8rem
+        );
+
+        line-height: 1.08;
+
+        letter-spacing: -0.035em;
+    }
+
+
+    .dashboard-info-content p {
+        margin: 0;
+
+        color: #b7c6cf;
+
+        line-height: 1.7;
+    }
+
+
+    .dashboard-info-steps {
+        display: flex;
+        flex-direction: column;
+
+        gap: 18px;
+    }
+
+
+    .info-step {
+        display: flex;
+
+        gap: 15px;
+
+        padding-bottom: 18px;
+
+        border-bottom:
+            1px solid
+            rgba(255, 255, 255, 0.10);
+    }
+
+
+    .info-step:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+    }
+
+
+    .info-step > span {
+        color: #65b3ca;
+
+        font-size: 0.74rem;
+        font-weight: 700;
+
+        padding-top: 3px;
+    }
+
+
+    .info-step strong {
+        color: white;
+    }
+
+
+    .info-step p {
+        margin: 4px 0 0;
+
+        color: #9fb1bc;
+
+        font-size: 0.87rem;
+        line-height: 1.5;
+    }
+
+
+    /* =========================
+       PUBLIC ACTOR
+       ========================= */
+
+    .public-dashboard-grid {
+        display: grid;
+
+        grid-template-columns:
+            minmax(0, 2fr)
+            minmax(280px, 1fr);
+
+        gap: 18px;
+    }
+
+
+    .dashboard-status-card {
+        display: flex;
+        align-items: flex-start;
+
+        gap: 12px;
+
+        padding: 25px;
+
+        border: 1px solid #dfe4e8;
+        border-radius: 12px;
+
+        background: white;
+    }
+
+
+    .status-indicator {
+        flex: 0 0 auto;
+
+        width: 10px;
+        height: 10px;
+
+        margin-top: 5px;
+
+        border-radius: 50%;
+
+        background: #23855b;
+    }
+
+
+    .dashboard-status-card strong {
+        color: #123047;
+    }
+
+
+    .dashboard-status-card p {
+        margin: 6px 0 0;
+
+        color: #667085;
+
+        line-height: 1.5;
+    }
+
+
+    .dashboard-empty {
+        padding: 60px;
+
+        border: 1px solid #dfe4e8;
+        border-radius: 12px;
+
+        background: white;
+
+        text-align: center;
+    }
+
+
+    .dashboard-empty h1 {
+        color: #123047;
+    }
+
+
+    /* =========================
+       MOBILE
+       ========================= */
+
+    @@media (max-width: 850px) {
+
+        .dashboard-welcome {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+
+        .dashboard-actions {
+            grid-template-columns: 1fr;
+        }
+
+
+        .dashboard-action-card {
+            min-height: auto;
+        }
+
+
+        .dashboard-info-section {
+            grid-template-columns: 1fr;
+
+            gap: 40px;
+
+            padding: 30px;
+        }
+
+
+        .public-dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+
+    }
+
+
+    @@media (max-width: 550px) {
+
+        .dashboard-page {
+            padding:
+                40px 16px
+                60px;
+        }
+
+
+        .dashboard-primary-button {
+            width: 100%;
+        }
+
+    }
+
+</style>

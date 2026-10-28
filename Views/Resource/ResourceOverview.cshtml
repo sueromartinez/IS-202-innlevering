@@ -1,0 +1,528 @@
+@model IEnumerable<FirstWebAppInDocker.Models.PositionModel>
+
+@{
+    ViewData["Title"] = "Ressursoversikt";
+}
+
+<link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+
+<div class="overview-page">
+
+    <div class="overview-header">
+        <div>
+            <h1>Ressursoversikt</h1>
+
+            <p>
+                Oversikt over registrerte ressurser
+                og hvor de befinner seg.
+            </p>
+        </div>
+
+        <a
+            asp-controller="Resource"
+            asp-action="RegisterResource"
+            class="primary-button">
+
+            Registrer ressurs
+        </a>
+    </div>
+
+
+    @if (!Model.Any())
+    {
+        <section class="empty-state">
+
+            <h2>Ingen ressurser registrert</h2>
+
+            <p>
+                Det finnes ingen ressurser å vise ennå.
+            </p>
+
+            <a
+                asp-controller="Resource"
+                asp-action="RegisterResource"
+                class="primary-button">
+
+                Registrer første ressurs
+            </a>
+
+        </section>
+    }
+    else
+    {
+        <div class="overview-grid">
+
+            <!-- RESSURSLISTE -->
+            <section class="resource-list-card">
+
+                <div class="section-heading">
+                    <h2>Ressurser</h2>
+
+                    <span class="resource-count">
+                        @Model.Count()
+                    </span>
+                </div>
+
+
+                <div class="resource-list">
+
+                    @foreach (var resource in Model)
+                    {
+                        <article class="resource-item">
+
+                            <div class="resource-item-header">
+
+                                <h3>
+                                    @resource.ResourceType
+                                </h3>
+
+                            </div>
+
+
+                            <p class="resource-description">
+                                @resource.Description
+                            </p>
+
+
+                            <dl class="resource-details">
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                    resource.ContactEmail
+                                ))
+                                {
+                                    <div>
+                                        <dt>E-post</dt>
+
+                                        <dd>
+                                            @resource.ContactEmail
+                                        </dd>
+                                    </div>
+                                }
+
+
+                                @if (!string.IsNullOrWhiteSpace(
+                                    resource.ContactPhoneNumber
+                                ))
+                                {
+                                    <div>
+                                        <dt>Telefon</dt>
+
+                                        <dd>
+                                            @resource.ContactPhoneCountryCode
+                                            @resource.ContactPhoneNumber
+                                        </dd>
+                                    </div>
+                                }
+
+
+                                <div>
+                                    <dt>Posisjon</dt>
+
+                                    <dd>
+                                        @resource.Position.Latitude.ToString("F5"),
+                                        @resource.Position.Longitude.ToString("F5")
+                                    </dd>
+                                </div>
+
+                            </dl>
+
+
+                            <button
+                                type="button"
+                                class="map-focus-button"
+                                data-latitude="@resource.Position.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                data-longitude="@resource.Position.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+
+                                Vis i kart
+
+                            </button>
+
+                        </article>
+                    }
+
+                </div>
+
+            </section>
+
+
+            <!-- KART -->
+            <section class="map-card">
+
+                <div class="section-heading">
+                    <h2>Kart</h2>
+                </div>
+
+                <div id="resourceOverviewMap"></div>
+
+            </section>
+
+        </div>
+    }
+
+</div>
+
+
+<style>
+
+    .overview-page {
+        max-width: 1250px;
+        margin: 0 auto;
+        padding: 32px 20px;
+    }
+
+
+    .overview-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 28px;
+    }
+
+
+    .overview-header h1 {
+        margin: 0 0 8px;
+        color: #123047;
+    }
+
+
+    .overview-header p {
+        margin: 0;
+        color: #667085;
+    }
+
+
+    .primary-button {
+        display: inline-block;
+        padding: 12px 18px;
+        border-radius: 8px;
+        background: #176b87;
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+
+    .primary-button:hover {
+        background: #125770;
+        color: white;
+    }
+
+
+    .overview-grid {
+        display: grid;
+        grid-template-columns: 430px 1fr;
+        gap: 24px;
+        align-items: start;
+    }
+
+
+    .resource-list-card,
+    .map-card,
+    .empty-state {
+        background: white;
+        border: 1px solid #dfe4e8;
+        border-radius: 12px;
+        padding: 22px;
+    }
+
+
+    .section-heading {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+
+    .section-heading h2 {
+        margin: 0;
+        color: #123047;
+        font-size: 1.25rem;
+    }
+
+
+    .resource-count {
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        min-width: 28px;
+        height: 28px;
+        padding: 0 8px;
+        border-radius: 999px;
+        background: #f4f6f8;
+        color: #667085;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+
+    .resource-list {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        max-height: 650px;
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+
+
+    .resource-item {
+        border: 1px solid #dfe4e8;
+        border-radius: 10px;
+        padding: 16px;
+    }
+
+
+    .resource-item-header h3 {
+        margin: 0 0 10px;
+        color: #123047;
+        font-size: 1.05rem;
+    }
+
+
+    .resource-description {
+        color: #17212b;
+        margin: 0 0 14px;
+        line-height: 1.5;
+    }
+
+
+    .resource-details {
+        margin: 0 0 14px;
+    }
+
+
+    .resource-details div {
+        margin-bottom: 8px;
+    }
+
+
+    .resource-details dt {
+        color: #667085;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+
+    .resource-details dd {
+        margin: 2px 0 0;
+        color: #17212b;
+    }
+
+
+    .map-focus-button {
+        border: 1px solid #176b87;
+        background: white;
+        color: #176b87;
+        border-radius: 7px;
+        padding: 8px 12px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+
+    .map-focus-button:hover {
+        background: #f4f6f8;
+    }
+
+
+    #resourceOverviewMap {
+        width: 100%;
+        height: 650px;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 25px;
+    }
+
+
+    .empty-state h2 {
+        color: #123047;
+        margin-top: 0;
+    }
+
+
+    .empty-state p {
+        color: #667085;
+        margin-bottom: 24px;
+    }
+
+
+    @@media (max-width: 900px) {
+
+        .overview-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+
+        .overview-grid {
+            grid-template-columns: 1fr;
+        }
+
+
+        .resource-list {
+            max-height: none;
+        }
+
+
+        #resourceOverviewMap {
+            height: 420px;
+        }
+
+    }
+
+</style>
+
+
+@if (Model.Any())
+{
+    <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+    </script>
+
+
+    <script>
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            function () {
+
+                const defaultLatitude = 58.1467;
+                const defaultLongitude = 7.9956;
+
+
+                const map =
+                    L.map(
+                        "resourceOverviewMap"
+                    ).setView(
+                        [
+                            defaultLatitude,
+                            defaultLongitude
+                        ],
+                        10
+                    );
+
+
+                L.tileLayer(
+                    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                    {
+                        maxZoom: 19,
+                        attribution:
+                            "&copy; OpenStreetMap"
+                    }
+                ).addTo(map);
+
+
+                const markers = [];
+
+
+                @foreach (var resource in Model)
+                {
+                    var latitude =
+                        resource.Position.Latitude
+                            .ToString(
+                                System.Globalization.CultureInfo.InvariantCulture
+                            );
+
+                    var longitude =
+                        resource.Position.Longitude
+                            .ToString(
+                                System.Globalization.CultureInfo.InvariantCulture
+                            );
+
+                    <text>
+
+                        {
+                            const marker =
+                                L.marker(
+                                    [
+                                        @latitude,
+                                        @longitude
+                                    ]
+                                ).addTo(map);
+
+
+                            marker.bindPopup(
+                                @Html.Raw(
+                                    System.Text.Json.JsonSerializer.Serialize(
+                                        $"{resource.ResourceType}: {resource.Description}"
+                                    )
+                                )
+                            );
+
+
+                            markers.push(
+                                marker
+                            );
+                        }
+
+                    </text>
+                }
+
+
+                if (markers.length > 0) {
+
+                    const group =
+                        L.featureGroup(
+                            markers
+                        );
+
+
+                    map.fitBounds(
+                        group.getBounds().pad(0.2)
+                    );
+
+                }
+
+
+                document
+                    .querySelectorAll(
+                        ".map-focus-button"
+                    )
+                    .forEach(
+                        function (button) {
+
+                            button.addEventListener(
+                                "click",
+                                function () {
+
+                                    const latitude =
+                                        parseFloat(
+                                            button.dataset.latitude
+                                        );
+
+                                    const longitude =
+                                        parseFloat(
+                                            button.dataset.longitude
+                                        );
+
+
+                                    map.setView(
+                                        [
+                                            latitude,
+                                            longitude
+                                        ],
+                                        15
+                                    );
+
+                                }
+                            );
+
+                        }
+                    );
+
+            }
+        );
+
+    </script>
+}

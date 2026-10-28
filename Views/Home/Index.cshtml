@@ -1,8 +1,753 @@
+@model FirstWebAppInDocker.ViewModels.LoginViewModel
+
 @{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Forside";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+
+<!-- =========================================
+     HERO
+     ========================================= -->
+
+<section class="hero-section">
+
+    <div class="hero-decoration"></div>
+
+
+    <div class="hero-content">
+
+        <div class="hero-eyebrow">
+
+            <span></span>
+
+            SAMMEN FOR ET TRYGGERE NORGE
+
+        </div>
+
+
+        <h1>
+
+            Gjør en forskjell
+
+            <span>
+                når det virkelig gjelder.
+            </span>
+
+        </h1>
+
+
+        <p class="hero-description">
+
+            Har du utstyr, kompetanse eller kapasitet som
+            kan være nyttig når samfunnet blir satt på prøve?
+            Registrer det du kan bidra med.
+
+        </p>
+
+
+        <div class="hero-buttons">
+
+            <button
+                type="button"
+                id="contributeButton"
+                class="primary-cta">
+
+                Jeg vil bidra
+
+                <span>
+                    →
+                </span>
+
+            </button>
+
+
+            <a
+                href="#howItWorks"
+                class="secondary-cta">
+
+                Slik fungerer det
+
+            </a>
+
+        </div>
+
+
+        <div class="hero-audience">
+
+            <span>
+                ✓ Privatpersoner
+            </span>
+
+            <span>
+                ✓ Virksomheter
+            </span>
+
+            <span>
+                ✓ Frivillige organisasjoner
+            </span>
+
+        </div>
+
+
+        <div class="resource-preview">
+
+            <div class="resource-preview-card">
+
+                <span class="resource-preview-icon">
+                    T
+                </span>
+
+                <div>
+
+                    <strong>
+                        Transport
+                    </strong>
+
+                    <small>
+                        Bil, båt eller traktor
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <div class="resource-preview-card">
+
+                <span class="resource-preview-icon green">
+                    A
+                </span>
+
+                <div>
+
+                    <strong>
+                        Aggregat
+                    </strong>
+
+                    <small>
+                        Strøm ved bortfall
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <div class="resource-preview-card">
+
+                <span class="resource-preview-icon">
+                    M
+                </span>
+
+                <div>
+
+                    <strong>
+                        Maskiner
+                    </strong>
+
+                    <small>
+                        Utstyr og arbeidsmaskiner
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <div class="resource-preview-card">
+
+                <span class="resource-preview-icon green">
+                    K
+                </span>
+
+                <div>
+
+                    <strong>
+                        Kompetanse
+                    </strong>
+
+                    <small>
+                        Erfaring og personell
+                    </small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+
+<!-- =========================================
+     TRE STEG
+     ========================================= -->
+
+<section
+    class="steps-section"
+    id="howItWorks">
+
+    <div class="section-container">
+
+
+        <div class="section-heading centered">
+
+            <span class="section-kicker">
+                SLIK FUNGERER DET
+            </span>
+
+            <h2>
+                Tre enkle steg.
+            </h2>
+
+            <p>
+                Du trenger ikke kjenne hele systemet.
+                Registrering skal være raskt og enkelt.
+            </p>
+
+        </div>
+
+
+        <div class="steps-list">
+
+
+            <article class="step-row">
+
+                <span class="step-number">
+                    01
+                </span>
+
+                <div>
+
+                    <h3>
+                        Registrer ressursen
+                    </h3>
+
+                    <p>
+                        Fortell hva du kan bidra med og
+                        hvor ressursen befinner seg.
+                    </p>
+
+                </div>
+
+            </article>
+
+
+            <article class="step-row">
+
+                <span class="step-number">
+                    02
+                </span>
+
+                <div>
+
+                    <h3>
+                        Gjør den tilgjengelig
+                    </h3>
+
+                    <p>
+                        Ressursen blir tilgjengelig for
+                        relevante offentlige aktører.
+                    </p>
+
+                </div>
+
+            </article>
+
+
+            <article class="step-row">
+
+                <span class="step-number">
+                    03
+                </span>
+
+                <div>
+
+                    <h3>
+                        Bidra ved behov
+                    </h3>
+
+                    <p>
+                        Når et behov oppstår blir det enklere
+                        å finne riktig ressurs raskt.
+                    </p>
+
+                </div>
+
+            </article>
+
+
+        </div>
+
+    </div>
+
+</section>
+
+
+
+<!-- =========================================
+     FELLES BEREDSKAP
+     ========================================= -->
+
+<section class="community-wrapper">
+
+    <div class="community-card">
+
+        <div class="community-top">
+
+            <span class="community-kicker">
+                SAMMEN STÅR VI STERKERE
+            </span>
+
+
+            <h2>
+                Din ressurs kan være
+                akkurat det noen trenger.
+            </h2>
+
+
+            <p>
+                En person kan bidra med litt.
+                En virksomhet kan bidra med noe annet.
+                Samlet kan det gjøre samfunnet bedre rustet.
+            </p>
+
+
+            <strong>
+                Sammen for et tryggere Norge.
+            </strong>
+
+        </div>
+
+
+        <div class="community-visual">
+
+            <div class="orbit">
+
+                <span class="orbit-point top"></span>
+                <span class="orbit-point right"></span>
+                <span class="orbit-point bottom"></span>
+                <span class="orbit-point left"></span>
+
+
+                <div class="orbit-center">
+
+                    Felles
+                    <br />
+                    beredskap
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+
+<!-- =========================================
+     LOGIN / REGISTER
+     ========================================= -->
+
+<section
+    class="login-section"
+    id="loginSection">
+
+    <div class="login-section-inner">
+
+
+        <div class="login-heading">
+
+            <span class="section-kicker">
+                BEREDSKAPSPORTAL
+            </span>
+
+            <h2>
+                Klar til å gjøre en forskjell?
+            </h2>
+
+            <p>
+                Logg inn hvis du allerede har en bruker,
+                eller opprett en ny bruker for å registrere
+                ressurser du kan bidra med.
+            </p>
+
+
+            <div class="prepared-message">
+
+                Det vi har sammen, gjør oss bedre rustet.
+
+            </div>
+
+        </div>
+
+
+
+        <div class="login-card">
+
+
+            <div class="auth-tabs">
+
+                <button
+                    type="button"
+                    class="auth-tab active"
+                    data-tab="login">
+
+                    Logg inn
+
+                </button>
+
+
+                <button
+                    type="button"
+                    class="auth-tab"
+                    data-tab="register">
+
+                    Registrer bruker
+
+                </button>
+
+            </div>
+
+
+
+            <!-- LOGIN -->
+
+            <div
+                class="auth-panel active"
+                id="loginPanel">
+
+
+                <span class="auth-kicker">
+                    LOGG INN
+                </span>
+
+
+                <h3>
+                    Velkommen tilbake
+                </h3>
+
+
+                @if (TempData["LoginError"] != null)
+                {
+                    <div class="auth-error">
+
+                        @TempData["LoginError"]
+
+                    </div>
+                }
+
+
+                <form
+                    asp-controller="Account"
+                    asp-action="Login"
+                    method="post">
+
+
+                    <div class="form-group">
+
+                        <label asp-for="Email">
+                            E-post
+                        </label>
+
+                        <input
+                            asp-for="Email"
+                            placeholder="navn@eksempel.no"
+                        />
+
+                        <span
+                            asp-validation-for="Email"
+                            class="validation-message">
+                        </span>
+
+                    </div>
+
+
+
+                    <div class="form-group">
+
+                        <label asp-for="Password">
+                            Passord
+                        </label>
+
+                        <input
+                            asp-for="Password"
+                            placeholder="Skriv inn passord"
+                        />
+
+                        <span
+                            asp-validation-for="Password"
+                            class="validation-message">
+                        </span>
+
+                    </div>
+
+
+
+                    <button
+                        type="submit"
+                        class="login-submit">
+
+                        Logg inn
+
+                    </button>
+
+                </form>
+
+
+                <div class="login-divider">
+
+                    <span>
+                        eller
+                    </span>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="demo-login-button">
+
+                    Fortsett som offentlig testbruker
+
+                </button>
+
+            </div>
+
+
+
+            <!-- REGISTER -->
+
+            <div
+                class="auth-panel"
+                id="registerPanel">
+
+
+                <span class="auth-kicker">
+                    NY BRUKER
+                </span>
+
+
+                <h3>
+                    Registrer deg
+                </h3>
+
+
+                <p class="register-description">
+
+                    Velg hvordan du ønsker å bruke
+                    Beredskapsportalen.
+
+                </p>
+
+
+                <button
+                    type="button"
+                    class="registration-option">
+
+                    <span class="registration-icon">
+                        R
+                    </span>
+
+                    <span>
+
+                        <strong>
+                            Ressursleverandør
+                        </strong>
+
+                        <small>
+                            Privatperson, virksomhet,
+                            bonde, entreprenør eller
+                            frivillig organisasjon.
+                        </small>
+
+                    </span>
+
+                </button>
+
+
+
+                <button
+                    type="button"
+                    class="registration-option">
+
+                    <span class="registration-icon">
+                        O
+                    </span>
+
+                    <span>
+
+                        <strong>
+                            Offentlig aktør
+                        </strong>
+
+                        <small>
+                            Kommune, politi, helse,
+                            brann eller annen offentlig
+                            beredskapsaktør.
+                        </small>
+
+                    </span>
+
+                </button>
+
+
+                <div class="registration-info">
+
+                    Brukerregistrering kobles til
+                    ASP.NET Core Identity.
+
+                </div>
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+</section>
+
+
+
+<footer class="landing-footer">
+
+    <strong>
+        Beredskapsportal
+    </strong>
+
+    <span>
+        Sammen for et tryggere Norge.
+    </span>
+
+</footer>
+
+
+
+@section Scripts {
+
+    <script>
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            function () {
+
+                const tabs =
+                    document.querySelectorAll(
+                        ".auth-tab"
+                    );
+
+                const loginPanel =
+                    document.getElementById(
+                        "loginPanel"
+                    );
+
+                const registerPanel =
+                    document.getElementById(
+                        "registerPanel"
+                    );
+
+                const contributeButton =
+                    document.getElementById(
+                        "contributeButton"
+                    );
+
+
+                function showLogin() {
+
+                    loginPanel.classList.add(
+                        "active"
+                    );
+
+                    registerPanel.classList.remove(
+                        "active"
+                    );
+
+                    tabs[0].classList.add(
+                        "active"
+                    );
+
+                    tabs[1].classList.remove(
+                        "active"
+                    );
+
+                }
+
+
+                function showRegister() {
+
+                    registerPanel.classList.add(
+                        "active"
+                    );
+
+                    loginPanel.classList.remove(
+                        "active"
+                    );
+
+                    tabs[1].classList.add(
+                        "active"
+                    );
+
+                    tabs[0].classList.remove(
+                        "active"
+                    );
+
+                }
+
+
+                tabs.forEach(
+                    function (tab) {
+
+                        tab.addEventListener(
+                            "click",
+                            function () {
+
+                                if (
+                                    tab.dataset.tab
+                                    === "login"
+                                ) {
+                                    showLogin();
+                                }
+                                else {
+                                    showRegister();
+                                }
+
+                            }
+                        );
+
+                    }
+                );
+
+
+                contributeButton.addEventListener(
+                    "click",
+                    function () {
+
+                        showRegister();
+
+                        document
+                            .getElementById(
+                                "loginSection"
+                            )
+                            .scrollIntoView(
+                                {
+                                    behavior:
+                                        "smooth"
+                                }
+                            );
+
+                    }
+                );
+
+            }
+        );
+
+    </script>
+
+}
