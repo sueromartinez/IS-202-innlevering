@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("FirstWebAppInDocker")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e137bee50e30762d3fa4d4fdf728a067e50eaef3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2edda1c3fb00d0cd79f06df8e85afdfb64ce4157")]
 [assembly: System.Reflection.AssemblyProductAttribute("FirstWebAppInDocker")]
 [assembly: System.Reflection.AssemblyTitleAttribute("FirstWebAppInDocker")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
