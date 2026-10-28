@@ -1,58 +1,111 @@
-// Gir tilgang til attributter som Required og Display.
-// Disse brukes til validering og visningsnavn i skjemaer.
 using System.ComponentModel.DataAnnotations;
 
-// Samler modellklassene under prosjektets Models-navnerom.
-namespace FirstWebAppInDocker.Models
+namespace FirstWebAppInDocker.Models;
+
+/// <summary>
+/// Representerer en ressursposisjon som brukes
+/// mellom controller, view og kartvisning.
+/// </summary>
+public class PositionModel
 {
-    // Modellen beskriver en ressurs med beskrivelse,
-    // geografisk posisjon og eventuell kontaktinformasjon.
-    public class PositionModel
-    {
-        // Gjør feltet obligatorisk og viser denne feilmeldingen
-        // dersom brukeren ikke skriver inn en ressurstype.
-        [Required(ErrorMessage = "Du må skrive inn type ressurs")]
+    /// <summary>
+    /// Type ressurs.
+    /// </summary>
+    [Required(
+        ErrorMessage = "Du må velge type ressurs"
+    )]
+    [Display(
+        Name = "Type ressurs"
+    )]
+    public ResourceType? ResourceType { get; init; }
 
-        // Navnet som brukes når skjemaet viser feltets etikett.
-        [Display(Name = "Type ressurs")]
 
-        // Lagrer typen ressurs som tekst, for eksempel "Mat" eller "Transport".
-        // get betyr at verdien kan leses, og set betyr at den kan endres.
-        public string ResourceType { get; set; }
+    /// <summary>
+    /// Beskrivelse av ressursen.
+    /// </summary>
+    [Required(
+        ErrorMessage = "Beskrivelse er påkrevd"
+    )]
+    [StringLength(
+        500,
+        ErrorMessage = "Beskrivelsen kan maks være 500 tegn"
+    )]
+    [Display(
+        Name = "Beskrivelse"
+    )]
+    public string Description { get; init; } = string.Empty;
 
-        // Krever at brukeren fyller inn en beskrivelse.
-        [Required(ErrorMessage = "Beskrivelse er påkrevd")]
 
-        // Viser "Beskrivelse" som feltets navn i skjemaet.
-        [Display(Name = "Beskrivelse")]
+    /// <summary>
+    /// Geografisk posisjon.
+    /// </summary>
+    public Coordinate Position { get; init; }
 
-        // Lagrer informasjon om ressursen.
-        // Eksempel: "Har plass til tre personer i bilen".
-        public string Description { get; set; }
 
-        // Markerer feltet som påkrevd.
-        // Merk: double kan ikke være null og har standardverdien 0.
-        // Required alene sikrer derfor ikke at koordinaten er oppgitt.
-        [Required]
+    /*
+     * Disse to beholdes midlertidig fordi eldre views
+     * fortsatt bruker Latitude og Longitude direkte.
+     */
+    public double Latitude { get; init; }
 
-        // Breddegrad: hvor langt nord eller sør posisjonen ligger.
-        // double brukes fordi koordinater kan inneholde desimaler.
-        // Eksempel: 58.1599.
-        public double Latitude { get; set; }
+    public double Longitude { get; init; }
 
-        // Samme begrensning med Required gjelder her som for Latitude.
-        [Required]
 
-        // Lengdegrad: hvor langt øst eller vest posisjonen ligger.
-        // Eksempel: 8.0182.
-        public double Longitude { get; set; }
+    /// <summary>
+    /// Kontakt-e-post.
+    /// </summary>
+    [EmailAddress(
+        ErrorMessage = "Skriv inn en gyldig e-postadresse"
+    )]
+    [StringLength(
+        150,
+        ErrorMessage = "E-postadressen er for lang"
+    )]
+    [Display(
+        Name = "E-post"
+    )]
+    public string? ContactEmail { get; init; }
 
-        // Viser "Kontaktinfo" som feltets navn i skjemaet.
-        [Display(Name = "Kontaktinfo")]
 
-        // Lagrer for eksempel telefonnummer eller e-postadresse.
-        // Spørsmålstegnet i string? betyr at verdien kan være null.
-        // Feltet er valgfritt siden det ikke har Required.
-        public string? ContactInfo { get; set; }
-    }
+    /// <summary>
+    /// Landskode.
+    /// </summary>
+    [StringLength(5)]
+    [Display(
+        Name = "Landskode"
+    )]
+    public string? ContactPhoneCountryCode { get; init; }
+
+
+    /// <summary>
+    /// Telefonnummer.
+    /// </summary>
+    [StringLength(
+        20,
+        ErrorMessage = "Telefonnummeret er for langt"
+    )]
+    [Display(
+        Name = "Telefonnummer"
+    )]
+    public string? ContactPhoneNumber { get; init; }
+
+
+    /// <summary>
+    /// Midlertidig støtte for eldre views.
+    /// Senere fjerner vi denne og bruker
+    /// separate kontaktfelt overalt.
+    /// </summary>
+    [StringLength(
+        250,
+        ErrorMessage = "Kontaktinformasjonen er for lang"
+    )]
+    public string? ContactInfo { get; init; }
+
+
+    /// <summary>
+    /// Midlertidig identifikasjon av eieren.
+    /// Skal senere erstattes med Identity UserId.
+    /// </summary>
+    [StringLength(150)]
+    public string OwnerEmail { get; init; } = string.Empty;
 }
