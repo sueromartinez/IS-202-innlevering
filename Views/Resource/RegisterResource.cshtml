@@ -1,0 +1,1785 @@
+@using FirstWebAppInDocker.Models
+@model FirstWebAppInDocker.ViewModels.RegisterResourceViewModel
+
+@{
+    Layout = null;
+
+    ViewData["Title"] = "Registrer ressurs";
+
+    string? userName =
+        Context.Session.GetString("UserName");
+
+    string displayName =
+        string.IsNullOrWhiteSpace(userName)
+            ? "Ressursleverandør"
+            : userName;
+}
+
+<!DOCTYPE html>
+
+<html lang="no">
+
+<head>
+
+    <meta charset="utf-8" />
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    />
+
+    <title>
+        Registrer ressurs - Beredskapsportal
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+
+</head>
+
+<body>
+
+
+<!-- =========================================
+     HEADER
+========================================= -->
+
+<header class="provider-header">
+
+    <a
+        asp-controller="Home"
+        asp-action="Dashboard"
+        class="provider-brand">
+
+        <div class="brand-icon">
+
+            <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true">
+
+                <path
+                    d="M12 2L4 5.5V11c0 5.1 3.4 9.8 8 11 4.6-1.2 8-5.9 8-11V5.5L12 2Z"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                />
+
+                <path
+                    d="M8.5 12.5L11 15l4.8-6"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                />
+
+            </svg>
+
+        </div>
+
+
+        <div>
+
+            <strong>
+                Beredskapsportal
+            </strong>
+
+            <span>
+                Ressursleverandør
+            </span>
+
+        </div>
+
+    </a>
+
+
+    <div class="provider-user">
+
+        <a
+            asp-controller="Home"
+            asp-action="Dashboard"
+            class="dashboard-link">
+
+            Oversikt
+
+        </a>
+
+
+        <div class="provider-user-text">
+
+            <strong>
+                @displayName
+            </strong>
+
+            <span>
+                Ressursleverandør
+            </span>
+
+        </div>
+
+
+        <form
+            asp-controller="Account"
+            asp-action="Logout"
+            method="post">
+
+            <button
+                type="submit"
+                class="logout-button">
+
+                Logg ut
+
+            </button>
+
+        </form>
+
+    </div>
+
+</header>
+
+
+<!-- =========================================
+     SIDE
+========================================= -->
+
+<main class="resource-page">
+
+
+    <!-- TOPP -->
+    <div class="resource-page-header">
+
+        <div>
+
+            <span class="page-eyebrow">
+                NY RESSURS
+            </span>
+
+            <h1>
+                Registrer ressurs
+            </h1>
+
+            <p>
+                Registrer en ressurs du kan stille til disposisjon
+                dersom samfunnet trenger bistand.
+            </p>
+
+        </div>
+
+
+        <a
+            asp-controller="Home"
+            asp-action="Dashboard"
+            class="back-button">
+
+            ← Tilbake til oversikt
+
+        </a>
+
+    </div>
+
+
+    <!-- =========================================
+         INNHOLD
+    ========================================= -->
+
+    <div class="resource-grid">
+
+
+        <!-- =====================================
+             SKJEMA
+        ====================================== -->
+
+        <section class="resource-card">
+
+            <div class="card-heading">
+
+                <div class="card-heading-icon">
+                    +
+                </div>
+
+                <div>
+
+                    <span>
+                        RESSURSINFORMASJON
+                    </span>
+
+                    <h2>
+                        Informasjon om ressursen
+                    </h2>
+
+                    <p>
+                        Beskriv hva du kan bidra med og hvordan
+                        du kan kontaktes.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <form
+                asp-controller="Resource"
+                asp-action="RegisterResource"
+                method="post">
+
+                <div
+                    asp-validation-summary="ModelOnly"
+                    class="validation-summary">
+                </div>
+
+
+                <!-- RESSURSTYPE -->
+                <div class="form-group">
+
+                    <label asp-for="ResourceType"></label>
+
+                    <select
+                        asp-for="ResourceType"
+                        asp-items="Html.GetEnumSelectList<ResourceType>()"
+                        class="form-control">
+
+                        <option value="">
+                            Velg type ressurs
+                        </option>
+
+                    </select>
+
+                    <span
+                        asp-validation-for="ResourceType"
+                        class="validation-message">
+                    </span>
+
+                </div>
+
+
+                <!-- BESKRIVELSE -->
+                <div class="form-group">
+
+                    <label asp-for="Description"></label>
+
+                    <textarea
+                        asp-for="Description"
+                        class="form-control description-input"
+                        rows="6"
+                        placeholder="Beskriv ressursen og hva den kan brukes til">
+                    </textarea>
+
+                    <span
+                        asp-validation-for="Description"
+                        class="validation-message">
+                    </span>
+
+                </div>
+
+
+                <div class="form-divider"></div>
+
+
+                <div class="form-section-label">
+
+                    <span>
+                        KONTAKT
+                    </span>
+
+                    <p>
+                        Kontaktinformasjon som kan brukes
+                        dersom ressursen blir aktuell.
+                    </p>
+
+                </div>
+
+
+                <!-- E-POST -->
+                <div class="form-group">
+
+                    <label asp-for="ContactEmail"></label>
+
+                    <input
+                        asp-for="ContactEmail"
+                        class="form-control"
+                        placeholder="navn@eksempel.no"
+                        autocomplete="email"
+                    />
+
+                    <span
+                        asp-validation-for="ContactEmail"
+                        class="validation-message">
+                    </span>
+
+                </div>
+
+
+                <!-- TELEFON -->
+                <div class="form-group">
+
+                    <label>
+                        Telefonnummer
+                    </label>
+
+                    <div class="phone-row">
+
+                        <select
+                            asp-for="ContactPhoneCountryCode"
+                            class="country-code">
+
+                            <option value="+47">
+                                +47
+                            </option>
+
+                            <option value="+45">
+                                +45
+                            </option>
+
+                            <option value="+46">
+                                +46
+                            </option>
+
+                        </select>
+
+
+                        <input
+                            asp-for="ContactPhoneNumber"
+                            class="form-control"
+                            placeholder="12345678"
+                            autocomplete="tel"
+                            inputmode="tel"
+                        />
+
+                    </div>
+
+                    <span
+                        asp-validation-for="ContactPhoneNumber"
+                        class="validation-message">
+                    </span>
+
+                </div>
+
+
+                <!-- KOORDINATER -->
+                <input
+                    asp-for="Latitude"
+                    type="hidden"
+                    id="Latitude"
+                />
+
+                <input
+                    asp-for="Longitude"
+                    type="hidden"
+                    id="Longitude"
+                />
+
+
+                <!-- VALGT PLASSERING -->
+                <div class="selected-position">
+
+                    <div class="position-icon">
+                        ◎
+                    </div>
+
+                    <div>
+
+                        <strong>
+                            Valgt plassering
+                        </strong>
+
+                        <span id="positionText">
+                            Ingen plassering valgt
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="primary-button">
+
+                    <span>
+                        +
+                    </span>
+
+                    Registrer ressurs
+
+                </button>
+
+            </form>
+
+        </section>
+
+
+        <!-- =====================================
+             KART
+        ====================================== -->
+
+        <section class="resource-card map-card">
+
+            <div class="card-heading">
+
+                <div class="card-heading-icon map-icon">
+                    ◎
+                </div>
+
+                <div>
+
+                    <span>
+                        PLASSERING
+                    </span>
+
+                    <h2>
+                        Velg plassering
+                    </h2>
+
+                    <p>
+                        Klikk i kartet for å angi hvor
+                        ressursen befinner seg.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="map-help">
+
+                <span class="map-help-dot"></span>
+
+                <span>
+                    Klikk én gang i kartet for å plassere ressursen.
+                </span>
+
+            </div>
+
+
+            <div id="resourceMap"></div>
+
+        </section>
+
+    </div>
+
+
+    <!-- =========================================
+         INFO NEDERST
+    ========================================= -->
+
+    <section class="resource-help">
+
+        <div class="resource-help-item">
+
+            <span class="help-number">
+                01
+            </span>
+
+            <div>
+
+                <strong>
+                    Beskriv ressursen
+                </strong>
+
+                <p>
+                    Velg riktig kategori og gi en kort,
+                    tydelig beskrivelse.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="resource-help-item">
+
+            <span class="help-number">
+                02
+            </span>
+
+            <div>
+
+                <strong>
+                    Velg plassering
+                </strong>
+
+                <p>
+                    Marker i kartet hvor ressursen
+                    normalt befinner seg.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="resource-help-item">
+
+            <span class="help-number">
+                03
+            </span>
+
+            <div>
+
+                <strong>
+                    Registrer
+                </strong>
+
+                <p>
+                    Ressursen blir lagret og vises
+                    i ressursoversikten din.
+                </p>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<style>
+
+    /* =========================================
+       FARGER
+    ========================================= */
+
+    :root {
+        --navy: #123047;
+        --navy-dark: #0d2639;
+
+        --primary: #176b87;
+        --primary-dark: #125770;
+
+        --green: #23855b;
+
+        --background: #f4f6f8;
+        --surface: #ffffff;
+
+        --text: #17212b;
+        --secondary: #667085;
+
+        --border: #dfe4e8;
+
+        --danger: #c63d3d;
+    }
+
+
+    /* =========================================
+       BASE
+    ========================================= */
+
+    * {
+        box-sizing: border-box;
+    }
+
+
+    html,
+    body {
+        margin: 0;
+
+        min-height: 100%;
+
+        color: var(--text);
+
+        background: var(--background);
+
+        font-family:
+            Inter,
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            sans-serif;
+    }
+
+
+    body {
+        min-height: 100vh;
+    }
+
+
+    a {
+        color: inherit;
+
+        text-decoration: none;
+    }
+
+
+    button,
+    input,
+    select,
+    textarea {
+        font: inherit;
+    }
+
+
+    /* =========================================
+       HEADER
+    ========================================= */
+
+    .provider-header {
+        min-height: 72px;
+
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        gap: 30px;
+
+        padding:
+            0 max(
+                4vw,
+                calc((100vw - 1550px) / 2)
+            );
+
+        border-bottom:
+            1px solid var(--border);
+
+        background: white;
+    }
+
+
+    .provider-brand {
+        display: flex;
+        align-items: center;
+
+        gap: 12px;
+    }
+
+
+    .brand-icon {
+        width: 41px;
+        height: 41px;
+
+        display: grid;
+        place-items: center;
+
+        border-radius: 11px;
+
+        color: var(--primary);
+
+        background:
+            rgba(
+                23,
+                107,
+                135,
+                0.08
+            );
+    }
+
+
+    .brand-icon svg {
+        width: 23px;
+        height: 23px;
+    }
+
+
+    .provider-brand strong {
+        display: block;
+
+        color: var(--navy);
+
+        font-size: 0.93rem;
+    }
+
+
+    .provider-brand span {
+        display: block;
+
+        margin-top: 2px;
+
+        color: #7b8794;
+
+        font-size: 0.58rem;
+        font-weight: 750;
+
+        letter-spacing: 0.12em;
+
+        text-transform: uppercase;
+    }
+
+
+    .provider-user {
+        display: flex;
+        align-items: center;
+
+        gap: 17px;
+    }
+
+
+    .provider-user-text {
+        text-align: right;
+    }
+
+
+    .provider-user-text strong {
+        display: block;
+
+        font-size: 0.79rem;
+    }
+
+
+    .provider-user-text span {
+        display: block;
+
+        margin-top: 2px;
+
+        color: var(--secondary);
+
+        font-size: 0.66rem;
+    }
+
+
+    .provider-user form {
+        margin: 0;
+    }
+
+
+    .dashboard-link {
+        padding:
+            9px 12px;
+
+        border-radius: 8px;
+
+        color: #52606c;
+
+        font-size: 0.73rem;
+        font-weight: 700;
+    }
+
+
+    .dashboard-link:hover {
+        color: var(--primary);
+
+        background:
+            rgba(
+                23,
+                107,
+                135,
+                0.06
+            );
+    }
+
+
+    .logout-button {
+        padding:
+            9px 14px;
+
+        border:
+            1px solid var(--border);
+
+        border-radius: 8px;
+
+        color: #344054;
+
+        background: white;
+
+        font-size: 0.75rem;
+        font-weight: 700;
+
+        cursor: pointer;
+    }
+
+
+    .logout-button:hover {
+        background: #f7f8f9;
+    }
+
+
+    /* =========================================
+       SIDE
+    ========================================= */
+
+    .resource-page {
+        width:
+            min(
+                1550px,
+                calc(100% - 64px)
+            );
+
+        margin:
+            0 auto;
+
+        padding:
+            54px 0 70px;
+    }
+
+
+    .resource-page-header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+
+        gap: 40px;
+
+        margin-bottom: 32px;
+    }
+
+
+    .page-eyebrow {
+        display: block;
+
+        margin-bottom: 10px;
+
+        color: var(--primary);
+
+        font-size: 0.67rem;
+        font-weight: 850;
+
+        letter-spacing: 0.11em;
+
+        text-transform: uppercase;
+    }
+
+
+    .resource-page-header h1 {
+        margin:
+            0 0 10px;
+
+        color: var(--navy-dark);
+
+        font-size:
+            clamp(
+                2.2rem,
+                4vw,
+                3rem
+            );
+
+        line-height: 1;
+
+        letter-spacing: -0.045em;
+    }
+
+
+    .resource-page-header p {
+        max-width: 650px;
+
+        margin: 0;
+
+        color: var(--secondary);
+
+        font-size: 0.9rem;
+
+        line-height: 1.65;
+    }
+
+
+    .back-button {
+        flex-shrink: 0;
+
+        padding:
+            10px 14px;
+
+        border:
+            1px solid var(--border);
+
+        border-radius: 8px;
+
+        color: var(--navy);
+
+        background: white;
+
+        font-size: 0.72rem;
+        font-weight: 750;
+    }
+
+
+    .back-button:hover {
+        background: #f8fafb;
+    }
+
+
+    /* =========================================
+       GRID
+    ========================================= */
+
+    .resource-grid {
+        display: grid;
+
+        grid-template-columns:
+            minmax(420px, 0.8fr)
+            minmax(600px, 1.35fr);
+
+        gap: 24px;
+
+        align-items: start;
+    }
+
+
+    /* =========================================
+       KORT
+    ========================================= */
+
+    .resource-card {
+        padding:
+            28px;
+
+        border:
+            1px solid var(--border);
+
+        border-radius: 15px;
+
+        background: white;
+
+        box-shadow:
+            0 8px 25px
+            rgba(
+                18,
+                48,
+                71,
+                0.04
+            );
+    }
+
+
+    .card-heading {
+        display: grid;
+
+        grid-template-columns:
+            43px 1fr;
+
+        gap: 15px;
+
+        align-items: start;
+
+        margin-bottom: 28px;
+    }
+
+
+    .card-heading-icon {
+        width: 43px;
+        height: 43px;
+
+        display: grid;
+        place-items: center;
+
+        border-radius: 10px;
+
+        color: var(--primary);
+
+        background:
+            rgba(
+                23,
+                107,
+                135,
+                0.08
+            );
+
+        font-size: 1.15rem;
+        font-weight: 750;
+    }
+
+
+    .card-heading-icon.map-icon {
+        color: var(--green);
+
+        background:
+            rgba(
+                35,
+                133,
+                91,
+                0.08
+            );
+    }
+
+
+    .card-heading span {
+        display: block;
+
+        margin:
+            1px 0 5px;
+
+        color: var(--primary);
+
+        font-size: 0.61rem;
+        font-weight: 850;
+
+        letter-spacing: 0.1em;
+    }
+
+
+    .card-heading h2 {
+        margin:
+            0 0 6px;
+
+        color: var(--navy);
+
+        font-size: 1.22rem;
+
+        letter-spacing: -0.025em;
+    }
+
+
+    .card-heading p {
+        margin: 0;
+
+        color: var(--secondary);
+
+        font-size: 0.71rem;
+
+        line-height: 1.55;
+    }
+
+
+    /* =========================================
+       FORM
+    ========================================= */
+
+    .form-group {
+        margin-bottom: 21px;
+    }
+
+
+    .form-group label {
+        display: block;
+
+        margin-bottom: 7px;
+
+        color: #344054;
+
+        font-size: 0.74rem;
+        font-weight: 750;
+    }
+
+
+    .form-control,
+    .country-code {
+        width: 100%;
+
+        min-height: 46px;
+
+        padding:
+            0 13px;
+
+        border:
+            1px solid #d0d5dd;
+
+        border-radius: 8px;
+
+        outline: none;
+
+        color: var(--text);
+
+        background: white;
+
+        font-size: 0.77rem;
+
+        transition:
+            border-color 150ms ease,
+            box-shadow 150ms ease;
+    }
+
+
+    textarea.form-control {
+        min-height: 135px;
+
+        padding:
+            12px 13px;
+
+        resize: vertical;
+
+        line-height: 1.55;
+    }
+
+
+    .form-control:focus,
+    .country-code:focus {
+        border-color:
+            var(--primary);
+
+        box-shadow:
+            0 0 0 4px
+            rgba(
+                23,
+                107,
+                135,
+                0.09
+            );
+    }
+
+
+    .form-control::placeholder {
+        color: #98a2b3;
+    }
+
+
+    .phone-row {
+        display: grid;
+
+        grid-template-columns:
+            105px 1fr;
+
+        gap: 10px;
+    }
+
+
+    .form-divider {
+        height: 1px;
+
+        margin:
+            28px 0;
+
+        background: #eaecf0;
+    }
+
+
+    .form-section-label {
+        margin-bottom: 20px;
+    }
+
+
+    .form-section-label > span {
+        display: block;
+
+        margin-bottom: 5px;
+
+        color: var(--primary);
+
+        font-size: 0.62rem;
+        font-weight: 850;
+
+        letter-spacing: 0.1em;
+    }
+
+
+    .form-section-label p {
+        margin: 0;
+
+        color: var(--secondary);
+
+        font-size: 0.7rem;
+
+        line-height: 1.55;
+    }
+
+
+    /* =========================================
+       VALIDERING
+    ========================================= */
+
+    .validation-message,
+    .validation-summary {
+        display: block;
+
+        margin-top: 5px;
+
+        color: var(--danger);
+
+        font-size: 0.67rem;
+    }
+
+
+    .validation-summary {
+        margin:
+            0 0 18px;
+    }
+
+
+    .validation-summary ul {
+        margin: 0;
+
+        padding-left: 18px;
+    }
+
+
+    /* =========================================
+       POSISJON
+    ========================================= */
+
+    .selected-position {
+        display: grid;
+
+        grid-template-columns:
+            37px 1fr;
+
+        gap: 12px;
+
+        align-items: center;
+
+        margin:
+            25px 0 20px;
+
+        padding:
+            13px 14px;
+
+        border:
+            1px solid
+            rgba(
+                23,
+                107,
+                135,
+                0.08
+            );
+
+        border-radius: 9px;
+
+        background:
+            #f4f7f8;
+    }
+
+
+    .position-icon {
+        width: 34px;
+        height: 34px;
+
+        display: grid;
+        place-items: center;
+
+        border-radius: 8px;
+
+        color: var(--primary);
+
+        background:
+            rgba(
+                23,
+                107,
+                135,
+                0.08
+            );
+
+        font-weight: 800;
+    }
+
+
+    .selected-position strong {
+        display: block;
+
+        margin-bottom: 2px;
+
+        color: var(--navy);
+
+        font-size: 0.7rem;
+    }
+
+
+    .selected-position span {
+        color: var(--secondary);
+
+        font-size: 0.68rem;
+    }
+
+
+    /* =========================================
+       SUBMIT
+    ========================================= */
+
+    .primary-button {
+        width: 100%;
+
+        min-height: 48px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        gap: 8px;
+
+        border: 0;
+
+        border-radius: 9px;
+
+        color: white;
+
+        background:
+            var(--primary);
+
+        font-size: 0.76rem;
+        font-weight: 800;
+
+        cursor: pointer;
+
+        transition:
+            background 150ms ease,
+            transform 150ms ease;
+    }
+
+
+    .primary-button:hover {
+        background:
+            var(--primary-dark);
+
+        transform:
+            translateY(-1px);
+    }
+
+
+    .primary-button span {
+        font-size: 1.05rem;
+    }
+
+
+    /* =========================================
+       MAP
+    ========================================= */
+
+    .map-card {
+        position: sticky;
+
+        top: 24px;
+    }
+
+
+    .map-help {
+        display: flex;
+        align-items: center;
+
+        gap: 8px;
+
+        margin-bottom: 15px;
+
+        padding:
+            10px 12px;
+
+        border-radius: 8px;
+
+        color: #52606c;
+
+        background:
+            #f5f7f8;
+
+        font-size: 0.67rem;
+    }
+
+
+    .map-help-dot {
+        width: 7px;
+        height: 7px;
+
+        flex-shrink: 0;
+
+        border-radius: 50%;
+
+        background:
+            var(--green);
+    }
+
+
+    #resourceMap {
+        width: 100%;
+        height: 650px;
+
+        overflow: hidden;
+
+        border:
+            1px solid
+            #d9e0e4;
+
+        border-radius: 12px;
+
+        background:
+            #e7eef0;
+    }
+
+
+    /* =========================================
+       HJELP NEDERST
+    ========================================= */
+
+    .resource-help {
+        display: grid;
+
+        grid-template-columns:
+            repeat(3, 1fr);
+
+        gap: 30px;
+
+        margin-top: 30px;
+
+        padding:
+            27px 29px;
+
+        border:
+            1px solid
+            var(--border);
+
+        border-radius: 14px;
+
+        background:
+            rgba(
+                255,
+                255,
+                255,
+                0.55
+            );
+    }
+
+
+    .resource-help-item {
+        display: grid;
+
+        grid-template-columns:
+            38px 1fr;
+
+        gap: 13px;
+
+        align-items: start;
+    }
+
+
+    .help-number {
+        width: 35px;
+        height: 35px;
+
+        display: grid;
+        place-items: center;
+
+        border-radius: 8px;
+
+        color: var(--primary);
+
+        background:
+            rgba(
+                23,
+                107,
+                135,
+                0.08
+            );
+
+        font-size: 0.62rem;
+        font-weight: 850;
+    }
+
+
+    .resource-help strong {
+        display: block;
+
+        margin:
+            1px 0 4px;
+
+        color: var(--text);
+
+        font-size: 0.72rem;
+    }
+
+
+    .resource-help p {
+        margin: 0;
+
+        color: var(--secondary);
+
+        font-size: 0.66rem;
+
+        line-height: 1.5;
+    }
+
+
+    /* =========================================
+       RESPONSIVE
+    ========================================= */
+
+    @@media (max-width: 1100px) {
+
+        .resource-grid {
+            grid-template-columns:
+                minmax(360px, 0.9fr)
+                minmax(500px, 1.2fr);
+        }
+
+    }
+
+
+    @@media (max-width: 950px) {
+
+        .resource-page {
+            width:
+                min(
+                    100% - 32px,
+                    1550px
+                );
+
+            padding:
+                38px 0 55px;
+        }
+
+
+        .resource-grid {
+            grid-template-columns:
+                1fr;
+        }
+
+
+        .map-card {
+            position: static;
+        }
+
+
+        #resourceMap {
+            height: 520px;
+        }
+
+
+        .resource-help {
+            grid-template-columns:
+                1fr;
+        }
+
+    }
+
+
+    @@media (max-width: 700px) {
+
+        .provider-header {
+            padding:
+                12px 16px;
+        }
+
+
+        .provider-user-text,
+        .dashboard-link {
+            display: none;
+        }
+
+
+        .provider-brand span {
+            display: none;
+        }
+
+
+        .resource-page {
+            width:
+                min(
+                    100% - 24px,
+                    1550px
+                );
+        }
+
+
+        .resource-page-header {
+            align-items:
+                flex-start;
+
+            flex-direction:
+                column;
+
+            gap:
+                18px;
+        }
+
+
+        .resource-card {
+            padding:
+                22px 18px;
+        }
+
+
+        .phone-row {
+            grid-template-columns:
+                90px 1fr;
+        }
+
+
+        #resourceMap {
+            height:
+                420px;
+        }
+
+
+        .resource-help {
+            padding:
+                22px 18px;
+        }
+
+    }
+
+</style>
+
+
+<script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+</script>
+
+
+<script>
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
+
+            const latitudeInput =
+                document.getElementById(
+                    "Latitude"
+                );
+
+            const longitudeInput =
+                document.getElementById(
+                    "Longitude"
+                );
+
+            const positionText =
+                document.getElementById(
+                    "positionText"
+                );
+
+
+            const defaultLatitude =
+                58.1467;
+
+            const defaultLongitude =
+                7.9956;
+
+
+            const map =
+                L.map(
+                    "resourceMap"
+                )
+                .setView(
+                    [
+                        defaultLatitude,
+                        defaultLongitude
+                    ],
+                    11
+                );
+
+
+            L.tileLayer(
+                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+                    maxZoom:
+                        19,
+
+                    attribution:
+                        "&copy; OpenStreetMap"
+                }
+            ).addTo(map);
+
+
+            let marker =
+                null;
+
+
+            /*
+             * Behold markøren dersom skjemaet
+             * returneres etter en valideringsfeil.
+             */
+            const existingLatitude =
+                parseFloat(
+                    latitudeInput.value
+                );
+
+
+            const existingLongitude =
+                parseFloat(
+                    longitudeInput.value
+                );
+
+
+            if (
+                !Number.isNaN(
+                    existingLatitude
+                )
+                &&
+                !Number.isNaN(
+                    existingLongitude
+                )
+                &&
+                (
+                    existingLatitude !== 0
+                    ||
+                    existingLongitude !== 0
+                )
+            ) {
+
+                marker =
+                    L.marker(
+                        [
+                            existingLatitude,
+                            existingLongitude
+                        ]
+                    )
+                    .addTo(map);
+
+
+                map.setView(
+                    [
+                        existingLatitude,
+                        existingLongitude
+                    ],
+                    14
+                );
+
+
+                updatePositionText(
+                    existingLatitude,
+                    existingLongitude
+                );
+
+            }
+
+
+            /*
+             * Velg plassering ved klikk i kartet.
+             */
+            map.on(
+                "click",
+                function (event) {
+
+                    const latitude =
+                        event.latlng.lat;
+
+
+                    const longitude =
+                        event.latlng.lng;
+
+
+                    latitudeInput.value =
+                        latitude;
+
+
+                    longitudeInput.value =
+                        longitude;
+
+
+                    if (marker === null) {
+
+                        marker =
+                            L.marker(
+                                [
+                                    latitude,
+                                    longitude
+                                ]
+                            )
+                            .addTo(map);
+
+                    }
+                    else {
+
+                        marker.setLatLng(
+                            [
+                                latitude,
+                                longitude
+                            ]
+                        );
+
+                    }
+
+
+                    updatePositionText(
+                        latitude,
+                        longitude
+                    );
+
+                }
+            );
+
+
+            function updatePositionText(
+                latitude,
+                longitude
+            ) {
+
+                positionText.textContent =
+                    latitude.toFixed(5)
+                    +
+                    ", "
+                    +
+                    longitude.toFixed(5);
+
+            }
+
+        }
+    );
+
+</script>
+
+
+</body>
+
+</html>

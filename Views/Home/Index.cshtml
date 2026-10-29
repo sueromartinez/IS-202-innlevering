@@ -1,8 +1,971 @@
+@model FirstWebAppInDocker.ViewModels.LoginViewModel
+
 @{
-    ViewData["Title"] = "Home Page";
+    Layout = null;
+    ViewData["Title"] = "Beredskapsportal";
+
+    string? loginError =
+        TempData["LoginError"] as string;
+
+    bool hasLoginErrors =
+        !string.IsNullOrWhiteSpace(loginError);
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<!DOCTYPE html>
+
+<html lang="no">
+
+<head>
+
+    <meta charset="utf-8" />
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    />
+
+    <title>
+        Beredskapsportal
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="~/css/home.css"
+        asp-append-version="true"
+    />
+
+</head>
+
+<body>
+
+
+<!-- ==========================================
+     HEADER
+=========================================== -->
+
+<header class="site-header">
+
+    <a
+        href="#top"
+        class="brand">
+
+        <div class="brand-icon">
+
+            <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true">
+
+                <path
+                    d="M12 2L4 5.5V11c0 5.1 3.4 9.8 8 11 4.6-1.2 8-5.9 8-11V5.5L12 2Z"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                />
+
+                <path
+                    d="M8.5 12.5L11 15l4.8-6"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                />
+
+            </svg>
+
+        </div>
+
+
+        <div>
+
+            <strong>
+                Beredskapsportal
+            </strong>
+
+            <span>
+                Totalforsvaret
+            </span>
+
+        </div>
+
+    </a>
+
+
+    <nav class="header-nav">
+
+        <a href="#how">
+            Slik fungerer det
+        </a>
+
+        <a
+            href="#login"
+            class="header-login"
+            data-open-auth="login">
+
+            Logg inn
+
+        </a>
+
+    </nav>
+
+</header>
+
+
+<main id="top">
+
+
+<!-- ==========================================
+     HERO
+=========================================== -->
+
+<section class="hero">
+
+    <div class="hero-content">
+
+        <div class="hero-label">
+            Sammen for et tryggere Norge
+        </div>
+
+
+        <h1>
+            Gjør en forskjell
+            <span>
+                når det virkelig gjelder.
+            </span>
+        </h1>
+
+
+        <p class="hero-description">
+            Har du utstyr, kompetanse eller kapasitet
+            som kan være nyttig når samfunnet blir satt på prøve?
+            Registrer det du kan bidra med.
+        </p>
+
+
+        <div class="hero-actions">
+
+            <a
+                href="#login"
+                class="primary-button"
+                data-open-auth="register">
+
+                Jeg vil bidra
+
+                <span aria-hidden="true">
+                    →
+                </span>
+
+            </a>
+
+
+            <a
+                href="#how"
+                class="secondary-button">
+
+                Slik fungerer det
+
+            </a>
+
+        </div>
+
+
+        <div class="hero-audience">
+
+            <span>
+                Privatpersoner
+            </span>
+
+            <span>
+                Virksomheter
+            </span>
+
+            <span>
+                Frivillige organisasjoner
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <!-- EKSEMPLER PÅ RESSURSER -->
+
+    <div class="hero-visual">
+
+        <div class="resource-card">
+
+            <div class="resource-visual">
+
+                <div class="resource-grid">
+
+                    <div class="resource-item">
+
+                        <div class="resource-icon">
+                            T
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                Transport
+                            </strong>
+
+                            <span>
+                                Bil, båt eller traktor
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="resource-item">
+
+                        <div class="resource-icon">
+                            A
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                Aggregat
+                            </strong>
+
+                            <span>
+                                Strøm ved bortfall
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="resource-item">
+
+                        <div class="resource-icon">
+                            D
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                Drone
+                            </strong>
+
+                            <span>
+                                Utstyr og operatør
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="resource-item">
+
+                        <div class="resource-icon">
+                            K
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                Kompetanse
+                            </strong>
+
+                            <span>
+                                Erfaring og personell
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="resource-card-copy">
+
+                <small>
+                    Lokale ressurser
+                </small>
+
+                <h2>
+                    Det du har kan være det noen trenger.
+                </h2>
+
+                <p>
+                    Ressurser som er vanlige i hverdagen
+                    kan bli svært viktige når situasjonen endrer seg.
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ==========================================
+     SLIK FUNGERER DET
+=========================================== -->
+
+<section
+    class="how-section"
+    id="how">
+
+    <div class="section-container">
+
+        <div class="section-heading">
+
+            <span class="section-label">
+                Slik fungerer det
+            </span>
+
+
+            <h2>
+                Tre enkle steg.
+            </h2>
+
+
+            <p>
+                Du trenger ikke kjenne hele systemet.
+                Registrering skal være raskt og enkelt.
+            </p>
+
+        </div>
+
+
+        <div class="steps">
+
+            <article class="step">
+
+                <div class="step-number">
+                    01
+                </div>
+
+                <h3>
+                    Registrer ressursen
+                </h3>
+
+                <p>
+                    Fortell hva du kan bidra med
+                    og hvor ressursen befinner seg.
+                </p>
+
+            </article>
+
+
+            <article class="step">
+
+                <div class="step-number">
+                    02
+                </div>
+
+                <h3>
+                    Gjør den tilgjengelig
+                </h3>
+
+                <p>
+                    Ressursen blir tilgjengelig
+                    for relevante offentlige aktører.
+                </p>
+
+            </article>
+
+
+            <article class="step">
+
+                <div class="step-number">
+                    03
+                </div>
+
+                <h3>
+                    Bidra ved behov
+                </h3>
+
+                <p>
+                    Når et behov oppstår blir det enklere
+                    å finne riktig ressurs raskt.
+                </p>
+
+            </article>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ==========================================
+     FELLESSKAP
+=========================================== -->
+
+<section class="community-section">
+
+    <div class="community-card">
+
+        <div class="community-copy">
+
+            <span class="section-label">
+                Sammen står vi sterkere
+            </span>
+
+
+            <h2>
+                Din ressurs kan være akkurat det noen trenger.
+            </h2>
+
+
+            <p>
+                En person kan bidra med litt.
+                En virksomhet kan bidra med noe annet.
+                Samlet kan det gjøre samfunnet bedre rustet.
+            </p>
+
+
+            <strong>
+                Sammen for et tryggere Norge.
+            </strong>
+
+        </div>
+
+
+        <div class="network">
+
+            <div class="network-ring">
+
+                <span class="network-point point-one"></span>
+                <span class="network-point point-two"></span>
+                <span class="network-point point-three"></span>
+                <span class="network-point point-four"></span>
+
+
+                <div class="network-center">
+                    Felles
+                    <br />
+                    beredskap
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ==========================================
+     LOGIN / REGISTER
+=========================================== -->
+
+<section
+    class="login-section"
+    id="login">
+
+    <div class="login-layout">
+
+
+        <div class="login-copy">
+
+            <span class="section-label">
+                Beredskapsportal
+            </span>
+
+
+            <h2>
+                Klar til å gjøre en forskjell?
+            </h2>
+
+
+            <p>
+                Logg inn hvis du allerede har en bruker,
+                eller opprett en ny bruker for å registrere
+                ressurser du kan bidra med.
+            </p>
+
+
+            <div class="login-ending">
+                Det vi har sammen, gjør oss bedre rustet.
+            </div>
+
+        </div>
+
+
+        <div
+            class="login-card"
+            id="authCard">
+
+
+            <div
+                class="auth-tabs"
+                role="tablist"
+                aria-label="Brukertilgang">
+
+                <button
+                    type="button"
+                    class="auth-tab active"
+                    id="loginTab"
+                    role="tab"
+                    aria-selected="true"
+                    aria-controls="loginPanel"
+                    data-auth-tab="login">
+
+                    Logg inn
+
+                </button>
+
+
+                <button
+                    type="button"
+                    class="auth-tab"
+                    id="registerTab"
+                    role="tab"
+                    aria-selected="false"
+                    aria-controls="registerPanel"
+                    data-auth-tab="register">
+
+                    Registrer bruker
+
+                </button>
+
+            </div>
+
+
+            <!-- LOGG INN -->
+
+            <div
+                id="loginPanel"
+                class="auth-panel"
+                role="tabpanel"
+                aria-labelledby="loginTab">
+
+                <span class="login-card-label">
+                    Logg inn
+                </span>
+
+
+                <h3>
+                    Velkommen tilbake
+                </h3>
+
+
+                @if (hasLoginErrors)
+                {
+                    <div class="auth-error">
+                        @loginError
+                    </div>
+                }
+
+
+                <form
+                    asp-controller="Account"
+                    asp-action="Login"
+                    method="post">
+
+                    <div
+                        asp-validation-summary="ModelOnly"
+                        class="validation-summary">
+                    </div>
+
+
+                    <div class="login-group">
+
+                        <label asp-for="Email">
+                            E-post
+                        </label>
+
+                        <input
+                            asp-for="Email"
+                            autocomplete="email"
+                            placeholder="navn@eksempel.no"
+                        />
+
+                        <span
+                            asp-validation-for="Email"
+                            class="validation-message">
+                        </span>
+
+                    </div>
+
+
+                    <div class="login-group">
+
+                        <label asp-for="Password">
+                            Passord
+                        </label>
+
+                        <input
+                            asp-for="Password"
+                            autocomplete="current-password"
+                            placeholder="Skriv inn passord"
+                        />
+
+                        <span
+                            asp-validation-for="Password"
+                            class="validation-message">
+                        </span>
+
+                    </div>
+
+
+                    <button
+                        type="submit"
+                        class="login-submit">
+
+                        Logg inn
+
+                    </button>
+
+                </form>
+
+
+                <div class="login-divider">
+                    eller
+                </div>
+
+
+                <button
+                    type="button"
+                    class="demo-button">
+
+                    Fortsett som offentlig testbruker
+
+                </button>
+
+
+                <p class="demo-note">
+                    Midlertidig testinnlogging for prosjektet.
+                </p>
+
+            </div>
+
+
+            <!-- REGISTRER BRUKER -->
+
+            <div
+                id="registerPanel"
+                class="auth-panel hidden"
+                role="tabpanel"
+                aria-labelledby="registerTab">
+
+                <span class="login-card-label">
+                    Ny bruker
+                </span>
+
+
+                <h3>
+                    Opprett bruker
+                </h3>
+
+
+                <p class="auth-intro">
+                    Opprett en bruker for å registrere
+                    og administrere ressurser du kan bidra med.
+                </p>
+
+
+                <div class="login-group">
+
+                    <label for="registerName">
+                        Navn
+                    </label>
+
+                    <input
+                        id="registerName"
+                        name="registerName"
+                        type="text"
+                        autocomplete="name"
+                        placeholder="Ola Nordmann"
+                    />
+
+                </div>
+
+
+                <div class="login-group">
+
+                    <label for="registerEmail">
+                        E-post
+                    </label>
+
+                    <input
+                        id="registerEmail"
+                        name="registerEmail"
+                        type="email"
+                        autocomplete="email"
+                        placeholder="navn@eksempel.no"
+                    />
+
+                </div>
+
+
+                <div class="login-group">
+
+                    <label for="registerPassword">
+                        Passord
+                    </label>
+
+                    <input
+                        id="registerPassword"
+                        name="registerPassword"
+                        type="password"
+                        autocomplete="new-password"
+                        placeholder="Minst 8 tegn"
+                    />
+
+                </div>
+
+
+                <div class="login-group">
+
+                    <label for="registerConfirmPassword">
+                        Bekreft passord
+                    </label>
+
+                    <input
+                        id="registerConfirmPassword"
+                        name="registerConfirmPassword"
+                        type="password"
+                        autocomplete="new-password"
+                        placeholder="Skriv passordet på nytt"
+                    />
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="register-submit"
+                    id="temporaryRegisterButton">
+
+                    Opprett bruker
+
+                </button>
+
+
+                <p class="register-note">
+                    Nye brukere registreres som ressursleverandører.
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+</main>
+
+
+<footer class="footer">
+
+    <strong>
+        Beredskapsportal
+    </strong>
+
+    <span>
+        Sammen for et tryggere Norge.
+    </span>
+
+    <span>
+        Studentprosjekt
+    </span>
+
+</footer>
+
+
+<script>
+
+    const authTabs =
+        document.querySelectorAll(
+            "[data-auth-tab]"
+        );
+
+
+    const loginPanel =
+        document.getElementById(
+            "loginPanel"
+        );
+
+
+    const registerPanel =
+        document.getElementById(
+            "registerPanel"
+        );
+
+
+    const authCard =
+        document.getElementById(
+            "authCard"
+        );
+
+
+    function activateAuthTab(tabName)
+    {
+        const showLogin =
+            tabName === "login";
+
+
+        loginPanel.classList.toggle(
+            "hidden",
+            !showLogin
+        );
+
+
+        registerPanel.classList.toggle(
+            "hidden",
+            showLogin
+        );
+
+
+        authTabs.forEach(
+            tab =>
+            {
+                const isActive =
+                    tab.dataset.authTab ===
+                    tabName;
+
+
+                tab.classList.toggle(
+                    "active",
+                    isActive
+                );
+
+
+                tab.setAttribute(
+                    "aria-selected",
+                    isActive
+                        ? "true"
+                        : "false"
+                );
+            }
+        );
+    }
+
+
+    authTabs.forEach(
+        tab =>
+        {
+            tab.addEventListener(
+                "click",
+                function ()
+                {
+                    activateAuthTab(
+                        tab.dataset.authTab
+                    );
+                }
+            );
+        }
+    );
+
+
+    document
+        .querySelectorAll(
+            "[data-open-auth]"
+        )
+        .forEach(
+            link =>
+            {
+                link.addEventListener(
+                    "click",
+                    function ()
+                    {
+                        activateAuthTab(
+                            link.dataset.openAuth
+                        );
+                    }
+                );
+            }
+        );
+
+
+    document
+        .querySelectorAll(
+            'a[href^="#"]'
+        )
+        .forEach(
+            link =>
+            {
+                link.addEventListener(
+                    "click",
+                    function (event)
+                    {
+                        const targetId =
+                            link.getAttribute(
+                                "href"
+                            );
+
+
+                        if (
+                            !targetId
+                            ||
+                            targetId === "#"
+                        )
+                        {
+                            return;
+                        }
+
+
+                        const target =
+                            document.querySelector(
+                                targetId
+                            );
+
+
+                        if (!target)
+                        {
+                            return;
+                        }
+
+
+                        event.preventDefault();
+
+
+                        target.scrollIntoView({
+                            behavior: "smooth",
+                            block: "center"
+                        });
+                    }
+                );
+            }
+        );
+
+
+    activateAuthTab("login");
+
+
+    const hasLoginErrors =
+        @hasLoginErrors.ToString().ToLowerInvariant();
+
+
+    if (hasLoginErrors)
+    {
+        activateAuthTab("login");
+
+
+        window.setTimeout(
+            function ()
+            {
+                authCard.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center"
+                });
+            },
+            50
+        );
+    }
+
+</script>
+
+
+</body>
+
+</html>
