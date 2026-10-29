@@ -1,8 +1,12 @@
 @{
-    string? userEmail = Context.Session.GetString("UserEmail");
-    string? userRole = Context.Session.GetString("UserRole");
+    string? userEmail =
+        Context.Session.GetString("UserEmail");
 
-    bool isLoggedIn = !string.IsNullOrWhiteSpace(userEmail);
+    string? userRole =
+        Context.Session.GetString("UserRole");
+
+    bool isLoggedIn =
+        !string.IsNullOrWhiteSpace(userEmail);
 }
 
 <!DOCTYPE html>
@@ -22,6 +26,14 @@
         @ViewData["Title"] - Beredskapsportal
     </title>
 
+
+    <!-- Felles design fra recovered 8080-versjonen -->
+    <link
+        rel="stylesheet"
+        href="~/css/app.css"
+        asp-append-version="true"
+    />
+
     <link
         rel="stylesheet"
         href="~/css/site.css"
@@ -30,20 +42,48 @@
 
 </head>
 
+
 <body>
 
     <header class="site-header">
 
         <div class="site-header-inner">
 
+            <!-- LOGO -->
             <a
                 asp-controller="Home"
                 asp-action="Index"
                 class="site-logo">
 
                 <span class="site-logo-icon">
-                    ✓
+
+                    <svg
+                        viewBox="0 0 24 24"
+                        width="24"
+                        height="24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        aria-hidden="true">
+
+                        <path
+                            d="M12 3L19 6V11C19 15.55 16.02 19.74 12 21C7.98 19.74 5 15.55 5 11V6L12 3Z"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linejoin="round"
+                        />
+
+                        <path
+                            d="M9 12L11 14L15 10"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+
+                    </svg>
+
                 </span>
+
 
                 <span class="site-logo-text">
 
@@ -60,9 +100,12 @@
             </a>
 
 
+            <!-- OFFENTLIG NAVIGASJON -->
             @if (!isLoggedIn)
             {
-                <nav class="public-nav">
+                <nav
+                    class="public-nav"
+                    aria-label="Hovedmeny">
 
                     <a href="/#howItWorks">
                         Slik fungerer det
@@ -78,9 +121,14 @@
 
                 </nav>
             }
-            else
+
+
+            <!-- INNLOGGET NAVIGASJON -->
+            @if (isLoggedIn)
             {
-                <nav class="logged-nav">
+                <nav
+                    class="logged-nav"
+                    aria-label="Brukermeny">
 
                     <a
                         asp-controller="Home"
@@ -159,6 +207,12 @@
         @RenderBody()
 
     </main>
+
+
+    <script
+        src="~/js/site.js"
+        asp-append-version="true">
+    </script>
 
 
     @await RenderSectionAsync(

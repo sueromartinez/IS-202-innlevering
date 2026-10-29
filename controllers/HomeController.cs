@@ -5,12 +5,12 @@ using Microsoft.AspNetCore.Mvc;
 namespace FirstWebAppInDocker.Controllers;
 
 /// <summary>
-/// Håndterer generelle sider i applikasjonen.
+/// Håndterer forsiden, dashboardet og generell feilhåndtering.
 /// </summary>
 public class HomeController : Controller
 {
     /// <summary>
-    /// Viser forsiden.
+    /// Viser den offentlige forsiden.
     /// </summary>
     [HttpGet]
     public IActionResult Index()
@@ -20,58 +20,38 @@ public class HomeController : Controller
 
 
     /// <summary>
-    /// Viser dashboardet til innlogget bruker.
+    /// Viser dashboardet til en innlogget bruker.
+    /// Innholdet tilpasses brukerens rolle.
     /// </summary>
     [HttpGet]
     public IActionResult Dashboard()
     {
         string? userEmail =
-            HttpContext.Session.GetString(
-                "UserEmail"
-            );
+            HttpContext.Session.GetString("UserEmail");
 
-        string? userName =
-            HttpContext.Session.GetString(
-                "UserName"
-            );
-
-        string? userRole =
-            HttpContext.Session.GetString(
-                "UserRole"
-            );
-
-
-        if (string.IsNullOrEmpty(userEmail))
+        if (string.IsNullOrWhiteSpace(userEmail))
         {
             return RedirectToAction(
                 nameof(Index)
             );
         }
 
-
         ViewBag.UserName =
-            userName;
+            HttpContext.Session.GetString(
+                "UserName"
+            );
 
         ViewBag.UserRole =
-            userRole;
-
+            HttpContext.Session.GetString(
+                "UserRole"
+            );
 
         return View();
     }
 
 
     /// <summary>
-    /// Viser informasjon om personvern.
-    /// </summary>
-    [HttpGet]
-    public IActionResult Privacy()
-    {
-        return View();
-    }
-
-
-    /// <summary>
-    /// Viser feilside dersom en ukjent feil oppstår.
+    /// Viser feilside dersom en uventet feil oppstår.
     /// </summary>
     [ResponseCache(
         Duration = 0,
@@ -85,8 +65,7 @@ public class HomeController : Controller
             {
                 RequestId =
                     Activity.Current?.Id
-                    ??
-                    HttpContext.TraceIdentifier
+                    ?? HttpContext.TraceIdentifier
             }
         );
     }

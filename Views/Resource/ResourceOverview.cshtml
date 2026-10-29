@@ -1,140 +1,595 @@
-@model IEnumerable<FirstWebAppInDocker.Models.PositionModel>
+@using FirstWebAppInDocker.Models
+@using System.Text.Json
+@model IEnumerable<FirstWebAppInDocker.ViewModels.ResourceOverviewViewModel>
 
 @{
-    ViewData["Title"] = "Ressursoversikt";
+    Layout = null;
+
+    string? userName =
+        Context.Session.GetString("UserName");
+
+    string? userRole =
+        Context.Session.GetString("UserRole");
+
+    bool isResourceProvider =
+        userRole == "ResourceProvider";
+
+    string displayName =
+        string.IsNullOrWhiteSpace(userName)
+            ? (isResourceProvider
+                ? "Ressursleverandør"
+                : "Offentlig aktør")
+            : userName;
+
+    string roleLabel =
+        isResourceProvider
+            ? "Ressursleverandør"
+            : "Offentlig aktør";
+
+    string pageTitle =
+        isResourceProvider
+            ? "Mine ressurser"
+            : "Ressursoversikt";
+
+    ViewData["Title"] = pageTitle;
+
+    var resources =
+        Model.ToList();
+
+    var resourceTypeNames =
+        Html.GetEnumSelectList<ResourceType>()
+            .ToDictionary(
+                item => int.Parse(item.Value),
+                item => item.Text
+            );
+
+    string GetResourceTypeName(
+        ResourceType resourceType)
+    {
+        return resourceTypeNames.TryGetValue(
+            (int)resourceType,
+            out string? name
+        )
+            ? name
+            : resourceType.ToString();
+    }
+
+    string GetResourceIcon(
+        ResourceType resourceType)
+    {
+        return resourceType switch
+        {
+            ResourceType.Transport => "T",
+            ResourceType.Drone => "D",
+            ResourceType.Generator => "A",
+            ResourceType.Machinery => "M",
+            ResourceType.CommunicationEquipment => "S",
+            ResourceType.Personnel => "P",
+            ResourceType.Premises => "L",
+            ResourceType.SandAndGravel => "G",
+            ResourceType.Boat => "B",
+            _ => "R"
+        };
+    }
+
+    int resourceTypeCount =
+        resources
+            .Select(resource => resource.ResourceType)
+            .Distinct()
+            .Count();
+
+    var mapResources =
+        resources.Select(
+            resource => new
+            {
+                id =
+                    resource.Id,
+
+                type =
+                    GetResourceTypeName(
+                        resource.ResourceType
+                    ),
+
+                description =
+                    resource.Description,
+
+                latitude =
+                    resource.Position.Latitude,
+
+                longitude =
+                    resource.Position.Longitude,
+
+                email =
+                    resource.ContactEmail,
+
+                phone =
+                    string.IsNullOrWhiteSpace(
+                        resource.ContactPhoneNumber
+                    )
+                        ? null
+                        : $"{resource.ContactPhoneCountryCode} {resource.ContactPhoneNumber}"
+            }
+        ).ToList();
+
+    string mapResourcesJson =
+        JsonSerializer.Serialize(
+            mapResources,
+            new JsonSerializerOptions
+            {
+                PropertyNamingPolicy =
+                    JsonNamingPolicy.CamelCase
+            }
+        );
 }
 
-<link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-/>
+<!DOCTYPE html>
 
-<div class="overview-page">
+<html lang="no">
 
-    <div class="overview-header">
-        <div>
-            <h1>Ressursoversikt</h1>
+<head>
 
-            <p>
-                Oversikt over registrerte ressurser
-                og hvor de befinner seg.
-            </p>
+    <meta charset="utf-8" />
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    />
+
+    <title>
+        @pageTitle - Beredskapsportal
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+
+</head>
+
+<body>
+
+
+<!-- =========================================
+     HEADER
+========================================= -->
+
+<header class="provider-header">
+
+    <a
+        asp-controller="Home"
+        asp-action="Dashboard"
+        class="provider-brand">
+
+        <div class="brand-icon">
+
+            <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true">
+
+                <path
+                    d="M12 2L4 5.5V11c0 5.1 3.4 9.8 8 11 4.6-1.2 8-5.9 8-11V5.5L12 2Z"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                />
+
+                <path
+                    d="M8.5 12.5L11 15l4.8-6"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                />
+
+            </svg>
+
         </div>
 
-        <a
-            asp-controller="Resource"
-            asp-action="RegisterResource"
-            class="primary-button">
 
-            Registrer ressurs
+        <div>
+
+            <strong>
+                Beredskapsportal
+            </strong>
+
+            <span>
+                @roleLabel
+            </span>
+
+        </div>
+
+    </a>
+
+
+    <div class="provider-user">
+
+        <a
+            asp-controller="Home"
+            asp-action="Dashboard"
+            class="dashboard-link">
+
+            Oversikt
+
         </a>
+
+
+        <div class="provider-user-text">
+
+            <strong>
+                @displayName
+            </strong>
+
+            <span>
+                @roleLabel
+            </span>
+
+        </div>
+
+
+        <form
+            asp-controller="Account"
+            asp-action="Logout"
+            method="post">
+
+            <button
+                type="submit"
+                class="logout-button">
+
+                Logg ut
+
+            </button>
+
+        </form>
+
     </div>
 
+</header>
 
-    @if (!Model.Any())
-    {
-        <section class="empty-state">
 
-            <h2>Ingen ressurser registrert</h2>
+<!-- =========================================
+     SIDE
+========================================= -->
+
+<main class="overview-page">
+
+
+    <!-- =====================================
+         TOPP
+    ====================================== -->
+
+    <div class="overview-header">
+
+        <div>
+
+            <span class="page-eyebrow">
+                @(isResourceProvider
+                    ? "MINE RESSURSER"
+                    : "BEREDSKAPSRESSURSER")
+            </span>
+
+            <h1>
+                @pageTitle
+            </h1>
 
             <p>
-                Det finnes ingen ressurser å vise ennå.
+                @if (isResourceProvider)
+                {
+                    <text>
+                        Se ressursene du har registrert
+                        og hvor de befinner seg.
+                    </text>
+                }
+                else
+                {
+                    <text>
+                        Oversikt over registrerte ressurser
+                        som kan være relevante i en beredskapssituasjon.
+                    </text>
+                }
             </p>
 
+        </div>
+
+
+        @if (isResourceProvider)
+        {
             <a
                 asp-controller="Resource"
                 asp-action="RegisterResource"
                 class="primary-button">
 
-                Registrer første ressurs
+                <span>
+                    +
+                </span>
+
+                Registrer ny ressurs
+
             </a>
+        }
+
+    </div>
+
+
+    @if (!resources.Any())
+    {
+        <!-- =====================================
+             TOM OVERSIKT
+        ====================================== -->
+
+        <section class="empty-state">
+
+            <div class="empty-icon">
+                ◎
+            </div>
+
+            <span class="page-eyebrow">
+                INGEN RESSURSER
+            </span>
+
+            <h2>
+                Ingen ressurser registrert
+            </h2>
+
+
+            @if (isResourceProvider)
+            {
+                <p>
+                    Du har ikke registrert noen ressurser ennå.
+                    Registrer den første ressursen for å komme i gang.
+                </p>
+
+
+                <a
+                    asp-controller="Resource"
+                    asp-action="RegisterResource"
+                    class="empty-primary-button">
+
+                    + Registrer første ressurs
+
+                </a>
+            }
+            else
+            {
+                <p>
+                    Det finnes ingen registrerte ressurser
+                    å vise akkurat nå.
+                </p>
+            }
 
         </section>
     }
     else
     {
+        <!-- =====================================
+             STATUS
+        ====================================== -->
+
+        <section class="overview-status">
+
+            <article class="status-card">
+
+                <span>
+                    Registrerte ressurser
+                </span>
+
+                <strong>
+                    @resources.Count
+                </strong>
+
+                <small>
+                    I denne oversikten
+                </small>
+
+            </article>
+
+
+            <article class="status-card">
+
+                <span>
+                    Ressurstyper
+                </span>
+
+                <strong class="green-number">
+                    @resourceTypeCount
+                </strong>
+
+                <small>
+                    Ulike kategorier
+                </small>
+
+            </article>
+
+
+            <article class="status-card">
+
+                <span>
+                    Kartpunkter
+                </span>
+
+                <strong>
+                    @resources.Count
+                </strong>
+
+                <small>
+                    Registrerte plasseringer
+                </small>
+
+            </article>
+
+        </section>
+
+
+        <!-- =====================================
+             LISTE + KART
+        ====================================== -->
+
         <div class="overview-grid">
 
-            <!-- RESSURSLISTE -->
+
+            <!-- =================================
+                 RESSURSLISTE
+            ================================== -->
+
             <section class="resource-list-card">
 
                 <div class="section-heading">
-                    <h2>Ressurser</h2>
+
+                    <div>
+
+                        <span class="page-eyebrow">
+                            OVERSIKT
+                        </span>
+
+                        <h2>
+                            Ressurser
+                        </h2>
+
+                    </div>
+
 
                     <span class="resource-count">
-                        @Model.Count()
+                        @resources.Count
                     </span>
+
                 </div>
 
 
                 <div class="resource-list">
 
-                    @foreach (var resource in Model)
+                    @foreach (var resource in resources)
                     {
+                        string resourceType =
+                            GetResourceTypeName(
+                                resource.ResourceType
+                            );
+
+                        string registeredDate =
+                            resource.CreatedAt
+                                .ToLocalTime()
+                                .ToString(
+                                    "dd.MM.yyyy HH:mm"
+                                );
+
                         <article class="resource-item">
 
-                            <div class="resource-item-header">
+                            <div class="resource-item-top">
 
-                                <h3>
-                                    @resource.ResourceType
-                                </h3>
+                                <div class="resource-icon">
+                                    @GetResourceIcon(
+                                        resource.ResourceType
+                                    )
+                                </div>
+
+
+                                <div class="resource-title">
+
+                                    <span class="resource-type">
+                                        @resourceType
+                                    </span>
+
+                                    <h3>
+                                        @resource.Description
+                                    </h3>
+
+                                </div>
+
+
+                                <span class="resource-status">
+                                    Registrert
+                                </span>
 
                             </div>
 
 
-                            <p class="resource-description">
-                                @resource.Description
-                            </p>
+                            <!-- INFORMASJON -->
+                            <div class="resource-meta">
 
+                                <div>
 
-                            <dl class="resource-details">
+                                    <span class="meta-label">
+                                        Plassering
+                                    </span>
 
-                                @if (!string.IsNullOrWhiteSpace(
-                                    resource.ContactEmail
-                                ))
-                                {
-                                    <div>
-                                        <dt>E-post</dt>
+                                    <span class="meta-value">
+                                        @resource.Position.Latitude.ToString("F5"),
+                                        @resource.Position.Longitude.ToString("F5")
+                                    </span>
 
-                                        <dd>
-                                            @resource.ContactEmail
-                                        </dd>
-                                    </div>
-                                }
-
-
-                                @if (!string.IsNullOrWhiteSpace(
-                                    resource.ContactPhoneNumber
-                                ))
-                                {
-                                    <div>
-                                        <dt>Telefon</dt>
-
-                                        <dd>
-                                            @resource.ContactPhoneCountryCode
-                                            @resource.ContactPhoneNumber
-                                        </dd>
-                                    </div>
-                                }
+                                </div>
 
 
                                 <div>
-                                    <dt>Posisjon</dt>
 
-                                    <dd>
-                                        @resource.Position.Latitude.ToString("F5"),
-                                        @resource.Position.Longitude.ToString("F5")
-                                    </dd>
+                                    <span class="meta-label">
+                                        Registrert
+                                    </span>
+
+                                    <span class="meta-value">
+                                        @registeredDate
+                                    </span>
+
                                 </div>
 
-                            </dl>
+                            </div>
 
 
+                            <!-- KONTAKT -->
+                            @if (
+                                !string.IsNullOrWhiteSpace(
+                                    resource.ContactEmail
+                                )
+                                ||
+                                !string.IsNullOrWhiteSpace(
+                                    resource.ContactPhoneNumber
+                                )
+                            )
+                            {
+                                <div class="contact-box">
+
+                                    <span class="contact-title">
+                                        Kontakt
+                                    </span>
+
+
+                                    @if (
+                                        !string.IsNullOrWhiteSpace(
+                                            resource.ContactEmail
+                                        )
+                                    )
+                                    {
+                                        <span>
+                                            @resource.ContactEmail
+                                        </span>
+                                    }
+
+
+                                    @if (
+                                        !string.IsNullOrWhiteSpace(
+                                            resource.ContactPhoneNumber
+                                        )
+                                    )
+                                    {
+                                        <span>
+                                            @resource.ContactPhoneCountryCode
+                                            @resource.ContactPhoneNumber
+                                        </span>
+                                    }
+
+                                </div>
+                            }
+
+
+                            <!-- HANDLING -->
                             <button
                                 type="button"
                                 class="map-focus-button"
                                 data-latitude="@resource.Position.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                                 data-longitude="@resource.Position.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+
+                                <span>
+                                    ◎
+                                </span>
 
                                 Vis i kart
 
@@ -148,225 +603,1421 @@
             </section>
 
 
-            <!-- KART -->
+            <!-- =================================
+                 KART
+            ================================== -->
+
             <section class="map-card">
 
-                <div class="section-heading">
-                    <h2>Kart</h2>
+                <div class="map-card-header">
+
+                    <div>
+
+                        <span class="page-eyebrow">
+                            KART
+                        </span>
+
+                        <h2>
+                            Ressurskart
+                        </h2>
+
+                        <p>
+                            Klikk på en markør for mer informasjon,
+                            eller velg «Vis i kart» fra listen.
+                        </p>
+
+                    </div>
+
+
+                    <div class="map-legend">
+
+                        <span class="map-legend-dot"></span>
+
+                        Registrert ressurs
+
+                    </div>
+
                 </div>
+
 
                 <div id="resourceOverviewMap"></div>
 
             </section>
 
         </div>
+
+
+        <!-- =====================================
+             INFO NEDERST
+        ====================================== -->
+
+        <section class="overview-help">
+
+            <div class="overview-help-item">
+
+                <span class="help-number">
+                    01
+                </span>
+
+                <div>
+
+                    <strong>
+                        Finn ressursen
+                    </strong>
+
+                    <p>
+                        Se registrerte ressurser
+                        i listen.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="overview-help-item">
+
+                <span class="help-number">
+                    02
+                </span>
+
+                <div>
+
+                    <strong>
+                        Se plassering
+                    </strong>
+
+                    <p>
+                        Velg «Vis i kart» for å
+                        zoome til ressursen.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="overview-help-item">
+
+                <span class="help-number">
+                    03
+                </span>
+
+                <div>
+
+                    <strong>
+                        Kontakt ved behov
+                    </strong>
+
+                    <p>
+                        Bruk registrert kontaktinformasjon
+                        dersom ressursen blir aktuell.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
     }
 
-</div>
+</main>
 
 
 <style>
 
+    /* =========================================
+       FARGER
+    ========================================= */
+
+    :root {
+        --navy: #123047;
+        --navy-dark: #0d2639;
+
+        --primary: #176b87;
+        --primary-dark: #125770;
+
+        --green: #23855b;
+
+        --background: #f4f6f8;
+        --surface: #ffffff;
+
+        --text: #17212b;
+        --secondary: #667085;
+
+        --border: #dfe4e8;
+    }
+
+
+    /* =========================================
+       BASE
+    ========================================= */
+
+    * {
+        box-sizing: border-box;
+    }
+
+
+    html,
+    body {
+        margin: 0;
+
+        min-width: 0;
+        min-height: 100%;
+
+        color: var(--text);
+
+        background: var(--background);
+
+        font-family:
+            Inter,
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            sans-serif;
+    }
+
+
+    body {
+        min-height: 100vh;
+
+        overflow-x: hidden;
+    }
+
+
+    a {
+        color: inherit;
+
+        text-decoration: none;
+    }
+
+
+    button {
+        font: inherit;
+    }
+
+
+    /* =========================================
+       HEADER
+    ========================================= */
+
+    .provider-header {
+        min-height: 72px;
+
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        gap: 30px;
+
+        padding:
+            0 max(
+                4vw,
+                calc((100vw - 1650px) / 2)
+            );
+
+        border-bottom:
+            1px solid var(--border);
+
+        background: white;
+    }
+
+
+    .provider-brand {
+        display: flex;
+        align-items: center;
+
+        gap: 12px;
+
+        min-width: 0;
+    }
+
+
+    .brand-icon {
+        width: 41px;
+        height: 41px;
+
+        display: grid;
+        place-items: center;
+
+        flex-shrink: 0;
+
+        border-radius: 11px;
+
+        color: var(--primary);
+
+        background:
+            rgba(
+                23,
+                107,
+                135,
+                0.08
+            );
+    }
+
+
+    .brand-icon svg {
+        width: 23px;
+        height: 23px;
+    }
+
+
+    .provider-brand strong {
+        display: block;
+
+        color: var(--navy);
+
+        font-size: 0.93rem;
+    }
+
+
+    .provider-brand span {
+        display: block;
+
+        margin-top: 2px;
+
+        color: #7b8794;
+
+        font-size: 0.58rem;
+        font-weight: 750;
+
+        letter-spacing: 0.12em;
+
+        text-transform: uppercase;
+    }
+
+
+    .provider-user {
+        display: flex;
+        align-items: center;
+
+        gap: 17px;
+
+        flex-shrink: 0;
+    }
+
+
+    .provider-user-text {
+        text-align: right;
+    }
+
+
+    .provider-user-text strong {
+        display: block;
+
+        font-size: 0.79rem;
+    }
+
+
+    .provider-user-text span {
+        display: block;
+
+        margin-top: 2px;
+
+        color: var(--secondary);
+
+        font-size: 0.66rem;
+    }
+
+
+    .provider-user form {
+        margin: 0;
+    }
+
+
+    .dashboard-link {
+        padding:
+            9px 12px;
+
+        border-radius: 8px;
+
+        color: #52606c;
+
+        font-size: 0.73rem;
+        font-weight: 700;
+    }
+
+
+    .dashboard-link:hover {
+        color: var(--primary);
+
+        background:
+            rgba(
+                23,
+                107,
+                135,
+                0.06
+            );
+    }
+
+
+    .logout-button {
+        padding:
+            9px 14px;
+
+        border:
+            1px solid var(--border);
+
+        border-radius: 8px;
+
+        color: #344054;
+
+        background: white;
+
+        font-size: 0.75rem;
+        font-weight: 700;
+
+        cursor: pointer;
+    }
+
+
+    .logout-button:hover {
+        background: #f7f8f9;
+    }
+
+
+    /* =========================================
+       SIDE
+    ========================================= */
+
     .overview-page {
-        max-width: 1250px;
-        margin: 0 auto;
-        padding: 32px 20px;
+        width:
+            min(
+                1650px,
+                calc(100% - 48px)
+            );
+
+        min-width: 0;
+
+        margin:
+            0 auto;
+
+        padding:
+            44px 0 65px;
     }
 
 
     .overview-header {
         display: flex;
+        align-items: flex-end;
         justify-content: space-between;
-        align-items: center;
-        gap: 20px;
-        margin-bottom: 28px;
+
+        gap: 40px;
+
+        margin-bottom: 26px;
+    }
+
+
+    .overview-header > div {
+        min-width: 0;
+    }
+
+
+    .page-eyebrow {
+        display: block;
+
+        margin-bottom: 9px;
+
+        color: var(--primary);
+
+        font-size: 0.66rem;
+        font-weight: 850;
+
+        letter-spacing: 0.11em;
+
+        text-transform: uppercase;
     }
 
 
     .overview-header h1 {
-        margin: 0 0 8px;
-        color: #123047;
+        margin:
+            0 0 10px;
+
+        color: var(--navy-dark);
+
+        font-size:
+            clamp(
+                2.3rem,
+                4vw,
+                3.2rem
+            );
+
+        line-height: 1;
+
+        letter-spacing: -0.045em;
     }
 
 
     .overview-header p {
+        max-width: 680px;
+
         margin: 0;
-        color: #667085;
+
+        color: var(--secondary);
+
+        font-size: 0.9rem;
+
+        line-height: 1.65;
     }
 
 
     .primary-button {
-        display: inline-block;
-        padding: 12px 18px;
-        border-radius: 8px;
-        background: #176b87;
+        min-height: 47px;
+
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        gap: 8px;
+
+        flex-shrink: 0;
+
+        padding:
+            0 18px;
+
+        border-radius: 9px;
+
         color: white;
-        text-decoration: none;
-        font-weight: 600;
-        white-space: nowrap;
+
+        background: var(--primary);
+
+        font-size: 0.75rem;
+        font-weight: 800;
     }
 
 
     .primary-button:hover {
-        background: #125770;
         color: white;
+
+        background: var(--primary-dark);
     }
 
+
+    .primary-button > span {
+        font-size: 1rem;
+    }
+
+
+    /* =========================================
+       STATUS
+    ========================================= */
+
+    .overview-status {
+        display: grid;
+
+        grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+
+        gap: 15px;
+
+        margin-bottom: 20px;
+    }
+
+
+    .status-card {
+        min-width: 0;
+        min-height: 112px;
+
+        padding:
+            20px 22px;
+
+        border:
+            1px solid var(--border);
+
+        border-radius: 13px;
+
+        background: white;
+    }
+
+
+    .status-card > span {
+        display: block;
+
+        color: var(--secondary);
+
+        font-size: 0.71rem;
+    }
+
+
+    .status-card > strong {
+        display: block;
+
+        margin:
+            7px 0 6px;
+
+        color: var(--text);
+
+        font-size: 1.65rem;
+
+        line-height: 1;
+    }
+
+
+    .status-card > strong.green-number {
+        color: var(--green);
+    }
+
+
+    .status-card small {
+        color: #98a2b3;
+
+        font-size: 0.64rem;
+    }
+
+
+    /* =========================================
+       LISTE + KART
+    ========================================= */
 
     .overview-grid {
         display: grid;
-        grid-template-columns: 430px 1fr;
-        gap: 24px;
+
+        grid-template-columns:
+            minmax(370px, 0.72fr)
+            minmax(0, 1.78fr);
+
+        gap: 20px;
+
         align-items: start;
+
+        min-width: 0;
     }
 
 
+    /* =========================================
+       FELLES KORT
+    ========================================= */
+
     .resource-list-card,
-    .map-card,
-    .empty-state {
+    .map-card {
+        min-width: 0;
+
+        border:
+            1px solid var(--border);
+
+        border-radius: 15px;
+
         background: white;
-        border: 1px solid #dfe4e8;
-        border-radius: 12px;
-        padding: 22px;
+
+        box-shadow:
+            0 8px 25px
+            rgba(
+                18,
+                48,
+                71,
+                0.04
+            );
+    }
+
+
+    /* =========================================
+       RESSURSLISTE
+    ========================================= */
+
+    .resource-list-card {
+        padding:
+            22px;
     }
 
 
     .section-heading {
         display: flex;
         align-items: center;
-        gap: 10px;
+        justify-content: space-between;
+
+        gap: 20px;
+
         margin-bottom: 18px;
     }
 
 
     .section-heading h2 {
         margin: 0;
-        color: #123047;
+
+        color: var(--navy);
+
         font-size: 1.25rem;
+
+        letter-spacing: -0.03em;
     }
 
 
     .resource-count {
+        min-width: 33px;
+        height: 33px;
+
         display: inline-flex;
-        justify-content: center;
         align-items: center;
-        min-width: 28px;
-        height: 28px;
-        padding: 0 8px;
+        justify-content: center;
+
+        flex-shrink: 0;
+
+        padding:
+            0 10px;
+
         border-radius: 999px;
-        background: #f4f6f8;
-        color: #667085;
-        font-size: 0.85rem;
-        font-weight: 600;
+
+        color: var(--primary);
+
+        background:
+            rgba(
+                23,
+                107,
+                135,
+                0.08
+            );
+
+        font-size: 0.7rem;
+        font-weight: 850;
     }
 
 
     .resource-list {
+        max-height: 560px;
+
         display: flex;
         flex-direction: column;
-        gap: 14px;
-        max-height: 650px;
+
+        gap: 12px;
+
         overflow-y: auto;
+        overflow-x: hidden;
+
         padding-right: 4px;
     }
 
 
+    .resource-list::-webkit-scrollbar {
+        width: 7px;
+    }
+
+
+    .resource-list::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+
+        background: #d9dfe3;
+    }
+
+
+    /* =========================================
+       RESSURSKORT
+    ========================================= */
+
     .resource-item {
-        border: 1px solid #dfe4e8;
+        min-width: 0;
+
+        padding:
+            17px;
+
+        border:
+            1px solid #e0e5e8;
+
+        border-radius: 12px;
+
+        background: #ffffff;
+
+        transition:
+            border-color 150ms ease,
+            box-shadow 150ms ease;
+    }
+
+
+    .resource-item:hover {
+        border-color:
+            rgba(
+                23,
+                107,
+                135,
+                0.23
+            );
+
+        box-shadow:
+            0 8px 20px
+            rgba(
+                18,
+                48,
+                71,
+                0.045
+            );
+    }
+
+
+    .resource-item-top {
+        display: grid;
+
+        grid-template-columns:
+            42px minmax(0, 1fr) auto;
+
+        gap: 12px;
+
+        align-items: start;
+
+        min-width: 0;
+    }
+
+
+    .resource-icon {
+        width: 42px;
+        height: 42px;
+
+        display: grid;
+        place-items: center;
+
+        flex-shrink: 0;
+
         border-radius: 10px;
-        padding: 16px;
+
+        color: white;
+
+        background: var(--primary);
+
+        font-size: 0.72rem;
+        font-weight: 850;
     }
 
 
-    .resource-item-header h3 {
-        margin: 0 0 10px;
-        color: #123047;
-        font-size: 1.05rem;
+    .resource-title {
+        min-width: 0;
     }
 
 
-    .resource-description {
-        color: #17212b;
-        margin: 0 0 14px;
-        line-height: 1.5;
+    .resource-type {
+        display: block;
+
+        margin:
+            1px 0 4px;
+
+        color: var(--primary);
+
+        font-size: 0.6rem;
+        font-weight: 850;
+
+        letter-spacing: 0.08em;
+
+        text-transform: uppercase;
     }
 
 
-    .resource-details {
-        margin: 0 0 14px;
+    .resource-title h3 {
+        margin: 0;
+
+        overflow-wrap: anywhere;
+
+        color: var(--navy);
+
+        font-size: 0.83rem;
+
+        line-height: 1.4;
     }
 
 
-    .resource-details div {
-        margin-bottom: 8px;
+    .resource-status {
+        padding:
+            5px 9px;
+
+        border-radius: 999px;
+
+        color: var(--green);
+
+        background:
+            rgba(
+                35,
+                133,
+                91,
+                0.08
+            );
+
+        font-size: 0.58rem;
+        font-weight: 750;
+
+        white-space: nowrap;
     }
 
 
-    .resource-details dt {
-        color: #667085;
-        font-size: 0.8rem;
-        font-weight: 600;
+    /* =========================================
+       META
+    ========================================= */
+
+    .resource-meta {
+        display: grid;
+
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+
+        gap: 12px;
+
+        margin:
+            15px 0 12px;
+
+        padding:
+            12px;
+
+        border-radius: 9px;
+
+        background: #f6f8f9;
     }
 
 
-    .resource-details dd {
-        margin: 2px 0 0;
-        color: #17212b;
+    .resource-meta > div {
+        min-width: 0;
     }
 
+
+    .meta-label {
+        display: block;
+
+        margin-bottom: 3px;
+
+        color: #98a2b3;
+
+        font-size: 0.56rem;
+        font-weight: 750;
+
+        text-transform: uppercase;
+    }
+
+
+    .meta-value {
+        display: block;
+
+        min-width: 0;
+
+        overflow: hidden;
+
+        color: #52606c;
+
+        font-size: 0.65rem;
+
+        text-overflow: ellipsis;
+
+        white-space: nowrap;
+    }
+
+
+    /* =========================================
+       KONTAKT
+    ========================================= */
+
+    .contact-box {
+        display: flex;
+        flex-direction: column;
+
+        gap: 4px;
+
+        min-width: 0;
+
+        margin-bottom: 13px;
+
+        padding-left: 2px;
+
+        color: var(--secondary);
+
+        font-size: 0.65rem;
+    }
+
+
+    .contact-box > span {
+        overflow-wrap: anywhere;
+    }
+
+
+    .contact-title {
+        margin-bottom: 1px;
+
+        color: var(--navy);
+
+        font-size: 0.61rem;
+        font-weight: 800;
+    }
+
+
+    /* =========================================
+       VIS I KART
+    ========================================= */
 
     .map-focus-button {
-        border: 1px solid #176b87;
+        min-height: 37px;
+
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        gap: 6px;
+
+        padding:
+            0 12px;
+
+        border:
+            1px solid
+            rgba(
+                23,
+                107,
+                135,
+                0.28
+            );
+
+        border-radius: 8px;
+
+        color: var(--primary);
+
         background: white;
-        color: #176b87;
-        border-radius: 7px;
-        padding: 8px 12px;
-        font-weight: 600;
+
+        font-size: 0.67rem;
+        font-weight: 750;
+
         cursor: pointer;
     }
 
 
     .map-focus-button:hover {
-        background: #f4f6f8;
+        background:
+            rgba(
+                23,
+                107,
+                135,
+                0.05
+            );
+    }
+
+
+    /* =========================================
+       KART
+    ========================================= */
+
+    .map-card {
+        position: sticky;
+
+        top: 18px;
+
+        overflow: hidden;
+    }
+
+
+    .map-card-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+
+        gap: 25px;
+
+        padding:
+            21px 24px 17px;
+
+        border-bottom:
+            1px solid #eaecf0;
+    }
+
+
+    .map-card-header > div:first-child {
+        min-width: 0;
+    }
+
+
+    .map-card-header h2 {
+        margin:
+            0 0 5px;
+
+        color: var(--navy);
+
+        font-size: 1.25rem;
+
+        letter-spacing: -0.03em;
+    }
+
+
+    .map-card-header p {
+        max-width: 500px;
+
+        margin: 0;
+
+        color: var(--secondary);
+
+        font-size: 0.68rem;
+
+        line-height: 1.5;
+    }
+
+
+    .map-legend {
+        display: flex;
+        align-items: center;
+
+        gap: 7px;
+
+        flex-shrink: 0;
+
+        margin-top: 3px;
+
+        padding:
+            7px 10px;
+
+        border-radius: 8px;
+
+        color: #52606c;
+
+        background: #f5f7f8;
+
+        font-size: 0.61rem;
+    }
+
+
+    .map-legend-dot {
+        width: 8px;
+        height: 8px;
+
+        flex-shrink: 0;
+
+        border-radius: 50%;
+
+        background: var(--green);
     }
 
 
     #resourceOverviewMap {
         width: 100%;
-        height: 650px;
-        border-radius: 10px;
-        overflow: hidden;
+        height: 560px;
+
+        background: #dfe9ec;
     }
 
 
+    /* =========================================
+       KARTMARKØR
+    ========================================= */
+
+    .resource-map-marker {
+        border: 0;
+
+        background: transparent;
+    }
+
+
+    .resource-map-dot {
+        width: 34px;
+        height: 34px;
+
+        display: grid;
+        place-items: center;
+
+        border:
+            4px solid white;
+
+        border-radius:
+            50% 50% 50% 8px;
+
+        transform:
+            rotate(-45deg);
+
+        background: var(--green);
+
+        box-shadow:
+            0 5px 14px
+            rgba(
+                16,
+                24,
+                40,
+                0.28
+            );
+    }
+
+
+    .resource-map-dot span {
+        width: 9px;
+        height: 9px;
+
+        border-radius: 50%;
+
+        background: white;
+    }
+
+
+    /* =========================================
+       POPUP
+    ========================================= */
+
+    .resource-popup {
+        min-width: 190px;
+
+        font-family:
+            Inter,
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            sans-serif;
+    }
+
+
+    .resource-popup-type {
+        display: block;
+
+        margin-bottom: 5px;
+
+        color: var(--primary);
+
+        font-size: 0.59rem;
+        font-weight: 850;
+
+        text-transform: uppercase;
+    }
+
+
+    .resource-popup strong {
+        display: block;
+
+        margin-bottom: 5px;
+
+        color: var(--navy);
+
+        font-size: 0.82rem;
+    }
+
+
+    .resource-popup p {
+        margin:
+            0 0 8px;
+
+        color: #59636e;
+
+        font-size: 0.7rem;
+
+        line-height: 1.45;
+    }
+
+
+    .resource-popup small {
+        display: block;
+
+        margin-top: 3px;
+
+        overflow-wrap: anywhere;
+
+        color: #7b8794;
+
+        font-size: 0.62rem;
+    }
+
+
+    /* =========================================
+       HJELP NEDERST
+    ========================================= */
+
+    .overview-help {
+        display: grid;
+
+        grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+
+        gap: 30px;
+
+        margin-top: 25px;
+
+        padding:
+            25px 27px;
+
+        border:
+            1px solid var(--border);
+
+        border-radius: 14px;
+
+        background:
+            rgba(
+                255,
+                255,
+                255,
+                0.55
+            );
+    }
+
+
+    .overview-help-item {
+        display: grid;
+
+        grid-template-columns:
+            38px minmax(0, 1fr);
+
+        gap: 13px;
+
+        align-items: start;
+    }
+
+
+    .help-number {
+        width: 35px;
+        height: 35px;
+
+        display: grid;
+        place-items: center;
+
+        border-radius: 8px;
+
+        color: var(--primary);
+
+        background:
+            rgba(
+                23,
+                107,
+                135,
+                0.08
+            );
+
+        font-size: 0.62rem;
+        font-weight: 850;
+    }
+
+
+    .overview-help strong {
+        display: block;
+
+        margin:
+            1px 0 4px;
+
+        font-size: 0.72rem;
+    }
+
+
+    .overview-help p {
+        margin: 0;
+
+        color: var(--secondary);
+
+        font-size: 0.66rem;
+
+        line-height: 1.5;
+    }
+
+
+    /* =========================================
+       EMPTY STATE
+    ========================================= */
+
     .empty-state {
+        max-width: 650px;
+
+        margin:
+            70px auto;
+
+        padding:
+            60px 40px;
+
+        border:
+            1px solid var(--border);
+
+        border-radius: 16px;
+
         text-align: center;
-        padding: 60px 25px;
+
+        background: white;
+    }
+
+
+    .empty-icon {
+        width: 58px;
+        height: 58px;
+
+        display: grid;
+        place-items: center;
+
+        margin:
+            0 auto 20px;
+
+        border-radius: 14px;
+
+        color: var(--primary);
+
+        background:
+            rgba(
+                23,
+                107,
+                135,
+                0.08
+            );
+
+        font-size: 1.4rem;
     }
 
 
     .empty-state h2 {
-        color: #123047;
-        margin-top: 0;
+        margin:
+            0 0 10px;
+
+        color: var(--navy);
+
+        font-size: 1.5rem;
     }
 
 
     .empty-state p {
-        color: #667085;
-        margin-bottom: 24px;
+        max-width: 480px;
+
+        margin:
+            0 auto 23px;
+
+        color: var(--secondary);
+
+        font-size: 0.78rem;
+
+        line-height: 1.6;
     }
 
 
-    @@media (max-width: 900px) {
+    .empty-primary-button {
+        min-height: 44px;
 
-        .overview-header {
-            align-items: flex-start;
-            flex-direction: column;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        padding:
+            0 16px;
+
+        border-radius: 8px;
+
+        color: white;
+
+        background: var(--primary);
+
+        font-size: 0.72rem;
+        font-weight: 800;
+    }
+
+
+    /* =========================================
+       RESPONSIVE
+    ========================================= */
+
+    @@media (max-width: 1150px) {
+
+        .overview-grid {
+            grid-template-columns:
+                minmax(350px, 0.8fr)
+                minmax(0, 1.5fr);
+        }
+
+
+        #resourceOverviewMap {
+            height: 520px;
+        }
+
+    }
+
+
+    @@media (max-width: 950px) {
+
+        .overview-page {
+            width:
+                min(
+                    100% - 32px,
+                    1650px
+                );
+
+            padding:
+                38px 0 55px;
         }
 
 
         .overview-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns:
+                1fr;
         }
 
 
@@ -375,8 +2026,106 @@
         }
 
 
+        .map-card {
+            position: static;
+        }
+
+
         #resourceOverviewMap {
-            height: 420px;
+            height: 460px;
+        }
+
+
+        .overview-help,
+        .overview-status {
+            grid-template-columns:
+                1fr;
+        }
+
+    }
+
+
+    @@media (max-width: 700px) {
+
+        .provider-header {
+            padding:
+                12px 16px;
+        }
+
+
+        .provider-user-text,
+        .dashboard-link {
+            display: none;
+        }
+
+
+        .provider-brand span {
+            display: none;
+        }
+
+
+        .overview-page {
+            width:
+                min(
+                    100% - 24px,
+                    1650px
+                );
+        }
+
+
+        .overview-header {
+            align-items: flex-start;
+
+            flex-direction: column;
+
+            gap: 18px;
+        }
+
+
+        .primary-button {
+            width: 100%;
+        }
+
+
+        .resource-list-card {
+            padding:
+                20px 17px;
+        }
+
+
+        .resource-item-top {
+            grid-template-columns:
+                42px minmax(0, 1fr);
+        }
+
+
+        .resource-status {
+            width: max-content;
+
+            grid-column:
+                2;
+        }
+
+
+        .resource-meta {
+            grid-template-columns:
+                1fr;
+        }
+
+
+        .map-card-header {
+            flex-direction: column;
+        }
+
+
+        #resourceOverviewMap {
+            height: 360px;
+        }
+
+
+        .overview-help {
+            padding:
+                22px 18px;
         }
 
     }
@@ -384,7 +2133,7 @@
 </style>
 
 
-@if (Model.Any())
+@if (resources.Any())
 {
     <script
         src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
@@ -397,14 +2146,24 @@
             "DOMContentLoaded",
             function () {
 
-                const defaultLatitude = 58.1467;
-                const defaultLongitude = 7.9956;
+                const resources =
+                    @Html.Raw(
+                        mapResourcesJson
+                    );
+
+
+                const defaultLatitude =
+                    58.1467;
+
+                const defaultLongitude =
+                    7.9956;
 
 
                 const map =
                     L.map(
                         "resourceOverviewMap"
-                    ).setView(
+                    )
+                    .setView(
                         [
                             defaultLatitude,
                             defaultLongitude
@@ -416,62 +2175,176 @@
                 L.tileLayer(
                     "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                     {
-                        maxZoom: 19,
+                        maxZoom:
+                            19,
+
                         attribution:
                             "&copy; OpenStreetMap"
                     }
                 ).addTo(map);
 
 
-                const markers = [];
+                const resourceIcon =
+                    L.divIcon({
+                        className:
+                            "resource-map-marker",
+
+                        html:
+                            `
+                                <div class="resource-map-dot">
+                                    <span></span>
+                                </div>
+                            `,
+
+                        iconSize:
+                            [34, 38],
+
+                        iconAnchor:
+                            [17, 36],
+
+                        popupAnchor:
+                            [0, -32]
+                    });
 
 
-                @foreach (var resource in Model)
-                {
-                    var latitude =
-                        resource.Position.Latitude
-                            .ToString(
-                                System.Globalization.CultureInfo.InvariantCulture
+                const markers =
+                    [];
+
+
+                resources.forEach(
+                    function (resource) {
+
+                        const marker =
+                            L.marker(
+                                [
+                                    resource.latitude,
+                                    resource.longitude
+                                ],
+                                {
+                                    icon:
+                                        resourceIcon
+                                }
+                            )
+                            .addTo(map);
+
+
+                        const popup =
+                            document.createElement(
+                                "div"
                             );
 
-                    var longitude =
-                        resource.Position.Longitude
-                            .ToString(
-                                System.Globalization.CultureInfo.InvariantCulture
+                        popup.className =
+                            "resource-popup";
+
+
+                        const type =
+                            document.createElement(
+                                "span"
                             );
 
-                    <text>
+                        type.className =
+                            "resource-popup-type";
 
+                        type.textContent =
+                            resource.type;
+
+                        popup.appendChild(
+                            type
+                        );
+
+
+                        const title =
+                            document.createElement(
+                                "strong"
+                            );
+
+                        title.textContent =
+                            resource.description;
+
+                        popup.appendChild(
+                            title
+                        );
+
+
+                        const position =
+                            document.createElement(
+                                "p"
+                            );
+
+                        position.textContent =
+                            resource.latitude.toFixed(5)
+                            +
+                            ", "
+                            +
+                            resource.longitude.toFixed(5);
+
+                        popup.appendChild(
+                            position
+                        );
+
+
+                        if (resource.email)
                         {
-                            const marker =
-                                L.marker(
-                                    [
-                                        @latitude,
-                                        @longitude
-                                    ]
-                                ).addTo(map);
+                            const email =
+                                document.createElement(
+                                    "small"
+                                );
 
+                            email.textContent =
+                                resource.email;
 
-                            marker.bindPopup(
-                                @Html.Raw(
-                                    System.Text.Json.JsonSerializer.Serialize(
-                                        $"{resource.ResourceType}: {resource.Description}"
-                                    )
-                                )
-                            );
-
-
-                            markers.push(
-                                marker
+                            popup.appendChild(
+                                email
                             );
                         }
 
-                    </text>
+
+                        if (resource.phone)
+                        {
+                            const phone =
+                                document.createElement(
+                                    "small"
+                                );
+
+                            phone.textContent =
+                                resource.phone;
+
+                            popup.appendChild(
+                                phone
+                            );
+                        }
+
+
+                        marker.bindPopup(
+                            popup
+                        );
+
+
+                        markers.push(
+                            marker
+                        );
+
+                    }
+                );
+
+
+                /*
+                 * Vis alle markører automatisk.
+                 */
+                if (markers.length === 1)
+                {
+                    const position =
+                        markers[0]
+                            .getLatLng();
+
+
+                    map.setView(
+                        position,
+                        13
+                    );
                 }
-
-
-                if (markers.length > 0) {
-
+                else if (markers.length > 1)
+                {
                     const group =
                         L.featureGroup(
                             markers
@@ -479,12 +2352,16 @@
 
 
                     map.fitBounds(
-                        group.getBounds().pad(0.2)
+                        group
+                            .getBounds()
+                            .pad(0.18)
                     );
-
                 }
 
 
+                /*
+                 * Vis valgt ressurs i kartet.
+                 */
                 document
                     .querySelectorAll(
                         ".map-focus-button"
@@ -501,6 +2378,7 @@
                                             button.dataset.latitude
                                         );
 
+
                                     const longitude =
                                         parseFloat(
                                             button.dataset.longitude
@@ -515,6 +2393,57 @@
                                         15
                                     );
 
+
+                                    const marker =
+                                        markers.find(
+                                            function (candidate) {
+
+                                                const position =
+                                                    candidate.getLatLng();
+
+
+                                                return (
+                                                    Math.abs(
+                                                        position.lat
+                                                        -
+                                                        latitude
+                                                    )
+                                                    <
+                                                    0.000001
+                                                    &&
+                                                    Math.abs(
+                                                        position.lng
+                                                        -
+                                                        longitude
+                                                    )
+                                                    <
+                                                    0.000001
+                                                );
+
+                                            }
+                                        );
+
+
+                                    if (marker)
+                                    {
+                                        marker.openPopup();
+                                    }
+
+
+                                    document
+                                        .getElementById(
+                                            "resourceOverviewMap"
+                                        )
+                                        ?.scrollIntoView(
+                                            {
+                                                behavior:
+                                                    "smooth",
+
+                                                block:
+                                                    "center"
+                                            }
+                                        );
+
                                 }
                             );
 
@@ -526,3 +2455,8 @@
 
     </script>
 }
+
+
+</body>
+
+</html>

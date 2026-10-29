@@ -39,6 +39,8 @@ public class RegisterResourceViewModel : IValidatableObject
     public string? ContactEmail { get; init; }
 
 
+    [Required]
+    [StringLength(5)]
     [Display(Name = "Landskode")]
     public string ContactPhoneCountryCode { get; init; } = "+47";
 
@@ -64,7 +66,7 @@ public class RegisterResourceViewModel : IValidatableObject
 
 
     /// <summary>
-    /// Validerer telefonnummer basert på landskode.
+    /// Validerer telefonnummer basert på valgt landskode.
     /// </summary>
     public IEnumerable<ValidationResult> Validate(
         ValidationContext validationContext
@@ -74,7 +76,6 @@ public class RegisterResourceViewModel : IValidatableObject
         {
             yield break;
         }
-
 
         if (!Regex.IsMatch(
                 ContactPhoneNumber,
@@ -89,7 +90,6 @@ public class RegisterResourceViewModel : IValidatableObject
             yield break;
         }
 
-
         string phoneNumber =
             Regex.Replace(
                 ContactPhoneNumber,
@@ -97,28 +97,15 @@ public class RegisterResourceViewModel : IValidatableObject
                 ""
             );
 
-
         switch (ContactPhoneCountryCode)
         {
             case "+47":
-
-                if (phoneNumber.Length != 8)
-                {
-                    yield return new ValidationResult(
-                        "Telefonnummer for Norge må inneholde nøyaktig 8 sifre.",
-                        new[] { nameof(ContactPhoneNumber) }
-                    );
-                }
-
-                break;
-
-
             case "+45":
 
                 if (phoneNumber.Length != 8)
                 {
                     yield return new ValidationResult(
-                        "Telefonnummer for Danmark må inneholde nøyaktig 8 sifre.",
+                        "Telefonnummeret må inneholde nøyaktig 8 sifre.",
                         new[] { nameof(ContactPhoneNumber) }
                     );
                 }
@@ -135,10 +122,20 @@ public class RegisterResourceViewModel : IValidatableObject
                 )
                 {
                     yield return new ValidationResult(
-                        "Telefonnummer for Sverige må inneholde mellom 7 og 10 sifre.",
+                        "Svenske telefonnummer må inneholde mellom 7 og 10 sifre.",
                         new[] { nameof(ContactPhoneNumber) }
                     );
                 }
+
+                break;
+
+
+            default:
+
+                yield return new ValidationResult(
+                    "Ugyldig landskode.",
+                    new[] { nameof(ContactPhoneCountryCode) }
+                );
 
                 break;
         }
