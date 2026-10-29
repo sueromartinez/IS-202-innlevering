@@ -4,20 +4,35 @@ using Microsoft.AspNetCore.Mvc;
 namespace FirstWebAppInDocker.Controllers;
 
 /// <summary>
-/// Håndterer midlertidig innlogging, utlogging og profil.
+/// Midlertidig controller for innlogging, utlogging og profil.
 /// Skal senere erstattes med ASP.NET Core Identity.
 /// </summary>
 public class AccountController : Controller
 {
+    private const string PublicActorEmail =
+        "offentlig@beredskap.no";
+
+    private const string ResourceProviderEmail =
+        "privat@beredskap.no";
+
+    private const string TestPassword =
+        "Test123!";
+
+
     /// <summary>
-    /// Logger inn en bruker basert på testbrukere.
+    /// Logger inn en midlertidig testbruker.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Login(LoginViewModel model)
+    public IActionResult Login(
+        LoginViewModel model
+    )
     {
         if (!ModelState.IsValid)
         {
+            TempData["LoginError"] =
+                "Fyll inn gyldig e-post og passord.";
+
             return RedirectToAction(
                 "Index",
                 "Home"
@@ -25,30 +40,29 @@ public class AccountController : Controller
         }
 
 
+        string email =
+            model.Email
+                ?.Trim()
+                .ToLowerInvariant()
+            ?? string.Empty;
+
+
         /*
-         * Midlertidig offentlig testbruker.
+         * Offentlig aktør / beredskapsbruker
          */
         if (
-            model.Email == "offentlig@beredskap.no"
+            email ==
+            PublicActorEmail.ToLowerInvariant()
             &&
-            model.Password == "Test123!"
+            model.Password ==
+            TestPassword
         )
         {
-            HttpContext.Session.SetString(
-                "UserEmail",
-                model.Email
-            );
-
-            HttpContext.Session.SetString(
-                "UserName",
-                "Offentlig testbruker"
-            );
-
-            HttpContext.Session.SetString(
-                "UserRole",
+            CreateSession(
+                PublicActorEmail,
+                "Beredskapsbruker",
                 "PublicActor"
             );
-
 
             return RedirectToAction(
                 "Dashboard",
@@ -58,29 +72,21 @@ public class AccountController : Controller
 
 
         /*
-         * Midlertidig ressursleverandør.
+         * Ressursleverandør
          */
         if (
-            model.Email == "privat@beredskap.no"
+            email ==
+            ResourceProviderEmail.ToLowerInvariant()
             &&
-            model.Password == "Test123!"
+            model.Password ==
+            TestPassword
         )
         {
-            HttpContext.Session.SetString(
-                "UserEmail",
-                model.Email
-            );
-
-            HttpContext.Session.SetString(
-                "UserName",
-                "Ressursleverandør"
-            );
-
-            HttpContext.Session.SetString(
-                "UserRole",
+            CreateSession(
+                ResourceProviderEmail,
+                "Ressursleverandør",
                 "ResourceProvider"
             );
-
 
             return RedirectToAction(
                 "Dashboard",
@@ -92,7 +98,6 @@ public class AccountController : Controller
         TempData["LoginError"] =
             "Feil e-post eller passord.";
 
-
         return RedirectToAction(
             "Index",
             "Home"
@@ -101,7 +106,28 @@ public class AccountController : Controller
 
 
     /// <summary>
-    /// Logger ut brukeren ved å tømme Session.
+    /// Direkte testinnlogging for offentlig aktør.
+    /// Brukes av knappen på forsiden.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult DemoPublicActorLogin()
+    {
+        CreateSession(
+            PublicActorEmail,
+            "Beredskapsbruker",
+            "PublicActor"
+        );
+
+        return RedirectToAction(
+            "Dashboard",
+            "Home"
+        );
+    }
+
+
+    /// <summary>
+    /// Logger ut brukeren.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -109,7 +135,6 @@ public class AccountController : Controller
     {
         HttpContext.Session.Clear();
 
-
         return RedirectToAction(
             "Index",
             "Home"
@@ -118,7 +143,7 @@ public class AccountController : Controller
 
 
     /// <summary>
-    /// Viser profilsiden til innlogget bruker.
+    /// Viser profilen til innlogget bruker.
     /// </summary>
     [HttpGet]
     public IActionResult Profile()
@@ -128,13 +153,12 @@ public class AccountController : Controller
                 "UserEmail"
             );
 
-        string? userName =
-            HttpContext.Session.GetString(
-                "UserName"
-            );
 
-
-        if (string.IsNullOrEmpty(userEmail))
+        if (
+            string.IsNullOrWhiteSpace(
+                userEmail
+            )
+        )
         {
             return RedirectToAction(
                 "Index",
@@ -147,7 +171,9 @@ public class AccountController : Controller
             new ProfileViewModel
             {
                 Name =
-                    userName
+                    HttpContext.Session.GetString(
+                        "UserName"
+                    )
                     ?? string.Empty,
 
                 Email =
@@ -169,12 +195,14 @@ public class AccountController : Controller
             };
 
 
-        return View(model);
+        return View(
+            model
+        );
     }
 
 
     /// <summary>
-    /// Oppdaterer kontaktinformasjon på profilsiden.
+    /// Oppdaterer midlertidig profilinformasjon.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -188,7 +216,11 @@ public class AccountController : Controller
             );
 
 
-        if (string.IsNullOrEmpty(userEmail))
+        if (
+            string.IsNullOrWhiteSpace(
+                userEmail
+            )
+        )
         {
             return RedirectToAction(
                 "Index",
@@ -199,7 +231,9 @@ public class AccountController : Controller
 
         if (!ModelState.IsValid)
         {
-            return View(model);
+            return View(
+                model
+            );
         }
 
 
@@ -208,10 +242,12 @@ public class AccountController : Controller
             model.Name.Trim()
         );
 
+
         HttpContext.Session.SetString(
             "ContactEmail",
             model.Email.Trim()
         );
+
 
         HttpContext.Session.SetString(
             "PhoneCountryCode",
@@ -244,6 +280,57 @@ public class AccountController : Controller
 
         return RedirectToAction(
             nameof(Profile)
+        );
+    }
+
+
+    /// <summary>
+    /// Oppretter Session-data
+    /// for en midlertidig bruker.
+    /// </summary>
+    private void CreateSession(
+        string email,
+        string name,
+        string role
+    )
+    {
+        /*
+         * Fjern eventuell gammel session først.
+         */
+        HttpContext.Session.Clear();
+
+
+        HttpContext.Session.SetString(
+            "UserEmail",
+            email
+        );
+
+
+        HttpContext.Session.SetString(
+            "UserName",
+            name
+        );
+
+
+        HttpContext.Session.SetString(
+            "UserRole",
+            role
+        );
+
+
+        /*
+         * Midlertidig standard
+         * kontaktinformasjon.
+         */
+        HttpContext.Session.SetString(
+            "ContactEmail",
+            email
+        );
+
+
+        HttpContext.Session.SetString(
+            "PhoneCountryCode",
+            "+47"
         );
     }
 }

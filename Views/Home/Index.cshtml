@@ -1,69 +1,166 @@
 @model FirstWebAppInDocker.ViewModels.LoginViewModel
 
 @{
-    ViewData["Title"] = "Forside";
+    Layout = null;
+    ViewData["Title"] = "Beredskapsportal";
+
+    string? loginError =
+        TempData["LoginError"] as string;
+
+    bool hasLoginErrors =
+        !string.IsNullOrWhiteSpace(loginError);
 }
 
+<!DOCTYPE html>
 
-<!-- =========================================
-     HERO
-     ========================================= -->
+<html lang="no">
 
-<section class="hero-section">
+<head>
 
-    <div class="hero-decoration"></div>
+    <meta charset="utf-8" />
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    />
+
+    <title>
+        Beredskapsportal
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="~/css/home.css"
+        asp-append-version="true"
+    />
+
+</head>
+
+<body>
 
 
-    <div class="hero-content">
+<!-- ==========================================
+     HEADER
+=========================================== -->
 
-        <div class="hero-eyebrow">
+<header class="site-header">
 
-            <span></span>
+    <a
+        href="#top"
+        class="brand">
 
-            SAMMEN FOR ET TRYGGERE NORGE
+        <div class="brand-icon">
+
+            <svg
+                viewBox="0 0 24 24"
+                aria-hidden="true">
+
+                <path
+                    d="M12 2L4 5.5V11c0 5.1 3.4 9.8 8 11 4.6-1.2 8-5.9 8-11V5.5L12 2Z"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                />
+
+                <path
+                    d="M8.5 12.5L11 15l4.8-6"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                />
+
+            </svg>
 
         </div>
 
 
+        <div>
+
+            <strong>
+                Beredskapsportal
+            </strong>
+
+            <span>
+                Totalforsvaret
+            </span>
+
+        </div>
+
+    </a>
+
+
+    <nav class="header-nav">
+
+        <a href="#how">
+            Slik fungerer det
+        </a>
+
+        <a
+            href="#login"
+            class="header-login"
+            data-open-auth="login">
+
+            Logg inn
+
+        </a>
+
+    </nav>
+
+</header>
+
+
+<main id="top">
+
+
+<!-- ==========================================
+     HERO
+=========================================== -->
+
+<section class="hero">
+
+    <div class="hero-content">
+
+        <div class="hero-label">
+            Sammen for et tryggere Norge
+        </div>
+
+
         <h1>
-
             Gjør en forskjell
-
             <span>
                 når det virkelig gjelder.
             </span>
-
         </h1>
 
 
         <p class="hero-description">
-
-            Har du utstyr, kompetanse eller kapasitet som
-            kan være nyttig når samfunnet blir satt på prøve?
+            Har du utstyr, kompetanse eller kapasitet
+            som kan være nyttig når samfunnet blir satt på prøve?
             Registrer det du kan bidra med.
-
         </p>
 
 
-        <div class="hero-buttons">
+        <div class="hero-actions">
 
-            <button
-                type="button"
-                id="contributeButton"
-                class="primary-cta">
+            <a
+                href="#login"
+                class="primary-button"
+                data-open-auth="register">
 
                 Jeg vil bidra
 
-                <span>
+                <span aria-hidden="true">
                     →
                 </span>
 
-            </button>
+            </a>
 
 
             <a
-                href="#howItWorks"
-                class="secondary-cta">
+                href="#how"
+                class="secondary-button">
 
                 Slik fungerer det
 
@@ -75,102 +172,134 @@
         <div class="hero-audience">
 
             <span>
-                ✓ Privatpersoner
+                Privatpersoner
             </span>
 
             <span>
-                ✓ Virksomheter
+                Virksomheter
             </span>
 
             <span>
-                ✓ Frivillige organisasjoner
+                Frivillige organisasjoner
             </span>
 
         </div>
 
+    </div>
 
-        <div class="resource-preview">
 
-            <div class="resource-preview-card">
+    <!-- EKSEMPLER PÅ RESSURSER -->
 
-                <span class="resource-preview-icon">
-                    T
-                </span>
+    <div class="hero-visual">
 
-                <div>
+        <div class="resource-card">
 
-                    <strong>
-                        Transport
-                    </strong>
+            <div class="resource-visual">
 
-                    <small>
-                        Bil, båt eller traktor
-                    </small>
+                <div class="resource-grid">
+
+                    <div class="resource-item">
+
+                        <div class="resource-icon">
+                            T
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                Transport
+                            </strong>
+
+                            <span>
+                                Bil, båt eller traktor
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="resource-item">
+
+                        <div class="resource-icon">
+                            A
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                Aggregat
+                            </strong>
+
+                            <span>
+                                Strøm ved bortfall
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="resource-item">
+
+                        <div class="resource-icon">
+                            D
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                Drone
+                            </strong>
+
+                            <span>
+                                Utstyr og operatør
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="resource-item">
+
+                        <div class="resource-icon">
+                            K
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                Kompetanse
+                            </strong>
+
+                            <span>
+                                Erfaring og personell
+                            </span>
+
+                        </div>
+
+                    </div>
 
                 </div>
 
             </div>
 
 
-            <div class="resource-preview-card">
+            <div class="resource-card-copy">
 
-                <span class="resource-preview-icon green">
-                    A
-                </span>
+                <small>
+                    Lokale ressurser
+                </small>
 
-                <div>
+                <h2>
+                    Det du har kan være det noen trenger.
+                </h2>
 
-                    <strong>
-                        Aggregat
-                    </strong>
-
-                    <small>
-                        Strøm ved bortfall
-                    </small>
-
-                </div>
-
-            </div>
-
-
-            <div class="resource-preview-card">
-
-                <span class="resource-preview-icon">
-                    M
-                </span>
-
-                <div>
-
-                    <strong>
-                        Maskiner
-                    </strong>
-
-                    <small>
-                        Utstyr og arbeidsmaskiner
-                    </small>
-
-                </div>
-
-            </div>
-
-
-            <div class="resource-preview-card">
-
-                <span class="resource-preview-icon green">
-                    K
-                </span>
-
-                <div>
-
-                    <strong>
-                        Kompetanse
-                    </strong>
-
-                    <small>
-                        Erfaring og personell
-                    </small>
-
-                </div>
+                <p>
+                    Ressurser som er vanlige i hverdagen
+                    kan bli svært viktige når situasjonen endrer seg.
+                </p>
 
             </div>
 
@@ -181,27 +310,27 @@
 </section>
 
 
-
-<!-- =========================================
-     TRE STEG
-     ========================================= -->
+<!-- ==========================================
+     SLIK FUNGERER DET
+=========================================== -->
 
 <section
-    class="steps-section"
-    id="howItWorks">
+    class="how-section"
+    id="how">
 
     <div class="section-container">
 
+        <div class="section-heading">
 
-        <div class="section-heading centered">
-
-            <span class="section-kicker">
-                SLIK FUNGERER DET
+            <span class="section-label">
+                Slik fungerer det
             </span>
+
 
             <h2>
                 Tre enkle steg.
             </h2>
+
 
             <p>
                 Du trenger ikke kjenne hele systemet.
@@ -211,74 +340,60 @@
         </div>
 
 
-        <div class="steps-list">
+        <div class="steps">
 
+            <article class="step">
 
-            <article class="step-row">
-
-                <span class="step-number">
+                <div class="step-number">
                     01
-                </span>
-
-                <div>
-
-                    <h3>
-                        Registrer ressursen
-                    </h3>
-
-                    <p>
-                        Fortell hva du kan bidra med og
-                        hvor ressursen befinner seg.
-                    </p>
-
                 </div>
+
+                <h3>
+                    Registrer ressursen
+                </h3>
+
+                <p>
+                    Fortell hva du kan bidra med
+                    og hvor ressursen befinner seg.
+                </p>
 
             </article>
 
 
-            <article class="step-row">
+            <article class="step">
 
-                <span class="step-number">
+                <div class="step-number">
                     02
-                </span>
-
-                <div>
-
-                    <h3>
-                        Gjør den tilgjengelig
-                    </h3>
-
-                    <p>
-                        Ressursen blir tilgjengelig for
-                        relevante offentlige aktører.
-                    </p>
-
                 </div>
+
+                <h3>
+                    Gjør den tilgjengelig
+                </h3>
+
+                <p>
+                    Ressursen blir tilgjengelig
+                    for relevante offentlige aktører.
+                </p>
 
             </article>
 
 
-            <article class="step-row">
+            <article class="step">
 
-                <span class="step-number">
+                <div class="step-number">
                     03
-                </span>
-
-                <div>
-
-                    <h3>
-                        Bidra ved behov
-                    </h3>
-
-                    <p>
-                        Når et behov oppstår blir det enklere
-                        å finne riktig ressurs raskt.
-                    </p>
-
                 </div>
 
-            </article>
+                <h3>
+                    Bidra ved behov
+                </h3>
 
+                <p>
+                    Når et behov oppstår blir det enklere
+                    å finne riktig ressurs raskt.
+                </p>
+
+            </article>
 
         </div>
 
@@ -287,25 +402,23 @@
 </section>
 
 
+<!-- ==========================================
+     FELLESSKAP
+=========================================== -->
 
-<!-- =========================================
-     FELLES BEREDSKAP
-     ========================================= -->
-
-<section class="community-wrapper">
+<section class="community-section">
 
     <div class="community-card">
 
-        <div class="community-top">
+        <div class="community-copy">
 
-            <span class="community-kicker">
-                SAMMEN STÅR VI STERKERE
+            <span class="section-label">
+                Sammen står vi sterkere
             </span>
 
 
             <h2>
-                Din ressurs kan være
-                akkurat det noen trenger.
+                Din ressurs kan være akkurat det noen trenger.
             </h2>
 
 
@@ -323,22 +436,20 @@
         </div>
 
 
-        <div class="community-visual">
+        <div class="network">
 
-            <div class="orbit">
+            <div class="network-ring">
 
-                <span class="orbit-point top"></span>
-                <span class="orbit-point right"></span>
-                <span class="orbit-point bottom"></span>
-                <span class="orbit-point left"></span>
+                <span class="network-point point-one"></span>
+                <span class="network-point point-two"></span>
+                <span class="network-point point-three"></span>
+                <span class="network-point point-four"></span>
 
 
-                <div class="orbit-center">
-
+                <div class="network-center">
                     Felles
                     <br />
                     beredskap
-
                 </div>
 
             </div>
@@ -350,27 +461,28 @@
 </section>
 
 
-
-<!-- =========================================
+<!-- ==========================================
      LOGIN / REGISTER
-     ========================================= -->
+=========================================== -->
 
 <section
     class="login-section"
-    id="loginSection">
+    id="login">
 
-    <div class="login-section-inner">
+    <div class="login-layout">
 
 
-        <div class="login-heading">
+        <div class="login-copy">
 
-            <span class="section-kicker">
-                BEREDSKAPSPORTAL
+            <span class="section-label">
+                Beredskapsportal
             </span>
+
 
             <h2>
                 Klar til å gjøre en forskjell?
             </h2>
+
 
             <p>
                 Logg inn hvis du allerede har en bruker,
@@ -379,25 +491,31 @@
             </p>
 
 
-            <div class="prepared-message">
-
+            <div class="login-ending">
                 Det vi har sammen, gjør oss bedre rustet.
-
             </div>
 
         </div>
 
 
+        <div
+            class="login-card"
+            id="authCard">
 
-        <div class="login-card">
 
-
-            <div class="auth-tabs">
+            <div
+                class="auth-tabs"
+                role="tablist"
+                aria-label="Brukertilgang">
 
                 <button
                     type="button"
                     class="auth-tab active"
-                    data-tab="login">
+                    id="loginTab"
+                    role="tab"
+                    aria-selected="true"
+                    aria-controls="loginPanel"
+                    data-auth-tab="login">
 
                     Logg inn
 
@@ -407,7 +525,11 @@
                 <button
                     type="button"
                     class="auth-tab"
-                    data-tab="register">
+                    id="registerTab"
+                    role="tab"
+                    aria-selected="false"
+                    aria-controls="registerPanel"
+                    data-auth-tab="register">
 
                     Registrer bruker
 
@@ -416,16 +538,16 @@
             </div>
 
 
-
-            <!-- LOGIN -->
+            <!-- LOGG INN -->
 
             <div
-                class="auth-panel active"
-                id="loginPanel">
+                id="loginPanel"
+                class="auth-panel"
+                role="tabpanel"
+                aria-labelledby="loginTab">
 
-
-                <span class="auth-kicker">
-                    LOGG INN
+                <span class="login-card-label">
+                    Logg inn
                 </span>
 
 
@@ -434,12 +556,10 @@
                 </h3>
 
 
-                @if (TempData["LoginError"] != null)
+                @if (hasLoginErrors)
                 {
                     <div class="auth-error">
-
-                        @TempData["LoginError"]
-
+                        @loginError
                     </div>
                 }
 
@@ -449,8 +569,13 @@
                     asp-action="Login"
                     method="post">
 
+                    <div
+                        asp-validation-summary="ModelOnly"
+                        class="validation-summary">
+                    </div>
 
-                    <div class="form-group">
+
+                    <div class="login-group">
 
                         <label asp-for="Email">
                             E-post
@@ -458,6 +583,7 @@
 
                         <input
                             asp-for="Email"
+                            autocomplete="email"
                             placeholder="navn@eksempel.no"
                         />
 
@@ -469,8 +595,7 @@
                     </div>
 
 
-
-                    <div class="form-group">
+                    <div class="login-group">
 
                         <label asp-for="Password">
                             Passord
@@ -478,6 +603,7 @@
 
                         <input
                             asp-for="Password"
+                            autocomplete="current-password"
                             placeholder="Skriv inn passord"
                         />
 
@@ -487,7 +613,6 @@
                         </span>
 
                     </div>
-
 
 
                     <button
@@ -502,111 +627,133 @@
 
 
                 <div class="login-divider">
-
-                    <span>
-                        eller
-                    </span>
-
+                    eller
                 </div>
 
 
                 <button
                     type="button"
-                    class="demo-login-button">
+                    class="demo-button">
 
                     Fortsett som offentlig testbruker
 
                 </button>
 
+
+                <p class="demo-note">
+                    Midlertidig testinnlogging for prosjektet.
+                </p>
+
             </div>
 
 
-
-            <!-- REGISTER -->
+            <!-- REGISTRER BRUKER -->
 
             <div
-                class="auth-panel"
-                id="registerPanel">
+                id="registerPanel"
+                class="auth-panel hidden"
+                role="tabpanel"
+                aria-labelledby="registerTab">
 
-
-                <span class="auth-kicker">
-                    NY BRUKER
+                <span class="login-card-label">
+                    Ny bruker
                 </span>
 
 
                 <h3>
-                    Registrer deg
+                    Opprett bruker
                 </h3>
 
 
-                <p class="register-description">
-
-                    Velg hvordan du ønsker å bruke
-                    Beredskapsportalen.
-
+                <p class="auth-intro">
+                    Opprett en bruker for å registrere
+                    og administrere ressurser du kan bidra med.
                 </p>
 
 
-                <button
-                    type="button"
-                    class="registration-option">
+                <div class="login-group">
 
-                    <span class="registration-icon">
-                        R
-                    </span>
+                    <label for="registerName">
+                        Navn
+                    </label>
 
-                    <span>
-
-                        <strong>
-                            Ressursleverandør
-                        </strong>
-
-                        <small>
-                            Privatperson, virksomhet,
-                            bonde, entreprenør eller
-                            frivillig organisasjon.
-                        </small>
-
-                    </span>
-
-                </button>
-
-
-
-                <button
-                    type="button"
-                    class="registration-option">
-
-                    <span class="registration-icon">
-                        O
-                    </span>
-
-                    <span>
-
-                        <strong>
-                            Offentlig aktør
-                        </strong>
-
-                        <small>
-                            Kommune, politi, helse,
-                            brann eller annen offentlig
-                            beredskapsaktør.
-                        </small>
-
-                    </span>
-
-                </button>
-
-
-                <div class="registration-info">
-
-                    Brukerregistrering kobles til
-                    ASP.NET Core Identity.
+                    <input
+                        id="registerName"
+                        name="registerName"
+                        type="text"
+                        autocomplete="name"
+                        placeholder="Ola Nordmann"
+                    />
 
                 </div>
 
-            </div>
 
+                <div class="login-group">
+
+                    <label for="registerEmail">
+                        E-post
+                    </label>
+
+                    <input
+                        id="registerEmail"
+                        name="registerEmail"
+                        type="email"
+                        autocomplete="email"
+                        placeholder="navn@eksempel.no"
+                    />
+
+                </div>
+
+
+                <div class="login-group">
+
+                    <label for="registerPassword">
+                        Passord
+                    </label>
+
+                    <input
+                        id="registerPassword"
+                        name="registerPassword"
+                        type="password"
+                        autocomplete="new-password"
+                        placeholder="Minst 8 tegn"
+                    />
+
+                </div>
+
+
+                <div class="login-group">
+
+                    <label for="registerConfirmPassword">
+                        Bekreft passord
+                    </label>
+
+                    <input
+                        id="registerConfirmPassword"
+                        name="registerConfirmPassword"
+                        type="password"
+                        autocomplete="new-password"
+                        placeholder="Skriv passordet på nytt"
+                    />
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="register-submit"
+                    id="temporaryRegisterButton">
+
+                    Opprett bruker
+
+                </button>
+
+
+                <p class="register-note">
+                    Nye brukere registreres som ressursleverandører.
+                </p>
+
+            </div>
 
         </div>
 
@@ -615,8 +762,10 @@
 </section>
 
 
+</main>
 
-<footer class="landing-footer">
+
+<footer class="footer">
 
     <strong>
         Beredskapsportal
@@ -626,128 +775,197 @@
         Sammen for et tryggere Norge.
     </span>
 
+    <span>
+        Studentprosjekt
+    </span>
+
 </footer>
 
 
+<script>
 
-@section Scripts {
-
-    <script>
-
-        document.addEventListener(
-            "DOMContentLoaded",
-            function () {
-
-                const tabs =
-                    document.querySelectorAll(
-                        ".auth-tab"
-                    );
-
-                const loginPanel =
-                    document.getElementById(
-                        "loginPanel"
-                    );
-
-                const registerPanel =
-                    document.getElementById(
-                        "registerPanel"
-                    );
-
-                const contributeButton =
-                    document.getElementById(
-                        "contributeButton"
-                    );
+    const authTabs =
+        document.querySelectorAll(
+            "[data-auth-tab]"
+        );
 
 
-                function showLogin() {
-
-                    loginPanel.classList.add(
-                        "active"
-                    );
-
-                    registerPanel.classList.remove(
-                        "active"
-                    );
-
-                    tabs[0].classList.add(
-                        "active"
-                    );
-
-                    tabs[1].classList.remove(
-                        "active"
-                    );
-
-                }
+    const loginPanel =
+        document.getElementById(
+            "loginPanel"
+        );
 
 
-                function showRegister() {
-
-                    registerPanel.classList.add(
-                        "active"
-                    );
-
-                    loginPanel.classList.remove(
-                        "active"
-                    );
-
-                    tabs[1].classList.add(
-                        "active"
-                    );
-
-                    tabs[0].classList.remove(
-                        "active"
-                    );
-
-                }
+    const registerPanel =
+        document.getElementById(
+            "registerPanel"
+        );
 
 
-                tabs.forEach(
-                    function (tab) {
+    const authCard =
+        document.getElementById(
+            "authCard"
+        );
 
-                        tab.addEventListener(
-                            "click",
-                            function () {
 
-                                if (
-                                    tab.dataset.tab
-                                    === "login"
-                                ) {
-                                    showLogin();
-                                }
-                                else {
-                                    showRegister();
-                                }
+    function activateAuthTab(tabName)
+    {
+        const showLogin =
+            tabName === "login";
 
-                            }
-                        );
 
-                    }
+        loginPanel.classList.toggle(
+            "hidden",
+            !showLogin
+        );
+
+
+        registerPanel.classList.toggle(
+            "hidden",
+            showLogin
+        );
+
+
+        authTabs.forEach(
+            tab =>
+            {
+                const isActive =
+                    tab.dataset.authTab ===
+                    tabName;
+
+
+                tab.classList.toggle(
+                    "active",
+                    isActive
                 );
 
 
-                contributeButton.addEventListener(
+                tab.setAttribute(
+                    "aria-selected",
+                    isActive
+                        ? "true"
+                        : "false"
+                );
+            }
+        );
+    }
+
+
+    authTabs.forEach(
+        tab =>
+        {
+            tab.addEventListener(
+                "click",
+                function ()
+                {
+                    activateAuthTab(
+                        tab.dataset.authTab
+                    );
+                }
+            );
+        }
+    );
+
+
+    document
+        .querySelectorAll(
+            "[data-open-auth]"
+        )
+        .forEach(
+            link =>
+            {
+                link.addEventListener(
                     "click",
-                    function () {
-
-                        showRegister();
-
-                        document
-                            .getElementById(
-                                "loginSection"
-                            )
-                            .scrollIntoView(
-                                {
-                                    behavior:
-                                        "smooth"
-                                }
-                            );
-
+                    function ()
+                    {
+                        activateAuthTab(
+                            link.dataset.openAuth
+                        );
                     }
                 );
-
             }
         );
 
-    </script>
 
-}
+    document
+        .querySelectorAll(
+            'a[href^="#"]'
+        )
+        .forEach(
+            link =>
+            {
+                link.addEventListener(
+                    "click",
+                    function (event)
+                    {
+                        const targetId =
+                            link.getAttribute(
+                                "href"
+                            );
+
+
+                        if (
+                            !targetId
+                            ||
+                            targetId === "#"
+                        )
+                        {
+                            return;
+                        }
+
+
+                        const target =
+                            document.querySelector(
+                                targetId
+                            );
+
+
+                        if (!target)
+                        {
+                            return;
+                        }
+
+
+                        event.preventDefault();
+
+
+                        target.scrollIntoView({
+                            behavior: "smooth",
+                            block: "center"
+                        });
+                    }
+                );
+            }
+        );
+
+
+    activateAuthTab("login");
+
+
+    const hasLoginErrors =
+        @hasLoginErrors.ToString().ToLowerInvariant();
+
+
+    if (hasLoginErrors)
+    {
+        activateAuthTab("login");
+
+
+        window.setTimeout(
+            function ()
+            {
+                authCard.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center"
+                });
+            },
+            50
+        );
+    }
+
+</script>
+
+
+</body>
+
+</html>

@@ -12,51 +12,44 @@ namespace FirstWebAppInDocker.Controllers;
 /// </summary>
 public class ResourceController : Controller
 {
+    private const string PublicActorRole = "PublicActor";
+    private const string ResourceProviderRole = "ResourceProvider";
+
     private readonly ApplicationDbContext _context;
 
 
     /// <summary>
     /// Oppretter controlleren med tilgang til databasen.
     /// </summary>
-    /// <param name="context">
-    /// Databasekonteksten som brukes mot MariaDB.
-    /// </param>
-    public ResourceController(
-        ApplicationDbContext context
-    )
+    public ResourceController(ApplicationDbContext context)
     {
         _context = context;
     }
 
 
     /// <summary>
-    /// Viser skjemaet for registrering av en ressurs.
+    /// Viser skjemaet for registrering av ressurs.
+    /// Kun ressursleverandører skal registrere ressurser.
     /// </summary>
     [HttpGet]
     public IActionResult RegisterResource()
     {
-        string? userEmail =
-            HttpContext.Session.GetString(
-                "UserEmail"
-            );
-
-
-        if (string.IsNullOrEmpty(userEmail))
+        if (!IsLoggedIn())
         {
-            return RedirectToAction(
-                "Index",
-                "Home"
-            );
+            return RedirectToHome();
         }
 
+        if (!IsResourceProvider())
+        {
+            return RedirectToDashboard();
+        }
 
         return View();
     }
 
 
     /// <summary>
-    /// Registrerer en ny ressurs og lagrer den
-    /// permanent i MariaDB.
+    /// Registrerer en ny ressurs og lagrer den i databasen.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -65,33 +58,23 @@ public class ResourceController : Controller
     )
     {
         string? userEmail =
-            HttpContext.Session.GetString(
-                "UserEmail"
-            );
+            HttpContext.Session.GetString("UserEmail");
 
-
-        if (string.IsNullOrEmpty(userEmail))
+        if (string.IsNullOrWhiteSpace(userEmail))
         {
-            return RedirectToAction(
-                "Index",
-                "Home"
-            );
+            return RedirectToHome();
         }
 
+        if (!IsResourceProvider())
+        {
+            return RedirectToDashboard();
+        }
 
-        /*
-         * Tidlig retur dersom valideringen
-         * av skjemaet feiler.
-         */
         if (!ModelState.IsValid)
         {
             return View(model);
         }
 
-
-        /*
-         * Brukeren må velge et punkt i kartet.
-         */
         if (
             model.Latitude == 0
             &&
@@ -106,66 +89,47 @@ public class ResourceController : Controller
             return View(model);
         }
 
+        var resource = new Resource
+        {
+            ResourceType =
+                model.ResourceType!.Value,
 
-        string? normalizedPhoneNumber =
-            NormalizePhoneNumber(
-                model.ContactPhoneNumber
-            );
+            Description =
+                model.Description.Trim(),
 
+            Latitude =
+                model.Latitude,
 
-        var resource =
-            new Resource
-            {
-                ResourceType =
-                    model.ResourceType!.Value,
+            Longitude =
+                model.Longitude,
 
-                Description =
-                    model.Description.Trim(),
+            ContactEmail =
+                NormalizeOptionalText(
+                    model.ContactEmail
+                ),
 
-                Latitude =
-                    model.Latitude,
+            ContactPhoneCountryCode =
+                string.IsNullOrWhiteSpace(
+                    model.ContactPhoneNumber
+                )
+                    ? null
+                    : model.ContactPhoneCountryCode,
 
-                Longitude =
-                    model.Longitude,
+            ContactPhoneNumber =
+                NormalizePhoneNumber(
+                    model.ContactPhoneNumber
+                ),
 
-                ContactEmail =
-                    string.IsNullOrWhiteSpace(
-                        model.ContactEmail
-                    )
-                        ? null
-                        : model.ContactEmail.Trim(),
+            OwnerEmail =
+                userEmail,
 
-                ContactPhoneCountryCode =
-                    string.IsNullOrWhiteSpace(
-                        normalizedPhoneNumber
-                    )
-                        ? null
-                        : model.ContactPhoneCountryCode,
+            CreatedAt =
+                DateTime.UtcNow
+        };
 
-                ContactPhoneNumber =
-                    normalizedPhoneNumber,
+        _context.Resources.Add(resource);
 
-                OwnerEmail =
-                    userEmail,
-
-                CreatedAt =
-                    DateTime.UtcNow
-            };
-
-
-        /*
-         * Legger ressursen til i EF Core.
-         */
-        _context.Resources.Add(
-            resource
-        );
-
-
-        /*
-         * Lagrer ressursen permanent i MariaDB.
-         */
         await _context.SaveChangesAsync();
-
 
         return RedirectToAction(
             nameof(ResourceOverview)
@@ -174,7 +138,8 @@ public class ResourceController : Controller
 
 
     /// <summary>
-    /// Viser ressursoversikten.
+    /// Viser tilgjengelige ressurser.
+    ///
     /// Offentlige aktører ser alle ressurser.
     /// Ressursleverandører ser kun egne ressurser.
     /// </summary>
@@ -182,64 +147,32 @@ public class ResourceController : Controller
     public async Task<IActionResult> ResourceOverview()
     {
         string? userEmail =
-            HttpContext.Session.GetString(
-                "UserEmail"
-            );
+            HttpContext.Session.GetString("UserEmail");
 
         string? userRole =
-            HttpContext.Session.GetString(
-                "UserRole"
-            );
+            HttpContext.Session.GetString("UserRole");
 
-
-        if (string.IsNullOrEmpty(userEmail))
+        if (string.IsNullOrWhiteSpace(userEmail))
         {
-            return RedirectToAction(
-                "Index",
-                "Home"
-            );
+            return RedirectToHome();
         }
-
 
         IQueryable<Resource> query =
             _context.Resources
                 .AsNoTracking();
 
-
-        /*
-         * Offentlig aktør får se alle registrerte
-         * ressurser.
-         */
-        if (userRole == "PublicActor")
-        {
-            // Beholder hele queryen.
-        }
-
-        /*
-         * Ressursleverandører får kun se
-         * ressursene de selv eier.
-         */
-        else if (userRole == "ResourceProvider")
+        if (userRole == ResourceProviderRole)
         {
             query =
                 query.Where(
                     resource =>
-                        resource.OwnerEmail
-                        == userEmail
+                        resource.OwnerEmail == userEmail
                 );
         }
-
-        /*
-         * Ukjent rolle får ikke tilgang.
-         */
-        else
+        else if (userRole != PublicActorRole)
         {
-            return RedirectToAction(
-                "Dashboard",
-                "Home"
-            );
+            return RedirectToDashboard();
         }
-
 
         List<Resource> resources =
             await query
@@ -249,19 +182,15 @@ public class ResourceController : Controller
                 )
                 .ToListAsync();
 
-
-        /*
-         * Mapper databaseobjektene til PositionModel.
-         *
-         * Dette gjør at frontend ikke trenger
-         * å kjenne til database-entiteten Resource.
-         */
-        List<PositionModel> viewModel =
+        List<ResourceOverviewViewModel> viewModel =
             resources
                 .Select(
                     resource =>
-                        new PositionModel
+                        new ResourceOverviewViewModel
                         {
+                            Id =
+                                resource.Id,
+
                             ResourceType =
                                 resource.ResourceType,
 
@@ -284,21 +213,82 @@ public class ResourceController : Controller
                                 resource.ContactPhoneNumber,
 
                             OwnerEmail =
-                                resource.OwnerEmail
+                                resource.OwnerEmail,
+
+                            CreatedAt =
+                                resource.CreatedAt
                         }
                 )
                 .ToList();
 
+        return View(viewModel);
+    }
 
-        return View(
-            viewModel
+
+    /// <summary>
+    /// Kontrollerer om en bruker er logget inn.
+    /// Midlertidig Session-løsning frem til Identity innføres.
+    /// </summary>
+    private bool IsLoggedIn()
+    {
+        return !string.IsNullOrWhiteSpace(
+            HttpContext.Session.GetString(
+                "UserEmail"
+            )
         );
     }
 
 
     /// <summary>
-    /// Normaliserer telefonnummeret før det
-    /// lagres i databasen.
+    /// Kontrollerer om innlogget bruker er ressursleverandør.
+    /// </summary>
+    private bool IsResourceProvider()
+    {
+        return HttpContext.Session.GetString(
+            "UserRole"
+        ) == ResourceProviderRole;
+    }
+
+
+    /// <summary>
+    /// Sender brukeren tilbake til den offentlige forsiden.
+    /// </summary>
+    private RedirectToActionResult RedirectToHome()
+    {
+        return RedirectToAction(
+            "Index",
+            "Home"
+        );
+    }
+
+
+    /// <summary>
+    /// Sender brukeren tilbake til dashboardet.
+    /// </summary>
+    private RedirectToActionResult RedirectToDashboard()
+    {
+        return RedirectToAction(
+            "Dashboard",
+            "Home"
+        );
+    }
+
+
+    /// <summary>
+    /// Fjerner unødvendig mellomrom fra valgfri tekst.
+    /// </summary>
+    private static string? NormalizeOptionalText(
+        string? value
+    )
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? null
+            : value.Trim();
+    }
+
+
+    /// <summary>
+    /// Normaliserer telefonnummer før lagring.
     /// </summary>
     private static string? NormalizePhoneNumber(
         string? phoneNumber
@@ -308,7 +298,6 @@ public class ResourceController : Controller
         {
             return null;
         }
-
 
         return Regex.Replace(
             phoneNumber,

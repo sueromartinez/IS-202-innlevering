@@ -1,240 +1,888 @@
 @{
+    Layout = null;
+
     ViewData["Title"] = "Oversikt";
 
-    string? userName =
-        Context.Session.GetString("UserName");
+    string userName =
+        ViewBag.UserName ?? "Bruker";
 
-    string? userRole =
-        Context.Session.GetString("UserRole");
-
-    string displayName =
-        string.IsNullOrWhiteSpace(userName)
-            ? "bruker"
-            : userName;
+    string userRole =
+        ViewBag.UserRole ?? "";
 }
 
+<!DOCTYPE html>
 
-@if (userRole == "ResourceProvider")
+<html lang="no">
+
+<head>
+
+    <meta charset="utf-8" />
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    />
+
+    <title>
+        @ViewData["Title"] - Beredskapsportal
+    </title>
+
+
+    @if (userRole == "PublicActor")
+    {
+        <link
+            rel="stylesheet"
+            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        />
+    }
+
+</head>
+
+<body>
+
+
+@if (userRole == "PublicActor")
 {
-    <!-- =====================================
-         RESSURSLEVERANDØR
-         ===================================== -->
+    <!-- =========================================
+         OFFENTLIG AKTØR
+    ========================================== -->
 
-    <section class="dashboard-page">
+    <div class="public-shell">
 
-        <div class="dashboard-container">
 
-            <!-- TOPP -->
-            <div class="dashboard-welcome">
+        <!-- =====================================
+             HEADER
+        ====================================== -->
+
+        <header class="public-header">
+
+            <a
+                asp-controller="Home"
+                asp-action="Dashboard"
+                class="public-brand">
+
+                <div class="brand-icon">
+
+                    <svg
+                        viewBox="0 0 24 24"
+                        aria-hidden="true">
+
+                        <path
+                            d="M12 2L4 5.5V11c0 5.1 3.4 9.8 8 11 4.6-1.2 8-5.9 8-11V5.5L12 2Z"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                        />
+
+                        <path
+                            d="M8.5 12.5L11 15l4.8-6"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+
+                    </svg>
+
+                </div>
+
 
                 <div>
 
-                    <span class="dashboard-label">
-                        Ressursleverandør
+                    <strong>
+                        Beredskapsportal
+                    </strong>
+
+                    <span>
+                        TOTALFORSVARET
+                    </span>
+
+                </div>
+
+            </a>
+
+
+            <div class="public-header-status">
+
+                <span class="active-dot"></span>
+
+                Situasjonsbilde aktivt
+
+            </div>
+
+
+            <div class="public-user">
+
+                <div>
+
+                    <strong>
+                        @userName
+                    </strong>
+
+                    <span>
+                        Offentlig aktør
+                    </span>
+
+                </div>
+
+
+                <form
+                    asp-controller="Account"
+                    asp-action="Logout"
+                    method="post">
+
+                    <button
+                        type="submit"
+                        class="logout-button">
+
+                        Logg ut
+
+                    </button>
+
+                </form>
+
+            </div>
+
+        </header>
+
+
+        <!-- =====================================
+             INNHOLD
+        ====================================== -->
+
+        <div class="public-layout">
+
+
+            <!-- =================================
+                 SIDEBAR
+            ================================== -->
+
+            <aside class="public-sidebar">
+
+
+                <div class="sidebar-intro">
+
+                    <span class="eyebrow">
+                        OPERATIV OVERSIKT
                     </span>
 
                     <h1>
-                        Hei, @displayName
+                        Situasjonsbilde
                     </h1>
 
                     <p>
-                        Her kan du registrere ressurser du kan
-                        stille til disposisjon og holde oversikt
-                        over det du allerede har registrert.
+                        Behov, ressurser og hendelser samlet
+                        i ett geografisk bilde.
                     </p>
 
                 </div>
 
-                <a
-                    asp-controller="Resource"
-                    asp-action="RegisterResource"
-                    class="dashboard-primary-button">
 
-                    + Registrer ressurs
+                <!-- NAVIGASJON -->
 
-                </a>
+                <nav class="public-navigation">
 
-            </div>
+                    <a
+                        href="#situationMap"
+                        class="public-navigation-item active">
+
+                        <span class="navigation-icon">
+                            ◎
+                        </span>
+
+                        <span>
+
+                            <strong>
+                                Kartoversikt
+                            </strong>
+
+                            <small>
+                                Aktiv visning
+                            </small>
+
+                        </span>
+
+                    </a>
 
 
-            <!-- SNARVEIER -->
-            <div class="dashboard-section-heading">
+                    <button
+                        type="button"
+                        class="public-navigation-item disabled"
+                        disabled>
+
+                        <span class="navigation-icon">
+                            !
+                        </span>
+
+                        <span>
+
+                            <strong>
+                                Behov
+                            </strong>
+
+                            <small>
+                                Kommer snart
+                            </small>
+
+                        </span>
+
+                    </button>
+
+
+                    <a
+                        asp-controller="Resource"
+                        asp-action="ResourceOverview"
+                        class="public-navigation-item">
+
+                        <span class="navigation-icon">
+                            ◆
+                        </span>
+
+                        <span>
+
+                            <strong>
+                                Ressurser
+                            </strong>
+
+                            <small>
+                                Se registrerte ressurser
+                            </small>
+
+                        </span>
+
+                    </a>
+
+                </nav>
+
+
+                <!-- HURTIGHANDLINGER -->
+
+                <section class="quick-actions">
+
+                    <span class="eyebrow">
+                        HURTIGHANDLINGER
+                    </span>
+
+
+                    <button
+                        type="button"
+                        class="quick-action primary disabled-action"
+                        disabled>
+
+                        <span>
+                            +
+                        </span>
+
+                        <div>
+
+                            <strong>
+                                Registrer behov
+                            </strong>
+
+                            <small>
+                                Kommer snart
+                            </small>
+
+                        </div>
+
+                    </button>
+
+
+                    <a
+                        asp-controller="Resource"
+                        asp-action="ResourceOverview"
+                        class="quick-action secondary">
+
+                        <span>
+                            ◆
+                        </span>
+
+                        <div>
+
+                            <strong>
+                                Se ressurser
+                            </strong>
+
+                            <small>
+                                Åpne ressursoversikt
+                            </small>
+
+                        </div>
+
+                    </a>
+
+                </section>
+
+
+                <!-- KARTFORKLARING -->
+
+                <section class="sidebar-legend">
+
+                    <span class="eyebrow">
+                        KARTFORKLARING
+                    </span>
+
+
+                    <div class="legend-row">
+
+                        <span class="legend-dot urgent"></span>
+
+                        <span>
+                            Akutt behov
+                        </span>
+
+                    </div>
+
+
+                    <div class="legend-row">
+
+                        <span class="legend-dot planned"></span>
+
+                        <span>
+                            Planlagt behov
+                        </span>
+
+                    </div>
+
+
+                    <div class="legend-row">
+
+                        <span class="legend-dot resource"></span>
+
+                        <span>
+                            Tilgjengelig ressurs
+                        </span>
+
+                    </div>
+
+
+                    <div class="legend-row">
+
+                        <span class="legend-dot actor"></span>
+
+                        <span>
+                            Offentlig aktør
+                        </span>
+
+                    </div>
+
+                </section>
+
+            </aside>
+
+
+            <!-- =================================
+                 HOVEDOMRÅDE
+            ================================== -->
+
+            <main class="public-workspace">
+
+
+                <!-- TOPP -->
+
+                <div class="workspace-heading">
+
+                    <div>
+
+                        <span class="eyebrow">
+                            SITUASJONSOVERSIKT
+                        </span>
+
+                        <h2>
+                            Kristiansand og omegn
+                        </h2>
+
+                        <p>
+                            Samlet oversikt over behov,
+                            tilgjengelige ressurser og relevante aktører.
+                        </p>
+
+                    </div>
+
+
+                    <span class="demo-badge">
+                        DEMO-DATA
+                    </span>
+
+                </div>
+
+
+                <!-- STATUS -->
+
+                <section class="public-status-grid">
+
+
+                    <article class="public-stat">
+
+                        <div class="public-stat-heading">
+
+                            <span>
+                                Akutte behov
+                            </span>
+
+                            <span class="status-dot urgent"></span>
+
+                        </div>
+
+                        <strong>
+                            2
+                        </strong>
+
+                        <small>
+                            Krever oppfølging
+                        </small>
+
+                    </article>
+
+
+                    <article class="public-stat">
+
+                        <div class="public-stat-heading">
+
+                            <span>
+                                Tilgjengelige ressurser
+                            </span>
+
+                            <span class="status-dot resource"></span>
+
+                        </div>
+
+                        <strong class="green-number">
+                            7
+                        </strong>
+
+                        <small>
+                            Registrert i området
+                        </small>
+
+                    </article>
+
+
+                    <article class="public-stat">
+
+                        <div class="public-stat-heading">
+
+                            <span>
+                                Planlagte behov
+                            </span>
+
+                            <span class="status-dot planned"></span>
+
+                        </div>
+
+                        <strong>
+                            2
+                        </strong>
+
+                        <small>
+                            Kommende oppgaver
+                        </small>
+
+                    </article>
+
+                </section>
+
+
+                <!-- =================================
+                     KART
+                ================================== -->
+
+                <section class="situation-card">
+
+
+                    <div class="map-toolbar">
+
+                        <div>
+
+                            <span class="eyebrow">
+                                VIS I KART
+                            </span>
+
+                            <h3>
+                                Operativt kart
+                            </h3>
+
+                        </div>
+
+
+                        <div class="map-filters">
+
+
+                            <label class="filter-option">
+
+                                <input
+                                    type="checkbox"
+                                    id="showResources"
+                                    checked
+                                />
+
+                                <span class="filter-dot resource"></span>
+
+                                Ressurser
+
+                            </label>
+
+
+                            <label class="filter-option">
+
+                                <input
+                                    type="checkbox"
+                                    id="showUrgent"
+                                    checked
+                                />
+
+                                <span class="filter-dot urgent"></span>
+
+                                Akutte behov
+
+                            </label>
+
+
+                            <label class="filter-option">
+
+                                <input
+                                    type="checkbox"
+                                    id="showPlanned"
+                                    checked
+                                />
+
+                                <span class="filter-dot planned"></span>
+
+                                Planlagte behov
+
+                            </label>
+
+
+                            <label class="filter-option">
+
+                                <input
+                                    type="checkbox"
+                                    id="showActors"
+                                    checked
+                                />
+
+                                <span class="filter-dot actor"></span>
+
+                                Aktører
+
+                            </label>
+
+                        </div>
+
+                    </div>
+
+
+                    <div id="situationMap"></div>
+
+                </section>
+
+
+                <!-- =================================
+                     HURTIGOVERSIKT
+                ================================== -->
+
+                <section class="public-bottom-grid">
+
+
+                    <article class="summary-card">
+
+                        <span class="eyebrow">
+                            PRIORITERT
+                        </span>
+
+                        <h3>
+                            Aktive behov
+                        </h3>
+
+
+                        <div class="summary-item">
+
+                            <span class="summary-icon urgent">
+                                !
+                            </span>
+
+                            <div>
+
+                                <strong>
+                                    Strømbehov
+                                </strong>
+
+                                <p>
+                                    Aggregat nødvendig ved
+                                    midlertidig mottakssenter.
+                                </p>
+
+                                <small>
+                                    Kristiansand · Akutt
+                                </small>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="summary-item">
+
+                            <span class="summary-icon planned">
+                                !
+                            </span>
+
+                            <div>
+
+                                <strong>
+                                    Transportkapasitet
+                                </strong>
+
+                                <p>
+                                    Behov for kjøretøy til
+                                    planlagt transport.
+                                </p>
+
+                                <small>
+                                    Vennesla · Planlagt
+                                </small>
+
+                            </div>
+
+                        </div>
+
+                    </article>
+
+
+                    <article class="summary-card">
+
+                        <span class="eyebrow">
+                            RESSURSER
+                        </span>
+
+                        <h3>
+                            Tilgjengelig kapasitet
+                        </h3>
+
+
+                        <div class="summary-item">
+
+                            <span class="summary-icon resource">
+                                A
+                            </span>
+
+                            <div>
+
+                                <strong>
+                                    Aggregat 25 kVA
+                                </strong>
+
+                                <p>
+                                    Midlertidig strømforsyning.
+                                </p>
+
+                                <small>
+                                    Kristiansand · Tilgjengelig
+                                </small>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="summary-item">
+
+                            <span class="summary-icon resource">
+                                T
+                            </span>
+
+                            <div>
+
+                                <strong>
+                                    Transport
+                                </strong>
+
+                                <p>
+                                    Kjøretøy tilgjengelig for
+                                    transportoppdrag.
+                                </p>
+
+                                <small>
+                                    Kristiansand · Tilgjengelig
+                                </small>
+
+                            </div>
+
+                        </div>
+
+
+                        <a
+                            asp-controller="Resource"
+                            asp-action="ResourceOverview"
+                            class="summary-link">
+
+                            Se alle ressurser →
+
+                        </a>
+
+                    </article>
+
+                </section>
+
+            </main>
+
+        </div>
+
+    </div>
+}
+
+
+else if (userRole == "ResourceProvider")
+{
+    <!-- =========================================
+         RESSURSLEVERANDØR
+    ========================================== -->
+
+    <div class="provider-shell">
+
+
+        <!-- HEADER -->
+
+        <header class="provider-header">
+
+            <div class="provider-brand">
+
+                <div class="brand-icon">
+
+                    <svg
+                        viewBox="0 0 24 24"
+                        aria-hidden="true">
+
+                        <path
+                            d="M12 2L4 5.5V11c0 5.1 3.4 9.8 8 11 4.6-1.2 8-5.9 8-11V5.5L12 2Z"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                        />
+
+                        <path
+                            d="M8.5 12.5L11 15l4.8-6"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+
+                    </svg>
+
+                </div>
+
 
                 <div>
-                    <span class="dashboard-label">
-                        Kom i gang
+
+                    <strong>
+                        Beredskapsportal
+                    </strong>
+
+                    <span>
+                        RESSURSLEVERANDØR
                     </span>
 
-                    <h2>
-                        Hva vil du gjøre?
-                    </h2>
                 </div>
 
             </div>
 
 
-            <div class="dashboard-actions">
+            <div class="provider-user">
 
-                <a
-                    asp-controller="Resource"
-                    asp-action="RegisterResource"
-                    class="dashboard-action-card">
+                <div>
 
-                    <div class="action-icon">
-                        +
-                    </div>
+                    <strong>
+                        @userName
+                    </strong>
 
-                    <div>
-                        <h3>
-                            Registrer ressurs
-                        </h3>
+                    <span>
+                        Ressursleverandør
+                    </span>
 
-                        <p>
-                            Legg inn transport, maskiner,
-                            lokaler, utstyr eller andre
-                            ressurser.
-                        </p>
-
-                        <span class="action-link">
-                            Registrer nå →
-                        </span>
-                    </div>
-
-                </a>
+                </div>
 
 
-                <a
-                    asp-controller="Resource"
-                    asp-action="ResourceOverview"
-                    class="dashboard-action-card">
-
-                    <div class="action-icon">
-                        ◎
-                    </div>
-
-                    <div>
-                        <h3>
-                            Mine ressurser
-                        </h3>
-
-                        <p>
-                            Se ressursene du allerede har
-                            registrert og hvor de befinner seg.
-                        </p>
-
-                        <span class="action-link">
-                            Se oversikt →
-                        </span>
-                    </div>
-
-                </a>
-
-
-                <a
+                <form
                     asp-controller="Account"
-                    asp-action="Profile"
-                    class="dashboard-action-card">
+                    asp-action="Logout"
+                    method="post">
 
-                    <div class="action-icon">
-                        ○
-                    </div>
+                    <button
+                        type="submit"
+                        class="logout-button">
 
-                    <div>
-                        <h3>
-                            Min profil
-                        </h3>
+                        Logg ut
 
-                        <p>
-                            Se og oppdater kontaktinformasjonen
-                            som brukes i portalen.
-                        </p>
+                    </button>
 
-                        <span class="action-link">
-                            Åpne profil →
-                        </span>
-                    </div>
-
-                </a>
+                </form>
 
             </div>
 
+        </header>
 
-            <!-- INFORMASJON -->
-            <section class="dashboard-info-section">
 
-                <div class="dashboard-info-content">
+        <!-- MAIN -->
 
-                    <span class="dashboard-label dashboard-label-light">
-                        Ditt bidrag betyr noe
+        <main class="provider-main">
+
+
+            <!-- HERO -->
+
+            <section class="provider-hero">
+
+                <div class="provider-hero-content">
+
+                    <span class="provider-eyebrow">
+                        MINE RESSURSER
                     </span>
 
-                    <h2>
-                        Ressurser som allerede finnes
-                        kan gjøre en forskjell.
-                    </h2>
+                    <h1>
+                        Hei, @userName
+                    </h1>
 
                     <p>
-                        Ved å registrere tilgjengelige ressurser
-                        på forhånd kan offentlige aktører raskere
-                        få oversikt dersom en beredskapssituasjon
-                        oppstår.
+                        Registrer ressurser du kan stille
+                        til disposisjon dersom samfunnet
+                        trenger bistand.
                     </p>
+
+
+                    <a
+                        asp-controller="Resource"
+                        asp-action="RegisterResource"
+                        class="provider-main-action">
+
+                        <span>
+                            +
+                        </span>
+
+                        Registrer ny ressurs
+
+                    </a>
 
                 </div>
 
 
-                <div class="dashboard-info-steps">
+                <div class="provider-hero-info">
 
-                    <div class="info-step">
-
-                        <span>01</span>
-
-                        <div>
-                            <strong>
-                                Registrer
-                            </strong>
-
-                            <p>
-                                Beskriv ressursen og marker
-                                plasseringen i kartet.
-                            </p>
-                        </div>
-
+                    <div class="provider-info-icon">
+                        ✓
                     </div>
 
+                    <div>
 
-                    <div class="info-step">
+                        <strong>
+                            Dine ressurser
+                        </strong>
 
-                        <span>02</span>
-
-                        <div>
-                            <strong>
-                                Hold oversikt
-                            </strong>
-
-                            <p>
-                                Ressursene dine samles på
-                                ett sted.
-                            </p>
-                        </div>
-
-                    </div>
-
-
-                    <div class="info-step">
-
-                        <span>03</span>
-
-                        <div>
-                            <strong>
-                                Bidra
-                            </strong>
-
-                            <p>
-                                Offentlige aktører kan finne
-                                tilgjengelige ressurser.
-                            </p>
-                        </div>
+                        <p>
+                            Du vil kun få tilgang til ressurser
+                            du selv har registrert.
+                        </p>
 
                     </div>
 
@@ -242,601 +890,2427 @@
 
             </section>
 
-        </div>
 
-    </section>
-}
-else if (userRole == "PublicActor")
-{
-    <!-- =====================================
-         OFFENTLIG AKTØR
-         ===================================== -->
+            <!-- STATUS -->
 
-    <section class="dashboard-page">
+            <section class="provider-status-grid">
 
-        <div class="dashboard-container">
 
-            <div class="dashboard-welcome">
+                <article class="provider-stat">
 
-                <div>
-
-                    <span class="dashboard-label">
-                        Offentlig aktør
+                    <span>
+                        Registrerte ressurser
                     </span>
 
-                    <h1>
-                        Beredskapsoversikt
-                    </h1>
+                    <strong>
+                        2
+                    </strong>
 
-                    <p>
-                        Få oversikt over registrerte ressurser
-                        som kan være tilgjengelige ved en
-                        beredskapssituasjon.
-                    </p>
+                    <small>
+                        Demo-data
+                    </small>
 
-                </div>
-
-                <a
-                    asp-controller="Resource"
-                    asp-action="ResourceOverview"
-                    class="dashboard-primary-button">
-
-                    Se ressurser
-
-                </a>
-
-            </div>
+                </article>
 
 
-            <div class="dashboard-section-heading">
+                <article class="provider-stat">
 
-                <div>
-                    <span class="dashboard-label">
-                        Operativ oversikt
+                    <span>
+                        Tilgjengelige nå
                     </span>
 
-                    <h2>
-                        Tilgjengelige funksjoner
-                    </h2>
-                </div>
+                    <strong class="provider-stat-success">
+                        1
+                    </strong>
 
-            </div>
+                    <small>
+                        Demo-data
+                    </small>
+
+                </article>
 
 
-            <div class="public-dashboard-grid">
+                <article class="provider-stat">
 
-                <a
-                    asp-controller="Resource"
-                    asp-action="ResourceOverview"
-                    class="dashboard-action-card">
+                    <span>
+                        Ikke tilgjengelig
+                    </span>
 
-                    <div class="action-icon">
-                        ◎
-                    </div>
+                    <strong>
+                        1
+                    </strong>
+
+                    <small>
+                        Demo-data
+                    </small>
+
+                </article>
+
+            </section>
+
+
+            <!-- RESSURSER -->
+
+            <section class="provider-resources">
+
+                <div class="provider-section-header">
 
                     <div>
 
-                        <h3>
-                            Ressursoversikt
-                        </h3>
+                        <span class="provider-eyebrow">
+                            OVERSIKT
+                        </span>
+
+                        <h2>
+                            Mine registrerte ressurser
+                        </h2>
 
                         <p>
-                            Se registrerte ressurser og
-                            geografisk plassering i kart.
+                            Her vil du kunne administrere
+                            ressursene du selv har registrert.
                         </p>
-
-                        <span class="action-link">
-                            Åpne ressursoversikt →
-                        </span>
 
                     </div>
 
+
+                    <span class="demo-badge">
+                        DEMO-DATA
+                    </span>
+
+                </div>
+
+
+                <div class="provider-resource-list">
+
+
+                    <article class="provider-resource-card">
+
+                        <div class="provider-resource-icon">
+                            A
+                        </div>
+
+
+                        <div class="provider-resource-content">
+
+                            <div class="provider-resource-heading">
+
+                                <div>
+
+                                    <span class="provider-resource-type">
+                                        STRØM / AGGREGAT
+                                    </span>
+
+                                    <h3>
+                                        Aggregat 25 kVA
+                                    </h3>
+
+                                </div>
+
+
+                                <span class="provider-resource-status available">
+                                    Tilgjengelig
+                                </span>
+
+                            </div>
+
+
+                            <p>
+                                Dieseldrevet aggregat egnet
+                                for midlertidig strømforsyning.
+                            </p>
+
+
+                            <div class="provider-resource-meta">
+
+                                <span>
+                                    Kristiansand
+                                </span>
+
+                                <span>
+                                    ● Tilgjengelig nå
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </article>
+
+
+                    <article class="provider-resource-card">
+
+                        <div class="provider-resource-icon">
+                            M
+                        </div>
+
+
+                        <div class="provider-resource-content">
+
+                            <div class="provider-resource-heading">
+
+                                <div>
+
+                                    <span class="provider-resource-type">
+                                        MASKINER
+                                    </span>
+
+                                    <h3>
+                                        Traktor med frontlaster
+                                    </h3>
+
+                                </div>
+
+
+                                <span class="provider-resource-status unavailable">
+                                    Ikke tilgjengelig
+                                </span>
+
+                            </div>
+
+
+                            <p>
+                                Traktor med frontlaster som kan
+                                brukes til transport og rydding.
+                            </p>
+
+
+                            <div class="provider-resource-meta">
+
+                                <span>
+                                    Vennesla
+                                </span>
+
+                                <span>
+                                    ○ Ikke tilgjengelig
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </article>
+
+                </div>
+
+
+                <a
+                    asp-controller="Resource"
+                    asp-action="ResourceOverview"
+                    class="provider-overview-link">
+
+                    Se hele ressursoversikten →
+
                 </a>
 
+            </section>
 
-                <div class="dashboard-status-card">
 
-                    <span class="status-indicator"></span>
+            <!-- HJELP -->
+
+            <section class="provider-help">
+
+                <div class="provider-help-item">
+
+                    <span>
+                        01
+                    </span>
 
                     <div>
 
                         <strong>
-                            System tilgjengelig
+                            Registrer ressurs
                         </strong>
 
                         <p>
-                            Beredskapsportalen er klar for
-                            registrering og oversikt.
+                            Oppgi type, beskrivelse,
+                            kontaktinformasjon og plassering.
                         </p>
 
                     </div>
 
                 </div>
 
-            </div>
 
-        </div>
+                <div class="provider-help-item">
 
-    </section>
+                    <span>
+                        02
+                    </span>
+
+                    <div>
+
+                        <strong>
+                            Hold informasjonen oppdatert
+                        </strong>
+
+                        <p>
+                            Sørg for at ressursinformasjonen
+                            er riktig.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="provider-help-item">
+
+                    <span>
+                        03
+                    </span>
+
+                    <div>
+
+                        <strong>
+                            Offentlige aktører får oversikt
+                        </strong>
+
+                        <p>
+                            Ressursen kan inngå i
+                            situasjonsbildet ved behov.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+        </main>
+
+    </div>
 }
+
+
 else
 {
-    <section class="dashboard-page">
+    <main class="unknown-role">
 
-        <div class="dashboard-container">
+        <h1>
+            Ingen gyldig rolle
+        </h1>
 
-            <div class="dashboard-empty">
+        <p>
+            Brukeren mangler tilgang til dashboardet.
+        </p>
 
-                <h1>
-                    Ingen rolle funnet
-                </h1>
+        <form
+            asp-controller="Account"
+            asp-action="Logout"
+            method="post">
 
-                <p>
-                    Logg ut og inn igjen for å fortsette.
-                </p>
+            <button type="submit">
+                Logg ut
+            </button>
 
-            </div>
+        </form>
 
-        </div>
-
-    </section>
+    </main>
 }
 
 
 <style>
 
-    .dashboard-page {
-        min-height: calc(100vh - 140px);
-        background: #f4f6f8;
-        padding: 58px 20px 80px;
+    /* =========================================
+       FELLES
+    ========================================= */
+
+    :root {
+        --navy: #102d43;
+        --navy-dark: #0a2234;
+
+        --primary: #176b87;
+        --primary-dark: #125770;
+
+        --green: #23855b;
+        --red: #d34b4b;
+        --yellow: #d99a24;
+
+        --background: #f4f6f8;
+        --surface: #ffffff;
+
+        --text: #17212b;
+        --secondary: #667085;
+
+        --border: #dfe4e8;
     }
 
 
-    .dashboard-container {
-        width: min(1160px, 100%);
-        margin: 0 auto;
+    * {
+        box-sizing: border-box;
     }
 
 
-    /* =========================
-       WELCOME
-       ========================= */
-
-    .dashboard-welcome {
-        display: flex;
-        align-items: flex-end;
-        justify-content: space-between;
-        gap: 30px;
-
-        margin-bottom: 65px;
-    }
-
-
-    .dashboard-label {
-        display: inline-block;
-
-        margin-bottom: 10px;
-
-        color: #176b87;
-
-        font-size: 0.76rem;
-        font-weight: 700;
-
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-    }
-
-
-    .dashboard-welcome h1 {
-        margin: 0 0 14px;
-
-        color: #123047;
-
-        font-size: clamp(
-            2.2rem,
-            5vw,
-            3.8rem
-        );
-
-        line-height: 1;
-
-        letter-spacing: -0.045em;
-    }
-
-
-    .dashboard-welcome p {
-        max-width: 680px;
-
+    html,
+    body {
         margin: 0;
 
-        color: #667085;
+        min-height: 100%;
 
-        font-size: 1rem;
-        line-height: 1.7;
+        color: var(--text);
+
+        background: var(--background);
+
+        font-family:
+            Inter,
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            sans-serif;
     }
 
 
-    .dashboard-primary-button {
-        flex: 0 0 auto;
+    body {
+        min-height: 100vh;
 
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
+        overflow-x: hidden;
+    }
 
-        min-height: 48px;
 
-        padding: 0 20px;
+    a {
+        color: inherit;
+
+        text-decoration: none;
+    }
+
+
+    button {
+        font: inherit;
+    }
+
+
+    .brand-icon {
+        width: 41px;
+        height: 41px;
+
+        display: grid;
+        place-items: center;
+
+        flex-shrink: 0;
+
+        border-radius: 11px;
+
+        color: var(--primary);
+
+        background:
+            rgba(23, 107, 135, 0.08);
+    }
+
+
+    .brand-icon svg {
+        width: 23px;
+        height: 23px;
+    }
+
+
+    .logout-button {
+        padding:
+            9px 14px;
+
+        border:
+            1px solid var(--border);
 
         border-radius: 8px;
 
-        background: #176b87;
-
-        color: white;
-
-        text-decoration: none;
-
-        font-weight: 650;
-    }
-
-
-    .dashboard-primary-button:hover {
-        background: #125770;
-        color: white;
-    }
-
-
-    /* =========================
-       SECTIONS
-       ========================= */
-
-    .dashboard-section-heading {
-        margin-bottom: 22px;
-    }
-
-
-    .dashboard-section-heading h2 {
-        margin: 0;
-
-        color: #123047;
-
-        font-size: 1.8rem;
-
-        letter-spacing: -0.025em;
-    }
-
-
-    /* =========================
-       ACTION CARDS
-       ========================= */
-
-    .dashboard-actions {
-        display: grid;
-
-        grid-template-columns:
-            repeat(3, 1fr);
-
-        gap: 18px;
-
-        margin-bottom: 70px;
-    }
-
-
-    .dashboard-action-card {
-        min-height: 260px;
-
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-
-        padding: 25px;
-
-        border: 1px solid #dfe4e8;
-        border-radius: 12px;
+        color: #344054;
 
         background: white;
 
-        color: inherit;
+        font-size: 0.74rem;
+        font-weight: 750;
 
-        text-decoration: none;
-
-        transition:
-            transform 0.16s ease,
-            border-color 0.16s ease,
-            box-shadow 0.16s ease;
+        cursor: pointer;
     }
 
 
-    .dashboard-action-card:hover {
-        transform: translateY(-3px);
-
-        border-color: #bdd2db;
-
-        box-shadow:
-            0 15px 35px
-            rgba(18, 48, 71, 0.08);
-
-        color: inherit;
+    .logout-button:hover {
+        background: #f7f8f9;
     }
 
 
-    .action-icon {
-        width: 44px;
-        height: 44px;
+    .eyebrow,
+    .provider-eyebrow {
+        display: block;
 
-        display: flex;
+        color: var(--primary);
+
+        font-size: 0.61rem;
+        font-weight: 850;
+
+        letter-spacing: 0.11em;
+
+        text-transform: uppercase;
+    }
+
+
+    .demo-badge {
+        display: inline-flex;
         align-items: center;
-        justify-content: center;
 
-        margin-bottom: 30px;
+        width: max-content;
 
-        border-radius: 9px;
+        padding:
+            7px 10px;
 
-        background: #e8f2f5;
+        border-radius: 7px;
 
-        color: #176b87;
+        color: #966817;
 
-        font-size: 1.3rem;
-        font-weight: 700;
+        background: #fff4d6;
+
+        font-size: 0.58rem;
+        font-weight: 850;
+
+        letter-spacing: 0.07em;
     }
 
 
-    .dashboard-action-card h3 {
-        margin: 0 0 9px;
+    /* =========================================
+       OFFENTLIG HEADER
+    ========================================= */
 
-        color: #123047;
+    .public-header {
+        height: 72px;
 
-        font-size: 1.15rem;
-    }
-
-
-    .dashboard-action-card p {
-        margin: 0 0 22px;
-
-        color: #667085;
-
-        line-height: 1.6;
-    }
-
-
-    .action-link {
-        color: #176b87;
-
-        font-size: 0.9rem;
-        font-weight: 650;
-    }
-
-
-    /* =========================
-       INFO SECTION
-       ========================= */
-
-    .dashboard-info-section {
         display: grid;
 
         grid-template-columns:
-            1fr 1fr;
+            1fr auto 1fr;
 
-        gap: 70px;
+        align-items: center;
 
-        padding: 48px;
+        gap: 24px;
 
-        border-radius: 14px;
-
-        background: #123047;
-    }
-
-
-    .dashboard-label-light {
-        color: #65b3ca;
-    }
-
-
-    .dashboard-info-content h2 {
-        max-width: 520px;
-
-        margin: 0 0 18px;
-
-        color: white;
-
-        font-size: clamp(
-            1.9rem,
-            4vw,
-            2.8rem
-        );
-
-        line-height: 1.08;
-
-        letter-spacing: -0.035em;
-    }
-
-
-    .dashboard-info-content p {
-        margin: 0;
-
-        color: #b7c6cf;
-
-        line-height: 1.7;
-    }
-
-
-    .dashboard-info-steps {
-        display: flex;
-        flex-direction: column;
-
-        gap: 18px;
-    }
-
-
-    .info-step {
-        display: flex;
-
-        gap: 15px;
-
-        padding-bottom: 18px;
+        padding:
+            0 32px;
 
         border-bottom:
-            1px solid
-            rgba(255, 255, 255, 0.10);
+            1px solid var(--border);
+
+        background: white;
     }
 
 
-    .info-step:last-child {
-        border-bottom: 0;
-        padding-bottom: 0;
-    }
-
-
-    .info-step > span {
-        color: #65b3ca;
-
-        font-size: 0.74rem;
-        font-weight: 700;
-
-        padding-top: 3px;
-    }
-
-
-    .info-step strong {
-        color: white;
-    }
-
-
-    .info-step p {
-        margin: 4px 0 0;
-
-        color: #9fb1bc;
-
-        font-size: 0.87rem;
-        line-height: 1.5;
-    }
-
-
-    /* =========================
-       PUBLIC ACTOR
-       ========================= */
-
-    .public-dashboard-grid {
-        display: grid;
-
-        grid-template-columns:
-            minmax(0, 2fr)
-            minmax(280px, 1fr);
-
-        gap: 18px;
-    }
-
-
-    .dashboard-status-card {
+    .public-brand {
         display: flex;
-        align-items: flex-start;
+        align-items: center;
 
         gap: 12px;
 
-        padding: 25px;
-
-        border: 1px solid #dfe4e8;
-        border-radius: 12px;
-
-        background: white;
+        justify-self: start;
     }
 
 
-    .status-indicator {
-        flex: 0 0 auto;
+    .public-brand strong {
+        display: block;
 
-        width: 10px;
-        height: 10px;
+        color: var(--navy);
 
-        margin-top: 5px;
+        font-size: 0.93rem;
+    }
+
+
+    .public-brand span {
+        display: block;
+
+        margin-top: 2px;
+
+        color: #7b8794;
+
+        font-size: 0.57rem;
+        font-weight: 800;
+
+        letter-spacing: 0.13em;
+    }
+
+
+    .public-header-status {
+        display: flex;
+        align-items: center;
+
+        gap: 8px;
+
+        color: #52606c;
+
+        font-size: 0.67rem;
+        font-weight: 700;
+    }
+
+
+    .active-dot {
+        width: 8px;
+        height: 8px;
 
         border-radius: 50%;
 
-        background: #23855b;
+        background: var(--green);
+
+        box-shadow:
+            0 0 0 4px
+            rgba(35, 133, 91, 0.1);
     }
 
 
-    .dashboard-status-card strong {
-        color: #123047;
+    .public-user {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+
+        gap: 17px;
+
+        justify-self: end;
     }
 
 
-    .dashboard-status-card p {
-        margin: 6px 0 0;
-
-        color: #667085;
-
-        line-height: 1.5;
+    .public-user > div {
+        text-align: right;
     }
 
 
-    .dashboard-empty {
-        padding: 60px;
+    .public-user strong {
+        display: block;
 
-        border: 1px solid #dfe4e8;
-        border-radius: 12px;
+        font-size: 0.76rem;
+    }
+
+
+    .public-user span {
+        display: block;
+
+        margin-top: 2px;
+
+        color: var(--secondary);
+
+        font-size: 0.64rem;
+    }
+
+
+    .public-user form {
+        margin: 0;
+    }
+
+
+    /* =========================================
+       PUBLIC LAYOUT
+    ========================================= */
+
+    .public-layout {
+        min-height:
+            calc(100vh - 72px);
+
+        display: grid;
+
+        grid-template-columns:
+            310px minmax(0, 1fr);
+    }
+
+
+    /* =========================================
+       SIDEBAR
+    ========================================= */
+
+    .public-sidebar {
+        padding:
+            30px 24px;
+
+        border-right:
+            1px solid var(--border);
 
         background: white;
+    }
+
+
+    .sidebar-intro {
+        padding:
+            0 4px 25px;
+    }
+
+
+    .sidebar-intro h1 {
+        margin:
+            8px 0 8px;
+
+        color: var(--navy);
+
+        font-size: 1.65rem;
+
+        letter-spacing: -0.04em;
+    }
+
+
+    .sidebar-intro p {
+        margin: 0;
+
+        color: var(--secondary);
+
+        font-size: 0.69rem;
+
+        line-height: 1.55;
+    }
+
+
+    /* NAV */
+
+    .public-navigation {
+        display: flex;
+        flex-direction: column;
+
+        gap: 6px;
+
+        margin-bottom: 30px;
+    }
+
+
+    .public-navigation-item {
+        width: 100%;
+
+        display: grid;
+
+        grid-template-columns:
+            37px minmax(0, 1fr);
+
+        gap: 11px;
+
+        align-items: center;
+
+        padding:
+            11px;
+
+        border: 0;
+
+        border-radius: 10px;
+
+        color: #52606c;
+
+        background: transparent;
+
+        text-align: left;
+    }
+
+
+    .public-navigation-item.active {
+        color: var(--primary);
+
+        background:
+            rgba(23, 107, 135, 0.08);
+    }
+
+
+    .public-navigation-item:not(.disabled):hover {
+        background: #f5f7f8;
+    }
+
+
+    .public-navigation-item.disabled {
+        opacity: 0.55;
+
+        cursor: not-allowed;
+    }
+
+
+    .navigation-icon {
+        width: 35px;
+        height: 35px;
+
+        display: grid;
+        place-items: center;
+
+        border-radius: 8px;
+
+        background:
+            rgba(23, 107, 135, 0.07);
+
+        font-weight: 800;
+    }
+
+
+    .public-navigation-item strong {
+        display: block;
+
+        margin-bottom: 2px;
+
+        font-size: 0.7rem;
+    }
+
+
+    .public-navigation-item small {
+        display: block;
+
+        color: #98a2b3;
+
+        font-size: 0.59rem;
+    }
+
+
+    /* QUICK */
+
+    .quick-actions {
+        padding-top: 24px;
+
+        border-top:
+            1px solid #eaecf0;
+    }
+
+
+    .quick-actions > .eyebrow {
+        margin-bottom: 13px;
+    }
+
+
+    .quick-action {
+        width: 100%;
+
+        display: grid;
+
+        grid-template-columns:
+            34px minmax(0, 1fr);
+
+        gap: 10px;
+
+        align-items: center;
+
+        margin-bottom: 8px;
+
+        padding:
+            11px 12px;
+
+        border:
+            1px solid var(--border);
+
+        border-radius: 9px;
+
+        text-align: left;
+    }
+
+
+    button.quick-action {
+        font: inherit;
+    }
+
+
+    .quick-action > span {
+        font-size: 1rem;
 
         text-align: center;
     }
 
 
-    .dashboard-empty h1 {
-        color: #123047;
+    .quick-action strong {
+        display: block;
+
+        font-size: 0.67rem;
     }
 
 
-    /* =========================
-       MOBILE
-       ========================= */
+    .quick-action small {
+        display: block;
+
+        margin-top: 2px;
+
+        font-size: 0.57rem;
+    }
+
+
+    .quick-action.primary {
+        border-color:
+            transparent;
+
+        color: white;
+
+        background: var(--primary);
+    }
+
+
+    .quick-action.secondary {
+        color: var(--primary);
+
+        background: white;
+    }
+
+
+    .disabled-action {
+        opacity: 0.6;
+    }
+
+
+    /* LEGEND */
+
+    .sidebar-legend {
+        margin-top: 30px;
+
+        padding-top: 24px;
+
+        border-top:
+            1px solid #eaecf0;
+    }
+
+
+    .sidebar-legend > .eyebrow {
+        margin-bottom: 14px;
+    }
+
+
+    .legend-row {
+        display: flex;
+        align-items: center;
+
+        gap: 9px;
+
+        margin-bottom: 10px;
+
+        color: #667085;
+
+        font-size: 0.65rem;
+    }
+
+
+    .legend-dot,
+    .status-dot,
+    .filter-dot {
+        width: 8px;
+        height: 8px;
+
+        flex-shrink: 0;
+
+        border-radius: 50%;
+    }
+
+
+    .urgent {
+        background: var(--red);
+    }
+
+
+    .planned {
+        background: var(--yellow);
+    }
+
+
+    .resource {
+        background: var(--green);
+    }
+
+
+    .actor {
+        background: var(--primary);
+    }
+
+
+    /* =========================================
+       WORKSPACE
+    ========================================= */
+
+    .public-workspace {
+        min-width: 0;
+
+        padding:
+            34px;
+
+        background: var(--background);
+    }
+
+
+    .workspace-heading {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+
+        gap: 30px;
+
+        margin-bottom: 20px;
+    }
+
+
+    .workspace-heading h2 {
+        margin:
+            7px 0 7px;
+
+        color: var(--navy);
+
+        font-size: 2rem;
+
+        letter-spacing: -0.04em;
+    }
+
+
+    .workspace-heading p {
+        margin: 0;
+
+        color: var(--secondary);
+
+        font-size: 0.72rem;
+
+        line-height: 1.55;
+    }
+
+
+    /* STATUS */
+
+    .public-status-grid {
+        display: grid;
+
+        grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+
+        gap: 15px;
+
+        margin-bottom: 18px;
+    }
+
+
+    .public-stat {
+        min-width: 0;
+
+        padding:
+            18px 20px;
+
+        border:
+            1px solid var(--border);
+
+        border-radius: 12px;
+
+        background: white;
+    }
+
+
+    .public-stat-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        gap: 15px;
+
+        color: var(--secondary);
+
+        font-size: 0.67rem;
+    }
+
+
+    .public-stat strong {
+        display: block;
+
+        margin:
+            8px 0 5px;
+
+        color: var(--navy);
+
+        font-size: 1.65rem;
+    }
+
+
+    .public-stat strong.green-number {
+        color: var(--green);
+    }
+
+
+    .public-stat small {
+        color: #98a2b3;
+
+        font-size: 0.59rem;
+    }
+
+
+    /* =========================================
+       MAP CARD
+    ========================================= */
+
+    .situation-card {
+        overflow: hidden;
+
+        border:
+            1px solid var(--border);
+
+        border-radius: 14px;
+
+        background: white;
+
+        box-shadow:
+            0 8px 24px
+            rgba(18, 48, 71, 0.04);
+    }
+
+
+    .map-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        gap: 25px;
+
+        padding:
+            17px 20px;
+    }
+
+
+    .map-toolbar h3 {
+        margin:
+            5px 0 0;
+
+        color: var(--navy);
+
+        font-size: 1rem;
+    }
+
+
+    .map-filters {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+
+        gap: 8px;
+    }
+
+
+    .filter-option {
+        display: flex;
+        align-items: center;
+
+        gap: 6px;
+
+        padding:
+            7px 9px;
+
+        border:
+            1px solid #e5e9ec;
+
+        border-radius: 8px;
+
+        color: #59636e;
+
+        background: #fafbfb;
+
+        font-size: 0.61rem;
+
+        cursor: pointer;
+    }
+
+
+    .filter-option input {
+        width: 13px;
+        height: 13px;
+
+        margin: 0;
+    }
+
+
+    #situationMap {
+        width: 100%;
+        height: 500px;
+
+        border-top:
+            1px solid #e8ecee;
+    }
+
+
+    /* =========================================
+       BOTTOM CARDS
+    ========================================= */
+
+    .public-bottom-grid {
+        display: grid;
+
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+
+        gap: 18px;
+
+        margin-top: 18px;
+    }
+
+
+    .summary-card {
+        padding:
+            21px;
+
+        border:
+            1px solid var(--border);
+
+        border-radius: 13px;
+
+        background: white;
+    }
+
+
+    .summary-card h3 {
+        margin:
+            7px 0 17px;
+
+        color: var(--navy);
+
+        font-size: 1rem;
+    }
+
+
+    .summary-item {
+        display: grid;
+
+        grid-template-columns:
+            36px minmax(0, 1fr);
+
+        gap: 11px;
+
+        padding:
+            13px 0;
+
+        border-top:
+            1px solid #edf0f2;
+    }
+
+
+    .summary-icon {
+        width: 34px;
+        height: 34px;
+
+        display: grid;
+        place-items: center;
+
+        border-radius: 8px;
+
+        color: white;
+
+        font-size: 0.67rem;
+        font-weight: 850;
+    }
+
+
+    .summary-item strong {
+        display: block;
+
+        color: var(--navy);
+
+        font-size: 0.69rem;
+    }
+
+
+    .summary-item p {
+        margin:
+            4px 0;
+
+        color: var(--secondary);
+
+        font-size: 0.62rem;
+
+        line-height: 1.45;
+    }
+
+
+    .summary-item small {
+        color: #98a2b3;
+
+        font-size: 0.56rem;
+    }
+
+
+    .summary-link {
+        display: inline-flex;
+
+        margin-top: 13px;
+
+        color: var(--primary);
+
+        font-size: 0.64rem;
+        font-weight: 750;
+    }
+
+
+    /* =========================================
+       PROVIDER
+    ========================================= */
+
+    .provider-shell {
+        min-height: 100vh;
+
+        background: var(--background);
+    }
+
+
+    .provider-header {
+        min-height: 72px;
+
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        padding:
+            0 max(
+                5vw,
+                calc((100vw - 1400px) / 2)
+            );
+
+        border-bottom:
+            1px solid var(--border);
+
+        background: white;
+    }
+
+
+    .provider-brand {
+        display: flex;
+        align-items: center;
+
+        gap: 12px;
+    }
+
+
+    .provider-brand strong {
+        display: block;
+
+        color: var(--navy);
+
+        font-size: 0.93rem;
+    }
+
+
+    .provider-brand span {
+        display: block;
+
+        margin-top: 2px;
+
+        color: #7b8794;
+
+        font-size: 0.57rem;
+        font-weight: 800;
+
+        letter-spacing: 0.13em;
+    }
+
+
+    .provider-user {
+        display: flex;
+        align-items: center;
+
+        gap: 17px;
+
+        text-align: right;
+    }
+
+
+    .provider-user strong {
+        display: block;
+
+        font-size: 0.76rem;
+    }
+
+
+    .provider-user span {
+        display: block;
+
+        margin-top: 2px;
+
+        color: var(--secondary);
+
+        font-size: 0.64rem;
+    }
+
+
+    .provider-user form {
+        margin: 0;
+    }
+
+
+    .provider-main {
+        width:
+            min(
+                1400px,
+                calc(100% - 48px)
+            );
+
+        margin:
+            0 auto;
+
+        padding:
+            42px 0 60px;
+    }
+
+
+    /* HERO */
+
+    .provider-hero {
+        display: grid;
+
+        grid-template-columns:
+            minmax(0, 1.5fr)
+            minmax(280px, 0.65fr);
+
+        gap: 35px;
+
+        align-items: center;
+
+        padding:
+            42px 45px;
+
+        border-radius: 18px;
+
+        color: white;
+
+        background:
+            linear-gradient(
+                125deg,
+                #102d43,
+                #164c5d
+            );
+    }
+
+
+    .provider-hero .provider-eyebrow {
+        color: #8bd7cf;
+    }
+
+
+    .provider-hero h1 {
+        margin:
+            9px 0 12px;
+
+        font-size:
+            clamp(
+                2.2rem,
+                4vw,
+                3.4rem
+            );
+
+        line-height: 1;
+
+        letter-spacing: -0.05em;
+    }
+
+
+    .provider-hero-content p {
+        max-width: 600px;
+
+        margin:
+            0 0 23px;
+
+        color:
+            rgba(255, 255, 255, 0.72);
+
+        font-size: 0.82rem;
+
+        line-height: 1.6;
+    }
+
+
+    .provider-main-action {
+        min-height: 45px;
+
+        display: inline-flex;
+        align-items: center;
+
+        gap: 8px;
+
+        padding:
+            0 16px;
+
+        border-radius: 8px;
+
+        color: var(--navy-dark);
+
+        background: #9ee1d5;
+
+        font-size: 0.7rem;
+        font-weight: 850;
+    }
+
+
+    .provider-hero-info {
+        display: grid;
+
+        grid-template-columns:
+            40px minmax(0, 1fr);
+
+        gap: 13px;
+
+        padding:
+            20px;
+
+        border:
+            1px solid
+            rgba(255,255,255,0.12);
+
+        border-radius: 13px;
+
+        background:
+            rgba(255,255,255,0.07);
+    }
+
+
+    .provider-info-icon {
+        width: 38px;
+        height: 38px;
+
+        display: grid;
+        place-items: center;
+
+        border-radius: 50%;
+
+        color: #9ee1d5;
+
+        background:
+            rgba(158,225,213,0.12);
+    }
+
+
+    .provider-hero-info strong {
+        font-size: 0.72rem;
+    }
+
+
+    .provider-hero-info p {
+        margin:
+            5px 0 0;
+
+        color:
+            rgba(255,255,255,0.67);
+
+        font-size: 0.62rem;
+
+        line-height: 1.5;
+    }
+
+
+    /* PROVIDER STATUS */
+
+    .provider-status-grid {
+        display: grid;
+
+        grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+
+        gap: 16px;
+
+        margin:
+            19px 0 28px;
+    }
+
+
+    .provider-stat {
+        padding:
+            20px 22px;
+
+        border:
+            1px solid var(--border);
+
+        border-radius: 13px;
+
+        background: white;
+    }
+
+
+    .provider-stat span {
+        color: var(--secondary);
+
+        font-size: 0.68rem;
+    }
+
+
+    .provider-stat strong {
+        display: block;
+
+        margin:
+            8px 0 5px;
+
+        font-size: 1.6rem;
+    }
+
+
+    .provider-stat-success {
+        color: var(--green);
+    }
+
+
+    .provider-stat small {
+        color: #98a2b3;
+
+        font-size: 0.59rem;
+    }
+
+
+    /* PROVIDER RESOURCES */
+
+    .provider-resources {
+        padding:
+            27px;
+
+        border:
+            1px solid var(--border);
+
+        border-radius: 15px;
+
+        background: white;
+    }
+
+
+    .provider-section-header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+
+        gap: 30px;
+
+        margin-bottom: 20px;
+    }
+
+
+    .provider-section-header h2 {
+        margin:
+            7px 0 6px;
+
+        color: var(--navy);
+
+        font-size: 1.45rem;
+
+        letter-spacing: -0.03em;
+    }
+
+
+    .provider-section-header p {
+        margin: 0;
+
+        color: var(--secondary);
+
+        font-size: 0.68rem;
+    }
+
+
+    .provider-resource-list {
+        display: flex;
+        flex-direction: column;
+
+        gap: 12px;
+    }
+
+
+    .provider-resource-card {
+        display: grid;
+
+        grid-template-columns:
+            48px minmax(0, 1fr);
+
+        gap: 15px;
+
+        padding:
+            18px;
+
+        border:
+            1px solid #e3e7ea;
+
+        border-radius: 11px;
+    }
+
+
+    .provider-resource-icon {
+        width: 46px;
+        height: 46px;
+
+        display: grid;
+        place-items: center;
+
+        border-radius: 10px;
+
+        color: white;
+
+        background: var(--primary);
+
+        font-size: 0.72rem;
+        font-weight: 850;
+    }
+
+
+    .provider-resource-heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+
+        gap: 20px;
+    }
+
+
+    .provider-resource-type {
+        display: block;
+
+        color: var(--primary);
+
+        font-size: 0.57rem;
+        font-weight: 850;
+
+        letter-spacing: 0.08em;
+    }
+
+
+    .provider-resource-heading h3 {
+        margin:
+            4px 0 0;
+
+        color: var(--navy);
+
+        font-size: 0.85rem;
+    }
+
+
+    .provider-resource-status {
+        padding:
+            5px 9px;
+
+        border-radius: 999px;
+
+        font-size: 0.57rem;
+        font-weight: 750;
+    }
+
+
+    .provider-resource-status.available {
+        color: var(--green);
+
+        background:
+            rgba(35,133,91,0.09);
+    }
+
+
+    .provider-resource-status.unavailable {
+        color: #667085;
+
+        background: #f1f3f4;
+    }
+
+
+    .provider-resource-content > p {
+        margin:
+            9px 0;
+
+        color: var(--secondary);
+
+        font-size: 0.65rem;
+
+        line-height: 1.5;
+    }
+
+
+    .provider-resource-meta {
+        display: flex;
+
+        gap: 18px;
+
+        color: #7c8791;
+
+        font-size: 0.6rem;
+    }
+
+
+    .provider-overview-link {
+        display: inline-flex;
+
+        margin-top: 18px;
+
+        color: var(--primary);
+
+        font-size: 0.67rem;
+        font-weight: 800;
+    }
+
+
+    /* PROVIDER HELP */
+
+    .provider-help {
+        display: grid;
+
+        grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+
+        gap: 26px;
+
+        margin-top: 24px;
+
+        padding:
+            24px;
+
+        border:
+            1px solid var(--border);
+
+        border-radius: 13px;
+
+        background:
+            rgba(255,255,255,0.55);
+    }
+
+
+    .provider-help-item {
+        display: grid;
+
+        grid-template-columns:
+            36px minmax(0,1fr);
+
+        gap: 11px;
+    }
+
+
+    .provider-help-item > span {
+        width: 34px;
+        height: 34px;
+
+        display: grid;
+        place-items: center;
+
+        border-radius: 8px;
+
+        color: var(--primary);
+
+        background:
+            rgba(23,107,135,0.08);
+
+        font-size: 0.59rem;
+        font-weight: 850;
+    }
+
+
+    .provider-help-item strong {
+        display: block;
+
+        margin-bottom: 4px;
+
+        font-size: 0.68rem;
+    }
+
+
+    .provider-help-item p {
+        margin: 0;
+
+        color: var(--secondary);
+
+        font-size: 0.61rem;
+
+        line-height: 1.45;
+    }
+
+
+    /* =========================================
+       UKJENT ROLLE
+    ========================================= */
+
+    .unknown-role {
+        max-width: 600px;
+
+        margin:
+            80px auto;
+
+        padding:
+            30px;
+
+        text-align: center;
+    }
+
+
+    /* =========================================
+       RESPONSIVE
+    ========================================= */
+
+    @@media (max-width: 1050px) {
+
+        .public-layout {
+            grid-template-columns:
+                250px minmax(0, 1fr);
+        }
+
+
+        .public-workspace {
+            padding:
+                25px;
+        }
+
+
+        .provider-hero {
+            grid-template-columns:
+                1fr;
+        }
+
+    }
+
 
     @@media (max-width: 850px) {
 
-        .dashboard-welcome {
+        .public-header {
+            grid-template-columns:
+                1fr auto;
+
+            padding:
+                0 18px;
+        }
+
+
+        .public-header-status {
+            display: none;
+        }
+
+
+        .public-layout {
+            display: block;
+        }
+
+
+        .public-sidebar {
+            border-right: 0;
+
+            border-bottom:
+                1px solid var(--border);
+        }
+
+
+        .public-navigation {
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, minmax(0,1fr));
+        }
+
+
+        .quick-actions,
+        .sidebar-legend {
+            display: none;
+        }
+
+
+        .public-status-grid {
+            grid-template-columns:
+                1fr;
+        }
+
+
+        .public-bottom-grid {
+            grid-template-columns:
+                1fr;
+        }
+
+
+        #situationMap {
+            height: 460px;
+        }
+
+
+        .provider-status-grid,
+        .provider-help {
+            grid-template-columns:
+                1fr;
+        }
+
+    }
+
+
+    @@media (max-width: 650px) {
+
+        .public-header {
+            height: auto;
+
+            min-height: 68px;
+        }
+
+
+        .public-user > div {
+            display: none;
+        }
+
+
+        .public-brand span {
+            display: none;
+        }
+
+
+        .public-sidebar {
+            padding:
+                22px 16px;
+        }
+
+
+        .public-navigation {
+            grid-template-columns:
+                1fr;
+        }
+
+
+        .public-navigation-item.disabled {
+            display: none;
+        }
+
+
+        .public-workspace {
+            padding:
+                22px 12px;
+        }
+
+
+        .workspace-heading {
+            align-items: flex-start;
+            flex-direction: column;
+
+            gap: 12px;
+        }
+
+
+        .map-toolbar {
             align-items: flex-start;
             flex-direction: column;
         }
 
 
-        .dashboard-actions {
-            grid-template-columns: 1fr;
-        }
-
-
-        .dashboard-action-card {
-            min-height: auto;
-        }
-
-
-        .dashboard-info-section {
-            grid-template-columns: 1fr;
-
-            gap: 40px;
-
-            padding: 30px;
-        }
-
-
-        .public-dashboard-grid {
-            grid-template-columns: 1fr;
-        }
-
-    }
-
-
-    @@media (max-width: 550px) {
-
-        .dashboard-page {
-            padding:
-                40px 16px
-                60px;
-        }
-
-
-        .dashboard-primary-button {
+        .map-filters {
             width: 100%;
+        }
+
+
+        .filter-option {
+            flex:
+                1 1 calc(50% - 8px);
+
+            justify-content: center;
+        }
+
+
+        #situationMap {
+            height: 380px;
+        }
+
+
+        .provider-header {
+            padding:
+                12px 16px;
+        }
+
+
+        .provider-user > div {
+            display: none;
+        }
+
+
+        .provider-main {
+            width:
+                calc(100% - 24px);
+
+            padding:
+                25px 0 45px;
+        }
+
+
+        .provider-hero {
+            padding:
+                28px 22px;
+        }
+
+
+        .provider-section-header {
+            align-items: flex-start;
+
+            flex-direction: column;
+        }
+
+
+        .provider-resource-card {
+            grid-template-columns:
+                1fr;
+        }
+
+
+        .provider-resource-heading {
+            flex-direction: column;
+
+            gap: 8px;
         }
 
     }
 
 </style>
+
+
+@if (userRole == "PublicActor")
+{
+    <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+    </script>
+
+
+    <script>
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            function () {
+
+                const map =
+                    L.map(
+                        "situationMap"
+                    )
+                    .setView(
+                        [
+                            58.1467,
+                            7.9956
+                        ],
+                        11
+                    );
+
+
+                L.tileLayer(
+                    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                    {
+                        maxZoom:
+                            19,
+
+                        attribution:
+                            "&copy; OpenStreetMap"
+                    }
+                ).addTo(map);
+
+
+                /*
+                 * Separate lag gjør at brukeren
+                 * kan skru kategorier av og på.
+                 */
+
+                const resourceLayer =
+                    L.layerGroup()
+                        .addTo(map);
+
+
+                const urgentLayer =
+                    L.layerGroup()
+                        .addTo(map);
+
+
+                const plannedLayer =
+                    L.layerGroup()
+                        .addTo(map);
+
+
+                const actorLayer =
+                    L.layerGroup()
+                        .addTo(map);
+
+
+                function createMarker(
+                    color
+                ) {
+
+                    return L.divIcon({
+                        className:
+                            "custom-map-marker",
+
+                        html:
+                            `
+                                <div
+                                    style="
+                                        width:30px;
+                                        height:30px;
+                                        border:4px solid white;
+                                        border-radius:50% 50% 50% 7px;
+                                        transform:rotate(-45deg);
+                                        background:${color};
+                                        box-shadow:0 4px 12px rgba(0,0,0,.25);
+                                    ">
+                                </div>
+                            `,
+
+                        iconSize:
+                            [30, 34],
+
+                        iconAnchor:
+                            [15, 32],
+
+                        popupAnchor:
+                            [0, -27]
+                    });
+
+                }
+
+
+                /*
+                 * DEMO: tilgjengelige ressurser.
+                 */
+
+                L.marker(
+                    [
+                        58.15021,
+                        8.00938
+                    ],
+                    {
+                        icon:
+                            createMarker(
+                                "#23855b"
+                            )
+                    }
+                )
+                .bindPopup(
+                    `
+                        <strong>Aggregat 25 kVA</strong>
+                        <br>
+                        Tilgjengelig ressurs
+                        <br>
+                        Kristiansand
+                    `
+                )
+                .addTo(
+                    resourceLayer
+                );
+
+
+                L.marker(
+                    [
+                        58.1598,
+                        7.9780
+                    ],
+                    {
+                        icon:
+                            createMarker(
+                                "#23855b"
+                            )
+                    }
+                )
+                .bindPopup(
+                    `
+                        <strong>Transportressurs</strong>
+                        <br>
+                        Tilgjengelig ressurs
+                    `
+                )
+                .addTo(
+                    resourceLayer
+                );
+
+
+                /*
+                 * DEMO: akutte behov.
+                 */
+
+                L.marker(
+                    [
+                        58.1418,
+                        7.9978
+                    ],
+                    {
+                        icon:
+                            createMarker(
+                                "#d34b4b"
+                            )
+                    }
+                )
+                .bindPopup(
+                    `
+                        <strong>Akutt strømbehov</strong>
+                        <br>
+                        Midlertidig mottakssenter
+                        <br>
+                        Prioritet: Akutt
+                    `
+                )
+                .addTo(
+                    urgentLayer
+                );
+
+
+                L.marker(
+                    [
+                        58.1320,
+                        8.0180
+                    ],
+                    {
+                        icon:
+                            createMarker(
+                                "#d34b4b"
+                            )
+                    }
+                )
+                .bindPopup(
+                    `
+                        <strong>Transportbehov</strong>
+                        <br>
+                        Behov for rask transportkapasitet
+                        <br>
+                        Prioritet: Akutt
+                    `
+                )
+                .addTo(
+                    urgentLayer
+                );
+
+
+                /*
+                 * DEMO: planlagte behov.
+                 */
+
+                L.marker(
+                    [
+                        58.1650,
+                        7.9450
+                    ],
+                    {
+                        icon:
+                            createMarker(
+                                "#d99a24"
+                            )
+                    }
+                )
+                .bindPopup(
+                    `
+                        <strong>Planlagt transport</strong>
+                        <br>
+                        Behov for kjøretøy
+                        <br>
+                        Prioritet: Planlagt
+                    `
+                )
+                .addTo(
+                    plannedLayer
+                );
+
+
+                L.marker(
+                    [
+                        58.1810,
+                        8.0100
+                    ],
+                    {
+                        icon:
+                            createMarker(
+                                "#d99a24"
+                            )
+                    }
+                )
+                .bindPopup(
+                    `
+                        <strong>Behov for mannskap</strong>
+                        <br>
+                        Planlagt beredskapsoppgave
+                    `
+                )
+                .addTo(
+                    plannedLayer
+                );
+
+
+                /*
+                 * DEMO: offentlig aktør.
+                 */
+
+                L.marker(
+                    [
+                        58.1455,
+                        7.9960
+                    ],
+                    {
+                        icon:
+                            createMarker(
+                                "#176b87"
+                            )
+                    }
+                )
+                .bindPopup(
+                    `
+                        <strong>Kriseledelse</strong>
+                        <br>
+                        Offentlig aktør
+                    `
+                )
+                .addTo(
+                    actorLayer
+                );
+
+
+                /*
+                 * FILTERE
+                 */
+
+                setupToggle(
+                    "showResources",
+                    resourceLayer
+                );
+
+
+                setupToggle(
+                    "showUrgent",
+                    urgentLayer
+                );
+
+
+                setupToggle(
+                    "showPlanned",
+                    plannedLayer
+                );
+
+
+                setupToggle(
+                    "showActors",
+                    actorLayer
+                );
+
+
+                function setupToggle(
+                    checkboxId,
+                    layer
+                ) {
+
+                    const checkbox =
+                        document.getElementById(
+                            checkboxId
+                        );
+
+
+                    if (!checkbox)
+                    {
+                        return;
+                    }
+
+
+                    checkbox.addEventListener(
+                        "change",
+                        function () {
+
+                            if (checkbox.checked)
+                            {
+                                if (
+                                    !map.hasLayer(
+                                        layer
+                                    )
+                                )
+                                {
+                                    layer.addTo(
+                                        map
+                                    );
+                                }
+                            }
+                            else
+                            {
+                                if (
+                                    map.hasLayer(
+                                        layer
+                                    )
+                                )
+                                {
+                                    map.removeLayer(
+                                        layer
+                                    );
+                                }
+                            }
+
+                        }
+                    );
+
+                }
+
+
+                /*
+                 * Leaflet trenger noen ganger en
+                 * oppdatering når layouten er ferdig.
+                 */
+
+                window.setTimeout(
+                    function () {
+
+                        map.invalidateSize();
+
+                    },
+                    100
+                );
+
+            }
+        );
+
+    </script>
+}
+
+
+</body>
+
+</html>
