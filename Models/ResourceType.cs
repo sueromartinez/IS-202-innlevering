@@ -3,7 +3,8 @@ using System.ComponentModel.DataAnnotations;
 namespace FirstWebAppInDocker.Models;
 
 /// <summary>
-/// Typer ressurser som kan registreres i beredskapsportalen.
+/// Typer ressurser som kan registreres
+/// i beredskapsportalen.
 /// </summary>
 public enum ResourceType
 {

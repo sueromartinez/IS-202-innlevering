@@ -1,138 +1,225 @@
+@{
+    string? userEmail =
+        Context.Session.GetString("UserEmail");
+
+    string? userRole =
+        Context.Session.GetString("UserRole");
+
+    bool isLoggedIn =
+        !string.IsNullOrWhiteSpace(userEmail);
+}
+
 <!DOCTYPE html>
-<html lang="en">
+
+<html lang="no">
+
 <head>
-    <link rel="stylesheet"
-          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIIN+..."
-          crossorigin="" />
 
     <meta charset="utf-8" />
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0" />
 
-    <title>@ViewData["Title"] - FirstWebAppInDocker</title>
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    />
 
-    <script type="importmap"></script>
+    <title>
+        @ViewData["Title"] - Beredskapsportal
+    </title>
 
-    <link rel="stylesheet"
-          href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
 
-    <link rel="stylesheet"
-          href="~/css/site.css"
-          asp-append-version="true" />
+    <!-- Felles design fra recovered 8080-versjonen -->
+    <link
+        rel="stylesheet"
+        href="~/css/app.css"
+        asp-append-version="true"
+    />
 
-    <link rel="stylesheet"
-          href="~/FirstWebAppInDocker.styles.css"
-          asp-append-version="true" />
+    <link
+        rel="stylesheet"
+        href="~/css/site.css"
+        asp-append-version="true"
+    />
+
 </head>
+
 
 <body>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kN..."
-            crossorigin="">
-    </script>
+    <header class="site-header">
 
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <div class="site-header-inner">
 
-            <div class="container-fluid">
+            <!-- LOGO -->
+            <a
+                asp-controller="Home"
+                asp-action="Index"
+                class="site-logo">
 
-                <a class="navbar-brand"
-                   asp-area=""
-                   asp-controller="Home"
-                   asp-action="Index">
-                    FirstWebAppInDocker
-                </a>
+                <span class="site-logo-icon">
 
-                <button class="navbar-toggler"
-                        type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target=".navbar-collapse"
-                        aria-controls="navbarSupportedContent"
-                        aria-expanded="false"
-                        aria-label="Toggle navigation">
+                    <svg
+                        viewBox="0 0 24 24"
+                        width="24"
+                        height="24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        aria-hidden="true">
 
-                    <span class="navbar-toggler-icon"></span>
+                        <path
+                            d="M12 3L19 6V11C19 15.55 16.02 19.74 12 21C7.98 19.74 5 15.55 5 11V6L12 3Z"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linejoin="round"
+                        />
 
-                </button>
+                        <path
+                            d="M9 12L11 14L15 10"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
 
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    </svg>
 
-                    <ul class="navbar-nav flex-grow-1">
+                </span>
 
-                        <li class="nav-item">
-                            <a class="nav-link text-dark"
-                               asp-area=""
-                               asp-controller="Home"
-                               asp-action="Index">
-                                Home
-                            </a>
-                        </li>
 
-                        <li class="nav-item">
-                            <a class="nav-link text-dark"
-                               asp-area=""
-                               asp-controller="Home"
-                               asp-action="Privacy">
-                                Privacy
-                            </a>
-                        </li>
+                <span class="site-logo-text">
 
-                        <li class="nav-item">
-                            <a class="nav-link text-dark"
-                               asp-area=""
-                               asp-controller="Resource"
-                               asp-action="RegisterResource">
-                                Registrer ressurs
-                            </a>
-                        </li>
+                    <strong>
+                        Beredskapsportal
+                    </strong>
 
-                    </ul>
+                    <small>
+                        TOTALFORSVARET
+                    </small>
 
-                </div>
+                </span>
 
-            </div>
-
-        </nav>
-    </header>
-
-    <div class="container">
-
-        <main role="main"
-              class="pb-3">
-
-            @RenderBody()
-
-        </main>
-
-    </div>
-
-    <footer class="border-top footer text-muted">
-
-        <div class="container">
-
-            &copy; 2026 - FirstWebAppInDocker -
-
-            <a asp-area=""
-               asp-controller="Home"
-               asp-action="Privacy">
-                Privacy
             </a>
+
+
+            <!-- OFFENTLIG NAVIGASJON -->
+            @if (!isLoggedIn)
+            {
+                <nav
+                    class="public-nav"
+                    aria-label="Hovedmeny">
+
+                    <a href="/#howItWorks">
+                        Slik fungerer det
+                    </a>
+
+                    <a
+                        href="/#loginSection"
+                        class="nav-login-button">
+
+                        Logg inn
+
+                    </a>
+
+                </nav>
+            }
+
+
+            <!-- INNLOGGET NAVIGASJON -->
+            @if (isLoggedIn)
+            {
+                <nav
+                    class="logged-nav"
+                    aria-label="Brukermeny">
+
+                    <a
+                        asp-controller="Home"
+                        asp-action="Dashboard">
+
+                        Oversikt
+
+                    </a>
+
+
+                    @if (userRole == "ResourceProvider")
+                    {
+                        <a
+                            asp-controller="Resource"
+                            asp-action="RegisterResource">
+
+                            Registrer ressurs
+
+                        </a>
+
+                        <a
+                            asp-controller="Resource"
+                            asp-action="ResourceOverview">
+
+                            Mine ressurser
+
+                        </a>
+
+                        <a
+                            asp-controller="Account"
+                            asp-action="Profile">
+
+                            Profil
+
+                        </a>
+                    }
+
+
+                    @if (userRole == "PublicActor")
+                    {
+                        <a
+                            asp-controller="Resource"
+                            asp-action="ResourceOverview">
+
+                            Ressurser
+
+                        </a>
+                    }
+
+
+                    <form
+                        asp-controller="Account"
+                        asp-action="Logout"
+                        method="post">
+
+                        <button
+                            type="submit"
+                            class="nav-logout-button">
+
+                            Logg ut
+
+                        </button>
+
+                    </form>
+
+                </nav>
+            }
 
         </div>
 
-    </footer>
+    </header>
 
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
 
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <main>
 
-    <script src="~/js/site.js"
-            asp-append-version="true">
+        @RenderBody()
+
+    </main>
+
+
+    <script
+        src="~/js/site.js"
+        asp-append-version="true">
     </script>
 
-    @await RenderSectionAsync("Scripts", required: false)
+
+    @await RenderSectionAsync(
+        "Scripts",
+        required: false
+    )
 
 </body>
+
 </html>

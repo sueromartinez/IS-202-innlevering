@@ -1,3 +1,4 @@
+
 # Bruker ASP.NET Core 10 som grunnlag for å kjøre nettsiden
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 
@@ -24,16 +25,13 @@ ARG configuration=Release
 WORKDIR /src
 
 # Kopierer prosjektfilen (.csproj) inn i containeren
-COPY ["FirstWebAppInDocker/FirstWebAppInDocker.csproj", "FirstWebAppInDocker/"]
+COPY ["FirstWebAppInDocker.csproj", "./"]
 
 # Laster ned pakkene som prosjektet trenger
-RUN dotnet restore "FirstWebAppInDocker/FirstWebAppInDocker.csproj"
+RUN dotnet restore "FirstWebAppInDocker.csproj"
 
 # Kopierer resten av prosjektet inn i containeren
 COPY . .
-
-# Går inn i mappen til prosjektet
-WORKDIR "/src/FirstWebAppInDocker"
 
 # Bygger prosjektet
 RUN dotnet build "FirstWebAppInDocker.csproj" -c $configuration -o /app/build
