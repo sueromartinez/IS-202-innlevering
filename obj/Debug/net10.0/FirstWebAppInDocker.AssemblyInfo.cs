@@ -10,10 +10,11 @@
 using System;
 using System.Reflection;
 
+[assembly: Microsoft.Extensions.Configuration.UserSecrets.UserSecretsIdAttribute("17684ef3-fdb8-44ef-a662-7b7398a77623")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("FirstWebAppInDocker")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+30649974de3459703917055ac388a9beaa34b355")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1f55d5b5a106aec0a4637f50e5a9c6e8abee987f")]
 [assembly: System.Reflection.AssemblyProductAttribute("FirstWebAppInDocker")]
 [assembly: System.Reflection.AssemblyTitleAttribute("FirstWebAppInDocker")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -55,7 +55,11 @@ services:
         Password=${MARIADB_PASSWORD};
 
     ports:
+<<<<<<< HEAD
       - "8080:8080"
+=======
+      - "8080:5216"
+>>>>>>> origin/main
 
 
 volumes:

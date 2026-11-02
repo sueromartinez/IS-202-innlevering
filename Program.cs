@@ -1,107 +1,155 @@
-// Gjør at vi kan bruke funksjoner for språk og kultur,
-// for eksempel RequestLocalizationOptions og RequestCulture.
+using System.Globalization;
+using FirstWebAppInDocker.Data;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.EntityFrameworkCore;
 
-
-// Oppretter en builder som brukes til å konfigurere webapplikasjonen.
-// args inneholder eventuelle argumenter som sendes inn når programmet starter.
 var builder = WebApplication.CreateBuilder(args);
 
 
-// Legger til støtte for Controllers og Views.
-// Dette brukes når vi lager en ASP.NET Core MVC-applikasjon.
+// =========================
+// DATABASE
+// =========================
+
+string connectionString =
+    builder.Configuration.GetConnectionString(
+        "DefaultConnection"
+    )
+    ?? throw new InvalidOperationException(
+        "Connection string 'DefaultConnection' ble ikke funnet."
+    );
+
+
+builder.Services.AddDbContext<ApplicationDbContext>(
+    options =>
+        options.UseMySql(
+            connectionString,
+            new MariaDbServerVersion(
+                new Version(11, 4, 0)
+            )
+        )
+);
+
+
+// =========================
+// MVC
+// =========================
+
 builder.Services.AddControllersWithViews();
 
 
-// Lager en liste over språk/kulturer som nettsiden skal støtte.
-// Her støtter applikasjonen bare amerikansk engelsk (en-US).
-var supportedCultures = new[]
-{
-    new System.Globalization.CultureInfo("en-US")
-};
+// =========================
+// SESSION
+// =========================
+
+builder.Services.AddDistributedMemoryCache();
+
+builder.Services.AddSession(
+    options =>
+    {
+        options.IdleTimeout =
+            TimeSpan.FromMinutes(30);
+
+        options.Cookie.HttpOnly =
+            true;
+
+        options.Cookie.IsEssential =
+            true;
+    }
+);
 
 
-// Konfigurerer språk og kultur for applikasjonen.
-builder.Services.Configure<RequestLocalizationOptions>(options =>
-{
-    // Bestemmer standardspråket som skal brukes.
-    // Hvis ikke noe annet språk er valgt, brukes en-US.
-    options.DefaultRequestCulture = new RequestCulture("en-US");
+// =========================
+// SPRÅK / KULTUR
+// =========================
 
-    // Bestemmer hvilke kulturer applikasjonen støtter.
-    // Kultur påvirker blant annet dato, klokkeslett, tall og valuta.
-    options.SupportedCultures = supportedCultures;
-
-    // Bestemmer hvilke språk som støttes for tekst i brukergrensesnittet.
-    options.SupportedUICultures = supportedCultures;
-});
+builder.Services.Configure<RequestLocalizationOptions>(
+    options =>
+    {
+        var supportedCultures =
+            new[]
+            {
+                new CultureInfo("en-US")
+            };
 
 
-// Bygger selve webapplikasjonen basert på innstillingene ovenfor.
+        options.DefaultRequestCulture =
+            new RequestCulture(
+                "en-US"
+            );
+
+        options.SupportedCultures =
+            supportedCultures;
+
+        options.SupportedUICultures =
+            supportedCultures;
+    }
+);
+
+
 var app = builder.Build();
 
 
-// Aktiverer språk- og kulturinnstillingene vi konfigurerte tidligere.
-// Dette gjør at ASP.NET Core bruker riktig kultur når en request kommer inn.
-app.UseRequestLocalization();
+// =========================
+// ERROR HANDLING
+// =========================
 
-
-// Sjekker om applikasjonen IKKE kjører i Development-modus.
-// Denne delen brukes altså vanligvis når nettsiden kjører i produksjon.
 if (!app.Environment.IsDevelopment())
 {
-    // Hvis det oppstår en feil, sendes brukeren til
-    // Error-action i HomeController.
-    app.UseExceptionHandler("/Home/Error");
+    app.UseExceptionHandler(
+        "/Home/Error"
+    );
 
-    // Aktiverer HSTS (HTTP Strict Transport Security).
-    // Dette forteller nettleseren at nettsiden skal bruke HTTPS.
     app.UseHsts();
 }
 
 
-// Sender HTTP-forespørsler videre til HTTPS.
-// For eksempel kan http://example.com bli sendt til https://example.com.
+// =========================
+// LOCALIZATION
+// =========================
+
+var localizationOptions =
+    app.Services
+        .GetRequiredService<
+            Microsoft.Extensions.Options.IOptions<
+                RequestLocalizationOptions
+            >
+        >()
+        .Value;
+
+
+app.UseRequestLocalization(
+    localizationOptions
+);
+
+
+// =========================
+// MIDDLEWARE
+// =========================
+
 app.UseHttpsRedirection();
 
+app.UseStaticFiles();
 
-// Aktiverer routing.
-// Routing bestemmer hvilken Controller og Action som skal håndtere en URL.
 app.UseRouting();
 
 
-// Aktiverer autorisasjon.
-// Dette brukes for å kontrollere om en bruker har tilgang
-// til bestemte sider eller funksjoner.
+// VIKTIG:
+// Session må aktiveres før
+// controllers/views prøver å bruke den.
+app.UseSession();
+
 app.UseAuthorization();
 
 
-// Gjør statiske filer tilgjengelige,
-// for eksempel CSS, JavaScript, bilder og andre filer.
-app.MapStaticAssets();
+// =========================
+// ROUTING
+// =========================
 
-
-// Lager standard routing for Controllers.
 app.MapControllerRoute(
-    // Navnet på denne ruten.
     name: "default",
-
-    // Bestemmer hvordan URL-en skal bygges opp.
-    // Eksempel: /Home/Index/5
-    //
-    // Hvis ingen controller blir skrevet i URL-en,
-    // brukes HomeController som standard.
-    //
-    // Hvis ingen action blir skrevet,
-    // brukes Index som standard.
-    //
-    // id? betyr at id er valgfri.
-    pattern: "{controller=Home}/{action=Index}/{id?}")
-
-    // Knytter statiske filer til denne routingen.
-    .WithStaticAssets();
+    pattern:
+        "{controller=Home}/{action=Index}/{id?}"
+);
 
 
-// Starter webapplikasjonen.
-// Programmet begynner nå å lytte etter HTTP/HTTPS-forespørsler.
 app.Run();
