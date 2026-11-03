@@ -55,7 +55,7 @@ services:
         Password=${MARIADB_PASSWORD};
 
     ports:
-      - "8080:8080"
+      - "8080:5216"
 
 
 volumes:
