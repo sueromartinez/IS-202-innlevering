@@ -1,8 +1,9 @@
-
 using System.Diagnostics;
-using FirstWebAppInDocker.Models;
-using Microsoft.AspNetCore.Mvc;
 using FirstWebAppInDocker.Data;
+using FirstWebAppInDocker.Models;
+using FirstWebAppInDocker.ViewModels;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace FirstWebAppInDocker.Controllers;
 
@@ -13,10 +14,13 @@ public class HomeController : Controller
 {
     private readonly ApplicationDbContext _context;
 
-public HomeController(ApplicationDbContext context)
-{
-    _context = context;
-}
+    /// <summary>
+    /// Oppretter controlleren med tilgang til databasen.
+    /// </summary>
+    public HomeController(ApplicationDbContext context)
+    {
+        _context = context;
+    }
 
     /// <summary>
     /// Viser den offentlige forsiden.
@@ -29,42 +33,64 @@ public HomeController(ApplicationDbContext context)
 
     /// <summary>
     /// Viser dashboardet til en innlogget bruker.
-    /// Innholdet tilpasses brukerens rolle.
+    /// Offentlige aktører får behov og ressurser fra databasen.
     /// </summary>
     [HttpGet]
-    public IActionResult Dashboard()
+    public async Task<IActionResult> Dashboard()
     {
         string? userEmail =
             HttpContext.Session.GetString("UserEmail");
 
         if (string.IsNullOrWhiteSpace(userEmail))
         {
-            return RedirectToAction(
-                nameof(Index)
-            );
+            return RedirectToAction(nameof(Index));
         }
 
+        string? userRole =
+            HttpContext.Session.GetString("UserRole");
+
         ViewBag.UserName =
-            HttpContext.Session.GetString(
-                "UserName"
-            );
+            HttpContext.Session.GetString("UserName");
 
-        ViewBag.UserRole =
-            HttpContext.Session.GetString(
-                "UserRole"
-            );
+        ViewBag.UserRole = userRole;
 
-            var resources = _context.Resources
-    .Where(r => r.OwnerEmail == userEmail)
-    .ToList();
+        DashboardViewModel model;
 
-    ViewBag.Resources = resources;
+        if (userRole == "PublicActor")
+        {
+            // Hent alle behov og ressurser til situasjonsbildet.
+            model = new DashboardViewModel
+            {
+                Needs = await _context.Needs
+                    .AsNoTracking()
+                    .OrderByDescending(need => need.CreatedAt)
+                    .ToListAsync(),
 
-    ViewBag.TotalResources = resources.Count;
-ViewBag.AvailableResources = resources.Count(r => r.IsAvailable);
-ViewBag.UnavailableResources = resources.Count(r => !r.IsAvailable);
+                Resources = await _context.Resources
+                    .AsNoTracking()
+                    .OrderByDescending(resource => resource.CreatedAt)
+                    .ToListAsync()
+            };
+        }
+        else
+        {
+            // Ressursleverandører ser bare sine egne ressurser.
+            var resources = await _context.Resources
+                .Where(r => r.OwnerEmail == userEmail)
+                .ToListAsync();
 
-        return View();
+            model = new DashboardViewModel
+            {
+                Resources = resources
+            };
+
+            ViewBag.TotalResources = resources.Count;
+            ViewBag.AvailableResources = resources.Count(r => r.IsAvailable);
+            ViewBag.UnavailableResources = resources.Count(r => !r.IsAvailable);
+        }
+
+        return View(model);
+
     }
 
     /// <summary>

@@ -15,6 +15,19 @@ public class ResourceOverviewViewModel
 
     public ResourceType ResourceType { get; init; }
 
+    public string ResourceName { get; init; }
+    = string.Empty;
+
+    public int Quantity { get; init; } = 1;
+
+    public string? Capacity { get; init; }
+
+    public string? Availability { get; init; }
+
+    public string? Address { get; init; }
+
+
+
     public string Description { get; init; }
         = string.Empty;
 

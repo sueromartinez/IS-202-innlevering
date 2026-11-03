@@ -16,22 +16,34 @@ public class RegisterResourceViewModel : IValidatableObject
     [Display(Name = "Type ressurs")]
     public ResourceType? ResourceType { get; init; }
 
-    [Required(ErrorMessage = "Du må skrive inn et ressursnavn")]
+    [Required(ErrorMessage = "Ressursnavn er påkrevd")]
     [StringLength(
-    150,
-    ErrorMessage = "Ressursnavnet kan maks være 150 tegn"
-)]
-[Display(Name = "Ressursnavn")]
-public string Name { get; init; } = string.Empty;
+        150,
+        ErrorMessage = "Ressursnavnet kan maks være 150 tegn"
+    )]
+    [Display(Name = "Ressursnavn")]
+    public string ResourceName { get; init; } = string.Empty;
 
 
-    [Required(
-        ErrorMessage = "Beskrivelse er påkrevd"
-    )]
-    [StringLength(
-        500,
-        ErrorMessage = "Beskrivelsen kan maks være 500 tegn"
-    )]
+    [Range(1, 1000000, ErrorMessage = "Antall må være minst 1")]
+    [Display(Name = "Antall")]
+    public int Quantity { get; init; } = 1;
+
+
+    [StringLength(200)]
+    [Display(Name = "Kapasitet")]
+    public string? Capacity { get; init; }
+
+
+    [StringLength(200)]
+    [Display(Name = "Tilgjengelighet")]
+    public string? Availability { get; init; }
+
+
+    [StringLength(200)]
+    [Display(Name = "Adresse")]
+    public string? Address { get; init; }
+    
     [Display(Name = "Beskrivelse")]
     public string Description { get; init; } = string.Empty;
 
