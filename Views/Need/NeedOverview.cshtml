@@ -1,0 +1,201 @@
+@using FirstWebAppInDocker.Models
+@model List<Need>
+
+@{
+    Layout = null;
+
+    string? userEmail =
+        Context.Session.GetString("UserEmail");
+
+    string? message =
+        TempData["NeedMessage"] as string;
+
+    // Henter visningsnavnet til ressurstypene, f.eks. "Strøm / aggregat"
+    var typeNames =
+        Html.GetEnumSelectList<ResourceType>()
+            .ToDictionary(item => item.Value, item => item.Text);
+}
+
+<!DOCTYPE html>
+<html lang="no">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Behov - Beredskapsportal</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="~/css/need.css" />
+</head>
+
+<body>
+
+<partial name="_NeedHeader" />
+
+
+<main class="page">
+
+    <div class="page-header">
+        <div>
+            <span class="eyebrow">BEHOV</span>
+            <h1>Registrerte behov</h1>
+            <p>Alle behov som er registrert. Du kan endre og slette behov du selv har registrert.</p>
+        </div>
+
+        <a asp-controller="Need" asp-action="RegisterNeed" class="primary-link">+ Registrer behov</a>
+    </div>
+
+    @if (message != null)
+    {
+        <div class="success">✓ @message</div>
+    }
+
+    @if (Model.Count == 0)
+    {
+        <div class="card empty-state">
+            <strong>Ingen behov er registrert ennå.</strong>
+            <p>Registrerte behov vil vises her og i kartet.</p>
+            <a asp-controller="Need" asp-action="RegisterNeed" class="primary-link">+ Registrer behov</a>
+        </div>
+    }
+    else
+    {
+        <div class="grid">
+
+            <!-- LISTE -->
+            <section class="card">
+
+                <div id="needList" class="entry-list">
+
+                    @for (int i = 0; i < Model.Count; i++)
+                    {
+                        Need need = Model[i];
+
+                        bool isPlanned = need.Priority == NeedPriority.Planned;
+                        bool isOwn = need.OwnerEmail == userEmail;
+
+                        string typeName =
+                            typeNames.GetValueOrDefault(((int)need.ResourceType).ToString())
+                            ?? need.ResourceType.ToString();
+
+                        <article class="entry @(isPlanned ? "planned" : "")"
+                                 data-lat="@need.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                 data-lng="@need.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                 data-planned="@(isPlanned ? "true" : "false")">
+
+                            <div class="entry-top">
+                                <span class="need-number">@(i + 1)</span>
+                                <strong>@typeName</strong>
+                                <span class="badge">@(isPlanned ? "Planlagt" : "Akutt")</span>
+                                <span class="entry-quantity">Antall: @need.Quantity</span>
+                            </div>
+
+                            <p class="entry-description">@need.Description</p>
+
+                            <div class="entry-bottom">
+                                <span class="entry-meta">
+                                    Registrert @need.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                                    @(isOwn ? "av deg" : $"av {need.OwnerEmail}")
+                                </span>
+
+                                @if (isOwn)
+                                {
+                                    <div class="entry-actions">
+                                        <a asp-controller="Need" asp-action="EditNeed" asp-route-id="@need.Id"
+                                           class="small-button">Endre</a>
+
+                                        <form asp-controller="Need" asp-action="DeleteNeed" asp-route-id="@need.Id"
+                                              method="post"
+                                              onsubmit="return confirm('Er du sikker på at du vil slette dette behovet?');">
+                                            <button type="submit" class="small-button danger">Slett</button>
+                                        </form>
+                                    </div>
+                                }
+                            </div>
+
+                        </article>
+                    }
+
+                </div>
+
+            </section>
+
+
+            <!-- KART -->
+            <section class="card map-card">
+                <p class="map-help">Klikk på et behov i listen for å se det i kartet.</p>
+                <div id="map"></div>
+                <p class="legend">
+                    <span><i style="background: var(--acute)"></i> Akutt</span>
+                    <span><i style="background: var(--planned)"></i> Planlagt</span>
+                </p>
+            </section>
+
+        </div>
+    }
+
+</main>
+
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+    const entries = Array.from(document.querySelectorAll(".entry"));
+
+    if (entries.length > 0) {
+
+        const map = L.map("map");
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution: "&copy; OpenStreetMap"
+        }).addTo(map);
+
+        const bounds = [];
+
+        // Én markør per behov, med samme nummer som i listen
+        entries.forEach((entry, index) => {
+            const position = [parseFloat(entry.dataset.lat), parseFloat(entry.dataset.lng)];
+            const color = entry.dataset.planned === "true" ? "#d99a24" : "#d34b4b";
+
+            const marker = L.marker(position, {
+                icon: L.divIcon({
+                    className: "",
+                    html: `<div class="pin" style="background:${color}"><span>${index + 1}</span></div>`,
+                    iconSize: [30, 34],
+                    iconAnchor: [15, 32]
+                })
+            }).addTo(map);
+
+            bounds.push(position);
+
+            // Klikk på markør: marker behovet i listen
+            marker.on("click", () => {
+                select(entry);
+                entry.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            });
+
+            // Klikk på behovet i listen: vis det i kartet
+            entry.addEventListener("click", event => {
+                if (event.target.closest("a, button")) return;
+                select(entry);
+                map.setView(position, 14);
+            });
+        });
+
+        function select(entry) {
+            entries.forEach(other => other.classList.toggle("active", other === entry));
+        }
+
+        // Zoom slik at alle behov synes
+        if (bounds.length === 1) {
+            map.setView(bounds[0], 13);
+        } else {
+            map.fitBounds(bounds, { padding: [40, 40] });
+        }
+    }
+
+</script>
+
+</body>
+</html>

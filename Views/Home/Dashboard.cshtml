@@ -214,69 +214,10 @@
 
                     </a>
 
-                    @* Behovsfunksjonen er foreløpig deaktivert. *@
-                    <button
-                        type="button"
-                        class="public-navigation-item disabled"
-                        disabled>
-
-                        <span class="navigation-icon">
-                            !
-                        </span>
-
-                        <span>
-
-                            <strong>
-                                Behov
-                            </strong>
-
-                            <small>
-                                Kommer snart
-                            </small>
-
-                        </span>
-
-                    </button>
-
-                    @* Navigerer til ressursoversikten. *@
-                    <a
-                        asp-controller="Resource"
-                        asp-action="ResourceOverview"
-                        class="public-navigation-item">
-
-                        <span class="navigation-icon">
-                            ◆
-                        </span>
-
-                        <span>
-
-                            <strong>
-                                Ressurser
-                            </strong>
-
-                            <small>
-                                Se registrerte ressurser
-                            </small>
-
-                        </span>
-
-                    </a>
-
-                </nav>
-
-                @* HURTIGHANDLINGER: Gir rask tilgang
-                   til funksjoner brukeren kan utføre. *@
-                <section class="quick-actions">
-
-                    <span class="eyebrow">
-                        HURTIGHANDLINGER
-                    </span>
-
-                    @* Registrering av behov er foreløpig deaktivert. *@
-                    <button
-                        type="button"
-                        class="quick-action primary disabled-action"
-                        disabled>
+<a
+    asp-controller="Need"
+    asp-action="RegisterNeed"
+    class="quick-action primary">
 
                         <span>
                             +
@@ -289,12 +230,12 @@
                             </strong>
 
                             <small>
-                                Kommer snart
+                                Ett eller flere behov
                             </small>
 
                         </div>
 
-                    </button>
+                    </a>
 
                     @* Lenke til ressursoversikten. *@
                     <a

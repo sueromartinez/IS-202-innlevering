@@ -1,0 +1,138 @@
+@using FirstWebAppInDocker.Models
+@model FirstWebAppInDocker.ViewModels.NeedItemViewModel
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="no">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Endre behov - Beredskapsportal</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="~/css/need.css" />
+</head>
+
+<body>
+
+<partial name="_NeedHeader" />
+
+
+<main class="page">
+
+    <div class="page-header">
+        <div>
+            <span class="eyebrow">ENDRE BEHOV</span>
+            <h1>Endre behov</h1>
+            <p>Gjør endringene og trykk lagre. Klikk i kartet for å flytte plasseringen.</p>
+        </div>
+
+        <a asp-controller="Need" asp-action="NeedOverview" class="back-button">← Tilbake til behov</a>
+    </div>
+
+    <div class="grid">
+
+        <!-- SKJEMA -->
+        <section class="card">
+
+            <form asp-controller="Need" asp-action="EditNeed" method="post" novalidate>
+
+                <input asp-for="Id" type="hidden" />
+
+                <div class="need-row">
+                    <label>
+                        Type behov
+                        <select asp-for="ResourceType" asp-items="Html.GetEnumSelectList<ResourceType>()">
+                            <option value="">Velg type</option>
+                        </select>
+                        <span asp-validation-for="ResourceType" class="error"></span>
+                    </label>
+
+                    <label>
+                        Prioritet
+                        <select asp-for="Priority" asp-items="Html.GetEnumSelectList<NeedPriority>()"></select>
+                    </label>
+
+                    <label>
+                        Antall
+                        <input asp-for="Quantity" min="1" max="9999" />
+                        <span asp-validation-for="Quantity" class="error"></span>
+                    </label>
+                </div>
+
+                <label>
+                    Beskrivelse
+                    <textarea asp-for="Description" rows="4" maxlength="500"></textarea>
+                    <span asp-validation-for="Description" class="error"></span>
+                </label>
+
+                <input asp-for="Latitude" type="hidden" id="latitude" />
+                <input asp-for="Longitude" type="hidden" id="longitude" />
+                <span asp-validation-for="Latitude" class="error"></span>
+
+                <button type="submit" class="primary-button">Lagre endringer</button>
+
+                <a asp-controller="Need" asp-action="NeedOverview" class="cancel-link">Avbryt</a>
+
+            </form>
+
+        </section>
+
+
+        <!-- KART -->
+        <section class="card map-card">
+            <p class="map-help">Klikk i kartet for å flytte behovet.</p>
+            <div id="map"></div>
+        </section>
+
+    </div>
+
+</main>
+
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+    const latitudeInput = document.getElementById("latitude");
+    const longitudeInput = document.getElementById("longitude");
+
+    const map = L.map("map").setView([58.1467, 7.9956], 11);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap"
+    }).addTo(map);
+
+    let marker = null;
+
+    function placeMarker(lat, lng) {
+        latitudeInput.value = lat;
+        longitudeInput.value = lng;
+
+        if (marker) {
+            marker.setLatLng([lat, lng]);
+        } else {
+            marker = L.marker([lat, lng]).addTo(map);
+        }
+    }
+
+    // Vis nåværende plassering
+    const lat = parseFloat(latitudeInput.value);
+    const lng = parseFloat(longitudeInput.value);
+
+    if (!isNaN(lat) && !isNaN(lng)) {
+        placeMarker(lat, lng);
+        map.setView([lat, lng], 14);
+    }
+
+    // Klikk i kartet flytter behovet
+    map.on("click", event => placeMarker(event.latlng.lat, event.latlng.lng));
+
+</script>
+
+</body>
+</html>

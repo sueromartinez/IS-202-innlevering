@@ -1,11 +1,17 @@
+using FirstWebAppInDocker.Models;
 using FirstWebAppInDocker.ViewModels;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FirstWebAppInDocker.Controllers;
 
 /// <summary>
-/// Midlertidig controller for innlogging, utlogging og profil.
-/// Skal senere erstattes med ASP.NET Core Identity.
+/// Håndterer innlogging, registrering,
+/// utlogging og profil.
+///
+/// ASP.NET Core Identity brukes nå for ekte brukere.
+/// Session beholdes midlertidig fordi eksisterende
+/// dashboard fortsatt bruker Session-data.
 /// </summary>
 public class AccountController : Controller
 {
@@ -18,13 +24,42 @@ public class AccountController : Controller
     private const string TestPassword =
         "Test123!";
 
+    private const string PublicActorRole =
+        "PublicActor";
 
-    /// <summary>
-    /// Logger inn en midlertidig testbruker.
-    /// </summary>
+    private const string ResourceProviderRole =
+        "ResourceProvider";
+
+
+    private readonly UserManager<ApplicationUser>
+        _userManager;
+
+    private readonly SignInManager<ApplicationUser>
+        _signInManager;
+
+    private readonly RoleManager<IdentityRole>
+        _roleManager;
+
+
+    public AccountController(
+        UserManager<ApplicationUser> userManager,
+        SignInManager<ApplicationUser> signInManager,
+        RoleManager<IdentityRole> roleManager
+    )
+    {
+        _userManager = userManager;
+        _signInManager = signInManager;
+        _roleManager = roleManager;
+    }
+
+
+    // =========================
+    // LOGIN
+    // =========================
+
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Login(
+    public async Task<IActionResult> Login(
         LoginViewModel model
     )
     {
@@ -41,28 +76,115 @@ public class AccountController : Controller
 
 
         string email =
-            model.Email
-                ?.Trim()
-                .ToLowerInvariant()
-            ?? string.Empty;
+            model.Email.Trim();
 
 
-        /*
-         * Offentlig aktør / beredskapsbruker
-         */
+        // =========================
+        // EKTE IDENTITY-BRUKER
+        // =========================
+
+        ApplicationUser? user =
+            await _userManager.FindByEmailAsync(
+                email
+            );
+
+
+        if (user is not null)
+        {
+            var result =
+                await _signInManager
+                    .PasswordSignInAsync(
+                        user,
+                        model.Password,
+                        isPersistent: false,
+                        lockoutOnFailure: true
+                    );
+
+
+            if (result.Succeeded)
+            {
+                IList<string> roles =
+                    await _userManager
+                        .GetRolesAsync(user);
+
+
+                string role =
+                    roles.FirstOrDefault()
+                    ?? ResourceProviderRole;
+
+
+                CreateSession(
+                    user.Email ?? email,
+                    string.IsNullOrWhiteSpace(
+                        user.Name
+                    )
+                        ? email
+                        : user.Name,
+                    role
+                );
+
+
+                return RedirectToAction(
+                    "Dashboard",
+                    "Home"
+                );
+            }
+
+
+            if (result.IsLockedOut)
+            {
+                TempData["LoginError"] =
+                    "Brukeren er midlertidig låst etter for mange feilaktige innloggingsforsøk.";
+
+                return RedirectToAction(
+                    "Index",
+                    "Home"
+                );
+            }
+
+
+            if (result.RequiresTwoFactor)
+            {
+                TempData["LoginError"] =
+                    "Denne brukeren krever tofaktorautentisering. 2FA kobles til senere.";
+
+                return RedirectToAction(
+                    "Index",
+                    "Home"
+                );
+            }
+
+
+            TempData["LoginError"] =
+                "Feil e-post eller passord.";
+
+            return RedirectToAction(
+                "Index",
+                "Home"
+            );
+        }
+
+
+        // =========================
+        // MIDLERTIDIGE TESTBRUKERE
+        // =========================
+
         if (
-            email ==
-            PublicActorEmail.ToLowerInvariant()
+            string.Equals(
+                email,
+                PublicActorEmail,
+                StringComparison.OrdinalIgnoreCase
+            )
             &&
-            model.Password ==
-            TestPassword
+            model.Password == TestPassword
         )
         {
             CreateSession(
                 PublicActorEmail,
                 "Beredskapsbruker",
-                "PublicActor"
+                PublicActorRole
             );
+
 
             return RedirectToAction(
                 "Dashboard",
@@ -71,22 +193,22 @@ public class AccountController : Controller
         }
 
 
-        /*
-         * Ressursleverandør
-         */
         if (
-            email ==
-            ResourceProviderEmail.ToLowerInvariant()
+            string.Equals(
+                email,
+                ResourceProviderEmail,
+                StringComparison.OrdinalIgnoreCase
+            )
             &&
-            model.Password ==
-            TestPassword
+            model.Password == TestPassword
         )
         {
             CreateSession(
                 ResourceProviderEmail,
                 "Ressursleverandør",
-                "ResourceProvider"
+                ResourceProviderRole
             );
+
 
             return RedirectToAction(
                 "Dashboard",
@@ -98,6 +220,7 @@ public class AccountController : Controller
         TempData["LoginError"] =
             "Feil e-post eller passord.";
 
+
         return RedirectToAction(
             "Index",
             "Home"
@@ -105,19 +228,171 @@ public class AccountController : Controller
     }
 
 
-    /// <summary>
-    /// Direkte testinnlogging for offentlig aktør.
-    /// Brukes av knappen på forsiden.
-    /// </summary>
+    // =========================
+    // REGISTER
+    // =========================
+
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult DemoPublicActorLogin()
+    public async Task<IActionResult> Register(
+        RegisterViewModel model
+    )
     {
-        CreateSession(
-            PublicActorEmail,
-            "Beredskapsbruker",
-            "PublicActor"
+        SaveRegistrationValues(model);
+
+
+        if (!ModelState.IsValid)
+        {
+            TempData["RegisterError"] =
+                "Kontroller at alle feltene er fylt ut riktig, og at passordene er like.";
+
+            return RedirectToAction(
+                "Index",
+                "Home"
+            );
+        }
+
+
+        string email =
+            model.Email.Trim();
+
+
+        ApplicationUser? existingUser =
+            await _userManager.FindByEmailAsync(
+                email
+            );
+
+
+        if (existingUser is not null)
+        {
+            TempData["RegisterError"] =
+                "Det finnes allerede en bruker med denne e-postadressen.";
+
+            return RedirectToAction(
+                "Index",
+                "Home"
+            );
+        }
+
+
+        // Nye brukere fra den åpne registreringen
+        // blir kun ressursleverandører.
+        if (
+            !await _roleManager.RoleExistsAsync(
+                ResourceProviderRole
+            )
+        )
+        {
+            IdentityResult roleResult =
+                await _roleManager.CreateAsync(
+                    new IdentityRole(
+                        ResourceProviderRole
+                    )
+                );
+
+
+            if (!roleResult.Succeeded)
+            {
+                TempData["RegisterError"] =
+                    "Kunne ikke opprette brukerrollen.";
+
+                return RedirectToAction(
+                    "Index",
+                    "Home"
+                );
+            }
+        }
+
+
+        var user =
+            new ApplicationUser
+            {
+                UserName = email,
+                Email = email,
+
+                Name =
+                    model.Name.Trim(),
+
+                CreatedAt =
+                    DateTime.UtcNow,
+
+                EmailConfirmed =
+                    false
+            };
+
+
+        IdentityResult createResult =
+            await _userManager.CreateAsync(
+                user,
+                model.Password
+            );
+
+
+        if (!createResult.Succeeded)
+        {
+            string errors =
+                string.Join(
+                    " ",
+                    createResult.Errors.Select(
+                        error =>
+                            error.Description
+                    )
+                );
+
+
+            TempData["RegisterError"] =
+                errors;
+
+
+            return RedirectToAction(
+                "Index",
+                "Home"
+            );
+        }
+
+
+        IdentityResult addRoleResult =
+            await _userManager.AddToRoleAsync(
+                user,
+                ResourceProviderRole
+            );
+
+
+        if (!addRoleResult.Succeeded)
+        {
+            // Ikke la en halvferdig bruker
+            // bli liggende i databasen.
+            await _userManager.DeleteAsync(
+                user
+            );
+
+
+            TempData["RegisterError"] =
+                "Brukeren kunne ikke kobles til riktig rolle.";
+
+
+            return RedirectToAction(
+                "Index",
+                "Home"
+            );
+        }
+
+
+        // Logger den nye brukeren inn.
+        await _signInManager.SignInAsync(
+            user,
+            isPersistent: false
         );
+
+
+        // Eksisterende dashboard bruker
+        // fortsatt Session.
+        CreateSession(
+            email,
+            user.Name,
+            ResourceProviderRole
+        );
+
 
         return RedirectToAction(
             "Dashboard",
@@ -126,14 +401,44 @@ public class AccountController : Controller
     }
 
 
-    /// <summary>
-    /// Logger ut brukeren.
-    /// </summary>
+    // =========================
+    // DEMO PUBLIC ACTOR
+    // =========================
+
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Logout()
+    public async Task<IActionResult>
+        DemoPublicActorLogin()
     {
+        await _signInManager.SignOutAsync();
+
+
+        CreateSession(
+            PublicActorEmail,
+            "Beredskapsbruker",
+            PublicActorRole
+        );
+
+
+        return RedirectToAction(
+            "Dashboard",
+            "Home"
+        );
+    }
+
+
+    // =========================
+    // LOGOUT
+    // =========================
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Logout()
+    {
+        await _signInManager.SignOutAsync();
+
         HttpContext.Session.Clear();
+
 
         return RedirectToAction(
             "Index",
@@ -142,9 +447,10 @@ public class AccountController : Controller
     }
 
 
-    /// <summary>
-    /// Viser profilen til innlogget bruker.
-    /// </summary>
+    // =========================
+    // PROFILE
+    // =========================
+
     [HttpGet]
     public IActionResult Profile()
     {
@@ -195,30 +501,21 @@ public class AccountController : Controller
             };
 
 
-        return View(
-            model
-        );
+        return View(model);
     }
 
 
-    /// <summary>
-    /// Oppdaterer midlertidig profilinformasjon.
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Profile(
         ProfileViewModel model
     )
     {
-        string? userEmail =
-            HttpContext.Session.GetString(
-                "UserEmail"
-            );
-
-
         if (
             string.IsNullOrWhiteSpace(
-                userEmail
+                HttpContext.Session.GetString(
+                    "UserEmail"
+                )
             )
         )
         {
@@ -231,9 +528,7 @@ public class AccountController : Controller
 
         if (!ModelState.IsValid)
         {
-            return View(
-                model
-            );
+            return View(model);
         }
 
 
@@ -284,19 +579,16 @@ public class AccountController : Controller
     }
 
 
-    /// <summary>
-    /// Oppretter Session-data
-    /// for en midlertidig bruker.
-    /// </summary>
+    // =========================
+    // HELPERS
+    // =========================
+
     private void CreateSession(
         string email,
         string name,
         string role
     )
     {
-        /*
-         * Fjern eventuell gammel session først.
-         */
         HttpContext.Session.Clear();
 
 
@@ -318,10 +610,6 @@ public class AccountController : Controller
         );
 
 
-        /*
-         * Midlertidig standard
-         * kontaktinformasjon.
-         */
         HttpContext.Session.SetString(
             "ContactEmail",
             email
@@ -332,5 +620,20 @@ public class AccountController : Controller
             "PhoneCountryCode",
             "+47"
         );
+    }
+
+
+    private void SaveRegistrationValues(
+        RegisterViewModel model
+    )
+    {
+        TempData["RegisterName"] =
+            model.Name?.Trim()
+            ?? string.Empty;
+
+
+        TempData["RegisterEmail"] =
+            model.Email?.Trim()
+            ?? string.Empty;
     }
 }

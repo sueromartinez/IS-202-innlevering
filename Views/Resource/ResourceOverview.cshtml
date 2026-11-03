@@ -78,6 +78,7 @@
             .Distinct()
             .Count();
 
+    // Uses the same database resources for the cards and map.
     var mapResources =
         resources.Select(
             resource => new
@@ -87,6 +88,9 @@
 
                 name =
                     resource.Name,
+
+                typeId =
+                    (int)resource.ResourceType,
 
                 type =
                     GetResourceTypeName(
@@ -226,46 +230,26 @@
 
 </nav>
 
-    <div class="provider-user">
-
-        <a
-            asp-controller="Home"
-            asp-action="Dashboard"
-            class="dashboard-link">
-
-            Oversikt
-
-        </a>
-
-
-        <div class="provider-user-text">
-
-            <strong>
-                @displayName
-            </strong>
-
-            <span>
-                @roleLabel
-            </span>
-
-        </div>
-
-
-        <form
-            asp-controller="Account"
-            asp-action="Logout"
-            method="post">
-
-            <button
-                type="submit"
-                class="logout-button">
-
-                Logg ut
-
-            </button>
-
+    @* Uses existing routes and only shows provider links to providers. *@
+    <nav class="overview-navigation" aria-label="Brukermeny">
+        <a asp-controller="Home" asp-action="Dashboard">Oversikt</a>
+        @if (isResourceProvider)
+        {
+            <a asp-controller="Resource" asp-action="ResourceOverview" aria-current="page">Mine ressurser</a>
+            <a asp-controller="Resource" asp-action="RegisterResource">Registrer ressurs</a>
+            <a asp-controller="Account" asp-action="Profile">Profil</a>
+        }
+        else
+        {
+            <a asp-controller="Resource" asp-action="ResourceOverview" aria-current="page">Ressursoversikt</a>
+        }
+        <form asp-controller="Account" asp-action="Logout" method="post">
+            <button type="submit" class="logout-button">Logg ut</button>
         </form>
-
+    </nav>
+    <div class="provider-user-text">
+        <strong>@displayName</strong>
+        <span>@roleLabel</span>
     </div>
 
 </header>
@@ -448,6 +432,27 @@
              LISTE + KART
         ====================================== -->
 
+        @* Combines category and description filters for the list and map. *@
+        <form id="resourceFilters" class="resource-filters" role="search" aria-label="Filtrer ressurser" hidden>
+            <div class="filter-field">
+                <label for="resourceTypeFilter">Ressurstype</label>
+                <select id="resourceTypeFilter">
+                    <option value="">Alle ressurstyper</option>
+                    @foreach (var type in resources.Select(resource => resource.ResourceType).Distinct().OrderBy(type => GetResourceTypeName(type)))
+                    {
+                        <option value="@((int)type)">@GetResourceTypeName(type)</option>
+                    }
+                </select>
+            </div>
+            <div class="filter-field filter-search">
+                <label for="resourceSearch">S?k i beskrivelse</label>
+                <input id="resourceSearch" type="search" placeholder="S?k etter en ressurs ?" />
+            </div>
+            <button type="reset" class="logout-button">Nullstill filtre</button>
+            <p id="filterSummary" role="status" aria-live="polite"></p>
+        </form>
+        <p id="mapUnavailable" hidden>Kartet kunne ikke lastes. Du kan fortsatt filtrere ressurslisten.</p>
+
         <div class="overview-grid">
 
 
@@ -472,13 +477,14 @@
                     </div>
 
 
-                    <span class="resource-count">
+                    <span class="resource-count" id="filteredResourceCount">
                         @resources.Count
                     </span>
 
                 </div>
 
 
+                <p id="noMatchingResources" class="filter-empty" hidden>Ingen ressurser passer til filtrene. Pr?v en annen ressurstype eller nullstill filtrene.</p>
                 <div class="resource-list">
 
                     @foreach (var resource in resources)
@@ -495,7 +501,7 @@
                                     "dd.MM.yyyy HH:mm"
                                 );
 
-                        <article class="resource-item">
+                        <article class="resource-item" data-resource-id="@resource.Id">
 
                             <div class="resource-item-top">
 
@@ -2186,6 +2192,42 @@
 
     }
 
+
+    /* Keeps navigation visible and allows buttons to wrap on small screens. */
+    .provider-header { flex-wrap: wrap; padding-top: 16px; padding-bottom: 16px; gap: 16px; }
+    .overview-navigation { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+    .overview-navigation a { padding: 10px 12px; border-radius: 8px; color: var(--navy); font-size: .8rem; font-weight: 700; }
+    .overview-navigation a:hover { background: #eef5f8; }
+    .overview-navigation a[aria-current="page"] { background: var(--primary); color: white; }
+    .overview-navigation form { margin: 0; }
+    .overview-navigation :focus-visible, .resource-filters :focus-visible, .map-focus-button:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
+
+    /* Gives filters clear labels and keeps the map at a moderate height. */
+    [hidden] { display: none !important; }
+    .resource-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; padding: 20px; margin-bottom: 20px; background: white; border: 1px solid var(--border); border-radius: 15px; }
+    .filter-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; flex: 1 1 200px; }
+    .filter-search { flex-grow: 2; }
+    .filter-field label { font-weight: 700; font-size: .85rem; color: var(--navy); }
+    .filter-field select, .filter-field input { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: white; color: var(--text); font: inherit; }
+    .resource-filters button { min-height: 44px; }
+    #filterSummary { flex-basis: 100%; margin: 0; color: var(--secondary); font-size: .85rem; }
+    .filter-empty { color: var(--secondary); line-height: 1.6; }
+    .resource-item { overflow-wrap: anywhere; }
+    #resourceOverviewMap { height: 460px; }
+    .resource-list { max-height: 460px; }
+    @@media (max-width: 950px) {
+        .provider-header { justify-content: flex-start; }
+        .overview-navigation { order: 3; flex-basis: 100%; }
+        .provider-user-text { margin-left: auto; }
+        .resource-list { max-height: 400px; }
+    }
+    @@media (max-width: 700px) {
+        .overview-navigation a { flex: 1 1 auto; text-align: center; }
+        .resource-filters { padding: 16px; }
+        .filter-field { flex-basis: 100%; }
+        #resourceOverviewMap { height: 340px; }
+    }
+
 </style>
 
 
@@ -2197,328 +2239,112 @@
 
 
     <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const resources = @Html.Raw(mapResourcesJson);
+            const filterForm = document.getElementById("resourceFilters");
+            const typeFilter = document.getElementById("resourceTypeFilter");
+            const searchInput = document.getElementById("resourceSearch");
+            const cards = new Map(Array.from(document.querySelectorAll(".resource-item"))
+                .map(card => [Number(card.dataset.resourceId), card]));
+            const markers = new Map();
+            let map;
 
-        document.addEventListener(
-            "DOMContentLoaded",
-            function () {
+            // Applies both filters to the same resources before updating cards and markers.
+            function applyFilters() {
+                const search = searchInput.value.trim().toLocaleLowerCase("nb-NO");
+                const matching = resources.filter(resource =>
+                    (typeFilter.value === "" || String(resource.typeId) === typeFilter.value) &&
+                    resource.description.toLocaleLowerCase("nb-NO").includes(search));
+                const matchingIds = new Set(matching.map(resource => resource.id));
+                cards.forEach((card, id) => { card.hidden = !matchingIds.has(id); });
+                document.getElementById("filteredResourceCount").textContent = matching.length;
+                document.getElementById("filterSummary").textContent =
+                    `Viser ${matching.length} av ${resources.length} ressurser`;
+                document.getElementById("noMatchingResources").hidden = matching.length !== 0;
 
-                const resources =
-                    @Html.Raw(
-                        mapResourcesJson
-                    );
-
-
-                const defaultLatitude =
-                    58.1467;
-
-                const defaultLongitude =
-                    7.9956;
-
-
-                const map =
-                    L.map(
-                        "resourceOverviewMap"
-                    )
-                    .setView(
-                        [
-                            defaultLatitude,
-                            defaultLongitude
-                        ],
-                        10
-                    );
-
-
-                L.tileLayer(
-                    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                    {
-                        maxZoom:
-                            19,
-
-                        attribution:
-                            "&copy; OpenStreetMap"
-                    }
-                ).addTo(map);
-
-
-                const resourceIcon =
-                    L.divIcon({
-                        className:
-                            "resource-map-marker",
-
-                        html:
-                            `
-                                <div class="resource-map-dot">
-                                    <span></span>
-                                </div>
-                            `,
-
-                        iconSize:
-                            [34, 38],
-
-                        iconAnchor:
-                            [17, 36],
-
-                        popupAnchor:
-                            [0, -32]
+                // Removes hidden markers and fits the map to the matching resources.
+                if (map) {
+                    map.closePopup();
+                    markers.forEach((marker, id) => {
+                        if (matchingIds.has(id)) marker.addTo(map);
+                        else marker.remove();
                     });
 
-
-                const markers =
-                    [];
-
-
-                resources.forEach(
-                    function (resource) {
-
-                        const marker =
-                            L.marker(
-                                [
-                                    resource.latitude,
-                                    resource.longitude
-                                ],
-                                {
-                                    icon:
-                                        resourceIcon
-                                }
-                            )
-                            .addTo(map);
-
-
-                        const popup =
-                            document.createElement(
-                                "div"
-                            );
-
-                        popup.className =
-                            "resource-popup";
-
-
-                        const type =
-                            document.createElement(
-                                "span"
-                            );
-
-                        type.className =
-                            "resource-popup-type";
-
-                        type.textContent =
-                            resource.type;
-
-                        popup.appendChild(
-                            type
-                        );
-
-
-                        const title =
-                            document.createElement(
-                                "strong"
-                        );
-
-                        title.textContent =
-                            resource.name;
-
-                        popup.appendChild(
-                            title
-                    );
-
-
-                        const description =
-                            document.createElement("p");
-
-                            description.textContent =
-                            resource.description;
-
-                        popup.appendChild(
-                            description
-                    );
-
-                        const position =
-                            document.createElement(
-                                "p"
-                            );
-
-                        position.textContent =
-                            resource.latitude.toFixed(5)
-                            +
-                            ", "
-                            +
-                            resource.longitude.toFixed(5);
-
-                        popup.appendChild(
-                            position
-                        );
-
-
-                        if (resource.email)
-                        {
-                            const email =
-                                document.createElement(
-                                    "small"
-                                );
-
-                            email.textContent =
-                                resource.email;
-
-                            popup.appendChild(
-                                email
-                            );
-                        }
-
-
-                        if (resource.phone)
-                        {
-                            const phone =
-                                document.createElement(
-                                    "small"
-                                );
-
-                            phone.textContent =
-                                resource.phone;
-
-                            popup.appendChild(
-                                phone
-                            );
-                        }
-
-
-                        marker.bindPopup(
-                            popup
-                        );
-
-
-                        markers.push(
-                            marker
-                        );
-
+                    const visibleMarkers = matching.map(resource => markers.get(resource.id));
+                    if (visibleMarkers.length > 0) {
+                        map.fitBounds(L.featureGroup(visibleMarkers).getBounds(), {
+                            padding: [30, 30], maxZoom: 13
+                        });
                     }
-                );
-
-
-                /*
-                 * Vis alle markører automatisk.
-                 */
-                if (markers.length === 1)
-                {
-                    const position =
-                        markers[0]
-                            .getLatLng();
-
-
-                    map.setView(
-                        position,
-                        13
-                    );
+                    }
                 }
-                else if (markers.length > 1)
-                {
-                    const group =
-                        L.featureGroup(
-                            markers
-                        );
-
-
-                    map.fitBounds(
-                        group
-                            .getBounds()
-                            .pad(0.18)
-                    );
-                }
-
-
-                /*
-                 * Vis valgt ressurs i kartet.
-                 */
-                document
-                    .querySelectorAll(
-                        ".map-focus-button"
-                    )
-                    .forEach(
-                        function (button) {
-
-                            button.addEventListener(
-                                "click",
-                                function () {
-
-                                    const latitude =
-                                        parseFloat(
-                                            button.dataset.latitude
-                                        );
-
-
-                                    const longitude =
-                                        parseFloat(
-                                            button.dataset.longitude
-                                        );
-
-
-                                    map.setView(
-                                        [
-                                            latitude,
-                                            longitude
-                                        ],
-                                        15
-                                    );
-
-
-                                    const marker =
-                                        markers.find(
-                                            function (candidate) {
-
-                                                const position =
-                                                    candidate.getLatLng();
-
-
-                                                return (
-                                                    Math.abs(
-                                                        position.lat
-                                                        -
-                                                        latitude
-                                                    )
-                                                    <
-                                                    0.000001
-                                                    &&
-                                                    Math.abs(
-                                                        position.lng
-                                                        -
-                                                        longitude
-                                                    )
-                                                    <
-                                                    0.000001
-                                                );
-
-                                            }
-                                        );
-
-
-                                    if (marker)
-                                    {
-                                        marker.openPopup();
-                                    }
-
-
-                                    document
-                                        .getElementById(
-                                            "resourceOverviewMap"
-                                        )
-                                        ?.scrollIntoView(
-                                            {
-                                                behavior:
-                                                    "smooth",
-
-                                                block:
-                                                    "center"
-                                            }
-                                        );
-
-                                }
-                            );
-
-                        }
-                    );
-
             }
-        );
 
+            // Keeps list filtering available if the external map library cannot load.
+            filterForm.hidden = false;
+            filterForm.addEventListener("submit", event => event.preventDefault());
+            typeFilter.addEventListener("change", applyFilters);
+            searchInput.addEventListener("input", applyFilters);
+            filterForm.addEventListener("reset", function () {
+                typeFilter.value = "";
+                searchInput.value = "";
+                applyFilters();
+            });
+            if (typeof L === "undefined") {
+                document.getElementById("mapUnavailable").hidden = false;
+                document.querySelectorAll(".map-focus-button").forEach(button => { button.disabled = true; });
+                applyFilters();
+                return;
+            }
+
+            // Reuses Leaflet, OpenStreetMap tiles and the existing marker design.
+            map = L.map("resourceOverviewMap").setView([58.1467, 7.9956], 10);
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                maxZoom: 19, attribution: "&copy; OpenStreetMap"
+            }).addTo(map);
+            const resourceIcon = L.divIcon({
+                className: "resource-map-marker",
+                html: '<div class="resource-map-dot"><span></span></div>',
+                iconSize: [34, 38], iconAnchor: [17, 36], popupAnchor: [0, -32]
+            });
+
+            // Uses textContent so resource descriptions and contact details stay plain text.
+            resources.forEach(resource => {
+                const marker = L.marker([resource.latitude, resource.longitude], { icon: resourceIcon });
+                const popup = document.createElement("div");
+                popup.className = "resource-popup";
+                const details = [
+                    ["span", resource.type, "resource-popup-type"],
+                    ["strong", resource.description],
+                    ["p", `${resource.latitude.toFixed(5)}, ${resource.longitude.toFixed(5)}`],
+                    ["small", resource.email],
+                    ["small", resource.phone]
+                ];
+                details.forEach(([tag, text, className]) => {
+                    if (!text) return;
+                    const element = document.createElement(tag);
+                    element.textContent = text;
+                    if (className) element.className = className;
+                    popup.appendChild(element);
+                });
+                marker.bindPopup(popup);
+                markers.set(resource.id, marker);
+            });
+
+            // Finds the marker by resource ID, including resources at the same coordinates.
+            document.querySelectorAll(".map-focus-button").forEach(button => {
+                button.addEventListener("click", function () {
+                    const id = Number(button.closest(".resource-item").dataset.resourceId);
+                    const marker = markers.get(id);
+                    map.setView(marker.getLatLng(), 14);
+                    marker.openPopup();
+                    document.getElementById("resourceOverviewMap").scrollIntoView({
+                        behavior: "smooth", block: "center"
+                    });
+                });
+            });
+            applyFilters();
+        });
     </script>
 }
 
