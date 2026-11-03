@@ -1,3 +1,6 @@
+@model FirstWebAppInDocker.ViewModels.DashboardViewModel
+@using FirstWebAppInDocker.Models
+
 @{
     Layout = null;
 
@@ -426,7 +429,7 @@
                         </div>
 
                         <strong>
-                            2
+                            @Model.AcuteCount
                         </strong>
 
                         <small>
@@ -449,7 +452,7 @@
                         </div>
 
                         <strong class="green-number">
-                            7
+                            @Model.ResourceCount
                         </strong>
 
                         <small>
@@ -472,7 +475,7 @@
                         </div>
 
                         <strong>
-                            2
+                            @Model.PlannedCount
                         </strong>
 
                         <small>
@@ -3017,198 +3020,41 @@ else
 
 
                 /*
-                 * DEMO: tilgjengelige ressurser.
-                 */
+ * Ekte data fra databasen.
+ */
+const needs = @Json.Serialize(Model.Needs.Select(n => new { description = n.Description, type = n.ResourceType.ToString(), quantity = n.Quantity, acute = n.Priority == NeedPriority.Acute, lat = n.Latitude, lng = n.Longitude }));
 
-                L.marker(
-                    [
-                        58.15021,
-                        8.00938
-                    ],
-                    {
-                        icon:
-                            createMarker(
-                                "#23855b"
-                            )
-                    }
-                )
-                .bindPopup(
-                    `
-                        <strong>Aggregat 25 kVA</strong>
-                        <br>
-                        Tilgjengelig ressurs
-                        <br>
-                        Kristiansand
-                    `
-                )
-                .addTo(
-                    resourceLayer
-                );
+const resources = @Json.Serialize(Model.Resources.Select(r => new { type = r.ResourceType.ToString(), description = r.Description, lat = r.Latitude, lng = r.Longitude }));
 
+function escapeHtml(text) {
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+}
 
-                L.marker(
-                    [
-                        58.1598,
-                        7.9780
-                    ],
-                    {
-                        icon:
-                            createMarker(
-                                "#23855b"
-                            )
-                    }
-                )
-                .bindPopup(
-                    `
-                        <strong>Transportressurs</strong>
-                        <br>
-                        Tilgjengelig ressurs
-                    `
-                )
-                .addTo(
-                    resourceLayer
-                );
+needs.forEach(function (need) {
+    const layer = need.acute ? urgentLayer : plannedLayer;
+    const color = need.acute ? "#d34b4b" : "#d99a24";
 
+    L.marker([need.lat, need.lng], { icon: createMarker(color) })
+        .bindPopup(
+            "<strong>" + escapeHtml(need.type) + " (" + need.quantity + ")</strong><br>" +
+            escapeHtml(need.description) + "<br>" +
+            (need.acute ? "Prioritet: Akutt" : "Prioritet: Planlagt")
+        )
+        .addTo(layer);
+});
 
-                /*
-                 * DEMO: akutte behov.
-                 */
+resources.forEach(function (resource) {
+    L.marker([resource.lat, resource.lng], { icon: createMarker("#23855b") })
+        .bindPopup(
+            "<strong>" + escapeHtml(resource.type) + "</strong><br>" +
+            escapeHtml(resource.description) + "<br>Tilgjengelig ressurs"
+        )
+        .addTo(resourceLayer);
+});
 
-                L.marker(
-                    [
-                        58.1418,
-                        7.9978
-                    ],
-                    {
-                        icon:
-                            createMarker(
-                                "#d34b4b"
-                            )
-                    }
-                )
-                .bindPopup(
-                    `
-                        <strong>Akutt strømbehov</strong>
-                        <br>
-                        Midlertidig mottakssenter
-                        <br>
-                        Prioritet: Akutt
-                    `
-                )
-                .addTo(
-                    urgentLayer
-                );
-
-
-                L.marker(
-                    [
-                        58.1320,
-                        8.0180
-                    ],
-                    {
-                        icon:
-                            createMarker(
-                                "#d34b4b"
-                            )
-                    }
-                )
-                .bindPopup(
-                    `
-                        <strong>Transportbehov</strong>
-                        <br>
-                        Behov for rask transportkapasitet
-                        <br>
-                        Prioritet: Akutt
-                    `
-                )
-                .addTo(
-                    urgentLayer
-                );
-
-
-                /*
-                 * DEMO: planlagte behov.
-                 */
-
-                L.marker(
-                    [
-                        58.1650,
-                        7.9450
-                    ],
-                    {
-                        icon:
-                            createMarker(
-                                "#d99a24"
-                            )
-                    }
-                )
-                .bindPopup(
-                    `
-                        <strong>Planlagt transport</strong>
-                        <br>
-                        Behov for kjøretøy
-                        <br>
-                        Prioritet: Planlagt
-                    `
-                )
-                .addTo(
-                    plannedLayer
-                );
-
-
-                L.marker(
-                    [
-                        58.1810,
-                        8.0100
-                    ],
-                    {
-                        icon:
-                            createMarker(
-                                "#d99a24"
-                            )
-                    }
-                )
-                .bindPopup(
-                    `
-                        <strong>Behov for mannskap</strong>
-                        <br>
-                        Planlagt beredskapsoppgave
-                    `
-                )
-                .addTo(
-                    plannedLayer
-                );
-
-
-                /*
-                 * DEMO: offentlig aktør.
-                 */
-
-                L.marker(
-                    [
-                        58.1455,
-                        7.9960
-                    ],
-                    {
-                        icon:
-                            createMarker(
-                                "#176b87"
-                            )
-                    }
-                )
-                .bindPopup(
-                    `
-                        <strong>Kriseledelse</strong>
-                        <br>
-                        Offentlig aktør
-                    `
-                )
-                .addTo(
-                    actorLayer
-                );
-
-
-                /*
+/*
                  * FILTERE
                  */
 

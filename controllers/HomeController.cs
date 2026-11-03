@@ -1,7 +1,9 @@
-
 using System.Diagnostics;
+using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
+using FirstWebAppInDocker.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace FirstWebAppInDocker.Controllers;
 
@@ -10,6 +12,16 @@ namespace FirstWebAppInDocker.Controllers;
 /// </summary>
 public class HomeController : Controller
 {
+    private readonly ApplicationDbContext _context;
+
+    /// <summary>
+    /// Oppretter controlleren med tilgang til databasen.
+    /// </summary>
+    public HomeController(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
     /// <summary>
     /// Viser den offentlige forsiden.
     /// </summary>
@@ -21,32 +33,49 @@ public class HomeController : Controller
 
     /// <summary>
     /// Viser dashboardet til en innlogget bruker.
-    /// Innholdet tilpasses brukerens rolle.
+    /// Offentlige aktører får behov og ressurser fra databasen.
     /// </summary>
     [HttpGet]
-    public IActionResult Dashboard()
+    public async Task<IActionResult> Dashboard()
     {
         string? userEmail =
             HttpContext.Session.GetString("UserEmail");
 
         if (string.IsNullOrWhiteSpace(userEmail))
         {
-            return RedirectToAction(
-                nameof(Index)
-            );
+            return RedirectToAction(nameof(Index));
         }
 
+        string? userRole =
+            HttpContext.Session.GetString("UserRole");
+
         ViewBag.UserName =
-            HttpContext.Session.GetString(
-                "UserName"
-            );
+            HttpContext.Session.GetString("UserName");
 
-        ViewBag.UserRole =
-            HttpContext.Session.GetString(
-                "UserRole"
-            );
+        ViewBag.UserRole = userRole;
 
-        return View();
+        var model = new DashboardViewModel();
+
+        // Kun offentlige aktører ser situasjonsbildet.
+        if (userRole == "PublicActor")
+        {
+            model = new DashboardViewModel
+            {
+                Needs =
+                    await _context.Needs
+                        .AsNoTracking()
+                        .OrderByDescending(need => need.CreatedAt)
+                        .ToListAsync(),
+
+                Resources =
+                    await _context.Resources
+                        .AsNoTracking()
+                        .OrderByDescending(resource => resource.CreatedAt)
+                        .ToListAsync()
+            };
+        }
+
+        return View(model);
     }
 
     /// <summary>
