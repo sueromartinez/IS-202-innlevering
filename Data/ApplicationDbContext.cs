@@ -21,4 +21,10 @@ public class ApplicationDbContext : DbContext
     /// Ressurser som lagres i databasen.
     /// </summary>
     public DbSet<Resource> Resources => Set<Resource>();
+
+
+    /// <summary>
+    /// Behov registrert av offentlige aktører.
+    /// </summary>
+    public DbSet<Need> Needs => Set<Need>();
 }
