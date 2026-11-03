@@ -28,6 +28,11 @@ public class ApplicationDbContext
     /// <summary>
     /// Ressurser som lagres i MariaDB.
     /// </summary>
-    public DbSet<Resource> Resources =>
-        Set<Resource>();
+    public DbSet<Resource> Resources => Set<Resource>();
+
+
+    /// <summary>
+    /// Behov registrert av offentlige aktører.
+    /// </summary>
+    public DbSet<Need> Needs => Set<Need>();
 }

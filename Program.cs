@@ -157,6 +157,19 @@ builder.Services.Configure<RequestLocalizationOptions>(
 
 var app = builder.Build();
 
+// =========================
+// DATABASE: LAG TABELLER
+// =========================
+
+// Midlertidig løsning frem til vi tar i bruk migrations.
+using (var scope = app.Services.CreateScope())
+{
+    scope.ServiceProvider
+        .GetRequiredService<ApplicationDbContext>()
+        .Database
+        .EnsureCreated();
+}
+
 
 // =========================
 // ERROR HANDLING

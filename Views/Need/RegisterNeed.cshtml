@@ -1,0 +1,279 @@
+@using FirstWebAppInDocker.Models
+@model FirstWebAppInDocker.ViewModels.RegisterNeedsViewModel
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="no">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Registrer behov - Beredskapsportal</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="~/css/need.css" />
+</head>
+
+<body>
+
+<partial name="_NeedHeader" />
+
+
+<!-- ============ SIDE ============ -->
+
+<main class="page">
+
+    <div class="page-header">
+        <div>
+            <span class="eyebrow">NYE BEHOV</span>
+            <h1>Registrer behov</h1>
+            <p>Registrer ett eller flere behov samtidig. Velg et behov og klikk i kartet for å angi hvor det er.</p>
+        </div>
+
+        <a asp-controller="Need" asp-action="NeedOverview" class="back-button">Se registrerte behov →</a>
+    </div>
+
+    <div class="grid">
+
+        <!-- SKJEMA -->
+        <section class="card">
+
+            <form asp-controller="Need" asp-action="RegisterNeed" method="post" novalidate>
+
+                <div asp-validation-summary="ModelOnly" class="error"></div>
+
+                <div id="needList">
+
+                    @for (int i = 0; i < Model.Needs.Count; i++)
+                    {
+                        <div class="need" data-need>
+
+                            <div class="need-top">
+                                <span class="need-number">@(i + 1)</span>
+                                <strong>Behov <span class="need-label">@(i + 1)</span></strong>
+                                <span class="need-position">Ingen plassering</span>
+                                <button type="button" class="need-remove" title="Fjern behov">×</button>
+                            </div>
+
+                            <div class="need-row">
+                                <label>
+                                    Type behov
+                                    <select asp-for="Needs[i].ResourceType" asp-items="Html.GetEnumSelectList<ResourceType>()">
+                                        <option value="">Velg type</option>
+                                    </select>
+                                    <span asp-validation-for="Needs[i].ResourceType" class="error"></span>
+                                </label>
+
+                                <label>
+                                    Prioritet
+                                    <select asp-for="Needs[i].Priority" asp-items="Html.GetEnumSelectList<NeedPriority>()" data-priority></select>
+                                </label>
+
+                                <label>
+                                    Antall
+                                    <input asp-for="Needs[i].Quantity" min="1" max="9999" />
+                                    <span asp-validation-for="Needs[i].Quantity" class="error"></span>
+                                </label>
+                            </div>
+
+                            <label>
+                                Beskrivelse
+                                <textarea asp-for="Needs[i].Description" rows="2" maxlength="500"
+                                          placeholder="F.eks. strøm til midlertidig mottakssenter"></textarea>
+                                <span asp-validation-for="Needs[i].Description" class="error"></span>
+                            </label>
+
+                            <input asp-for="Needs[i].Latitude" type="hidden" data-lat />
+                            <input asp-for="Needs[i].Longitude" type="hidden" data-lng />
+                            <span asp-validation-for="Needs[i].Latitude" class="error"></span>
+
+                        </div>
+                    }
+
+                </div>
+
+                <button type="button" id="addNeed" class="add-button">+ Legg til behov</button>
+
+                <button type="submit" id="submitButton" class="primary-button">Registrer behov</button>
+
+            </form>
+
+        </section>
+
+
+        <!-- KART -->
+        <section class="card map-card">
+            <p class="map-help" id="mapHelp">Klikk i kartet for å plassere behov 1.</p>
+            <div id="map"></div>
+            <p class="legend">
+                <span><i style="background: var(--acute)"></i> Akutt</span>
+                <span><i style="background: var(--planned)"></i> Planlagt</span>
+            </p>
+        </section>
+
+    </div>
+
+</main>
+
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+    const needList = document.getElementById("needList");
+    const addButton = document.getElementById("addNeed");
+    const submitButton = document.getElementById("submitButton");
+    const mapHelp = document.getElementById("mapHelp");
+
+    const map = L.map("map").setView([58.1467, 7.9956], 11);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap"
+    }).addTo(map);
+
+    const markers = new Map(); // behovskort -> markør
+    let activeNeed = null;
+
+
+    function allNeeds() {
+        return Array.from(needList.querySelectorAll("[data-need]"));
+    }
+
+    // Prioritet-dropdownen har verdi "0" (Akutt) eller "1" (Planlagt)
+    function isPlanned(need) {
+        return need.querySelector("[data-priority]").value === "1";
+    }
+
+    function getPosition(need) {
+        const lat = parseFloat(need.querySelector("[data-lat]").value);
+        const lng = parseFloat(need.querySelector("[data-lng]").value);
+        return isNaN(lat) || isNaN(lng) ? null : [lat, lng];
+    }
+
+
+    // Oppdaterer nummer, farge og markør for alle behov.
+    // Gir også feltene riktige navn (Needs[0], Needs[1] ...),
+    // ellers klarer ikke ASP.NET å lese dem inn som en liste.
+    function refresh() {
+        const needs = allNeeds();
+
+        needs.forEach((need, index) => {
+            need.querySelectorAll("[name], [data-valmsg-for]").forEach(field => {
+                if (field.name) field.name = field.name.replace(/Needs\[\d+\]/, `Needs[${index}]`);
+                if (field.id) field.id = field.id.replace(/Needs_\d+__/, `Needs_${index}__`);
+                if (field.dataset.valmsgFor) {
+                    field.dataset.valmsgFor = field.dataset.valmsgFor.replace(/Needs\[\d+\]/, `Needs[${index}]`);
+                }
+            });
+
+            need.querySelector(".need-number").textContent = index + 1;
+            need.querySelector(".need-label").textContent = index + 1;
+            need.querySelector(".need-remove").hidden = needs.length === 1;
+            need.classList.toggle("planned", isPlanned(need));
+            need.classList.toggle("active", need === activeNeed);
+
+            const position = getPosition(need);
+            const status = need.querySelector(".need-position");
+            status.textContent = position ? "Plassert" : "Ingen plassering";
+            status.classList.toggle("set", position !== null);
+
+            const marker = markers.get(need);
+            if (marker) {
+                const color = isPlanned(need) ? "#d99a24" : "#d34b4b";
+                marker.setIcon(L.divIcon({
+                    className: "",
+                    html: `<div class="pin" style="background:${color}"><span>${index + 1}</span></div>`,
+                    iconSize: [30, 34],
+                    iconAnchor: [15, 32]
+                }));
+            }
+        });
+
+        addButton.disabled = needs.length >= 20;
+        submitButton.textContent = needs.length === 1 ? "Registrer behov" : `Registrer ${needs.length} behov`;
+
+        if (activeNeed) {
+            mapHelp.textContent = `Klikk i kartet for å plassere behov ${needs.indexOf(activeNeed) + 1}.`;
+        }
+    }
+
+
+    function setPosition(need, lat, lng) {
+        need.querySelector("[data-lat]").value = lat;
+        need.querySelector("[data-lng]").value = lng;
+
+        if (markers.has(need)) {
+            markers.get(need).setLatLng([lat, lng]);
+        } else {
+            const marker = L.marker([lat, lng]).addTo(map);
+            marker.on("click", () => { activeNeed = need; refresh(); });
+            markers.set(need, marker);
+        }
+    }
+
+
+    // Klikk i kartet plasserer det aktive behovet
+    map.on("click", event => {
+        if (!activeNeed) return;
+        setPosition(activeNeed, event.latlng.lat, event.latlng.lng);
+        refresh();
+    });
+
+
+    // Legg til: kopier første kort og tøm feltene
+    addButton.addEventListener("click", () => {
+        const newNeed = allNeeds()[0].cloneNode(true);
+
+        newNeed.querySelectorAll("select").forEach(select => select.selectedIndex = 0);
+        newNeed.querySelector("textarea").value = "";
+        newNeed.querySelector("input[type=number]").value = 1;
+        newNeed.querySelector("[data-lat]").value = "";
+        newNeed.querySelector("[data-lng]").value = "";
+        newNeed.querySelectorAll(".error").forEach(error => error.textContent = "");
+
+        needList.appendChild(newNeed);
+        activeNeed = newNeed;
+        refresh();
+    });
+
+
+    // Klikk på et kort gjør det aktivt, × fjerner det
+    needList.addEventListener("click", event => {
+        const need = event.target.closest("[data-need]");
+        if (!need) return;
+
+        if (event.target.closest(".need-remove")) {
+            if (markers.has(need)) {
+                map.removeLayer(markers.get(need));
+                markers.delete(need);
+            }
+            need.remove();
+            if (activeNeed === need) activeNeed = allNeeds()[0];
+        } else {
+            activeNeed = need;
+        }
+
+        refresh();
+    });
+
+
+    // Ny prioritet gir ny farge
+    needList.addEventListener("change", refresh);
+
+
+    // Oppstart: tegn markører på nytt hvis siden kom tilbake med valideringsfeil
+    allNeeds().forEach(need => {
+        const position = getPosition(need);
+        if (position) setPosition(need, position[0], position[1]);
+    });
+
+    activeNeed = allNeeds().find(need => !getPosition(need)) ?? allNeeds()[0];
+    refresh();
+
+</script>
+
+</body>
+</html>
