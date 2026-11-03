@@ -9,6 +9,21 @@
 
     bool hasLoginErrors =
         !string.IsNullOrWhiteSpace(loginError);
+
+
+    string? registerError =
+        TempData["RegisterError"] as string;
+
+    string registerName =
+        TempData["RegisterName"] as string
+        ?? string.Empty;
+
+    string registerEmail =
+        TempData["RegisterEmail"] as string
+        ?? string.Empty;
+
+    bool hasRegisterErrors =
+        !string.IsNullOrWhiteSpace(registerError);
 }
 
 <!DOCTYPE html>
@@ -538,7 +553,9 @@
             </div>
 
 
-            <!-- LOGG INN -->
+            <!-- ==========================================
+                 LOGG INN
+            =========================================== -->
 
             <div
                 id="loginPanel"
@@ -631,13 +648,21 @@
                 </div>
 
 
-                <button
-                    type="button"
-                    class="demo-button">
+                <form
+                    asp-controller="Account"
+                    asp-action="DemoPublicActorLogin"
+                    method="post"
+                    class="demo-login-form">
 
-                    Fortsett som offentlig testbruker
+                    <button
+                        type="submit"
+                        class="demo-button">
 
-                </button>
+                        Fortsett som offentlig testbruker
+
+                    </button>
+
+                </form>
 
 
                 <p class="demo-note">
@@ -647,7 +672,9 @@
             </div>
 
 
-            <!-- REGISTRER BRUKER -->
+            <!-- ==========================================
+                 REGISTRER BRUKER
+            =========================================== -->
 
             <div
                 id="registerPanel"
@@ -671,82 +698,106 @@
                 </p>
 
 
-                <div class="login-group">
-
-                    <label for="registerName">
-                        Navn
-                    </label>
-
-                    <input
-                        id="registerName"
-                        name="registerName"
-                        type="text"
-                        autocomplete="name"
-                        placeholder="Ola Nordmann"
-                    />
-
-                </div>
+                @if (hasRegisterErrors)
+                {
+                    <div class="auth-error">
+                        @registerError
+                    </div>
+                }
 
 
-                <div class="login-group">
-
-                    <label for="registerEmail">
-                        E-post
-                    </label>
-
-                    <input
-                        id="registerEmail"
-                        name="registerEmail"
-                        type="email"
-                        autocomplete="email"
-                        placeholder="navn@eksempel.no"
-                    />
-
-                </div>
+                <form
+                    asp-controller="Account"
+                    asp-action="Register"
+                    method="post">
 
 
-                <div class="login-group">
+                    <div class="login-group">
 
-                    <label for="registerPassword">
-                        Passord
-                    </label>
+                        <label for="registerName">
+                            Navn
+                        </label>
 
-                    <input
-                        id="registerPassword"
-                        name="registerPassword"
-                        type="password"
-                        autocomplete="new-password"
-                        placeholder="Minst 8 tegn"
-                    />
+                        <input
+                            id="registerName"
+                            name="Name"
+                            type="text"
+                            value="@registerName"
+                            autocomplete="name"
+                            maxlength="100"
+                            required
+                            placeholder="Ola Nordmann"
+                        />
 
-                </div>
-
-
-                <div class="login-group">
-
-                    <label for="registerConfirmPassword">
-                        Bekreft passord
-                    </label>
-
-                    <input
-                        id="registerConfirmPassword"
-                        name="registerConfirmPassword"
-                        type="password"
-                        autocomplete="new-password"
-                        placeholder="Skriv passordet på nytt"
-                    />
-
-                </div>
+                    </div>
 
 
-                <button
-                    type="button"
-                    class="register-submit"
-                    id="temporaryRegisterButton">
+                    <div class="login-group">
 
-                    Opprett bruker
+                        <label for="registerEmail">
+                            E-post
+                        </label>
 
-                </button>
+                        <input
+                            id="registerEmail"
+                            name="Email"
+                            type="email"
+                            value="@registerEmail"
+                            autocomplete="email"
+                            required
+                            placeholder="navn@eksempel.no"
+                        />
+
+                    </div>
+
+
+                    <div class="login-group">
+
+                        <label for="registerPassword">
+                            Passord
+                        </label>
+
+                        <input
+                            id="registerPassword"
+                            name="Password"
+                            type="password"
+                            autocomplete="new-password"
+                            minlength="8"
+                            required
+                            placeholder="Minst 8 tegn"
+                        />
+
+                    </div>
+
+
+                    <div class="login-group">
+
+                        <label for="registerConfirmPassword">
+                            Bekreft passord
+                        </label>
+
+                        <input
+                            id="registerConfirmPassword"
+                            name="ConfirmPassword"
+                            type="password"
+                            autocomplete="new-password"
+                            minlength="8"
+                            required
+                            placeholder="Skriv passordet på nytt"
+                        />
+
+                    </div>
+
+
+                    <button
+                        type="submit"
+                        class="register-submit">
+
+                        Opprett bruker
+
+                    </button>
+
+                </form>
 
 
                 <p class="register-note">
@@ -943,12 +994,40 @@
 
 
     const hasLoginErrors =
-        @hasLoginErrors.ToString().ToLowerInvariant();
+        @hasLoginErrors
+            .ToString()
+            .ToLowerInvariant();
 
 
-    if (hasLoginErrors)
+    const hasRegisterErrors =
+        @hasRegisterErrors
+            .ToString()
+            .ToLowerInvariant();
+
+
+    if (hasRegisterErrors)
     {
-        activateAuthTab("login");
+        activateAuthTab(
+            "register"
+        );
+
+
+        window.setTimeout(
+            function ()
+            {
+                authCard.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center"
+                });
+            },
+            50
+        );
+    }
+    else if (hasLoginErrors)
+    {
+        activateAuthTab(
+            "login"
+        );
 
 
         window.setTimeout(
