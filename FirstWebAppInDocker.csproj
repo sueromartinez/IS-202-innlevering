@@ -27,6 +27,7 @@
   <ItemGroup>
 
     <!-- EF Core-verktøy for blant annet migrations -->
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.14" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11">
       <IncludeAssets>
         runtime; build; native; contentfiles; analyzers; buildtransitive
