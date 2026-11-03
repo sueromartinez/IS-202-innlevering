@@ -21,4 +21,6 @@ public class ApplicationDbContext : DbContext
     /// Ressurser som lagres i databasen.
     /// </summary>
     public DbSet<Resource> Resources => Set<Resource>();
+    public DbSet<Need> Needs => Set<Need>();
+    
 }

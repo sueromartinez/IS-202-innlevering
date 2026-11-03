@@ -88,6 +88,48 @@ builder.Services.Configure<RequestLocalizationOptions>(
 
 var app = builder.Build();
 
+// =========================
+// OPPRETT NEEDS-TABELLEN
+// =========================
+// Prosjektet bruker ikke migrations, så vi sørger for at
+// Needs-tabellen finnes når appen starter. Eksisterende
+// tabeller og data blir ikke berørt.
+
+using (var scope = app.Services.CreateScope())
+{
+    var db =
+        scope.ServiceProvider
+            .GetRequiredService<ApplicationDbContext>();
+
+    db.Database.ExecuteSqlRaw(
+        @"CREATE TABLE IF NOT EXISTS Needs (
+            Id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            Title VARCHAR(100) NOT NULL,
+            ResourceType INT NOT NULL,
+            Description VARCHAR(500) NOT NULL,
+            Priority INT NOT NULL,
+            Latitude DOUBLE NOT NULL,
+            Longitude DOUBLE NOT NULL,
+            OwnerEmail VARCHAR(150) NOT NULL,
+            CreatedAt DATETIME(6) NOT NULL
+        )"
+    );
+
+    db.Database.ExecuteSqlRaw(
+        @"CREATE TABLE IF NOT EXISTS Resources (
+            Id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            ResourceType INT NOT NULL,
+            Description VARCHAR(500) NOT NULL,
+            Latitude DOUBLE NOT NULL,
+            Longitude DOUBLE NOT NULL,
+            ContactEmail VARCHAR(150) NULL,
+            ContactPhoneCountryCode VARCHAR(5) NULL,
+            ContactPhoneNumber VARCHAR(20) NULL,
+            OwnerEmail VARCHAR(150) NOT NULL,
+            CreatedAt DATETIME(6) NOT NULL
+        )"
+    );
+}
 
 // =========================
 // ERROR HANDLING

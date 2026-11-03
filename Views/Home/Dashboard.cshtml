@@ -1,3 +1,6 @@
+@model FirstWebAppInDocker.ViewModels.DashboardViewModel 
+@using FirstWebAppInDocker.Models
+
 @{
     Layout = null;
 
@@ -265,28 +268,28 @@
                     </span>
 
 
-                    <button
-                        type="button"
-                        class="quick-action primary disabled-action"
-                        disabled>
+                    <a
+    asp-controller="Need"
+    asp-action="RegisterNeed"
+    class="quick-action primary">
 
-                        <span>
-                            +
-                        </span>
+    <span>
+        +
+    </span>
 
-                        <div>
+    <div>
 
-                            <strong>
-                                Registrer behov
-                            </strong>
+        <strong>
+            Registrer behov
+        </strong>
 
-                            <small>
-                                Kommer snart
-                            </small>
+        <small>
+            Opprett nytt behov
+        </small>
 
-                        </div>
+    </div>
 
-                    </button>
+</a>
 
 
                     <a
@@ -426,7 +429,7 @@
                         </div>
 
                         <strong>
-                            2
+                            @Model.UrgentCount
                         </strong>
 
                         <small>
@@ -449,7 +452,7 @@
                         </div>
 
                         <strong class="green-number">
-                            7
+                            @Model.ResourceCount
                         </strong>
 
                         <small>
@@ -472,7 +475,7 @@
                         </div>
 
                         <strong>
-                            2
+                            @Model.PlannedCount
                         </strong>
 
                         <small>

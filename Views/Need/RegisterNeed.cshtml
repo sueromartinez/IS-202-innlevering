@@ -1,0 +1,691 @@
+@using FirstWebAppInDocker.Models
+@model FirstWebAppInDocker.ViewModels.RegisterNeedViewModel
+
+@{
+    Layout = null;
+
+    ViewData["Title"] = "Registrer behov";
+
+    string? userName =
+        Context.Session.GetString("UserName");
+
+    string displayName =
+        string.IsNullOrWhiteSpace(userName)
+            ? "Offentlig aktør"
+            : userName;
+}
+
+<!DOCTYPE html>
+
+<html lang="no">
+
+<head>
+
+    <meta charset="utf-8" />
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    />
+
+    <title>
+        Registrer behov - Beredskapsportal
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+
+</head>
+
+<body>
+
+<!-- HEADER -->
+
+<header class="page-header">
+
+    <a
+        asp-controller="Home"
+        asp-action="Dashboard"
+        class="brand">
+
+        <strong>Beredskapsportal</strong>
+
+        <span>OFFENTLIG AKTØR</span>
+
+    </a>
+
+    <div class="header-user">
+
+        <a
+            asp-controller="Home"
+            asp-action="Dashboard"
+            class="header-link">
+
+            Oversikt
+
+        </a>
+
+        <span class="header-name">
+            @displayName
+        </span>
+
+        <form
+            asp-controller="Account"
+            asp-action="Logout"
+            method="post">
+
+            <button
+                type="submit"
+                class="logout-button">
+
+                Logg ut
+
+            </button>
+
+        </form>
+
+    </div>
+
+</header>
+
+
+<!-- SIDE -->
+
+<main class="need-page">
+
+    <div class="need-page-header">
+
+        <div>
+
+            <span class="eyebrow">
+                NYTT BEHOV
+            </span>
+
+            <h1>
+                Registrer behov
+            </h1>
+
+            <p>
+                Beskriv hva som trengs, hvor akutt det er,
+                og hvor behovet befinner seg.
+            </p>
+
+        </div>
+
+        <a
+            asp-controller="Home"
+            asp-action="Dashboard"
+            class="back-button">
+
+            ← Tilbake til oversikt
+
+        </a>
+
+    </div>
+
+
+    <div class="need-grid">
+
+        <!-- SKJEMA -->
+
+        <section class="card">
+
+            <h2>
+                Informasjon om behovet
+            </h2>
+
+            <form
+                asp-controller="Need"
+                asp-action="RegisterNeed"
+                method="post">
+
+                <div
+                    asp-validation-summary="ModelOnly"
+                    class="validation-summary">
+                </div>
+
+
+                <!-- TITTEL -->
+                <div class="form-group">
+
+                    <label asp-for="Title"></label>
+
+                    <input
+                        asp-for="Title"
+                        class="form-control"
+                        placeholder="F.eks. Strømbehov ved mottakssenter"
+                    />
+
+                    <span
+                        asp-validation-for="Title"
+                        class="validation-message">
+                    </span>
+
+                </div>
+
+
+                <!-- TYPE -->
+                <div class="form-group">
+
+                    <label asp-for="ResourceType"></label>
+
+                    <select
+                        asp-for="ResourceType"
+                        asp-items="Html.GetEnumSelectList<ResourceType>()"
+                        class="form-control">
+
+                        <option value="">
+                            Velg type ressurs
+                        </option>
+
+                    </select>
+
+                    <span
+                        asp-validation-for="ResourceType"
+                        class="validation-message">
+                    </span>
+
+                </div>
+
+
+                <!-- PRIORITET -->
+                <div class="form-group">
+
+                    <label asp-for="Priority"></label>
+
+                    <select
+                        asp-for="Priority"
+                        asp-items="Html.GetEnumSelectList<NeedPriority>()"
+                        class="form-control">
+
+                        <option value="">
+                            Velg prioritet
+                        </option>
+
+                    </select>
+
+                    <span
+                        asp-validation-for="Priority"
+                        class="validation-message">
+                    </span>
+
+                </div>
+
+
+                <!-- BESKRIVELSE -->
+                <div class="form-group">
+
+                    <label asp-for="Description"></label>
+
+                    <textarea
+                        asp-for="Description"
+                        class="form-control"
+                        rows="5"
+                        placeholder="Beskriv behovet">
+                    </textarea>
+
+                    <span
+                        asp-validation-for="Description"
+                        class="validation-message">
+                    </span>
+
+                </div>
+
+
+                <!-- KOORDINATER -->
+                <input
+                    asp-for="Latitude"
+                    type="hidden"
+                    id="Latitude"
+                />
+
+                <input
+                    asp-for="Longitude"
+                    type="hidden"
+                    id="Longitude"
+                />
+
+
+                <div class="selected-position">
+
+                    <strong>
+                        Valgt plassering
+                    </strong>
+
+                    <span id="positionText">
+                        Ingen plassering valgt
+                    </span>
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="primary-button">
+
+                    + Registrer behov
+
+                </button>
+
+            </form>
+
+        </section>
+
+
+        <!-- KART -->
+
+        <section class="card map-card">
+
+            <h2>
+                Velg plassering
+            </h2>
+
+            <p class="map-help">
+                Klikk én gang i kartet for å angi hvor behovet er.
+            </p>
+
+            <div id="needMap"></div>
+
+        </section>
+
+    </div>
+
+</main>
+
+
+<style>
+
+    :root {
+        --navy: #123047;
+        --primary: #176b87;
+        --primary-dark: #125770;
+        --background: #f4f6f8;
+        --secondary: #667085;
+        --border: #dfe4e8;
+        --danger: #c63d3d;
+        --text: #17212b;
+    }
+
+    * {
+        box-sizing: border-box;
+    }
+
+    html,
+    body {
+        margin: 0;
+        min-height: 100%;
+        color: var(--text);
+        background: var(--background);
+        font-family:
+            Inter,
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            sans-serif;
+    }
+
+    a {
+        color: inherit;
+        text-decoration: none;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+        font: inherit;
+    }
+
+    /* HEADER */
+
+    .page-header {
+        min-height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 0 5vw;
+        border-bottom: 1px solid var(--border);
+        background: white;
+    }
+
+    .brand strong {
+        display: block;
+        color: var(--navy);
+        font-size: 0.93rem;
+    }
+
+    .brand span {
+        display: block;
+        margin-top: 2px;
+        color: #7b8794;
+        font-size: 0.58rem;
+        font-weight: 750;
+        letter-spacing: 0.12em;
+    }
+
+    .header-user {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .header-user form {
+        margin: 0;
+    }
+
+    .header-link {
+        color: #52606c;
+        font-size: 0.73rem;
+        font-weight: 700;
+    }
+
+    .header-name {
+        font-size: 0.76rem;
+        font-weight: 700;
+    }
+
+    .logout-button {
+        padding: 9px 14px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: #344054;
+        background: white;
+        font-size: 0.74rem;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    /* SIDE */
+
+    .need-page {
+        width: min(1400px, calc(100% - 48px));
+        margin: 0 auto;
+        padding: 48px 0 70px;
+    }
+
+    .need-page-header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 30px;
+        margin-bottom: 28px;
+    }
+
+    .eyebrow {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--primary);
+        font-size: 0.67rem;
+        font-weight: 850;
+        letter-spacing: 0.11em;
+    }
+
+    .need-page-header h1 {
+        margin: 0 0 8px;
+        color: var(--navy);
+        font-size: 2.4rem;
+        letter-spacing: -0.04em;
+    }
+
+    .need-page-header p {
+        max-width: 600px;
+        margin: 0;
+        color: var(--secondary);
+        font-size: 0.9rem;
+        line-height: 1.6;
+    }
+
+    .back-button {
+        flex-shrink: 0;
+        padding: 10px 14px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--navy);
+        background: white;
+        font-size: 0.72rem;
+        font-weight: 750;
+    }
+
+    .need-grid {
+        display: grid;
+        grid-template-columns: minmax(380px, 0.8fr) minmax(500px, 1.3fr);
+        gap: 24px;
+        align-items: start;
+    }
+
+    .card {
+        padding: 28px;
+        border: 1px solid var(--border);
+        border-radius: 15px;
+        background: white;
+    }
+
+    .card h2 {
+        margin: 0 0 20px;
+        color: var(--navy);
+        font-size: 1.2rem;
+    }
+
+    /* SKJEMA */
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 7px;
+        color: #344054;
+        font-size: 0.74rem;
+        font-weight: 750;
+    }
+
+    .form-control {
+        width: 100%;
+        min-height: 46px;
+        padding: 0 13px;
+        border: 1px solid #d0d5dd;
+        border-radius: 8px;
+        outline: none;
+        background: white;
+        font-size: 0.8rem;
+    }
+
+    textarea.form-control {
+        padding: 12px 13px;
+        resize: vertical;
+        line-height: 1.5;
+    }
+
+    .form-control:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(23, 107, 135, 0.09);
+    }
+
+    .validation-message,
+    .validation-summary {
+        display: block;
+        margin-top: 5px;
+        color: var(--danger);
+        font-size: 0.7rem;
+    }
+
+    .selected-position {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        margin: 22px 0 18px;
+        padding: 13px 14px;
+        border-radius: 9px;
+        background: #f4f7f8;
+        font-size: 0.7rem;
+    }
+
+    .selected-position strong {
+        color: var(--navy);
+    }
+
+    .selected-position span {
+        color: var(--secondary);
+    }
+
+    .primary-button {
+        width: 100%;
+        min-height: 48px;
+        border: 0;
+        border-radius: 9px;
+        color: white;
+        background: var(--primary);
+        font-size: 0.8rem;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+    .primary-button:hover {
+        background: var(--primary-dark);
+    }
+
+    /* KART */
+
+    .map-card {
+        position: sticky;
+        top: 24px;
+    }
+
+    .map-help {
+        margin: 0 0 14px;
+        color: var(--secondary);
+        font-size: 0.75rem;
+    }
+
+    #needMap {
+        width: 100%;
+        height: 560px;
+        border: 1px solid #d9e0e4;
+        border-radius: 12px;
+        background: #e7eef0;
+    }
+
+    /* MOBIL */
+
+    @@media (max-width: 950px) {
+
+        .need-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .map-card {
+            position: static;
+        }
+
+        #needMap {
+            height: 420px;
+        }
+
+        .need-page-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .header-name {
+            display: none;
+        }
+
+    }
+
+</style>
+
+
+<script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+</script>
+
+<script>
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
+
+            const latitudeInput =
+                document.getElementById("Latitude");
+
+            const longitudeInput =
+                document.getElementById("Longitude");
+
+            const positionText =
+                document.getElementById("positionText");
+
+            // Kristiansand som startpunkt.
+            const map =
+                L.map("needMap")
+                    .setView([58.1467, 7.9956], 11);
+
+            L.tileLayer(
+                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+                    maxZoom: 19,
+                    attribution: "&copy; OpenStreetMap"
+                }
+            ).addTo(map);
+
+            let marker = null;
+
+            // Behold markøren hvis skjemaet vises på nytt
+            // etter en valideringsfeil.
+            const existingLat =
+                parseFloat(latitudeInput.value);
+
+            const existingLng =
+                parseFloat(longitudeInput.value);
+
+            if (
+                !Number.isNaN(existingLat)
+                && !Number.isNaN(existingLng)
+                && (existingLat !== 0 || existingLng !== 0)
+            ) {
+                marker =
+                    L.marker([existingLat, existingLng]).addTo(map);
+
+                map.setView([existingLat, existingLng], 14);
+
+                updatePositionText(existingLat, existingLng);
+            }
+
+            // Klikk i kartet velger plassering.
+            map.on(
+                "click",
+                function (event) {
+
+                    const lat = event.latlng.lat;
+                    const lng = event.latlng.lng;
+
+                    latitudeInput.value = lat;
+                    longitudeInput.value = lng;
+
+                    if (marker === null) {
+                        marker = L.marker([lat, lng]).addTo(map);
+                    }
+                    else {
+                        marker.setLatLng([lat, lng]);
+                    }
+
+                    updatePositionText(lat, lng);
+                }
+            );
+
+            function updatePositionText(lat, lng) {
+                positionText.textContent =
+                    lat.toFixed(5) + ", " + lng.toFixed(5);
+            }
+
+        }
+    );
+
+</script>
+
+</body>
+
+</html>
