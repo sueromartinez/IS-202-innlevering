@@ -92,13 +92,11 @@ public class ResourceController : Controller
         var resource = new Resource
         {
             Name =
-                model.Name.Trim(),
+                model.ResourceName.Trim(),
 
             ResourceType =
                 model.ResourceType!.Value,
 
-            
-        
             ResourceName =
                 model.ResourceName.Trim(), //endret l
 
