@@ -17,10 +17,26 @@ public class Resource
     [Required]
     public ResourceType ResourceType { get; init; }
 
+    [Required]
+    [StringLength(100)]
+    public string ResourceName { get; init; } = string.Empty; //lagt til L
+
 
     [Required]
     [StringLength(500)]
     public string Description { get; init; } = string.Empty;
+
+    [Range(1, 1000000)]
+    public int Quantity {get; init;} = 1; // lagt til L
+
+    [StringLength(200)]
+    public string? Capacity {get; init;} //lagt til L
+
+    [StringLength(200)]
+    public string? Availability {get; init;} //lagt til L
+
+    [StringLength(200)]
+    public string? Address {get; init;} //lagt til L
 
 
     public double Latitude { get; init; }

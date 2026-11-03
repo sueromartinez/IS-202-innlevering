@@ -4,7 +4,7 @@
 @{
     Layout = null;
 
-    ViewData["Title"] = "Registrer ressurs";
+    ViewData["Title"] = "Registrer ressurs"; 
 
     string? userName =
         Context.Session.GetString("UserName");
@@ -888,15 +888,15 @@
 
 
     /* =========================================
-       GRID
+       GRID gjort endring her L
     ========================================= */
 
     .resource-grid {
         display: grid;
 
         grid-template-columns:
-            minmax(420px, 0.8fr)
-            minmax(600px, 1.35fr);
+            minmax(480px, 0.9fr) 
+            minmax(700px, 1.5fr);
 
         gap: 24px;
 
@@ -1307,7 +1307,7 @@
 
 
     /* =========================================
-       MAP
+       MAP gjort endring her resoruce map L
     ========================================= */
 
     .map-card {
@@ -1354,7 +1354,7 @@
 
     #resourceMap {
         width: 100%;
-        height: 650px;
+        height: 450px;
 
         overflow: hidden;
 
