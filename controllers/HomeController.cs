@@ -1,3 +1,4 @@
+
 using System.Diagnostics;
 using FirstWebAppInDocker.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -5,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace FirstWebAppInDocker.Controllers;
 
 /// <summary>
-/// Håndterer forsiden, dashboardet og generell feilhåndtering.
+/// Håndterer forsiden, dashboardet og generell feilhandtering.
 /// </summary>
 public class HomeController : Controller
 {
@@ -17,7 +18,6 @@ public class HomeController : Controller
     {
         return View();
     }
-
 
     /// <summary>
     /// Viser dashboardet til en innlogget bruker.
@@ -48,7 +48,6 @@ public class HomeController : Controller
 
         return View();
     }
-
 
     /// <summary>
     /// Viser feilside dersom en uventet feil oppstår.

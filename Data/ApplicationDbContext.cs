@@ -1,13 +1,21 @@
 using FirstWebAppInDocker.Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace FirstWebAppInDocker.Data;
 
 /// <summary>
-/// Databasekontekst for applikasjonen.
-/// Håndterer kommunikasjonen mellom EF Core og MariaDB.
+/// Databasekontekst for Beredskapsportalen.
+///
+/// IdentityDbContext gjør at samme EF Core-kontekst
+/// håndterer både:
+/// - ASP.NET Core Identity-brukere
+/// - roller
+/// - innlogging/2FA-data
+/// - applikasjonens egne tabeller, som Resources
 /// </summary>
-public class ApplicationDbContext : DbContext
+public class ApplicationDbContext
+    : IdentityDbContext<ApplicationUser>
 {
     public ApplicationDbContext(
         DbContextOptions<ApplicationDbContext> options
@@ -18,7 +26,13 @@ public class ApplicationDbContext : DbContext
 
 
     /// <summary>
-    /// Ressurser som lagres i databasen.
+    /// Ressurser som lagres i MariaDB.
     /// </summary>
     public DbSet<Resource> Resources => Set<Resource>();
+
+
+    /// <summary>
+    /// Behov registrert av offentlige aktører.
+    /// </summary>
+    public DbSet<Need> Needs => Set<Need>();
 }
