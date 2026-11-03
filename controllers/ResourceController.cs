@@ -94,9 +94,34 @@ public class ResourceController : Controller
             ResourceType =
                 model.ResourceType!.Value,
 
+            
+        
+            ResourceName =
+                model.ResourceName.Trim(), //endret l
+
+            Quantity =  
+                model.Quantity, //endret l
+
+            Capacity =  
+                NormalizeOptionalText(
+                    model.Capacity
+                ), // endret l
+
+            Availability =  
+                NormalizeOptionalText(
+                    model.Availability
+                ), // endret l
+            
+            Address =  
+                NormalizeOptionalText(
+                    model.Address), // endret l
+
             Description =
                 model.Description.Trim(),
 
+            
+    
+    
             Latitude =
                 model.Latitude,
 
@@ -193,6 +218,22 @@ public class ResourceController : Controller
 
                             ResourceType =
                                 resource.ResourceType,
+
+                            ResourceName = 
+                                resource.ResourceName, //lagt til L
+
+                            Quantity = 
+                                resource.Quantity, //lagt til L   
+
+                            Capacity = 
+                                resource.Capacity, //lagt til L
+
+                            Availability = 
+                                resource.Availability, //lagt til L
+
+                            Address = 
+                                resource.Address, //lagt til L                 
+                        
 
                             Description =
                                 resource.Description,
