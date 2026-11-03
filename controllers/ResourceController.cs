@@ -91,6 +91,9 @@ public class ResourceController : Controller
 
         var resource = new Resource
         {
+            Name =
+                model.Name.Trim(),
+
             ResourceType =
                 model.ResourceType!.Value,
 
@@ -190,6 +193,9 @@ public class ResourceController : Controller
                         {
                             Id =
                                 resource.Id,
+
+                            Name =
+                                resource.Name,
 
                             ResourceType =
                                 resource.ResourceType,

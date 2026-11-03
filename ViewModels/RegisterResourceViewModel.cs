@@ -16,6 +16,14 @@ public class RegisterResourceViewModel : IValidatableObject
     [Display(Name = "Type ressurs")]
     public ResourceType? ResourceType { get; init; }
 
+    [Required(ErrorMessage = "Du må skrive inn et ressursnavn")]
+    [StringLength(
+    150,
+    ErrorMessage = "Ressursnavnet kan maks være 150 tegn"
+)]
+[Display(Name = "Ressursnavn")]
+public string Name { get; init; } = string.Empty;
+
 
     [Required(
         ErrorMessage = "Beskrivelse er påkrevd"

@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using FirstWebAppInDocker.Models;
 using Microsoft.AspNetCore.Mvc;
+using FirstWebAppInDocker.Data;
 
 namespace FirstWebAppInDocker.Controllers;
 
@@ -10,14 +11,21 @@ namespace FirstWebAppInDocker.Controllers;
 /// </summary>
 public class HomeController : Controller
 {
+    private readonly ApplicationDbContext _context;
+
+public HomeController(ApplicationDbContext context)
+{
+    _context = context;
+}
+
     /// <summary>
     /// Viser den offentlige forsiden.
     /// </summary>
     [HttpGet]
     public IActionResult Index()
-    {
+        {
         return View();
-    }
+        }
 
     /// <summary>
     /// Viser dashboardet til en innlogget bruker.
@@ -45,6 +53,16 @@ public class HomeController : Controller
             HttpContext.Session.GetString(
                 "UserRole"
             );
+
+            var resources = _context.Resources
+    .Where(r => r.OwnerEmail == userEmail)
+    .ToList();
+
+    ViewBag.Resources = resources;
+
+    ViewBag.TotalResources = resources.Count;
+ViewBag.AvailableResources = resources.Count(r => r.IsAvailable);
+ViewBag.UnavailableResources = resources.Count(r => !r.IsAvailable);
 
         return View();
     }

@@ -10,6 +10,9 @@ public class ResourceOverviewViewModel
 {
     public int Id { get; init; }
 
+    public string Name { get; init; }
+    = string.Empty;
+
     public ResourceType ResourceType { get; init; }
 
     public string Description { get; init; }

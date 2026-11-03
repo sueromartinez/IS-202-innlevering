@@ -13,6 +13,10 @@ public class Resource
     /// </summary>
     public int Id { get; init; }
 
+    [Required]
+    [StringLength(150)]
+    public string Name { get; set; } = string.Empty;
+
 
     [Required]
     public ResourceType ResourceType { get; init; }
@@ -56,4 +60,9 @@ public class Resource
     /// </summary>
     public DateTime CreatedAt { get; init; } =
         DateTime.UtcNow;
+
+    /// <summary>
+    /// Angir om ressursen er tilgjengelig.
+    /// </summary>
+    public bool IsAvailable { get; set; } = true;
 }

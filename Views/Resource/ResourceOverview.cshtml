@@ -85,6 +85,9 @@
                 id =
                     resource.Id,
 
+                name =
+                    resource.Name,
+
                 type =
                     GetResourceTypeName(
                         resource.ResourceType
@@ -201,6 +204,27 @@
 
     </a>
 
+<nav class="provider-navigation">
+
+    <a asp-controller="Home"
+       asp-action="Dashboard"
+       class="provider-nav-link">
+        Dashboard
+    </a>
+
+    <a asp-controller="Resource"
+       asp-action="RegisterResource"
+       class="provider-nav-link">
+        Registrer ressurs
+    </a>
+
+    <a asp-controller="Resource"
+       asp-action="ResourceOverview"
+       class="provider-nav-link active">
+        Mine ressurser
+    </a>
+
+</nav>
 
     <div class="provider-user">
 
@@ -489,8 +513,12 @@
                                     </span>
 
                                     <h3>
-                                        @resource.Description
+                                        @resource.Name
                                     </h3>
+
+                                    <p>
+                                        @resource.Description
+                                    </p>
 
                                 </div>
 
@@ -723,8 +751,36 @@
 
 </main>
 
-
 <style>
+
+.provider-navigation {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    min-height: 50px;
+    padding: 5px;
+}
+
+.provider-nav-link {
+    padding: 10px 14px;
+    border-radius: 8px;
+    color: #52606c;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: 0.2s ease;
+}
+
+.provider-nav-link:hover {
+    background: #f0f4f8;
+    color: var(--primary);
+}
+
+.provider-nav-link.active {
+    background: #e8f0f8 !important;
+    color: var(--primary) !important;
+}
 
     /* =========================================
        FARGER
@@ -2256,15 +2312,25 @@
                         const title =
                             document.createElement(
                                 "strong"
-                            );
+                        );
 
                         title.textContent =
-                            resource.description;
+                            resource.name;
 
                         popup.appendChild(
                             title
-                        );
+                    );
 
+
+                        const description =
+                            document.createElement("p");
+
+                            description.textContent =
+                            resource.description;
+
+                        popup.appendChild(
+                            description
+                    );
 
                         const position =
                             document.createElement(
