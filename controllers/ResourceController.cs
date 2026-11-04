@@ -111,6 +111,74 @@ public class ResourceController : Controller
             return Challenge();
         }
 
+        // Takes ownership from the server session, never from posted form data.
+        var resource = new Resource
+        {
+            ResourceType =
+                model.ResourceType!.Value,
+
+            
+        
+            ResourceName =
+                model.ResourceName.Trim(), //endret l
+
+            Quantity =  
+                model.Quantity, //endret l
+
+            Capacity =  
+                NormalizeOptionalText(
+                    model.Capacity
+                ), // endret l
+
+            Availability =  
+                NormalizeOptionalText(
+                    model.Availability
+                ), // endret l
+            
+            Address =  
+                NormalizeOptionalText(
+                    model.Address), // endret l
+
+            Description =
+                model.Description.Trim(),
+
+            
+    
+    
+            Latitude =
+                model.Latitude,
+
+            Longitude =
+                model.Longitude,
+
+            ContactEmail =
+                NormalizeOptionalText(
+                    model.ContactEmail
+                ),
+
+            ContactPhoneCountryCode =
+                string.IsNullOrWhiteSpace(
+                    model.ContactPhoneNumber
+                )
+                    ? null
+                    : model.ContactPhoneCountryCode,
+
+            ContactPhoneNumber =
+                NormalizePhoneNumber(
+                    model.ContactPhoneNumber
+                ),
+
+            OwnerEmail =
+                userEmail,
+
+            CreatedAt =
+                DateTime.UtcNow
+        };
+
+        // Saves all validated fields through the existing MariaDB context.
+        _context.Resources.Add(resource);
+
+        await _context.SaveChangesAsync();
 
         var resource =
             new Resource
@@ -131,6 +199,10 @@ public class ResourceController : Controller
                 Quantity =
                     model.Quantity,
 
+        // Restricts provider results in SQL before sending data to the browser.
+        IQueryable<Resource> query =
+            _context.Resources
+                .AsNoTracking();
                 Capacity =
                     string.IsNullOrWhiteSpace(
                         model.Capacity

@@ -149,6 +149,115 @@ public class RegisterResourceViewModel
 
     [StringLength(
         20,
+        ErrorMessage = "Telefonnummeret er for langt"
+    )]
+    [Display(Name = "Telefonnummer")]
+    public string? ContactPhoneNumber { get; init; }
+
+
+    /// <summary>
+    /// Breddegrad valgt i kartet.
+    /// </summary>
+    public double Latitude { get; init; }
+
+
+    /// <summary>
+    /// Lengdegrad valgt i kartet.
+    /// </summary>
+    public double Longitude { get; init; }
+
+
+    /// <summary>
+    /// Validerer telefonnummer basert på valgt landskode.
+    /// </summary>
+    public IEnumerable<ValidationResult> Validate(
+        ValidationContext validationContext
+    )
+    {
+        // Rejects unexpected status values so resource statistics stay reliable.
+        if (!string.IsNullOrWhiteSpace(Availability)
+            && Availability != "Tilgjengelig" && Availability != "Ikke tilgjengelig")
+        {
+            yield return new ValidationResult("Velg en gyldig tilgjengelighet.", new[] { nameof(Availability) });
+        }
+        if (!Enum.IsDefined(typeof(ResourceType), ResourceType ?? (ResourceType)(-1)))
+        {
+            yield return new ValidationResult("Velg en gyldig ressurstype.", new[] { nameof(ResourceType) });
+        }
+        if (!double.IsFinite(Latitude) || !double.IsFinite(Longitude)
+            || Latitude < -90 || Latitude > 90 || Longitude < -180 || Longitude > 180)
+        {
+            yield return new ValidationResult("Velg en gyldig plassering i kartet.", new[] { nameof(Latitude), nameof(Longitude) });
+        }
+
+        if (string.IsNullOrWhiteSpace(ContactPhoneNumber))
+        {
+            yield break;
+        }
+
+        if (!Regex.IsMatch(
+                ContactPhoneNumber,
+                @"^[0-9\s-]+$"
+            ))
+        {
+            yield return new ValidationResult(
+                "Telefonnummeret kan bare inneholde sifre, mellomrom og bindestrek.",
+                new[] { nameof(ContactPhoneNumber) }
+            );
+
+            yield break;
+        }
+
+        string phoneNumber =
+            Regex.Replace(
+                ContactPhoneNumber,
+                @"[\s-]",
+                ""
+            );
+
+        switch (ContactPhoneCountryCode)
+        {
+            case "+47":
+            case "+45":
+
+                if (phoneNumber.Length != 8)
+                {
+                    yield return new ValidationResult(
+                        "Telefonnummeret må inneholde nøyaktig 8 sifre.",
+                        new[] { nameof(ContactPhoneNumber) }
+                    );
+                }
+
+                break;
+
+
+            case "+46":
+
+                if (
+                    phoneNumber.Length < 7
+                    ||
+                    phoneNumber.Length > 10
+                )
+                {
+                    yield return new ValidationResult(
+                        "Svenske telefonnummer må inneholde mellom 7 og 10 sifre.",
+                        new[] { nameof(ContactPhoneNumber) }
+                    );
+                }
+
+                break;
+
+
+            default:
+
+                yield return new ValidationResult(
+                    "Ugyldig landskode.",
+                    new[] { nameof(ContactPhoneCountryCode) }
+                );
+
+                break;
+        }
+    }
         ErrorMessage =
             "Telefonnummeret kan maksimalt være 20 tegn."
     )]

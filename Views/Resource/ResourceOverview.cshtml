@@ -86,6 +86,9 @@
                 id =
                     resource.Id,
 
+                name = resource.ResourceName,
+                availability = resource.Availability,
+
                 typeId = (int)resource.ResourceType,
 
                 type =
@@ -419,9 +422,19 @@
                     }
                 </select>
             </div>
+            @* Applies availability together with category and search to the same results. *@
+            <div class="filter-field">
+                <label for="resourceAvailabilityFilter">Tilgjengelighet</label>
+                <select id="resourceAvailabilityFilter">
+                    <option value="">Alle statuser</option>
+                    <option value="Tilgjengelig">Tilgjengelig</option>
+                    <option value="Ikke tilgjengelig">Ikke tilgjengelig</option>
+                    <option value="unspecified">Ikke oppgitt / annen status</option>
+                </select>
+            </div>
             <div class="filter-field filter-search">
-                <label for="resourceSearch">S?k i beskrivelse</label>
-                <input id="resourceSearch" type="search" placeholder="S?k etter en ressurs ?" />
+                <label for="resourceSearch">Søk i navn eller beskrivelse</label>
+                <input id="resourceSearch" type="search" placeholder="Søk etter en ressurs …" />
             </div>
             <button type="reset" class="logout-button">Nullstill filtre</button>
             <p id="filterSummary" role="status" aria-live="polite"></p>
@@ -459,7 +472,7 @@
                 </div>
 
 
-                <p id="noMatchingResources" class="filter-empty" hidden>Ingen ressurser passer til filtrene. Pr?v en annen ressurstype eller nullstill filtrene.</p>
+                <p id="noMatchingResources" class="filter-empty" hidden>Ingen ressurser passer til filtrene. Prøv en annen ressurstype eller nullstill filtrene.</p>
                 <div class="resource-list">
 
                     @foreach (var resource in resources)
@@ -494,7 +507,7 @@
                                     </span>
 
                                     <h3>
-                                        @resource.ResourceName 
+                                        @(string.IsNullOrWhiteSpace(resource.ResourceName) ? resource.Description : resource.ResourceName)
                                     </h3>
 
                                     <p>
@@ -505,7 +518,7 @@
 
 
                                 <span class="resource-status">
-                                    Registrert
+                                    @(string.IsNullOrWhiteSpace(resource.Availability) ? "Ikke oppgitt" : resource.Availability)
                                 </span>
 
                             </div>
@@ -2191,18 +2204,26 @@
             const resources = @Html.Raw(mapResourcesJson);
             const filterForm = document.getElementById("resourceFilters");
             const typeFilter = document.getElementById("resourceTypeFilter");
+            const availabilityFilter = document.getElementById("resourceAvailabilityFilter");
             const searchInput = document.getElementById("resourceSearch");
             const cards = new Map(Array.from(document.querySelectorAll(".resource-item"))
                 .map(card => [Number(card.dataset.resourceId), card]));
             const markers = new Map();
             let map;
 
-            // Applies both filters to the same resources before updating cards and markers.
+            // Keeps unknown legacy availability text separate from explicit statuses.
+            function availabilityStatus(value) {
+                const status = (value || "").trim().toLocaleLowerCase("nb-NO");
+                return ["tilgjengelig", "ikke tilgjengelig"].includes(status) ? status : "unspecified";
+            }
+
+            // Applies all filters to the same resources before updating cards and markers.
             function applyFilters() {
                 const search = searchInput.value.trim().toLocaleLowerCase("nb-NO");
                 const matching = resources.filter(resource =>
                     (typeFilter.value === "" || String(resource.typeId) === typeFilter.value) &&
-                    resource.description.toLocaleLowerCase("nb-NO").includes(search));
+                    (availabilityFilter.value === "" || availabilityStatus(resource.availability) === availabilityFilter.value.toLocaleLowerCase("nb-NO")) &&
+                    `${resource.name} ${resource.description}`.toLocaleLowerCase("nb-NO").includes(search));
                 const matchingIds = new Set(matching.map(resource => resource.id));
                 cards.forEach((card, id) => { card.hidden = !matchingIds.has(id); });
                 document.getElementById("filteredResourceCount").textContent = matching.length;
@@ -2230,9 +2251,11 @@
             filterForm.hidden = false;
             filterForm.addEventListener("submit", event => event.preventDefault());
             typeFilter.addEventListener("change", applyFilters);
+            availabilityFilter.addEventListener("change", applyFilters);
             searchInput.addEventListener("input", applyFilters);
             filterForm.addEventListener("reset", function () {
                 typeFilter.value = "";
+                availabilityFilter.value = "";
                 searchInput.value = "";
                 applyFilters();
             });
@@ -2259,7 +2282,9 @@
                 popup.className = "resource-popup";
                 const details = [
                     ["span", resource.type, "resource-popup-type"],
-                    ["strong", resource.description],
+                    ["strong", resource.name || resource.description],
+                    ["p", resource.description],
+                    ["small", resource.availability || "Ikke oppgitt"],
                     ["p", `${resource.latitude.toFixed(5)}, ${resource.longitude.toFixed(5)}`],
                     ["small", resource.email],
                     ["small", resource.phone]
