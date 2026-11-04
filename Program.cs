@@ -79,8 +79,6 @@ builder.Services.ConfigureApplicationCookie(
         // Innlogging ligger på hovedsiden.
         options.LoginPath = "/";
 
-        // Ved manglende tilgang kan vi senere
-        // lage en egen AccessDenied-side.
         options.AccessDeniedPath =
             "/Account/AccessDenied";
 
@@ -110,8 +108,8 @@ builder.Services.AddControllersWithViews();
 // Session beholdes midlertidig fordi deler
 // av eksisterende dashboard fortsatt bruker den.
 //
-// Tilgangskontroll skal etter hvert styres
-// av ASP.NET Core Identity og roller.
+// Tilgangskontroll skal styres av
+// ASP.NET Core Identity og roller.
 //
 
 builder.Services.AddDistributedMemoryCache();
@@ -163,6 +161,31 @@ var app = builder.Build();
 
 
 // =========================
+// DATABASE MIGRATIONS
+// =========================
+//
+// Kjører alle ventende EF Core-migrasjoner
+// automatisk når applikasjonen starter.
+//
+// På en ny PC / ny Docker-volume vil dette
+// opprette databasestrukturen automatisk.
+//
+// På en eksisterende database kjøres kun
+// migrasjoner som ikke allerede er registrert
+// i __EFMigrationsHistory.
+//
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext =
+        scope.ServiceProvider
+            .GetRequiredService<ApplicationDbContext>();
+
+    await dbContext.Database.MigrateAsync();
+}
+
+
+// =========================
 // IDENTITY ROLE SEEDING
 // =========================
 //
@@ -173,7 +196,10 @@ var app = builder.Build();
 //
 // finnes i AspNetRoles.
 //
-// Hvis rollene allerede finnes,
+// Seeder også eventuelle brukere som er
+// definert i IdentitySeeder.
+//
+// Hvis dataene allerede finnes,
 // skjer ingenting.
 //
 
