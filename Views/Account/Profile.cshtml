@@ -1,0 +1,22 @@
+@model FirstWebAppInDocker.ViewModels.ProfileViewModel
+@{
+    ViewData["Title"] = "Profil";
+}
+@* Uses the existing profile actions and shared layout navigation. *@
+<section class="app-main">
+    <h1>Profil</h1>
+    @if (TempData["ProfileSuccess"] is string message)
+    {
+        <p role="status">@message</p>
+    }
+    <form asp-controller="Account" asp-action="Profile" method="post" class="profile-contact-form">
+        <div asp-validation-summary="All"></div>
+        <p><label asp-for="Name"></label><input asp-for="Name" /><span asp-validation-for="Name"></span></p>
+        <p><label asp-for="Email"></label><input asp-for="Email" /><span asp-validation-for="Email"></span></p>
+        <p><label asp-for="PhoneCountryCode"></label>
+            <select asp-for="PhoneCountryCode"><option value="+47">+47</option><option value="+45">+45</option><option value="+46">+46</option></select>
+            <span asp-validation-for="PhoneCountryCode"></span></p>
+        <p><label asp-for="PhoneNumber"></label><input asp-for="PhoneNumber" /><span asp-validation-for="PhoneNumber"></span></p>
+        <button type="submit" class="primary-action">Lagre kontaktinformasjon</button>
+    </form>
+</section>
