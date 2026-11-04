@@ -1,0 +1,7 @@
+/* Keeps the existing profile fields readable on desktop and mobile. */
+.profile-contact-form { max-width: 560px; }
+.profile-contact-form label { display: block; margin-bottom: 6px; font-weight: 700; }
+.profile-contact-form input, .profile-contact-form select {
+    box-sizing: border-box; width: 100%; min-height: 44px; padding: 10px;
+    border: 1px solid #dfe4e8; border-radius: 8px; font: inherit;
+}
