@@ -75,6 +75,18 @@ public class HomeController : Controller
             };
         }
 
+        // Loads only the signed-in provider's resources so the dashboard cannot expose other owners.
+        if (userRole == "ResourceProvider")
+        {
+            model = new DashboardViewModel
+            {
+                Resources = await _context.Resources.AsNoTracking()
+                    .Where(resource => resource.OwnerEmail == userEmail)
+                    .OrderByDescending(resource => resource.CreatedAt)
+                    .ToListAsync()
+            };
+        }
+
         return View(model);
     }
 
