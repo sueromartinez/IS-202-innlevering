@@ -97,6 +97,22 @@ public class RegisterResourceViewModel : IValidatableObject
         ValidationContext validationContext
     )
     {
+        // Rejects unexpected status values so resource statistics stay reliable.
+        if (!string.IsNullOrWhiteSpace(Availability)
+            && Availability != "Tilgjengelig" && Availability != "Ikke tilgjengelig")
+        {
+            yield return new ValidationResult("Velg en gyldig tilgjengelighet.", new[] { nameof(Availability) });
+        }
+        if (!Enum.IsDefined(typeof(ResourceType), ResourceType ?? (ResourceType)(-1)))
+        {
+            yield return new ValidationResult("Velg en gyldig ressurstype.", new[] { nameof(ResourceType) });
+        }
+        if (!double.IsFinite(Latitude) || !double.IsFinite(Longitude)
+            || Latitude < -90 || Latitude > 90 || Longitude < -180 || Longitude > 180)
+        {
+            yield return new ValidationResult("Velg en gyldig plassering i kartet.", new[] { nameof(Latitude), nameof(Longitude) });
+        }
+
         if (string.IsNullOrWhiteSpace(ContactPhoneNumber))
         {
             yield break;

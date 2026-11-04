@@ -24,4 +24,13 @@ public class DashboardViewModel
 
     /// <summary>Antall registrerte ressurser.</summary>
     public int ResourceCount => Resources.Count;
+
+    // Counts explicit statuses only; missing or older free text remains unspecified.
+    public int AvailableCount => Resources.Count(resource =>
+        string.Equals(resource.Availability?.Trim(), "Tilgjengelig", StringComparison.OrdinalIgnoreCase));
+
+    public int UnavailableCount => Resources.Count(resource =>
+        string.Equals(resource.Availability?.Trim(), "Ikke tilgjengelig", StringComparison.OrdinalIgnoreCase));
+
+    public int UnspecifiedCount => ResourceCount - AvailableCount - UnavailableCount;
 }

@@ -89,6 +89,7 @@ public class ResourceController : Controller
             return View(model);
         }
 
+        // Takes ownership from the server session, never from posted form data.
         var resource = new Resource
         {
             ResourceType =
@@ -152,6 +153,7 @@ public class ResourceController : Controller
                 DateTime.UtcNow
         };
 
+        // Saves all validated fields through the existing MariaDB context.
         _context.Resources.Add(resource);
 
         await _context.SaveChangesAsync();
@@ -182,6 +184,7 @@ public class ResourceController : Controller
             return RedirectToHome();
         }
 
+        // Restricts provider results in SQL before sending data to the browser.
         IQueryable<Resource> query =
             _context.Resources
                 .AsNoTracking();

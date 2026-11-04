@@ -896,6 +896,7 @@ else if (userRole == "ResourceProvider")
 
             <!-- STATUS -->
 
+            @* Counts only resources loaded for this provider, including an explicit unknown status. *@
             <section class="provider-status-grid">
 
 
@@ -906,11 +907,11 @@ else if (userRole == "ResourceProvider")
                     </span>
 
                     <strong>
-                        2
+                        @Model.ResourceCount
                     </strong>
 
                     <small>
-                        Demo-data
+                        Fra dine registrerte ressurser
                     </small>
 
                 </article>
@@ -923,11 +924,11 @@ else if (userRole == "ResourceProvider")
                     </span>
 
                     <strong class="provider-stat-success">
-                        1
+                        @Model.AvailableCount
                     </strong>
 
                     <small>
-                        Demo-data
+                        Fra dine registrerte ressurser
                     </small>
 
                 </article>
@@ -940,11 +941,11 @@ else if (userRole == "ResourceProvider")
                     </span>
 
                     <strong>
-                        1
+                        @Model.UnavailableCount
                     </strong>
 
                     <small>
-                        Demo-data
+                        Fra dine registrerte ressurser
                     </small>
 
                 </article>
@@ -976,123 +977,45 @@ else if (userRole == "ResourceProvider")
                     </div>
 
 
-                    <span class="demo-badge">
-                        DEMO-DATA
-                    </span>
+                    <span>@Model.ResourceCount ressurser</span>
 
                 </div>
 
 
+                @* Displays the provider's database resources without changing the public dashboard. *@
+                @if (Model.UnspecifiedCount > 0)
+                {
+                    <p>Tilgjengelighet er ikke avklart for @Model.UnspecifiedCount ressurser.</p>
+                }
                 <div class="provider-resource-list">
-
-
-                    <article class="provider-resource-card">
-
-                        <div class="provider-resource-icon">
-                            A
-                        </div>
-
-
-                        <div class="provider-resource-content">
-
-                            <div class="provider-resource-heading">
-
-                                <div>
-
-                                    <span class="provider-resource-type">
-                                        STRØM / AGGREGAT
-                                    </span>
-
-                                    <h3>
-                                        Aggregat 25 kVA
-                                    </h3>
-
+                    @if (!Model.Resources.Any())
+                    {
+                        <p>Du har ingen registrerte ressurser ennå.</p>
+                    }
+                    @foreach (var resource in Model.Resources)
+                    {
+                        var typeName = Html.GetEnumSelectList<FirstWebAppInDocker.Models.ResourceType>()
+                            .FirstOrDefault(item => item.Value == ((int)resource.ResourceType).ToString())?.Text;
+                        var status = string.IsNullOrWhiteSpace(resource.Availability) ? "Ikke oppgitt" : resource.Availability;
+                        <article class="provider-resource-card">
+                            <div class="provider-resource-icon">R</div>
+                            <div class="provider-resource-content">
+                                <div class="provider-resource-heading">
+                                    <div>
+                                        <span class="provider-resource-type">@typeName</span>
+                                        <h3>@(string.IsNullOrWhiteSpace(resource.ResourceName) ? resource.Description : resource.ResourceName)</h3>
+                                    </div>
+                                    <span class="provider-resource-status @(string.Equals(status, "Tilgjengelig", StringComparison.OrdinalIgnoreCase) ? "available" : "unavailable")">@status</span>
                                 </div>
-
-
-                                <span class="provider-resource-status available">
-                                    Tilgjengelig
-                                </span>
-
-                            </div>
-
-
-                            <p>
-                                Dieseldrevet aggregat egnet
-                                for midlertidig strømforsyning.
-                            </p>
-
-
-                            <div class="provider-resource-meta">
-
-                                <span>
-                                    Kristiansand
-                                </span>
-
-                                <span>
-                                    ● Tilgjengelig nå
-                                </span>
-
-                            </div>
-
-                        </div>
-
-                    </article>
-
-
-                    <article class="provider-resource-card">
-
-                        <div class="provider-resource-icon">
-                            M
-                        </div>
-
-
-                        <div class="provider-resource-content">
-
-                            <div class="provider-resource-heading">
-
-                                <div>
-
-                                    <span class="provider-resource-type">
-                                        MASKINER
-                                    </span>
-
-                                    <h3>
-                                        Traktor med frontlaster
-                                    </h3>
-
+                                <p>@resource.Description</p>
+                                <div class="provider-resource-meta">
+                                    <span>@resource.Address</span>
+                                    <span>Antall: @resource.Quantity</span>
+                                    <span>@resource.Capacity</span>
                                 </div>
-
-
-                                <span class="provider-resource-status unavailable">
-                                    Ikke tilgjengelig
-                                </span>
-
                             </div>
-
-
-                            <p>
-                                Traktor med frontlaster som kan
-                                brukes til transport og rydding.
-                            </p>
-
-
-                            <div class="provider-resource-meta">
-
-                                <span>
-                                    Vennesla
-                                </span>
-
-                                <span>
-                                    ○ Ikke tilgjengelig
-                                </span>
-
-                            </div>
-
-                        </div>
-
-                    </article>
-
+                        </article>
+                    }
                 </div>
 
 

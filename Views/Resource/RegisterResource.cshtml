@@ -254,6 +254,38 @@
                 </div>
 
 
+                @* Collects the model fields needed to save a complete resource in MariaDB. *@
+                <div class="form-group">
+                    <label asp-for="ResourceName"></label>
+                    <input asp-for="ResourceName" type="text" class="form-control" />
+                    <span asp-validation-for="ResourceName" class="validation-message"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="Quantity"></label>
+                    <input asp-for="Quantity" type="number" class="form-control" />
+                    <span asp-validation-for="Quantity" class="validation-message"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="Capacity"></label>
+                    <input asp-for="Capacity" type="text" class="form-control" />
+                    <span asp-validation-for="Capacity" class="validation-message"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="Address"></label>
+                    <input asp-for="Address" type="text" class="form-control" />
+                    <span asp-validation-for="Address" class="validation-message"></span>
+                </div>
+                @* Fixed status values keep dashboard counts and overview filters consistent. *@
+                <div class="form-group">
+                    <label asp-for="Availability"></label>
+                    <select asp-for="Availability" class="form-control">
+                        <option value="">Ikke oppgitt</option>
+                        <option value="Tilgjengelig">Tilgjengelig</option>
+                        <option value="Ikke tilgjengelig">Ikke tilgjengelig</option>
+                    </select>
+                    <span asp-validation-for="Availability" class="validation-message"></span>
+                </div>
+
                 <!-- BESKRIVELSE -->
                 <div class="form-group">
 
