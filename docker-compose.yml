@@ -56,7 +56,6 @@ services:
 
     ports:
       - "8080:5216"
-      - "5216:5216"
 
 
 volumes:
