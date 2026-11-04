@@ -1,0 +1,37 @@
+/* Reuses ResourceOverview navigation dimensions and colors on every host page. */
+.portal-top-navigation {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+    gap: 6px; min-width: 0; font-family: inherit;
+}
+.portal-top-navigation a, .portal-top-navigation button {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 40px; padding: 10px 12px; border-radius: 8px;
+    color: var(--navy, #123047); font: inherit; font-size: .8rem;
+    font-weight: 700; line-height: 1.4; text-decoration: none; white-space: nowrap;
+}
+.portal-top-navigation a:hover { background: #eef5f8; }
+.portal-top-navigation a[aria-current="page"] {
+    background: var(--primary, #176b87); color: white;
+}
+.portal-top-navigation form { margin: 0; }
+.portal-top-navigation button {
+    border: 1px solid var(--border, #dfe4e8); background: white; cursor: pointer;
+}
+.portal-top-navigation button:hover { background: #f7f8f9; }
+.portal-top-navigation :focus-visible { outline: 3px solid var(--primary, #176b87); outline-offset: 3px; }
+/* Limits layout adjustments to headers that contain the shared menu. */
+.public-header.portal-navigation-header, .provider-header.portal-navigation-header,
+.header.portal-navigation-header, .site-header-inner.portal-navigation-header {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 16px; height: auto; min-height: 72px; padding-top: 16px; padding-bottom: 16px;
+}
+.portal-navigation-header > .portal-top-navigation { margin-inline: auto; }
+.portal-navigation-header > .public-header-status { order: 4; margin-left: auto; }
+/* Keeps all menu items visible rather than hiding them on mobile. */
+@media (max-width: 1100px) {
+    .portal-navigation-header > .portal-top-navigation { order: 5; flex-basis: 100%; }
+}
+@media (max-width: 600px) {
+    .portal-top-navigation { justify-content: flex-start; }
+    .portal-top-navigation a { flex: 1 1 auto; }
+}

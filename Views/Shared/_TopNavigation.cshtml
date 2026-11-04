@@ -1,0 +1,41 @@
+@{
+    var role = Context.Session.GetString("UserRole");
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+    var links = new List<(string Text, string Controller, string Action)>();
+
+    // Uses the existing session role to keep each user's menu separate.
+    if (role == "PublicActor")
+    {
+        links.AddRange(new[] {
+            ("Oversikt", "Home", "Dashboard"), ("Behov", "Need", "NeedOverview"),
+            ("Registrer behov", "Need", "RegisterNeed"), ("Ressurser", "Resource", "ResourceOverview"),
+            ("Profil", "Account", "Profile")
+        });
+    }
+    else if (role == "ResourceProvider")
+    {
+        links.AddRange(new[] {
+            ("Oversikt", "Home", "Dashboard"), ("Mine ressurser", "Resource", "ResourceOverview"),
+            ("Registrer ressurs", "Resource", "RegisterResource"), ("Profil", "Account", "Profile")
+        });
+    }
+}
+@if (links.Count > 0)
+{
+    @* Shares route links and active styling across pages without changing their content. *@
+    <nav class="portal-top-navigation" aria-label="Brukermeny">
+        @foreach (var link in links)
+        {
+            // Keeps editing a need under the overview menu item.
+            bool active = string.Equals(controller, link.Controller, StringComparison.OrdinalIgnoreCase)
+                && (string.Equals(action, link.Action, StringComparison.OrdinalIgnoreCase)
+                    || (link.Action == "NeedOverview" && action == "EditNeed"));
+            <a asp-controller="@link.Controller" asp-action="@link.Action" aria-current="@(active ? "page" : null)">@link.Text</a>
+        }
+        @* Keeps logout as a POST with the existing antiforgery protection. *@
+        <form asp-controller="Account" asp-action="Logout" method="post">
+            <button type="submit">Logg ut</button>
+        </form>
+    </nav>
+}

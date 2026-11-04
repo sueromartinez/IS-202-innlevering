@@ -9,3 +9,40 @@ KILDER;
 Microsoft. (2026). Copilot [AI assistent]. https://copilot.microsoft.com
 Anthropic. (2026). Claude [AI assistent]. https://claude.ai
 
+---
+
+# Kjøre prosjektet lokalt med Docker
+
+## Forutsetninger
+
+Før prosjektet startes må følgende være installert:
+
+- Git
+- Docker Desktop
+
+## 1. Klon repository
+
+git clone https://github.com/sueromartinez/IS-202-innlevering.git
+cd IS-202-innlevering
+
+## 2. Opprett lokale miljøvariabler
+
+Kopier eksempel-filen:
+
+Copy-Item .env.example .env
+
+Åpne `.env` og velg egne lokale passord.
+
+## 3. Start prosjektet
+
+docker compose up --build
+
+Applikasjonen åpnes på:
+
+http://localhost:8080
+
+Databasen og nødvendige tabeller opprettes automatisk.
+
+## Stoppe prosjektet
+
+docker compose down
