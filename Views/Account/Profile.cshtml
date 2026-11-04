@@ -1,3 +1,6 @@
+@model FirstWebAppInDocker.ViewModels.ProfileViewModel
+
+@using FirstWebAppInDocker.Data
 @using FirstWebAppInDocker.Models
 @using Microsoft.AspNetCore.Identity
 
@@ -6,18 +9,55 @@
 @{
     Layout = null;
 
-    var currentUser = await UserManager.GetUserAsync(User);
+    var currentUser =
+        await UserManager.GetUserAsync(User);
 
-    var userName = currentUser?.Name ?? "Ressursleverandør";
-    var email = currentUser?.Email ?? "Ikke registrert";
-    var phone = string.IsNullOrWhiteSpace(currentUser?.PhoneNumber)
-        ? "Ikke registrert"
-        : currentUser.PhoneNumber;
+    var roles =
+        currentUser is null
+            ? new List<string>()
+            : (await UserManager.GetRolesAsync(currentUser))
+                .ToList();
 
-    var createdAt = currentUser?.CreatedAt.ToLocalTime()
-        .ToString("dd.MM.yyyy");
+    var userName =
+        string.IsNullOrWhiteSpace(Model.Name)
+            ? currentUser?.Name ?? "Ressursleverandør"
+            : Model.Name;
 
-    var twoFactorEnabled = currentUser?.TwoFactorEnabled ?? false;
+    var createdAt =
+        currentUser?.CreatedAt
+            .ToLocalTime()
+            .ToString("dd.MM.yyyy")
+        ?? "Ukjent";
+
+    var twoFactorEnabled =
+        currentUser?.TwoFactorEnabled
+        ?? false;
+
+    string roleName;
+
+    if (
+        roles.Contains(
+            IdentitySeeder.AdminRole
+        )
+    )
+    {
+        roleName =
+            "Administrator";
+    }
+    else if (
+        roles.Contains(
+            IdentitySeeder.PublicActorRole
+        )
+    )
+    {
+        roleName =
+            "Offentlig aktør";
+    }
+    else
+    {
+        roleName =
+            "Privat ressursleverandør";
+    }
 }
 
 <!DOCTYPE html>
@@ -65,6 +105,13 @@
 
         a {
             text-decoration: none;
+        }
+
+
+        button,
+        input,
+        select {
+            font-family: inherit;
         }
 
 
@@ -176,9 +223,15 @@
         }
 
 
+        .logout-form {
+            margin: 0;
+        }
+
+
         .logout-button {
             padding: 10px 16px;
 
+            border: 0;
             border-radius: 8px;
 
             background: #123047;
@@ -186,6 +239,10 @@
 
             font-size: 14px;
             font-weight: 700;
+
+            cursor: pointer;
+
+            transition: 0.2s;
         }
 
 
@@ -368,6 +425,58 @@
 
 
         /* =========================================
+           MESSAGES
+           ========================================= */
+
+        .profile-success {
+            margin-bottom: 24px;
+
+            padding: 14px 16px;
+
+            border:
+                1px solid #b8e1d3;
+
+            border-radius: 10px;
+
+            background: #eaf8f3;
+
+            color: #08765c;
+
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+
+        .profile-error-summary {
+            margin-bottom: 24px;
+
+            color: #a12a1f;
+
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+
+        .profile-error-summary:empty {
+            display: none;
+        }
+
+
+        .profile-error-summary ul {
+            margin: 0;
+
+            padding: 14px 16px 14px 34px;
+
+            border:
+                1px solid #efc4bf;
+
+            border-radius: 10px;
+
+            background: #fff3f2;
+        }
+
+
+        /* =========================================
            PROFILE DETAILS
            ========================================= */
 
@@ -404,6 +513,8 @@
 
 
         .field-label {
+            padding-top: 11px;
+
             color: #77828b;
 
             font-size: 13px;
@@ -412,12 +523,89 @@
 
 
         .field-value {
+            display: flex;
+            align-items: center;
+
+            min-height: 42px;
+
             color: #17212b;
 
             font-size: 15px;
             font-weight: 700;
 
             word-break: break-word;
+        }
+
+
+        .field-help {
+            display: block;
+
+            margin-top: 6px;
+
+            color: #87929a;
+
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+
+        /* =========================================
+           FORM
+           ========================================= */
+
+        .profile-input,
+        .profile-select {
+            width: 100%;
+
+            padding: 11px 13px;
+
+            border:
+                1px solid #d4dde1;
+
+            border-radius: 8px;
+
+            background: white;
+            color: #17212b;
+
+            font-size: 15px;
+
+            outline: none;
+
+            transition:
+                border-color 0.2s,
+                box-shadow 0.2s;
+        }
+
+
+        .profile-input:focus,
+        .profile-select:focus {
+            border-color: #168169;
+
+            box-shadow:
+                0 0 0 3px
+                rgba(22, 129, 105, 0.12);
+        }
+
+
+        .phone-group {
+            display: grid;
+
+            grid-template-columns:
+                120px minmax(0, 1fr);
+
+            gap: 10px;
+        }
+
+
+        .validation-message {
+            display: block;
+
+            margin-top: 6px;
+
+            color: #b42318;
+
+            font-size: 12px;
+            font-weight: 600;
         }
 
 
@@ -516,6 +704,8 @@
 
         .profile-actions {
             display: flex;
+            flex-wrap: wrap;
+
             gap: 12px;
 
             margin-top: 26px;
@@ -529,6 +719,7 @@
 
             padding: 12px 18px;
 
+            border: none;
             border-radius: 8px;
 
             background: #168169;
@@ -536,6 +727,10 @@
 
             font-size: 14px;
             font-weight: 800;
+
+            cursor: pointer;
+
+            transition: 0.2s;
         }
 
 
@@ -560,6 +755,8 @@
 
             font-size: 14px;
             font-weight: 800;
+
+            transition: 0.2s;
         }
 
 
@@ -631,8 +828,24 @@
             }
 
 
+            .field-label {
+                padding-top: 0;
+            }
+
+
+            .phone-group {
+                grid-template-columns: 1fr;
+            }
+
+
             .profile-actions {
                 flex-direction: column;
+            }
+
+
+            .primary-action,
+            .secondary-action {
+                width: 100%;
             }
 
         }
@@ -683,14 +896,24 @@
 
             </a>
 
-            <a
+
+            <form
                 asp-controller="Account"
                 asp-action="Logout"
-                class="logout-button">
+                method="post"
+                class="logout-form">
 
-                Logg ut
+                @Html.AntiForgeryToken()
 
-            </a>
+                <button
+                    type="submit"
+                    class="logout-button">
+
+                    Logg ut
+
+                </button>
+
+            </form>
 
         </div>
 
@@ -732,101 +955,210 @@
             </h2>
 
             <p class="section-description">
-                Informasjonen under hentes direkte fra
-                brukerkontoen din.
+                Oppdater navn, e-post og kontaktinformasjon.
+                Endringene lagres på brukerkontoen din.
             </p>
 
 
-            <div class="profile-fields">
-
-                <div class="profile-field">
-
-                    <span class="field-label">
-                        Navn
-                    </span>
-
-                    <span class="field-value">
-                        @userName
-                    </span>
-
+            @if (
+                TempData["ProfileSuccess"]
+                is string successMessage
+            )
+            {
+                <div class="profile-success">
+                    @successMessage
                 </div>
+            }
 
 
-                <div class="profile-field">
-
-                    <span class="field-label">
-                        E-post
-                    </span>
-
-                    <span class="field-value">
-                        @email
-                    </span>
-
-                </div>
-
-
-                <div class="profile-field">
-
-                    <span class="field-label">
-                        Telefonnummer
-                    </span>
-
-                    <span class="field-value">
-                        @phone
-                    </span>
-
-                </div>
-
-
-                <div class="profile-field">
-
-                    <span class="field-label">
-                        Brukertype
-                    </span>
-
-                    <span class="role-badge">
-                        Privat ressursleverandør
-                    </span>
-
-                </div>
-
-
-                <div class="profile-field">
-
-                    <span class="field-label">
-                        Medlem siden
-                    </span>
-
-                    <span class="field-value">
-                        @(createdAt ?? "Ukjent")
-                    </span>
-
-                </div>
-
+            <div
+                asp-validation-summary="ModelOnly"
+                class="profile-error-summary">
             </div>
 
 
-            <div class="profile-actions">
+            <form
+                asp-controller="Account"
+                asp-action="Profile"
+                method="post">
 
-                <a
-                    asp-controller="Dashboard"
-                    asp-action="Index"
-                    class="primary-action">
+                @Html.AntiForgeryToken()
 
-                    Tilbake til dashboard
 
-                </a>
+                <div class="profile-fields">
 
-                <a
-                    asp-controller="Resource"
-                    asp-action="ResourceOverview"
-                    class="secondary-action">
+                    <div class="profile-field">
 
-                    Mine ressurser
+                        <label
+                            asp-for="Name"
+                            class="field-label">
+                        </label>
 
-                </a>
+                        <div>
 
-            </div>
+                            <input
+                                asp-for="Name"
+                                class="profile-input"
+                                autocomplete="name" />
+
+                            <span
+                                asp-validation-for="Name"
+                                class="validation-message">
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="profile-field">
+
+                        <label
+                            asp-for="Email"
+                            class="field-label">
+                        </label>
+
+                        <div>
+
+                            <input
+                                asp-for="Email"
+                                class="profile-input"
+                                type="email"
+                                autocomplete="email" />
+
+                            <span
+                                asp-validation-for="Email"
+                                class="validation-message">
+                            </span>
+
+                            <span class="field-help">
+                                E-postadressen brukes også
+                                når du logger inn.
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="profile-field">
+
+                        <span class="field-label">
+                            Telefonnummer
+                        </span>
+
+                        <div>
+
+                            <div class="phone-group">
+
+                                <select
+                                    asp-for="PhoneCountryCode"
+                                    class="profile-select">
+
+                                    <option value="+47">
+                                        +47 Norge
+                                    </option>
+
+                                    <option value="+45">
+                                        +45 Danmark
+                                    </option>
+
+                                    <option value="+46">
+                                        +46 Sverige
+                                    </option>
+
+                                </select>
+
+
+                                <input
+                                    asp-for="PhoneNumber"
+                                    class="profile-input"
+                                    autocomplete="tel"
+                                    inputmode="tel"
+                                    placeholder="F.eks. 91234567" />
+
+                            </div>
+
+                            <span
+                                asp-validation-for="PhoneCountryCode"
+                                class="validation-message">
+                            </span>
+
+                            <span
+                                asp-validation-for="PhoneNumber"
+                                class="validation-message">
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="profile-field">
+
+                        <span class="field-label">
+                            Brukertype
+                        </span>
+
+                        <span class="field-value">
+
+                            <span class="role-badge">
+                                @roleName
+                            </span>
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="profile-field">
+
+                        <span class="field-label">
+                            Medlem siden
+                        </span>
+
+                        <span class="field-value">
+                            @createdAt
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="profile-actions">
+
+                    <button
+                        type="submit"
+                        class="primary-action">
+
+                        Lagre endringer
+
+                    </button>
+
+
+                    <a
+                        asp-controller="Dashboard"
+                        asp-action="Index"
+                        class="secondary-action">
+
+                        Tilbake til dashboard
+
+                    </a>
+
+
+                    <a
+                        asp-controller="Resource"
+                        asp-action="ResourceOverview"
+                        class="secondary-action">
+
+                        Mine ressurser
+
+                    </a>
+
+                </div>
+
+            </form>
 
         </section>
 

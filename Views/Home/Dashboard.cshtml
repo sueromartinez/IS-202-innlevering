@@ -1,4 +1,5 @@
 @model FirstWebAppInDocker.ViewModels.DashboardViewModel
+
 @using FirstWebAppInDocker.Models
 
 @{
@@ -23,8 +24,7 @@
 
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    />
+        content="width=device-width, initial-scale=1.0" />
 
     <title>
         @ViewData["Title"] - Beredskapsportal
@@ -35,11 +35,11 @@
     {
         <link
             rel="stylesheet"
-            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        />
+            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     }
 
 </head>
+
 
 <body>
 
@@ -48,14 +48,11 @@
 {
     <!-- =========================================
          OFFENTLIG AKTØR
-    ========================================== -->
+         ========================================= -->
 
     <div class="public-shell">
 
-
-        <!-- =====================================
-             HEADER
-        ====================================== -->
+        <!-- HEADER -->
 
         <header class="public-header">
 
@@ -74,8 +71,7 @@
                             d="M12 2L4 5.5V11c0 5.1 3.4 9.8 8 11 4.6-1.2 8-5.9 8-11V5.5L12 2Z"
                             fill="none"
                             stroke="currentColor"
-                            stroke-width="1.7"
-                        />
+                            stroke-width="1.7" />
 
                         <path
                             d="M8.5 12.5L11 15l4.8-6"
@@ -83,13 +79,11 @@
                             stroke="currentColor"
                             stroke-width="1.8"
                             stroke-linecap="round"
-                            stroke-linejoin="round"
-                        />
+                            stroke-linejoin="round" />
 
                     </svg>
 
                 </div>
-
 
                 <div>
 
@@ -135,6 +129,8 @@
                     asp-action="Logout"
                     method="post">
 
+                    @Html.AntiForgeryToken()
+
                     <button
                         type="submit"
                         class="logout-button">
@@ -150,19 +146,11 @@
         </header>
 
 
-        <!-- =====================================
-             INNHOLD
-        ====================================== -->
-
         <div class="public-layout">
 
-
-            <!-- =================================
-                 SIDEBAR
-            ================================== -->
+            <!-- SIDEBAR -->
 
             <aside class="public-sidebar">
-
 
                 <div class="sidebar-intro">
 
@@ -181,8 +169,6 @@
 
                 </div>
 
-
-                <!-- NAVIGASJON -->
 
                 <nav class="public-navigation">
 
@@ -209,7 +195,7 @@
                     </a>
 
 
-                     <a
+                    <a
                         asp-controller="Need"
                         asp-action="NeedOverview"
                         class="public-navigation-item">
@@ -258,8 +244,6 @@
 
                 </nav>
 
-
-                <!-- HURTIGHANDLINGER -->
 
                 <section class="quick-actions">
 
@@ -318,8 +302,6 @@
                 </section>
 
 
-                <!-- KARTFORKLARING -->
-
                 <section class="sidebar-legend">
 
                     <span class="eyebrow">
@@ -328,46 +310,26 @@
 
 
                     <div class="legend-row">
-
                         <span class="legend-dot urgent"></span>
-
-                        <span>
-                            Akutt behov
-                        </span>
-
+                        <span>Akutt behov</span>
                     </div>
 
 
                     <div class="legend-row">
-
                         <span class="legend-dot planned"></span>
-
-                        <span>
-                            Planlagt behov
-                        </span>
-
+                        <span>Planlagt behov</span>
                     </div>
 
 
                     <div class="legend-row">
-
                         <span class="legend-dot resource"></span>
-
-                        <span>
-                            Tilgjengelig ressurs
-                        </span>
-
+                        <span>Tilgjengelig ressurs</span>
                     </div>
 
 
                     <div class="legend-row">
-
                         <span class="legend-dot actor"></span>
-
-                        <span>
-                            Offentlig aktør
-                        </span>
-
+                        <span>Offentlig aktør</span>
                     </div>
 
                 </section>
@@ -375,14 +337,9 @@
             </aside>
 
 
-            <!-- =================================
-                 HOVEDOMRÅDE
-            ================================== -->
+            <!-- HOVEDOMRÅDE -->
 
             <main class="public-workspace">
-
-
-                <!-- TOPP -->
 
                 <div class="workspace-heading">
 
@@ -411,10 +368,7 @@
                 </div>
 
 
-                <!-- STATUS -->
-
                 <section class="public-status-grid">
-
 
                     <article class="public-stat">
 
@@ -487,12 +441,7 @@
                 </section>
 
 
-                <!-- =================================
-                     KART
-                ================================== -->
-
                 <section class="situation-card">
-
 
                     <div class="map-toolbar">
 
@@ -511,14 +460,12 @@
 
                         <div class="map-filters">
 
-
                             <label class="filter-option">
 
                                 <input
                                     type="checkbox"
                                     id="showResources"
-                                    checked
-                                />
+                                    checked />
 
                                 <span class="filter-dot resource"></span>
 
@@ -532,8 +479,7 @@
                                 <input
                                     type="checkbox"
                                     id="showUrgent"
-                                    checked
-                                />
+                                    checked />
 
                                 <span class="filter-dot urgent"></span>
 
@@ -547,8 +493,7 @@
                                 <input
                                     type="checkbox"
                                     id="showPlanned"
-                                    checked
-                                />
+                                    checked />
 
                                 <span class="filter-dot planned"></span>
 
@@ -562,8 +507,7 @@
                                 <input
                                     type="checkbox"
                                     id="showActors"
-                                    checked
-                                />
+                                    checked />
 
                                 <span class="filter-dot actor"></span>
 
@@ -581,12 +525,7 @@
                 </section>
 
 
-                <!-- =================================
-                     HURTIGOVERSIKT
-                ================================== -->
-
                 <section class="public-bottom-grid">
-
 
                     <article class="summary-card">
 
@@ -599,56 +538,48 @@
                         </h3>
 
 
-                        <div class="summary-item">
+                        @if (Model.Needs.Any())
+                        {
+                            @foreach (
+                                var need
+                                in Model.Needs
+                                    .OrderByDescending(
+                                        n => n.CreatedAt
+                                    )
+                                    .Take(2)
+                            )
+                            {
+                                <div class="summary-item">
 
-                            <span class="summary-icon urgent">
-                                !
-                            </span>
+                                    <span class="summary-icon urgent">
+                                        !
+                                    </span>
 
-                            <div>
+                                    <div>
 
-                                <strong>
-                                    Strømbehov
-                                </strong>
+                                        <strong>
+                                            @need.ResourceType
+                                        </strong>
 
-                                <p>
-                                    Aggregat nødvendig ved
-                                    midlertidig mottakssenter.
-                                </p>
+                                        <p>
+                                            @need.Description
+                                        </p>
 
-                                <small>
-                                    Kristiansand · Akutt
-                                </small>
+                                        <small>
+                                            Antall: @need.Quantity
+                                        </small>
 
-                            </div>
+                                    </div>
 
-                        </div>
-
-
-                        <div class="summary-item">
-
-                            <span class="summary-icon planned">
-                                !
-                            </span>
-
-                            <div>
-
-                                <strong>
-                                    Transportkapasitet
-                                </strong>
-
-                                <p>
-                                    Behov for kjøretøy til
-                                    planlagt transport.
-                                </p>
-
-                                <small>
-                                    Vennesla · Planlagt
-                                </small>
-
-                            </div>
-
-                        </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <p class="empty-text">
+                                Ingen registrerte behov.
+                            </p>
+                        }
 
                     </article>
 
@@ -664,55 +595,56 @@
                         </h3>
 
 
-                        <div class="summary-item">
+                        @if (Model.Resources.Any())
+                        {
+                            @foreach (
+                                var resourceItem
+                                in Model.Resources
+                                    .OrderByDescending(
+                                        r => r.CreatedAt
+                                    )
+                                    .Take(2)
+                            )
+                            {
+                                <div class="summary-item">
 
-                            <span class="summary-icon resource">
-                                A
-                            </span>
+                                    <span class="summary-icon resource">
+                                        R
+                                    </span>
 
-                            <div>
+                                    <div>
 
-                                <strong>
-                                    Aggregat 25 kVA
-                                </strong>
+                                        <strong>
+                                            @(string.IsNullOrWhiteSpace(
+                                                resourceItem.ResourceName
+                                            )
+                                                ? resourceItem.ResourceType.ToString()
+                                                : resourceItem.ResourceName)
+                                        </strong>
 
-                                <p>
-                                    Midlertidig strømforsyning.
-                                </p>
+                                        <p>
+                                            @resourceItem.Description
+                                        </p>
 
-                                <small>
-                                    Kristiansand · Tilgjengelig
-                                </small>
+                                        <small>
+                                            @(string.IsNullOrWhiteSpace(
+                                                resourceItem.Address
+                                            )
+                                                ? "Plassering registrert i kart"
+                                                : resourceItem.Address)
+                                        </small>
 
-                            </div>
+                                    </div>
 
-                        </div>
-
-
-                        <div class="summary-item">
-
-                            <span class="summary-icon resource">
-                                T
-                            </span>
-
-                            <div>
-
-                                <strong>
-                                    Transport
-                                </strong>
-
-                                <p>
-                                    Kjøretøy tilgjengelig for
-                                    transportoppdrag.
-                                </p>
-
-                                <small>
-                                    Kristiansand · Tilgjengelig
-                                </small>
-
-                            </div>
-
-                        </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <p class="empty-text">
+                                Ingen registrerte ressurser.
+                            </p>
+                        }
 
 
                         <a
@@ -740,16 +672,18 @@ else if (userRole == "ResourceProvider")
 {
     <!-- =========================================
          RESSURSLEVERANDØR
-    ========================================== -->
+         ========================================= -->
 
     <div class="provider-shell">
-
 
         <!-- HEADER -->
 
         <header class="provider-header">
 
-            <div class="provider-brand">
+            <a
+                asp-controller="Home"
+                asp-action="Dashboard"
+                class="provider-brand">
 
                 <div class="brand-icon">
 
@@ -761,8 +695,7 @@ else if (userRole == "ResourceProvider")
                             d="M12 2L4 5.5V11c0 5.1 3.4 9.8 8 11 4.6-1.2 8-5.9 8-11V5.5L12 2Z"
                             fill="none"
                             stroke="currentColor"
-                            stroke-width="1.7"
-                        />
+                            stroke-width="1.7" />
 
                         <path
                             d="M8.5 12.5L11 15l4.8-6"
@@ -770,8 +703,7 @@ else if (userRole == "ResourceProvider")
                             stroke="currentColor"
                             stroke-width="1.8"
                             stroke-linecap="round"
-                            stroke-linejoin="round"
-                        />
+                            stroke-linejoin="round" />
 
                     </svg>
 
@@ -790,7 +722,72 @@ else if (userRole == "ResourceProvider")
 
                 </div>
 
-            </div>
+            </a>
+
+
+            <!-- SAMME NAVIGASJON SOM PÅ MINE RESSURSER -->
+
+            <nav class="provider-navigation">
+
+                <a
+                    asp-controller="Home"
+                    asp-action="Dashboard"
+                    class="provider-nav-link active">
+
+                    Oversikt
+
+                </a>
+
+
+                <a
+                    asp-controller="Resource"
+                    asp-action="ResourceOverview"
+                    class="provider-nav-link">
+
+                    Mine ressurser
+
+                </a>
+
+
+                <a
+                    asp-controller="Resource"
+                    asp-action="RegisterResource"
+                    class="provider-nav-link">
+
+                    Registrer ressurs
+
+                </a>
+
+
+                <a
+                    asp-controller="Account"
+                    asp-action="Profile"
+                    class="provider-nav-link">
+
+                    Profil
+
+                </a>
+
+
+                <form
+                    asp-controller="Account"
+                    asp-action="Logout"
+                    method="post"
+                    class="provider-nav-logout">
+
+                    @Html.AntiForgeryToken()
+
+                    <button
+                        type="submit"
+                        class="provider-nav-link provider-logout-button">
+
+                        Logg ut
+
+                    </button>
+
+                </form>
+
+            </nav>
 
 
             <div class="provider-user">
@@ -807,22 +804,6 @@ else if (userRole == "ResourceProvider")
 
                 </div>
 
-
-                <form
-                    asp-controller="Account"
-                    asp-action="Logout"
-                    method="post">
-
-                    <button
-                        type="submit"
-                        class="logout-button">
-
-                        Logg ut
-
-                    </button>
-
-                </form>
-
             </div>
 
         </header>
@@ -831,7 +812,6 @@ else if (userRole == "ResourceProvider")
         <!-- MAIN -->
 
         <main class="provider-main">
-
 
             <!-- HERO -->
 
@@ -896,9 +876,7 @@ else if (userRole == "ResourceProvider")
 
             <!-- STATUS -->
 
-            @* Counts only resources loaded for this provider, including an explicit unknown status. *@
             <section class="provider-status-grid">
-
 
                 <article class="provider-stat">
 
@@ -977,45 +955,162 @@ else if (userRole == "ResourceProvider")
                     </div>
 
 
-                    <span>@Model.ResourceCount ressurser</span>
+                    <span>
+                        @Model.ResourceCount ressurser
+                    </span>
 
                 </div>
 
 
-                @* Displays the provider's database resources without changing the public dashboard. *@
                 @if (Model.UnspecifiedCount > 0)
                 {
-                    <p>Tilgjengelighet er ikke avklart for @Model.UnspecifiedCount ressurser.</p>
+                    <p class="availability-warning">
+                        Tilgjengelighet er ikke avklart for
+                        @Model.UnspecifiedCount ressurser.
+                    </p>
                 }
+
+
                 <div class="provider-resource-list">
+
                     @if (!Model.Resources.Any())
                     {
-                        <p>Du har ingen registrerte ressurser ennå.</p>
+                        <div class="provider-empty">
+
+                            <strong>
+                                Ingen registrerte ressurser
+                            </strong>
+
+                            <p>
+                                Du har ingen registrerte ressurser ennå.
+                            </p>
+
+                            <a
+                                asp-controller="Resource"
+                                asp-action="RegisterResource">
+
+                                Registrer din første ressurs
+
+                            </a>
+
+                        </div>
                     }
-                    @foreach (var resource in Model.Resources)
+
+
+                    @foreach (var resourceItem in Model.Resources)
                     {
-                        var typeName = Html.GetEnumSelectList<FirstWebAppInDocker.Models.ResourceType>()
-                            .FirstOrDefault(item => item.Value == ((int)resource.ResourceType).ToString())?.Text;
-                        var status = string.IsNullOrWhiteSpace(resource.Availability) ? "Ikke oppgitt" : resource.Availability;
+                        var typeName =
+                            Html.GetEnumSelectList<ResourceType>()
+                                .FirstOrDefault(
+                                    item =>
+                                        item.Value
+                                        ==
+                                        ((int)resourceItem.ResourceType)
+                                            .ToString()
+                                )?.Text
+                            ??
+                            resourceItem.ResourceType.ToString();
+
+                        var status =
+                            string.IsNullOrWhiteSpace(
+                                resourceItem.Availability
+                            )
+                                ? "Ikke oppgitt"
+                                : resourceItem.Availability;
+
+                        bool available =
+                            string.Equals(
+                                status,
+                                "Tilgjengelig",
+                                StringComparison.OrdinalIgnoreCase
+                            );
+
+
                         <article class="provider-resource-card">
-                            <div class="provider-resource-icon">R</div>
-                            <div class="provider-resource-content">
-                                <div class="provider-resource-heading">
-                                    <div>
-                                        <span class="provider-resource-type">@typeName</span>
-                                        <h3>@(string.IsNullOrWhiteSpace(resource.ResourceName) ? resource.Description : resource.ResourceName)</h3>
-                                    </div>
-                                    <span class="provider-resource-status @(string.Equals(status, "Tilgjengelig", StringComparison.OrdinalIgnoreCase) ? "available" : "unavailable")">@status</span>
-                                </div>
-                                <p>@resource.Description</p>
-                                <div class="provider-resource-meta">
-                                    <span>@resource.Address</span>
-                                    <span>Antall: @resource.Quantity</span>
-                                    <span>@resource.Capacity</span>
-                                </div>
+
+                            <div class="provider-resource-icon">
+                                R
                             </div>
+
+
+                            <div class="provider-resource-content">
+
+                                <div class="provider-resource-heading">
+
+                                    <div>
+
+                                        <span class="provider-resource-type">
+                                            @typeName
+                                        </span>
+
+                                        <h3>
+                                            @(string.IsNullOrWhiteSpace(
+                                                resourceItem.ResourceName
+                                            )
+                                                ? resourceItem.Description
+                                                : resourceItem.ResourceName)
+                                        </h3>
+
+                                    </div>
+
+
+                                    <span
+                                        class="
+                                            provider-resource-status
+                                            @(available
+                                                ? "available"
+                                                : "unavailable")
+                                        ">
+
+                                        @status
+
+                                    </span>
+
+                                </div>
+
+
+                                <p>
+                                    @resourceItem.Description
+                                </p>
+
+
+                                <div class="provider-resource-meta">
+
+                                    @if (
+                                        !string.IsNullOrWhiteSpace(
+                                            resourceItem.Address
+                                        )
+                                    )
+                                    {
+                                        <span>
+                                            @resourceItem.Address
+                                        </span>
+                                    }
+
+
+                                    <span>
+                                        Antall: @resourceItem.Quantity
+                                    </span>
+
+
+                                    @if (
+                                        !string.IsNullOrWhiteSpace(
+                                            resourceItem.Capacity
+                                        )
+                                    )
+                                    {
+                                        <span>
+                                            @resourceItem.Capacity
+                                        </span>
+                                    }
+
+                                </div>
+
+                            </div>
+
                         </article>
                     }
+
                 </div>
 
 
@@ -1125,6 +1220,8 @@ else
             asp-action="Logout"
             method="post">
 
+            @Html.AntiForgeryToken()
+
             <button type="submit">
                 Logg ut
             </button>
@@ -1135,11 +1232,12 @@ else
 }
 
 
+
 <style>
 
     /* =========================================
        FELLES
-    ========================================= */
+       ========================================= */
 
     :root {
         --navy: #102d43;
@@ -1170,8 +1268,14 @@ else
     html,
     body {
         margin: 0;
-
         min-height: 100%;
+    }
+
+
+    body {
+        min-height: 100vh;
+
+        overflow-x: hidden;
 
         color: var(--text);
 
@@ -1186,21 +1290,15 @@ else
     }
 
 
-    body {
-        min-height: 100vh;
-
-        overflow-x: hidden;
-    }
-
-
     a {
         color: inherit;
-
         text-decoration: none;
     }
 
 
-    button {
+    button,
+    input,
+    select {
         font: inherit;
     }
 
@@ -1291,9 +1389,16 @@ else
     }
 
 
+    .empty-text {
+        color: var(--secondary);
+
+        font-size: 0.68rem;
+    }
+
+
     /* =========================================
        OFFENTLIG HEADER
-    ========================================= */
+       ========================================= */
 
     .public-header {
         height: 72px;
@@ -1418,7 +1523,7 @@ else
 
     /* =========================================
        PUBLIC LAYOUT
-    ========================================= */
+       ========================================= */
 
     .public-layout {
         min-height:
@@ -1430,10 +1535,6 @@ else
             310px minmax(0, 1fr);
     }
 
-
-    /* =========================================
-       SIDEBAR
-    ========================================= */
 
     .public-sidebar {
         padding:
@@ -1474,8 +1575,6 @@ else
         line-height: 1.55;
     }
 
-
-    /* NAV */
 
     .public-navigation {
         display: flex;
@@ -1522,15 +1621,8 @@ else
     }
 
 
-    .public-navigation-item:not(.disabled):hover {
+    .public-navigation-item:hover {
         background: #f5f7f8;
-    }
-
-
-    .public-navigation-item.disabled {
-        opacity: 0.55;
-
-        cursor: not-allowed;
     }
 
 
@@ -1568,8 +1660,6 @@ else
     }
 
 
-    /* QUICK */
-
     .quick-actions {
         padding-top: 24px;
 
@@ -1606,11 +1696,6 @@ else
         border-radius: 9px;
 
         text-align: left;
-    }
-
-
-    button.quick-action {
-        font: inherit;
     }
 
 
@@ -1653,13 +1738,6 @@ else
         background: white;
     }
 
-
-    .disabled-action {
-        opacity: 0.6;
-    }
-
-
-    /* LEGEND */
 
     .sidebar-legend {
         margin-top: 30px;
@@ -1723,8 +1801,8 @@ else
 
 
     /* =========================================
-       WORKSPACE
-    ========================================= */
+       PUBLIC WORKSPACE
+       ========================================= */
 
     .public-workspace {
         min-width: 0;
@@ -1769,8 +1847,6 @@ else
         line-height: 1.55;
     }
 
-
-    /* STATUS */
 
     .public-status-grid {
         display: grid;
@@ -1837,8 +1913,8 @@ else
 
 
     /* =========================================
-       MAP CARD
-    ========================================= */
+       MAP
+       ========================================= */
 
     .situation-card {
         overflow: hidden;
@@ -1927,10 +2003,6 @@ else
             1px solid #e8ecee;
     }
 
-
-    /* =========================================
-       BOTTOM CARDS
-    ========================================= */
 
     .public-bottom-grid {
         display: grid;
@@ -2040,8 +2112,8 @@ else
 
 
     /* =========================================
-       PROVIDER
-    ========================================= */
+       RESOURCE PROVIDER
+       ========================================= */
 
     .provider-shell {
         min-height: 100vh;
@@ -2050,12 +2122,22 @@ else
     }
 
 
-    .provider-header {
-        min-height: 72px;
+    /*
+        Samme headerstruktur som på
+        ressursoversikten.
+    */
 
-        display: flex;
+    .provider-header {
+        min-height: 84px;
+
+        display: grid;
+
+        grid-template-columns:
+            1fr auto 1fr;
+
         align-items: center;
-        justify-content: space-between;
+
+        gap: 28px;
 
         padding:
             0 max(
@@ -2075,6 +2157,10 @@ else
         align-items: center;
 
         gap: 12px;
+
+        justify-self: start;
+
+        color: inherit;
     }
 
 
@@ -2101,11 +2187,96 @@ else
     }
 
 
-    .provider-user {
+    /* =========================================
+       PROVIDER NAVIGATION
+       ========================================= */
+
+    .provider-navigation {
         display: flex;
         align-items: center;
 
+        gap: 7px;
+
+        justify-self: center;
+    }
+
+
+    .provider-nav-link {
+        min-height: 43px;
+
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        padding:
+            0 15px;
+
+        border:
+            1px solid transparent;
+
+        border-radius: 8px;
+
+        color: var(--navy);
+
+        background: transparent;
+
+        font-size: 0.72rem;
+        font-weight: 800;
+
+        white-space: nowrap;
+
+        cursor: pointer;
+
+        transition:
+            background 0.2s,
+            color 0.2s,
+            border-color 0.2s;
+    }
+
+
+    .provider-nav-link:hover {
+        background: #f4f7f8;
+    }
+
+
+    .provider-nav-link.active {
+        color: white;
+
+        background: var(--primary);
+    }
+
+
+    .provider-nav-link.active:hover {
+        background: var(--primary-dark);
+    }
+
+
+    .provider-nav-logout {
+        margin: 0;
+    }
+
+
+    .provider-logout-button {
+        border-color:
+            var(--border);
+
+        background: white;
+    }
+
+
+    .provider-logout-button:hover {
+        background: #f4f7f8;
+    }
+
+
+    .provider-user {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+
         gap: 17px;
+
+        justify-self: end;
 
         text-align: right;
     }
@@ -2129,11 +2300,6 @@ else
     }
 
 
-    .provider-user form {
-        margin: 0;
-    }
-
-
     .provider-main {
         width:
             min(
@@ -2149,7 +2315,9 @@ else
     }
 
 
-    /* HERO */
+    /* =========================================
+       PROVIDER HERO
+       ========================================= */
 
     .provider-hero {
         display: grid;
@@ -2293,7 +2461,9 @@ else
     }
 
 
-    /* PROVIDER STATUS */
+    /* =========================================
+       PROVIDER STATUS
+       ========================================= */
 
     .provider-status-grid {
         display: grid;
@@ -2350,7 +2520,9 @@ else
     }
 
 
-    /* PROVIDER RESOURCES */
+    /* =========================================
+       PROVIDER RESOURCES
+       ========================================= */
 
     .provider-resources {
         padding:
@@ -2394,6 +2566,20 @@ else
         color: var(--secondary);
 
         font-size: 0.68rem;
+    }
+
+
+    .availability-warning {
+        padding:
+            12px 14px;
+
+        border-radius: 8px;
+
+        color: #966817;
+
+        background: #fff4d6;
+
+        font-size: 0.65rem;
     }
 
 
@@ -2512,6 +2698,7 @@ else
 
     .provider-resource-meta {
         display: flex;
+        flex-wrap: wrap;
 
         gap: 18px;
 
@@ -2533,7 +2720,48 @@ else
     }
 
 
-    /* PROVIDER HELP */
+    .provider-empty {
+        padding:
+            32px;
+
+        border:
+            1px dashed var(--border);
+
+        border-radius: 11px;
+
+        text-align: center;
+
+        color: var(--secondary);
+    }
+
+
+    .provider-empty strong {
+        display: block;
+
+        color: var(--navy);
+    }
+
+
+    .provider-empty p {
+        font-size: 0.68rem;
+    }
+
+
+    .provider-empty a {
+        display: inline-flex;
+
+        margin-top: 8px;
+
+        color: var(--primary);
+
+        font-size: 0.68rem;
+        font-weight: 800;
+    }
+
+
+    /* =========================================
+       PROVIDER HELP
+       ========================================= */
 
     .provider-help {
         display: grid;
@@ -2609,7 +2837,7 @@ else
 
     /* =========================================
        UKJENT ROLLE
-    ========================================= */
+       ========================================= */
 
     .unknown-role {
         max-width: 600px;
@@ -2626,9 +2854,35 @@ else
 
     /* =========================================
        RESPONSIVE
-    ========================================= */
+       ========================================= */
 
-    @@media (max-width: 1050px) {
+    @@media (max-width: 1100px) {
+
+        .provider-header {
+            grid-template-columns:
+                auto 1fr;
+
+            padding:
+                12px 24px;
+        }
+
+
+        .provider-user {
+            justify-self: end;
+        }
+
+
+        .provider-navigation {
+            grid-column:
+                1 / -1;
+
+            width: 100%;
+
+            justify-content: center;
+
+            padding-bottom: 8px;
+        }
+
 
         .public-layout {
             grid-template-columns:
@@ -2750,11 +3004,6 @@ else
         }
 
 
-        .public-navigation-item.disabled {
-            display: none;
-        }
-
-
         .public-workspace {
             padding:
                 22px 12px;
@@ -2794,13 +3043,52 @@ else
 
 
         .provider-header {
+            grid-template-columns:
+                1fr;
+
             padding:
                 12px 16px;
         }
 
 
-        .provider-user > div {
+        .provider-brand {
+            justify-self: start;
+        }
+
+
+        .provider-user {
             display: none;
+        }
+
+
+        .provider-navigation {
+            grid-column:
+                1;
+
+            width: 100%;
+
+            overflow-x: auto;
+
+            justify-content: flex-start;
+
+            padding-bottom: 4px;
+
+            scrollbar-width: none;
+        }
+
+
+        .provider-navigation::-webkit-scrollbar {
+            display: none;
+        }
+
+
+        .provider-nav-link {
+            flex-shrink: 0;
+
+            min-height: 40px;
+
+            padding:
+                0 12px;
         }
 
 
@@ -2843,6 +3131,7 @@ else
 </style>
 
 
+
 @if (userRole == "PublicActor")
 {
     <script
@@ -2850,6 +3139,7 @@ else
     </script>
 
     <script src="~/js/kartverket.js"></script>
+
 
     <script>
 
@@ -2870,13 +3160,10 @@ else
                     );
 
 
-                    addKartverketLayers(map);
+                addKartverketLayers(
+                    map
+                );
 
-
-                /*
-                 * Separate lag gjør at brukeren
-                 * kan skru kategorier av og på.
-                 */
 
                 const resourceLayer =
                     L.layerGroup()
@@ -2898,110 +3185,203 @@ else
                         .addTo(map);
 
 
-                function createMarker(
-                    color
+                                // Kartsymboler: symbolFor() gir SVG-ikonet som passer til typen behov eller ressurs,
+                // og createMarker() tegner kartpinnen med ikonet.
+                function symbolFor(type) {
+                    const icons = {
+                        Transport: "<path d='M1 3h15v13H1z'/><path d='M16 8h4l3 3v5h-7z'/><circle cx='5.5' cy='18.5' r='2.5'/><circle cx='18.5' cy='18.5' r='2.5'/>",
+                        Drone: "<circle cx='12' cy='12' r='3'/><circle cx='5' cy='5' r='2.5'/><circle cx='19' cy='5' r='2.5'/><circle cx='5' cy='19' r='2.5'/><circle cx='19' cy='19' r='2.5'/><path d='M7 7l3 3M17 7l-3 3M7 17l3-3M17 17l-3-3'/>",
+                        Generator: "<polygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'/>",
+                        Machinery: "<path d='M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z'/>",
+                        CommunicationEquipment: "<circle cx='12' cy='12' r='2'/><path d='M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14'/>",
+                        Personnel: "<path d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/><circle cx='9' cy='7' r='4'/><path d='M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'/>",
+                        Premises: "<path d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/><polyline points='9 22 9 12 15 12 15 22'/>",
+                        SandAndGravel: "<polygon points='12 2 2 7 12 12 22 7 12 2'/><polyline points='2 17 12 22 22 17'/><polyline points='2 12 12 17 22 12'/>",
+                        Boat: "<circle cx='12' cy='5' r='3'/><line x1='12' y1='22' x2='12' y2='8'/><path d='M5 12H2a10 10 0 0 0 20 0h-3'/>",
+                        Other: "<circle cx='12' cy='12' r='10'/><line x1='12' y1='8' x2='12' y2='12'/><line x1='12' y1='16' x2='12.01' y2='16'/>"
+                    };
+                    return icons[type] || icons.Other;
+                }
+
+                function createMarker(color, type) {
+                    const svg = "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='" + color + "' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'>" + symbolFor(type) + "</svg>";
+                    return L.divIcon({
+                        className: "custom-map-marker",
+                        html: "<div style='position:relative;width:50px;height:62px;'><div style='position:absolute;left:0;top:0;width:50px;height:50px;box-sizing:border-box;border:3px solid white;border-radius:50% 50% 50% 8px;transform:rotate(-45deg);background:" + color + ";box-shadow:0 5px 14px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;'><div style='transform:rotate(45deg);width:36px;height:36px;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center;'>" + svg + "</div></div></div>",
+                        iconSize: [50, 62],
+                        iconAnchor: [25, 60],
+                        popupAnchor: [0, -54]
+                    });
+                }
+
+
+                const needs =
+                    @Json.Serialize(
+                        Model.Needs.Select(
+                            n => new
+                            {
+                                description =
+                                    n.Description,
+
+                                type =
+                                    n.ResourceType.ToString(),
+
+                                quantity =
+                                    n.Quantity,
+
+                                acute =
+                                    n.Priority == NeedPriority.Acute,
+
+                                lat =
+                                    n.Latitude,
+
+                                lng =
+                                    n.Longitude
+                            }
+                        )
+                    );
+
+
+                const resources =
+                    @Json.Serialize(
+                        Model.Resources.Select(
+                            r => new
+                            {
+                                name =
+                                    r.ResourceName,
+
+                                type =
+                                    r.ResourceType.ToString(),
+
+                                description =
+                                    r.Description,
+
+                                lat =
+                                    r.Latitude,
+
+                                lng =
+                                    r.Longitude
+                            }
+                        )
+                    );
+
+
+                function escapeHtml(
+                    text
                 ) {
 
-                    return L.divIcon({
-                        className:
-                            "custom-map-marker",
+                    const div =
+                        document.createElement(
+                            "div"
+                        );
 
-                        html:
-                            `
-                                <div
-                                    style="
-                                        width:30px;
-                                        height:30px;
-                                        border:4px solid white;
-                                        border-radius:50% 50% 50% 7px;
-                                        transform:rotate(-45deg);
-                                        background:${color};
-                                        box-shadow:0 4px 12px rgba(0,0,0,.25);
-                                    ">
-                                </div>
-                            `,
+                    div.textContent =
+                        text ?? "";
 
-                        iconSize:
-                            [30, 34],
-
-                        iconAnchor:
-                            [15, 32],
-
-                        popupAnchor:
-                            [0, -27]
-                    });
+                    return div.innerHTML;
 
                 }
 
 
-                /*
- * Ekte data fra databasen.
- */
-const needs = @Json.Serialize(Model.Needs.Select(n => new { description = n.Description, type = n.ResourceType.ToString(), quantity = n.Quantity, acute = n.Priority == NeedPriority.Acute, lat = n.Latitude, lng = n.Longitude }));
+                needs.forEach(
+                    function (need) {
 
-const resources = @Json.Serialize(Model.Resources.Select(r => new { type = r.ResourceType.ToString(), description = r.Description, lat = r.Latitude, lng = r.Longitude }));
+                        const layer =
+                            need.acute
+                                ? urgentLayer
+                                : plannedLayer;
 
-// SVG_SYMBOL_V3
-// Kartsymboler: symbolFor() gir SVG-ikonet som passer til typen behov eller ressurs,
-// og createSymbolMarker() tegner kartpinnen med ikonet (og eventuelt et nummer).
-function symbolFor(type) {
-    const icons = {
-        Transport: "<path d='M1 3h15v13H1z'/><path d='M16 8h4l3 3v5h-7z'/><circle cx='5.5' cy='18.5' r='2.5'/><circle cx='18.5' cy='18.5' r='2.5'/>",
-        Drone: "<circle cx='12' cy='12' r='3'/><circle cx='5' cy='5' r='2.5'/><circle cx='19' cy='5' r='2.5'/><circle cx='5' cy='19' r='2.5'/><circle cx='19' cy='19' r='2.5'/><path d='M7 7l3 3M17 7l-3 3M7 17l3-3M17 17l-3-3'/>",
-        Generator: "<polygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'/>",
-        Machinery: "<path d='M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z'/>",
-        CommunicationEquipment: "<circle cx='12' cy='12' r='2'/><path d='M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14'/>",
-        Personnel: "<path d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/><circle cx='9' cy='7' r='4'/><path d='M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'/>",
-        Premises: "<path d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/><polyline points='9 22 9 12 15 12 15 22'/>",
-        SandAndGravel: "<polygon points='12 2 2 7 12 12 22 7 12 2'/><polyline points='2 17 12 22 22 17'/><polyline points='2 12 12 17 22 12'/>",
-        Boat: "<circle cx='12' cy='5' r='3'/><line x1='12' y1='22' x2='12' y2='8'/><path d='M5 12H2a10 10 0 0 0 20 0h-3'/>",
-        Other: "<circle cx='12' cy='12' r='10'/><line x1='12' y1='8' x2='12' y2='12'/><line x1='12' y1='16' x2='12.01' y2='16'/>"
-    };
-    return icons[type] || icons.Other;
-}
 
-function createSymbolMarker(color, symbol) {
-    const svg = "<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 24 24' fill='none' stroke='" + color + "' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'>" + symbol + "</svg>";
-    return L.divIcon({
-        className: "custom-map-marker",
-        html: "<div style='width:56px;height:56px;border:3px solid white;border-radius:50% 50% 50% 8px;transform:rotate(-45deg);background:" + color + ";box-shadow:0 5px 14px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;'><div style='transform:rotate(45deg);width:40px;height:40px;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center;'>" + svg + "</div></div>",
-        iconSize: [56, 62],
-        iconAnchor: [28, 60],
-        popupAnchor: [0, -54]
-    });
-}
+                        const color =
+                            need.acute
+                                ? "#d34b4b"
+                                : "#d99a24";
 
-function escapeHtml(text) {
-    const div = document.createElement("div");
-    div.textContent = text;
-    return div.innerHTML;
-}
 
-needs.forEach(function (need) {
-    const layer = need.acute ? urgentLayer : plannedLayer;
-    const color = need.acute ? "#d34b4b" : "#d99a24";
+                        L.marker(
+                            [
+                                need.lat,
+                                need.lng
+                            ],
+                            {
+                                icon:
+                                    createMarker(color, need.type)
+                            }
+                        )
+                        .bindPopup(
+                            "<strong>"
+                            +
+                            escapeHtml(
+                                need.type
+                            )
+                            +
+                            " ("
+                            +
+                            need.quantity
+                            +
+                            ")</strong><br>"
+                            +
+                            escapeHtml(
+                                need.description
+                            )
+                            +
+                            "<br>"
+                            +
+                            (
+                                need.acute
+                                    ? "Prioritet: Akutt"
+                                    : "Prioritet: Planlagt"
+                            )
+                        )
+                        .addTo(
+                            layer
+                        );
 
-    L.marker([need.lat, need.lng], { icon: createSymbolMarker(color, symbolFor(need.type)) })
-        .bindPopup(
-            "<strong>" + escapeHtml(need.type) + " (" + need.quantity + ")</strong><br>" +
-            escapeHtml(need.description) + "<br>" +
-            (need.acute ? "Prioritet: Akutt" : "Prioritet: Planlagt")
-        )
-        .addTo(layer);
-});
+                    }
+                );
 
-resources.forEach(function (resource) {
-    L.marker([resource.lat, resource.lng], { icon: createSymbolMarker("#23855b", symbolFor(resource.type)) })
-        .bindPopup(
-            "<strong>" + escapeHtml(resource.type) + "</strong><br>" +
-            escapeHtml(resource.description) + "<br>Tilgjengelig ressurs"
-        )
-        .addTo(resourceLayer);
-});
 
-/*
-                 * FILTERE
-                 */
+                resources.forEach(
+                    function (resource) {
+
+                        const title =
+                            resource.name
+                            ||
+                            resource.type;
+
+
+                        L.marker(
+                            [
+                                resource.lat,
+                                resource.lng
+                            ],
+                            {
+                                icon:
+                                    createMarker("#23855b", resource.type)
+                            }
+                        )
+                        .bindPopup(
+                            "<strong>"
+                            +
+                            escapeHtml(
+                                title
+                            )
+                            +
+                            "</strong><br>"
+                            +
+                            escapeHtml(
+                                resource.description
+                            )
+                            +
+                            "<br>Registrert ressurs"
+                        )
+                        .addTo(
+                            resourceLayer
+                        );
+
+                    }
+                );
+
 
                 setupToggle(
                     "showResources",
@@ -3048,7 +3428,9 @@ resources.forEach(function (resource) {
                         "change",
                         function () {
 
-                            if (checkbox.checked)
+                            if (
+                                checkbox.checked
+                            )
                             {
                                 if (
                                     !map.hasLayer(
@@ -3080,11 +3462,6 @@ resources.forEach(function (resource) {
 
                 }
 
-
-                /*
-                 * Leaflet trenger noen ganger en
-                 * oppdatering når layouten er ferdig.
-                 */
 
                 window.setTimeout(
                     function () {
