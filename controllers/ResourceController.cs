@@ -72,7 +72,9 @@ public class ResourceController : Controller
     {
         if (!ModelState.IsValid)
         {
-            return View(model);
+            return View(
+                model
+            );
         }
 
 
@@ -83,7 +85,9 @@ public class ResourceController : Controller
                 "Velg type ressurs."
             );
 
-            return View(model);
+            return View(
+                model
+            );
         }
 
 
@@ -176,6 +180,13 @@ public class ResourceController : Controller
                 // =============================================
                 // OWNERSHIP
                 // =============================================
+                //
+                // OwnerUserId er den permanente
+                // koblingen mellom ressurs og bruker.
+                //
+                // OwnerEmail beholdes foreløpig
+                // for bakoverkompatibilitet.
+                //
 
                 OwnerUserId =
                     user.Id,
@@ -255,8 +266,36 @@ public class ResourceController : Controller
             );
 
 
-        // Restricts provider results in SQL
-        // before data is sent to the browser.
+        // =============================================
+        // LINK LEGACY RESOURCES
+        // =============================================
+        //
+        // Eldre ressurser kan være opprettet før
+        // OwnerUserId ble innført.
+        //
+        // Dersom en slik ressurs har samme
+        // OwnerEmail som den innloggede brukeren,
+        // kobles den nå permanent til brukerens
+        // Identity-ID.
+        //
+        // Dette gjør at ressursen fortsatt tilhører
+        // brukeren selv om e-postadressen endres.
+        //
+
+        if (
+            isResourceProvider
+            &&
+            !isPublicActor
+            &&
+            !isAdmin
+        )
+        {
+            await LinkLegacyResourcesToIdentityUserAsync(
+                user
+            );
+        }
+
+
         IQueryable<Resource> query =
             _dbContext.Resources
                 .AsNoTracking();
@@ -277,11 +316,15 @@ public class ResourceController : Controller
                     resource =>
                         resource.OwnerUserId
                             == user.Id
+
                         ||
+
                         (
                             resource.OwnerUserId
                                 == null
+
                             &&
+
                             resource.OwnerEmail
                                 == user.Email
                         )
@@ -353,6 +396,70 @@ public class ResourceController : Controller
         return View(
             resources
         );
+    }
+
+
+    // =========================================================
+    // LEGACY OWNERSHIP HELPER
+    // =========================================================
+
+    /// <summary>
+    /// Kobler eldre ressurser som bare har
+    /// OwnerEmail til brukerens permanente
+    /// ASP.NET Core Identity-ID.
+    ///
+    /// Dette er overgangslogikk for ressurser
+    /// som ble opprettet før OwnerUserId
+    /// ble innført.
+    /// </summary>
+    private async Task
+        LinkLegacyResourcesToIdentityUserAsync(
+            ApplicationUser user
+        )
+    {
+        if (
+            string.IsNullOrWhiteSpace(
+                user.Email
+            )
+        )
+        {
+            return;
+        }
+
+
+        List<Resource> legacyResources =
+            await _dbContext.Resources
+                .Where(
+                    resource =>
+                        resource.OwnerUserId
+                            == null
+
+                        &&
+
+                        resource.OwnerEmail
+                            == user.Email
+                )
+                .ToListAsync();
+
+
+        if (legacyResources.Count == 0)
+        {
+            return;
+        }
+
+
+        foreach (
+            Resource resource
+            in legacyResources
+        )
+        {
+            resource.OwnerUserId =
+                user.Id;
+        }
+
+
+        await _dbContext
+            .SaveChangesAsync();
     }
 
 

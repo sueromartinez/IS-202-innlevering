@@ -1,6 +1,7 @@
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
 using FirstWebAppInDocker.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,6 +19,7 @@ namespace FirstWebAppInDocker.Controllers;
 ///
 /// Session beholdes midlertidig fordi deler av
 /// eksisterende dashboard fortsatt bruker den.
+/// Identity er sannhetskilden for brukerdata.
 /// </summary>
 public class AccountController : Controller
 {
@@ -258,9 +260,6 @@ public class AccountController : Controller
         // Åpen registrering gir KUN
         // ResourceProvider.
         //
-        // PublicActor og Admin kan ikke
-        // velges av brukeren selv.
-        //
 
         IdentityResult roleResult =
             await _userManager.AddToRoleAsync(
@@ -297,10 +296,6 @@ public class AccountController : Controller
         }
 
 
-        // =========================
-        // SIGN IN
-        // =========================
-
         await _signInManager.SignInAsync(
             user,
             isPersistent: false
@@ -329,8 +324,6 @@ public class AccountController : Controller
     public async Task<IActionResult>
         DemoPublicActorLogin()
     {
-        // Logg ut eventuell eksisterende
-        // Identity-bruker først.
         await _signInManager.SignOutAsync();
 
 
@@ -371,10 +364,6 @@ public class AccountController : Controller
         }
 
 
-        // Dette er en midlertidig demo-knapp.
-        // Vi logger brukeren inn direkte uten
-        // passord fordi knappen kun representerer
-        // prosjektets testbruker.
         await _signInManager.SignInAsync(
             publicActor,
             isPersistent: false
@@ -436,53 +425,44 @@ public class AccountController : Controller
     // PROFILE
     // =========================
 
+    [Authorize]
     [HttpGet]
-    public IActionResult Profile()
+    public async Task<IActionResult> Profile()
     {
-        string? userEmail =
-            HttpContext.Session.GetString(
-                "UserEmail"
+        ApplicationUser? user =
+            await _userManager.GetUserAsync(
+                User
             );
 
 
-        if (
-            string.IsNullOrWhiteSpace(
-                userEmail
-            )
-        )
+        if (user is null)
         {
-            return RedirectToAction(
-                "Index",
-                "Home"
-            );
+            return Challenge();
         }
+
+
+        var phone =
+            SplitPhoneNumber(
+                user.PhoneNumber
+            );
 
 
         var model =
             new ProfileViewModel
             {
                 Name =
-                    HttpContext.Session.GetString(
-                        "UserName"
-                    )
-                    ?? string.Empty,
+                    user.Name,
 
                 Email =
-                    HttpContext.Session.GetString(
-                        "ContactEmail"
-                    )
-                    ?? userEmail,
+                    user.Email
+                    ?? user.UserName
+                    ?? string.Empty,
 
                 PhoneCountryCode =
-                    HttpContext.Session.GetString(
-                        "PhoneCountryCode"
-                    )
-                    ?? "+47",
+                    phone.CountryCode,
 
                 PhoneNumber =
-                    HttpContext.Session.GetString(
-                        "PhoneNumber"
-                    )
+                    phone.Number
             };
 
 
@@ -492,24 +472,22 @@ public class AccountController : Controller
     }
 
 
+    [Authorize]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Profile(
+    public async Task<IActionResult> Profile(
         ProfileViewModel model
     )
     {
-        if (
-            string.IsNullOrWhiteSpace(
-                HttpContext.Session.GetString(
-                    "UserEmail"
-                )
-            )
-        )
-        {
-            return RedirectToAction(
-                "Index",
-                "Home"
+        ApplicationUser? user =
+            await _userManager.GetUserAsync(
+                User
             );
+
+
+        if (user is null)
+        {
+            return Challenge();
         }
 
 
@@ -521,15 +499,174 @@ public class AccountController : Controller
         }
 
 
+        string newEmail =
+            model.Email.Trim();
+
+
+        string oldEmail =
+            user.Email
+            ?? user.UserName
+            ?? string.Empty;
+
+
+        bool emailChanged =
+            !string.Equals(
+                oldEmail,
+                newEmail,
+                StringComparison.OrdinalIgnoreCase
+            );
+
+
+        // =========================
+        // CHECK EMAIL
+        // =========================
+
+        if (emailChanged)
+        {
+            ApplicationUser? userWithEmail =
+                await _userManager.FindByEmailAsync(
+                    newEmail
+                );
+
+
+            if (
+                userWithEmail is not null
+                &&
+                userWithEmail.Id != user.Id
+            )
+            {
+                ModelState.AddModelError(
+                    nameof(ProfileViewModel.Email),
+                    "Det finnes allerede en bruker med denne e-postadressen."
+                );
+
+
+                return View(
+                    model
+                );
+            }
+
+
+            ApplicationUser? userWithUserName =
+                await _userManager.FindByNameAsync(
+                    newEmail
+                );
+
+
+            if (
+                userWithUserName is not null
+                &&
+                userWithUserName.Id != user.Id
+            )
+            {
+                ModelState.AddModelError(
+                    nameof(ProfileViewModel.Email),
+                    "Denne e-postadressen kan ikke brukes."
+                );
+
+
+                return View(
+                    model
+                );
+            }
+        }
+
+
+        // =========================
+        // UPDATE USER
+        // =========================
+
+        user.Name =
+            model.Name.Trim();
+
+
+        user.PhoneNumber =
+            BuildPhoneNumber(
+                model.PhoneCountryCode,
+                model.PhoneNumber
+            );
+
+
+        if (emailChanged)
+        {
+            // E-post brukes også som brukernavn
+            // i denne løsningen.
+            //
+            // Brukerens Id endres IKKE.
+
+            user.Email =
+                newEmail;
+
+            user.UserName =
+                newEmail;
+
+            // Hvis vi senere legger inn
+            // e-postbekreftelse, må den nye
+            // adressen bekreftes på nytt.
+            user.EmailConfirmed =
+                false;
+        }
+
+
+        IdentityResult updateResult =
+            await _userManager.UpdateAsync(
+                user
+            );
+
+
+        if (!updateResult.Succeeded)
+        {
+            foreach (
+                IdentityError error
+                in updateResult.Errors
+            )
+            {
+                ModelState.AddModelError(
+                    string.Empty,
+                    error.Description
+                );
+            }
+
+
+            return View(
+                model
+            );
+        }
+
+
+        // Oppdater innloggingscookien slik
+        // at Identity umiddelbart kjenner
+        // den nye brukerinformasjonen.
+        await _signInManager.RefreshSignInAsync(
+            user
+        );
+
+
+        // =========================
+        // SESSION COMPATIBILITY
+        // =========================
+        //
+        // Session beholdes midlertidig fordi
+        // eldre dashboardkode fortsatt bruker den.
+        //
+        // Identity er sannhetskilden.
+        //
+
         HttpContext.Session.SetString(
             "UserName",
-            model.Name.Trim()
+            user.Name
+        );
+
+
+        HttpContext.Session.SetString(
+            "UserEmail",
+            newEmail
         );
 
 
         HttpContext.Session.SetString(
             "ContactEmail",
-            model.Email.Trim()
+            newEmail
         );
 
 
@@ -569,6 +706,104 @@ public class AccountController : Controller
 
 
     // =========================
+    // PHONE HELPERS
+    // =========================
+
+    private static string? BuildPhoneNumber(
+        string countryCode,
+        string? phoneNumber
+    )
+    {
+        if (
+            string.IsNullOrWhiteSpace(
+                phoneNumber
+            )
+        )
+        {
+            return null;
+        }
+
+
+        string normalizedCountryCode =
+            countryCode.Trim();
+
+
+        string normalizedPhoneNumber =
+            phoneNumber
+                .Replace(
+                    " ",
+                    string.Empty
+                )
+                .Replace(
+                    "-",
+                    string.Empty
+                );
+
+
+        return
+            normalizedCountryCode
+            + normalizedPhoneNumber;
+    }
+
+
+    private static (
+        string CountryCode,
+        string? Number
+    ) SplitPhoneNumber(
+        string? phoneNumber
+    )
+    {
+        if (
+            string.IsNullOrWhiteSpace(
+                phoneNumber
+            )
+        )
+        {
+            return (
+                "+47",
+                null
+            );
+        }
+
+
+        string[] supportedCountryCodes =
+        {
+            "+47",
+            "+45",
+            "+46"
+        };
+
+
+        foreach (
+            string countryCode
+            in supportedCountryCodes
+        )
+        {
+            if (
+                phoneNumber.StartsWith(
+                    countryCode,
+                    StringComparison.Ordinal
+                )
+            )
+            {
+                return (
+                    countryCode,
+                    phoneNumber[
+                        countryCode.Length..
+                    ]
+                );
+            }
+        }
+
+
+        return (
+            "+47",
+            phoneNumber
+        );
+    }
+
+
+    // =========================
     // ROLE HELPER
     // =========================
 
@@ -584,9 +819,6 @@ public class AccountController : Controller
                 );
 
 
-        // Prioriter høyeste tilgang
-        // dersom en bruker senere har
-        // flere roller.
         if (
             roles.Contains(
                 IdentitySeeder.AdminRole
@@ -661,10 +893,35 @@ public class AccountController : Controller
         );
 
 
+        var phone =
+            SplitPhoneNumber(
+                user.PhoneNumber
+            );
+
+
         HttpContext.Session.SetString(
             "PhoneCountryCode",
-            "+47"
+            phone.CountryCode
         );
+
+
+        if (
+            string.IsNullOrWhiteSpace(
+                phone.Number
+            )
+        )
+        {
+            HttpContext.Session.Remove(
+                "PhoneNumber"
+            );
+        }
+        else
+        {
+            HttpContext.Session.SetString(
+                "PhoneNumber",
+                phone.Number
+            );
+        }
     }
 
 
