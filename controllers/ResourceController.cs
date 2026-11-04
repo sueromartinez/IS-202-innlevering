@@ -11,7 +11,8 @@ namespace FirstWebAppInDocker.Controllers;
 /// <summary>
 /// Håndterer registrering og visning av ressurser.
 ///
-/// Tilgang styres med ASP.NET Core Identity-roller.
+/// ASP.NET Core Identity brukes for autentisering,
+/// roller og eierskap.
 /// </summary>
 [Authorize(
     Roles =
@@ -23,11 +24,9 @@ namespace FirstWebAppInDocker.Controllers;
 )]
 public class ResourceController : Controller
 {
-    private readonly ApplicationDbContext
-        _dbContext;
+    private readonly ApplicationDbContext _dbContext;
 
-    private readonly UserManager<ApplicationUser>
-        _userManager;
+    private readonly UserManager<ApplicationUser> _userManager;
 
 
     public ResourceController(
@@ -40,9 +39,9 @@ public class ResourceController : Controller
     }
 
 
-    // =========================
+    // =========================================================
     // REGISTER RESOURCE - GET
-    // =========================
+    // =========================================================
 
     [HttpGet]
     [Authorize(
@@ -57,9 +56,9 @@ public class ResourceController : Controller
     }
 
 
-    // =========================
+    // =========================================================
     // REGISTER RESOURCE - POST
-    // =========================
+    // =========================================================
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -67,16 +66,13 @@ public class ResourceController : Controller
         Roles =
             IdentitySeeder.ResourceProviderRole
     )]
-    public async Task<IActionResult>
-        RegisterResource(
-            RegisterResourceViewModel model
-        )
+    public async Task<IActionResult> RegisterResource(
+        RegisterResourceViewModel model
+    )
     {
         if (!ModelState.IsValid)
         {
-            return View(
-                model
-            );
+            return View(model);
         }
 
 
@@ -87,17 +83,14 @@ public class ResourceController : Controller
                 "Velg type ressurs."
             );
 
-            return View(
-                model
-            );
+            return View(model);
         }
 
 
         ApplicationUser? user =
-            await _userManager
-                .GetUserAsync(
-                    User
-                );
+            await _userManager.GetUserAsync(
+                User
+            );
 
 
         if (
@@ -111,81 +104,13 @@ public class ResourceController : Controller
             return Challenge();
         }
 
-        // Takes ownership from the server session, never from posted form data.
-        var resource = new Resource
-        {
-            ResourceType =
-                model.ResourceType!.Value,
-
-            
-        
-            ResourceName =
-                model.ResourceName.Trim(), //endret l
-
-            Quantity =  
-                model.Quantity, //endret l
-
-            Capacity =  
-                NormalizeOptionalText(
-                    model.Capacity
-                ), // endret l
-
-            Availability =  
-                NormalizeOptionalText(
-                    model.Availability
-                ), // endret l
-            
-            Address =  
-                NormalizeOptionalText(
-                    model.Address), // endret l
-
-            Description =
-                model.Description.Trim(),
-
-            
-    
-    
-            Latitude =
-                model.Latitude,
-
-            Longitude =
-                model.Longitude,
-
-            ContactEmail =
-                NormalizeOptionalText(
-                    model.ContactEmail
-                ),
-
-            ContactPhoneCountryCode =
-                string.IsNullOrWhiteSpace(
-                    model.ContactPhoneNumber
-                )
-                    ? null
-                    : model.ContactPhoneCountryCode,
-
-            ContactPhoneNumber =
-                NormalizePhoneNumber(
-                    model.ContactPhoneNumber
-                ),
-
-            OwnerEmail =
-                userEmail,
-
-            CreatedAt =
-                DateTime.UtcNow
-        };
-
-        // Saves all validated fields through the existing MariaDB context.
-        _context.Resources.Add(resource);
-
-        await _context.SaveChangesAsync();
 
         var resource =
             new Resource
             {
-                // =========================
+                // =============================================
                 // RESOURCE INFORMATION
-                // =========================
+                // =============================================
 
                 ResourceType =
                     model.ResourceType.Value,
@@ -199,35 +124,25 @@ public class ResourceController : Controller
                 Quantity =
                     model.Quantity,
 
-        // Restricts provider results in SQL before sending data to the browser.
-        IQueryable<Resource> query =
-            _context.Resources
-                .AsNoTracking();
                 Capacity =
-                    string.IsNullOrWhiteSpace(
+                    NormalizeOptionalText(
                         model.Capacity
-                    )
-                        ? null
-                        : model.Capacity.Trim(),
+                    ),
 
                 Availability =
-                    string.IsNullOrWhiteSpace(
+                    NormalizeOptionalText(
                         model.Availability
-                    )
-                        ? null
-                        : model.Availability.Trim(),
+                    ),
 
 
-                // =========================
+                // =============================================
                 // LOCATION
-                // =========================
+                // =============================================
 
                 Address =
-                    string.IsNullOrWhiteSpace(
+                    NormalizeOptionalText(
                         model.Address
-                    )
-                        ? null
-                        : model.Address.Trim(),
+                    ),
 
                 Latitude =
                     model.Latitude,
@@ -236,9 +151,9 @@ public class ResourceController : Controller
                     model.Longitude,
 
 
-                // =========================
+                // =============================================
                 // CONTACT
-                // =========================
+                // =============================================
 
                 ContactEmail =
                     string.IsNullOrWhiteSpace(
@@ -248,27 +163,19 @@ public class ResourceController : Controller
                         : model.ContactEmail.Trim(),
 
                 ContactPhoneCountryCode =
-                    string.IsNullOrWhiteSpace(
+                    NormalizeOptionalText(
                         model.ContactPhoneCountryCode
-                    )
-                        ? null
-                        : model
-                            .ContactPhoneCountryCode
-                            .Trim(),
+                    ),
 
                 ContactPhoneNumber =
-                    string.IsNullOrWhiteSpace(
+                    NormalizeOptionalText(
                         model.ContactPhoneNumber
-                    )
-                        ? null
-                        : model
-                            .ContactPhoneNumber
-                            .Trim(),
+                    ),
 
 
-                // =========================
+                // =============================================
                 // OWNERSHIP
-                // =========================
+                // =============================================
 
                 OwnerUserId =
                     user.Id,
@@ -277,9 +184,9 @@ public class ResourceController : Controller
                     user.Email,
 
 
-                // =========================
+                // =============================================
                 // METADATA
-                // =========================
+                // =============================================
 
                 CreatedAt =
                     DateTime.UtcNow
@@ -305,19 +212,17 @@ public class ResourceController : Controller
     }
 
 
-    // =========================
+    // =========================================================
     // RESOURCE OVERVIEW
-    // =========================
+    // =========================================================
 
     [HttpGet]
-    public async Task<IActionResult>
-        ResourceOverview()
+    public async Task<IActionResult> ResourceOverview()
     {
         ApplicationUser? user =
-            await _userManager
-                .GetUserAsync(
-                    User
-                );
+            await _userManager.GetUserAsync(
+                User
+            );
 
 
         if (
@@ -350,23 +255,15 @@ public class ResourceController : Controller
             );
 
 
+        // Restricts provider results in SQL
+        // before data is sent to the browser.
         IQueryable<Resource> query =
             _dbContext.Resources
                 .AsNoTracking();
 
 
-        // =========================
-        // RESOURCE PROVIDER FILTER
-        // =========================
-        //
-        // Nye ressurser kobles til permanent
-        // Identity UserId.
-        //
-        // Gamle ressurser kan fortsatt ha
-        // OwnerUserId = null og matches da
-        // midlertidig på e-post.
-        //
-
+        // Ressursleverandører ser bare
+        // ressurser de selv eier.
         if (
             isResourceProvider
             &&
@@ -392,51 +289,48 @@ public class ResourceController : Controller
         }
 
 
-        List<ResourceOverviewViewModel>
-            resources =
-                await query
-                    .OrderByDescending(
-                        resource =>
-                            resource.CreatedAt
-                    )
-                    .Select(
-                        resource =>
-                            new ResourceOverviewViewModel
-                            {
-                                Id =
-                                    resource.Id,
+        List<ResourceOverviewViewModel> resources =
+            await query
+                .OrderByDescending(
+                    resource =>
+                        resource.CreatedAt
+                )
+                .Select(
+                    resource =>
+                        new ResourceOverviewViewModel
+                        {
+                            Id =
+                                resource.Id,
 
-                                ResourceType =
-                                    resource.ResourceType,
+                            ResourceType =
+                                resource.ResourceType,
 
-                                Description =
-                                    resource.Description,
+                            Description =
+                                resource.Description,
 
-                                Position =
-                                    new Coordinate(
-                                        resource.Latitude,
-                                        resource.Longitude
-                                    ),
+                            Position =
+                                new Coordinate(
+                                    resource.Latitude,
+                                    resource.Longitude
+                                ),
 
-                                ContactEmail =
-                                    resource.ContactEmail,
+                            ContactEmail =
+                                resource.ContactEmail,
 
-                                ContactPhoneCountryCode =
-                                    resource
-                                        .ContactPhoneCountryCode,
+                            ContactPhoneCountryCode =
+                                resource.ContactPhoneCountryCode,
 
-                                ContactPhoneNumber =
-                                    resource
-                                        .ContactPhoneNumber,
+                            ContactPhoneNumber =
+                                resource.ContactPhoneNumber,
 
-                                OwnerEmail =
-                                    resource.OwnerEmail,
+                            OwnerEmail =
+                                resource.OwnerEmail,
 
-                                CreatedAt =
-                                    resource.CreatedAt
-                            }
-                    )
-                    .ToListAsync();
+                            CreatedAt =
+                                resource.CreatedAt
+                        }
+                )
+                .ToListAsync();
 
 
         if (isAdmin)
@@ -459,5 +353,32 @@ public class ResourceController : Controller
         return View(
             resources
         );
+    }
+
+
+    // =========================================================
+    // HELPERS
+    // =========================================================
+
+    /// <summary>
+    /// Gjør tom eller whitespace-tekst om til null.
+    /// Ellers fjernes unødvendige mellomrom
+    /// foran og bak teksten.
+    /// </summary>
+    private static string? NormalizeOptionalText(
+        string? value
+    )
+    {
+        if (
+            string.IsNullOrWhiteSpace(
+                value
+            )
+        )
+        {
+            return null;
+        }
+
+
+        return value.Trim();
     }
 }

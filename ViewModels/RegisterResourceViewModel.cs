@@ -4,10 +4,16 @@ using FirstWebAppInDocker.Models;
 namespace FirstWebAppInDocker.ViewModels;
 
 /// <summary>
-/// Data som brukes når en ressursleverandør
-/// registrerer en ressurs.
+/// ViewModel for registrering av en ressurs.
+///
+/// Inneholder kun data som brukeren selv
+/// skal kunne sende inn fra registreringsskjemaet.
+///
+/// Eierskap som OwnerUserId og OwnerEmail
+/// settes på serversiden i ResourceController.
 /// </summary>
 public class RegisterResourceViewModel
+    : IValidatableObject
 {
     // =========================
     // RESOURCE INFORMATION
@@ -55,8 +61,7 @@ public class RegisterResourceViewModel
     [Range(
         1,
         100000,
-        ErrorMessage =
-            "Antall må være minst 1."
+        ErrorMessage = "Antall må være minst 1."
     )]
     [Display(
         Name = "Antall"
@@ -102,20 +107,26 @@ public class RegisterResourceViewModel
     public string? Address { get; set; }
 
 
+    /// <summary>
+    /// Breddegrad valgt i Leaflet-kartet.
+    /// </summary>
     [Range(
         -90,
         90,
         ErrorMessage =
-            "Ugyldig breddegrad."
+            "Breddegrad må være mellom -90 og 90."
     )]
     public double Latitude { get; set; }
 
 
+    /// <summary>
+    /// Lengdegrad valgt i Leaflet-kartet.
+    /// </summary>
     [Range(
         -180,
         180,
         ErrorMessage =
-            "Ugyldig lengdegrad."
+            "Lengdegrad må være mellom -180 og 180."
     )]
     public double Longitude { get; set; }
 
@@ -129,7 +140,9 @@ public class RegisterResourceViewModel
             "Skriv inn en gyldig e-postadresse."
     )]
     [StringLength(
-        150
+        150,
+        ErrorMessage =
+            "E-postadressen kan maksimalt være 150 tegn."
     )]
     [Display(
         Name = "Kontakt-e-post"
@@ -138,7 +151,9 @@ public class RegisterResourceViewModel
 
 
     [StringLength(
-        5
+        5,
+        ErrorMessage =
+            "Landkoden kan maksimalt være 5 tegn."
     )]
     [Display(
         Name = "Landkode"
@@ -149,82 +164,135 @@ public class RegisterResourceViewModel
 
     [StringLength(
         20,
-        ErrorMessage = "Telefonnummeret er for langt"
+        ErrorMessage =
+            "Telefonnummeret kan maksimalt være 20 tegn."
     )]
-    [Display(Name = "Telefonnummer")]
-    public string? ContactPhoneNumber { get; init; }
+    [Phone(
+        ErrorMessage =
+            "Skriv inn et gyldig telefonnummer."
+    )]
+    [Display(
+        Name = "Telefonnummer"
+    )]
+    public string? ContactPhoneNumber { get; set; }
 
 
-    /// <summary>
-    /// Breddegrad valgt i kartet.
-    /// </summary>
-    public double Latitude { get; init; }
-
-
-    /// <summary>
-    /// Lengdegrad valgt i kartet.
-    /// </summary>
-    public double Longitude { get; init; }
-
+    // =========================
+    // CUSTOM VALIDATION
+    // =========================
 
     /// <summary>
-    /// Validerer telefonnummer basert på valgt landskode.
+    /// Utfører validering som avhenger av flere felt,
+    /// blant annet kartplassering og telefonnummer.
     /// </summary>
     public IEnumerable<ValidationResult> Validate(
         ValidationContext validationContext
     )
     {
-        // Rejects unexpected status values so resource statistics stay reliable.
-        if (!string.IsNullOrWhiteSpace(Availability)
-            && Availability != "Tilgjengelig" && Availability != "Ikke tilgjengelig")
-        {
-            yield return new ValidationResult("Velg en gyldig tilgjengelighet.", new[] { nameof(Availability) });
-        }
-        if (!Enum.IsDefined(typeof(ResourceType), ResourceType ?? (ResourceType)(-1)))
-        {
-            yield return new ValidationResult("Velg en gyldig ressurstype.", new[] { nameof(ResourceType) });
-        }
-        if (!double.IsFinite(Latitude) || !double.IsFinite(Longitude)
-            || Latitude < -90 || Latitude > 90 || Longitude < -180 || Longitude > 180)
-        {
-            yield return new ValidationResult("Velg en gyldig plassering i kartet.", new[] { nameof(Latitude), nameof(Longitude) });
-        }
+        // =========================
+        // MAP POSITION
+        // =========================
 
-        if (string.IsNullOrWhiteSpace(ContactPhoneNumber))
-        {
-            yield break;
-        }
-
-        if (!Regex.IsMatch(
-                ContactPhoneNumber,
-                @"^[0-9\s-]+$"
-            ))
+        if (
+            !double.IsFinite(Latitude)
+            ||
+            !double.IsFinite(Longitude)
+            ||
+            Latitude < -90
+            ||
+            Latitude > 90
+            ||
+            Longitude < -180
+            ||
+            Longitude > 180
+        )
         {
             yield return new ValidationResult(
-                "Telefonnummeret kan bare inneholde sifre, mellomrom og bindestrek.",
-                new[] { nameof(ContactPhoneNumber) }
+                "Velg en gyldig plassering i kartet.",
+                new[]
+                {
+                    nameof(Latitude),
+                    nameof(Longitude)
+                }
             );
+        }
 
+
+        // 0,0 brukes som standardverdi dersom
+        // brukeren ikke har klikket i kartet.
+        //
+        // Et punkt på 0,0 er teknisk gyldig geografisk,
+        // men er ikke en realistisk norsk ressursplassering
+        // i denne applikasjonen.
+        if (
+            Latitude == 0
+            &&
+            Longitude == 0
+        )
+        {
+            yield return new ValidationResult(
+                "Velg plassering for ressursen i kartet.",
+                new[]
+                {
+                    nameof(Latitude),
+                    nameof(Longitude)
+                }
+            );
+        }
+
+
+        // =========================
+        // PHONE NUMBER
+        // =========================
+
+        if (
+            string.IsNullOrWhiteSpace(
+                ContactPhoneNumber
+            )
+        )
+        {
             yield break;
         }
 
+
         string phoneNumber =
-            Regex.Replace(
-                ContactPhoneNumber,
-                @"[\s-]",
-                ""
+            new string(
+                ContactPhoneNumber
+                    .Where(char.IsDigit)
+                    .ToArray()
             );
 
-        switch (ContactPhoneCountryCode)
+
+        switch (
+            ContactPhoneCountryCode
+        )
         {
             case "+47":
+
+                if (phoneNumber.Length != 8)
+                {
+                    yield return new ValidationResult(
+                        "Norske telefonnummer må inneholde 8 sifre.",
+                        new[]
+                        {
+                            nameof(ContactPhoneNumber)
+                        }
+                    );
+                }
+
+                break;
+
+
             case "+45":
 
                 if (phoneNumber.Length != 8)
                 {
                     yield return new ValidationResult(
-                        "Telefonnummeret må inneholde nøyaktig 8 sifre.",
-                        new[] { nameof(ContactPhoneNumber) }
+                        "Danske telefonnummer må inneholde 8 sifre.",
+                        new[]
+                        {
+                            nameof(ContactPhoneNumber)
+                        }
                     );
                 }
 
@@ -241,7 +309,10 @@ public class RegisterResourceViewModel
                 {
                     yield return new ValidationResult(
                         "Svenske telefonnummer må inneholde mellom 7 og 10 sifre.",
-                        new[] { nameof(ContactPhoneNumber) }
+                        new[]
+                        {
+                            nameof(ContactPhoneNumber)
+                        }
                     );
                 }
 
@@ -252,21 +323,13 @@ public class RegisterResourceViewModel
 
                 yield return new ValidationResult(
                     "Ugyldig landskode.",
-                    new[] { nameof(ContactPhoneCountryCode) }
+                    new[]
+                    {
+                        nameof(ContactPhoneCountryCode)
+                    }
                 );
 
                 break;
         }
     }
-        ErrorMessage =
-            "Telefonnummeret kan maksimalt være 20 tegn."
-    )]
-    [Phone(
-        ErrorMessage =
-            "Skriv inn et gyldig telefonnummer."
-    )]
-    [Display(
-        Name = "Telefonnummer"
-    )]
-    public string? ContactPhoneNumber { get; set; }
 }
