@@ -1,3 +1,4 @@
+using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
 using FirstWebAppInDocker.ViewModels;
 using Microsoft.AspNetCore.Identity;
@@ -6,50 +7,34 @@ using Microsoft.AspNetCore.Mvc;
 namespace FirstWebAppInDocker.Controllers;
 
 /// <summary>
-/// Håndterer innlogging, registrering,
+/// Håndterer registrering, innlogging,
 /// utlogging og profil.
 ///
-/// ASP.NET Core Identity brukes nå for ekte brukere.
-/// Session beholdes midlertidig fordi eksisterende
-/// dashboard fortsatt bruker Session-data.
+/// ASP.NET Core Identity håndterer:
+/// - brukere
+/// - passord
+/// - roller
+/// - autentisering
+///
+/// Session beholdes midlertidig fordi deler av
+/// eksisterende dashboard fortsatt bruker den.
 /// </summary>
 public class AccountController : Controller
 {
-    private const string PublicActorEmail =
-        "offentlig@beredskap.no";
-
-    private const string ResourceProviderEmail =
-        "privat@beredskap.no";
-
-    private const string TestPassword =
-        "Test123!";
-
-    private const string PublicActorRole =
-        "PublicActor";
-
-    private const string ResourceProviderRole =
-        "ResourceProvider";
-
-
     private readonly UserManager<ApplicationUser>
         _userManager;
 
     private readonly SignInManager<ApplicationUser>
         _signInManager;
 
-    private readonly RoleManager<IdentityRole>
-        _roleManager;
-
 
     public AccountController(
         UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager,
-        RoleManager<IdentityRole> roleManager
+        SignInManager<ApplicationUser> signInManager
     )
     {
         _userManager = userManager;
         _signInManager = signInManager;
-        _roleManager = roleManager;
     }
 
 
@@ -79,82 +64,14 @@ public class AccountController : Controller
             model.Email.Trim();
 
 
-        // =========================
-        // EKTE IDENTITY-BRUKER
-        // =========================
-
         ApplicationUser? user =
             await _userManager.FindByEmailAsync(
                 email
             );
 
 
-        if (user is not null)
+        if (user is null)
         {
-            var result =
-                await _signInManager
-                    .PasswordSignInAsync(
-                        user,
-                        model.Password,
-                        isPersistent: false,
-                        lockoutOnFailure: true
-                    );
-
-
-            if (result.Succeeded)
-            {
-                IList<string> roles =
-                    await _userManager
-                        .GetRolesAsync(user);
-
-
-                string role =
-                    roles.FirstOrDefault()
-                    ?? ResourceProviderRole;
-
-
-                CreateSession(
-                    user.Email ?? email,
-                    string.IsNullOrWhiteSpace(
-                        user.Name
-                    )
-                        ? email
-                        : user.Name,
-                    role
-                );
-
-
-                return RedirectToAction(
-                    "Dashboard",
-                    "Home"
-                );
-            }
-
-
-            if (result.IsLockedOut)
-            {
-                TempData["LoginError"] =
-                    "Brukeren er midlertidig låst etter for mange feilaktige innloggingsforsøk.";
-
-                return RedirectToAction(
-                    "Index",
-                    "Home"
-                );
-            }
-
-
-            if (result.RequiresTwoFactor)
-            {
-                TempData["LoginError"] =
-                    "Denne brukeren krever tofaktorautentisering. 2FA kobles til senere.";
-
-                return RedirectToAction(
-                    "Index",
-                    "Home"
-                );
-            }
-
-
             TempData["LoginError"] =
                 "Feil e-post eller passord.";
 
@@ -165,24 +82,27 @@ public class AccountController : Controller
         }
 
 
-        // =========================
-        // MIDLERTIDIGE TESTBRUKERE
-        // =========================
+        var result =
+            await _signInManager
+                .PasswordSignInAsync(
+                    user,
+                    model.Password,
+                    isPersistent: false,
+                    lockoutOnFailure: true
+                );
 
-        if (
-            string.Equals(
-                email,
-                PublicActorEmail,
-                StringComparison.OrdinalIgnoreCase
-            )
-            &&
-            model.Password == TestPassword
-        )
+
+        if (result.Succeeded)
         {
+            string role =
+                await GetPrimaryRoleAsync(
+                    user
+                );
+
+
             CreateSession(
-                PublicActorEmail,
-                "Beredskapsbruker",
-                PublicActorRole
+                user,
+                role
             );
 
 
@@ -193,25 +113,25 @@ public class AccountController : Controller
         }
 
 
-        if (
-            string.Equals(
-                email,
-                ResourceProviderEmail,
-                StringComparison.OrdinalIgnoreCase
-            )
-            &&
-            model.Password == TestPassword
-        )
+        if (result.RequiresTwoFactor)
         {
-            CreateSession(
-                ResourceProviderEmail,
-                "Ressursleverandør",
-                ResourceProviderRole
-            );
-
+            TempData["LoginError"] =
+                "Denne brukeren krever tofaktorautentisering.";
 
             return RedirectToAction(
-                "Dashboard",
+                "Index",
+                "Home"
+            );
+        }
+
+
+        if (result.IsLockedOut)
+        {
+            TempData["LoginError"] =
+                "Brukeren er midlertidig låst etter for mange feilaktige innloggingsforsøk.";
+
+            return RedirectToAction(
+                "Index",
                 "Home"
             );
         }
@@ -238,7 +158,9 @@ public class AccountController : Controller
         RegisterViewModel model
     )
     {
-        SaveRegistrationValues(model);
+        SaveRegistrationValues(
+            model
+        );
 
 
         if (!ModelState.IsValid)
@@ -275,40 +197,14 @@ public class AccountController : Controller
         }
 
 
-        // Nye brukere fra den åpne registreringen
-        // blir kun ressursleverandører.
-        if (
-            !await _roleManager.RoleExistsAsync(
-                ResourceProviderRole
-            )
-        )
-        {
-            IdentityResult roleResult =
-                await _roleManager.CreateAsync(
-                    new IdentityRole(
-                        ResourceProviderRole
-                    )
-                );
-
-
-            if (!roleResult.Succeeded)
-            {
-                TempData["RegisterError"] =
-                    "Kunne ikke opprette brukerrollen.";
-
-                return RedirectToAction(
-                    "Index",
-                    "Home"
-                );
-            }
-        }
-
-
         var user =
             new ApplicationUser
             {
-                UserName = email,
-                Email = email,
+                UserName =
+                    email,
+
+                Email =
+                    email,
 
                 Name =
                     model.Name.Trim(),
@@ -320,6 +216,10 @@ public class AccountController : Controller
                     false
             };
 
+
+        // =========================
+        // CREATE USER
+        // =========================
 
         IdentityResult createResult =
             await _userManager.CreateAsync(
@@ -351,24 +251,43 @@ public class AccountController : Controller
         }
 
 
-        IdentityResult addRoleResult =
+        // =========================
+        // ASSIGN ROLE
+        // =========================
+        //
+        // Åpen registrering gir KUN
+        // ResourceProvider.
+        //
+        // PublicActor og Admin kan ikke
+        // velges av brukeren selv.
+        //
+
+        IdentityResult roleResult =
             await _userManager.AddToRoleAsync(
                 user,
-                ResourceProviderRole
+                IdentitySeeder.ResourceProviderRole
             );
 
 
-        if (!addRoleResult.Succeeded)
+        if (!roleResult.Succeeded)
         {
-            // Ikke la en halvferdig bruker
-            // bli liggende i databasen.
             await _userManager.DeleteAsync(
                 user
             );
 
 
+            string errors =
+                string.Join(
+                    " ",
+                    roleResult.Errors.Select(
+                        error =>
+                            error.Description
+                    )
+                );
+
+
             TempData["RegisterError"] =
-                "Brukeren kunne ikke kobles til riktig rolle.";
+                $"Brukeren kunne ikke få riktig rolle. {errors}";
 
 
             return RedirectToAction(
@@ -378,19 +297,19 @@ public class AccountController : Controller
         }
 
 
-        // Logger den nye brukeren inn.
+        // =========================
+        // SIGN IN
+        // =========================
+
         await _signInManager.SignInAsync(
             user,
             isPersistent: false
         );
 
 
-        // Eksisterende dashboard bruker
-        // fortsatt Session.
         CreateSession(
-            email,
-            user.Name,
-            ResourceProviderRole
+            user,
+            IdentitySeeder.ResourceProviderRole
         );
 
 
@@ -410,13 +329,61 @@ public class AccountController : Controller
     public async Task<IActionResult>
         DemoPublicActorLogin()
     {
+        // Logg ut eventuell eksisterende
+        // Identity-bruker først.
         await _signInManager.SignOutAsync();
 
 
+        ApplicationUser? publicActor =
+            await _userManager.FindByEmailAsync(
+                IdentitySeeder.PublicActorEmail
+            );
+
+
+        if (publicActor is null)
+        {
+            TempData["LoginError"] =
+                "Offentlig testbruker finnes ikke i databasen.";
+
+            return RedirectToAction(
+                "Index",
+                "Home"
+            );
+        }
+
+
+        bool hasCorrectRole =
+            await _userManager.IsInRoleAsync(
+                publicActor,
+                IdentitySeeder.PublicActorRole
+            );
+
+
+        if (!hasCorrectRole)
+        {
+            TempData["LoginError"] =
+                "Offentlig testbruker mangler riktig rolle.";
+
+            return RedirectToAction(
+                "Index",
+                "Home"
+            );
+        }
+
+
+        // Dette er en midlertidig demo-knapp.
+        // Vi logger brukeren inn direkte uten
+        // passord fordi knappen kun representerer
+        // prosjektets testbruker.
+        await _signInManager.SignInAsync(
+            publicActor,
+            isPersistent: false
+        );
+
+
         CreateSession(
-            PublicActorEmail,
-            "Beredskapsbruker",
-            PublicActorRole
+            publicActor,
+            IdentitySeeder.PublicActorRole
         );
 
 
@@ -438,6 +405,24 @@ public class AccountController : Controller
         await _signInManager.SignOutAsync();
 
         HttpContext.Session.Clear();
+
+
+        return RedirectToAction(
+            "Index",
+            "Home"
+        );
+    }
+
+
+    // =========================
+    // ACCESS DENIED
+    // =========================
+
+    [HttpGet]
+    public IActionResult AccessDenied()
+    {
+        TempData["LoginError"] =
+            "Du har ikke tilgang til denne delen av Beredskapsportalen.";
 
 
         return RedirectToAction(
@@ -501,7 +486,9 @@ public class AccountController : Controller
             };
 
 
-        return View(model);
+        return View(
+            model
+        );
     }
 
 
@@ -528,7 +515,9 @@ public class AccountController : Controller
 
         if (!ModelState.IsValid)
         {
-            return View(model);
+            return View(
+                model
+            );
         }
 
 
@@ -580,16 +569,72 @@ public class AccountController : Controller
 
 
     // =========================
-    // HELPERS
+    // ROLE HELPER
+    // =========================
+
+    private async Task<string>
+        GetPrimaryRoleAsync(
+            ApplicationUser user
+        )
+    {
+        IList<string> roles =
+            await _userManager
+                .GetRolesAsync(
+                    user
+                );
+
+
+        // Prioriter høyeste tilgang
+        // dersom en bruker senere har
+        // flere roller.
+        if (
+            roles.Contains(
+                IdentitySeeder.AdminRole
+            )
+        )
+        {
+            return IdentitySeeder.AdminRole;
+        }
+
+
+        if (
+            roles.Contains(
+                IdentitySeeder.PublicActorRole
+            )
+        )
+        {
+            return IdentitySeeder.PublicActorRole;
+        }
+
+
+        return IdentitySeeder.ResourceProviderRole;
+    }
+
+
+    // =========================
+    // SESSION HELPER
     // =========================
 
     private void CreateSession(
-        string email,
-        string name,
+        ApplicationUser user,
         string role
     )
     {
         HttpContext.Session.Clear();
+
+
+        string email =
+            user.Email
+            ?? user.UserName
+            ?? string.Empty;
+
+
+        string name =
+            string.IsNullOrWhiteSpace(
+                user.Name
+            )
+                ? email
+                : user.Name;
 
 
         HttpContext.Session.SetString(
@@ -622,6 +667,10 @@ public class AccountController : Controller
         );
     }
 
+
+    // =========================
+    // REGISTRATION HELPER
+    // =========================
 
     private void SaveRegistrationValues(
         RegisterViewModel model

@@ -3,6 +3,7 @@ using FirstWebAppInDocker.Models;
 using FirstWebAppInDocker.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace FirstWebAppInDocker.Controllers;
 
@@ -10,6 +11,12 @@ namespace FirstWebAppInDocker.Controllers;
 /// Registrering, oversikt, endring og sletting av behov.
 /// Kun for offentlige aktører.
 /// </summary>
+[Authorize(
+    Roles =
+        IdentitySeeder.PublicActorRole
+        + ","
+        + IdentitySeeder.AdminRole
+)]
 public class NeedController : Controller
 {
     private readonly ApplicationDbContext _context;
