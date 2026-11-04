@@ -2,25 +2,38 @@ using System.Diagnostics;
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
 using FirstWebAppInDocker.ViewModels;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace FirstWebAppInDocker.Controllers;
 
 /// <summary>
-/// Håndterer forsiden, dashboardet og generell feilhandtering.
+/// Håndterer forsiden, dashboardet
+/// og generell feilhandtering.
 /// </summary>
 public class HomeController : Controller
 {
     private readonly ApplicationDbContext _context;
 
+    private readonly UserManager<ApplicationUser>
+        _userManager;
+
+
     /// <summary>
-    /// Oppretter controlleren med tilgang til databasen.
+    /// Oppretter controlleren med tilgang
+    /// til databasen og ASP.NET Core Identity.
     /// </summary>
-    public HomeController(ApplicationDbContext context)
+    public HomeController(
+        ApplicationDbContext context,
+        UserManager<ApplicationUser> userManager
+    )
     {
         _context = context;
+        _userManager = userManager;
     }
+
 
     /// <summary>
     /// Viser den offentlige forsiden.
@@ -31,67 +44,177 @@ public class HomeController : Controller
         return View();
     }
 
+
     /// <summary>
     /// Viser dashboardet til en innlogget bruker.
-    /// Offentlige aktører får behov og ressurser fra databasen.
+    ///
+    /// Ressursleverandører ser kun egne ressurser.
+    /// Eierskap bestemmes primært gjennom
+    /// ASP.NET Core Identity sin bruker-ID.
+    ///
+    /// Offentlige aktører får behov og
+    /// ressurser fra databasen.
     /// </summary>
+    [Authorize]
     [HttpGet]
     public async Task<IActionResult> Dashboard()
     {
-        string? userEmail =
-            HttpContext.Session.GetString("UserEmail");
+        ApplicationUser? user =
+            await _userManager.GetUserAsync(
+                User
+            );
 
-        if (string.IsNullOrWhiteSpace(userEmail))
+
+        if (user is null)
         {
-            return RedirectToAction(nameof(Index));
+            return Challenge();
         }
 
-        string? userRole =
-            HttpContext.Session.GetString("UserRole");
 
+        string userRole;
+
+
+        if (
+            User.IsInRole(
+                IdentitySeeder.AdminRole
+            )
+        )
+        {
+            userRole =
+                IdentitySeeder.AdminRole;
+        }
+        else if (
+            User.IsInRole(
+                IdentitySeeder.PublicActorRole
+            )
+        )
+        {
+            userRole =
+                IdentitySeeder.PublicActorRole;
+        }
+        else
+        {
+            userRole =
+                IdentitySeeder.ResourceProviderRole;
+        }
+
+
+        // Session beholdes midlertidig fordi
+        // eksisterende dashboard-view bruker den
+        // enkelte steder.
+        //
+        // Identity er sannhetskilden.
         ViewBag.UserName =
-            HttpContext.Session.GetString("UserName");
+            string.IsNullOrWhiteSpace(
+                user.Name
+            )
+                ? user.Email
+                : user.Name;
 
-        ViewBag.UserRole = userRole;
 
-        var model = new DashboardViewModel();
+        ViewBag.UserRole =
+            userRole;
 
-        // Kun offentlige aktører ser situasjonsbildet.
-        if (userRole == "PublicActor")
+
+        var model =
+            new DashboardViewModel();
+
+
+        // =====================================================
+        // PUBLIC ACTOR / ADMIN
+        // =====================================================
+
+        if (
+            userRole
+                == IdentitySeeder.PublicActorRole
+            ||
+            userRole
+                == IdentitySeeder.AdminRole
+        )
         {
-            model = new DashboardViewModel
-            {
-                Needs =
-                    await _context.Needs
-                        .AsNoTracking()
-                        .OrderByDescending(need => need.CreatedAt)
-                        .ToListAsync(),
+            model =
+                new DashboardViewModel
+                {
+                    Needs =
+                        await _context.Needs
+                            .AsNoTracking()
+                            .OrderByDescending(
+                                need =>
+                                    need.CreatedAt
+                            )
+                            .ToListAsync(),
 
-                Resources =
-                    await _context.Resources
-                        .AsNoTracking()
-                        .OrderByDescending(resource => resource.CreatedAt)
-                        .ToListAsync()
-            };
+                    Resources =
+                        await _context.Resources
+                            .AsNoTracking()
+                            .OrderByDescending(
+                                resource =>
+                                    resource.CreatedAt
+                            )
+                            .ToListAsync()
+                };
         }
 
-        // Loads only the signed-in provider's resources so the dashboard cannot expose other owners.
-        if (userRole == "ResourceProvider")
+
+        // =====================================================
+        // RESOURCE PROVIDER
+        // =====================================================
+
+        if (
+            userRole
+                == IdentitySeeder.ResourceProviderRole
+        )
         {
-            model = new DashboardViewModel
-            {
-                Resources = await _context.Resources.AsNoTracking()
-                    .Where(resource => resource.OwnerEmail == userEmail)
-                    .OrderByDescending(resource => resource.CreatedAt)
-                    .ToListAsync()
-            };
+            string? userEmail =
+                user.Email;
+
+
+            model =
+                new DashboardViewModel
+                {
+                    Resources =
+                        await _context.Resources
+                            .AsNoTracking()
+                            .Where(
+                                resource =>
+
+                                    // Permanent eierskapskobling.
+                                    resource.OwnerUserId
+                                        == user.Id
+
+                                    ||
+
+                                    // Midlertidig støtte for
+                                    // gamle ressurser som ble
+                                    // opprettet før OwnerUserId.
+                                    (
+                                        resource.OwnerUserId
+                                            == null
+
+                                        &&
+
+                                        resource.OwnerEmail
+                                            == userEmail
+                                    )
+                            )
+                            .OrderByDescending(
+                                resource =>
+                                    resource.CreatedAt
+                            )
+                            .ToListAsync()
+                };
         }
 
-        return View(model);
+
+        return View(
+            model
+        );
     }
 
+
     /// <summary>
-    /// Viser feilside dersom en uventet feil oppstår.
+    /// Viser feilside dersom en
+    /// uventet feil oppstår.
     /// </summary>
     [ResponseCache(
         Duration = 0,
