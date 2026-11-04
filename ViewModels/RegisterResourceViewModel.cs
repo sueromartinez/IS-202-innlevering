@@ -1,73 +1,150 @@
 using System.ComponentModel.DataAnnotations;
-using System.Text.RegularExpressions;
 using FirstWebAppInDocker.Models;
 
 namespace FirstWebAppInDocker.ViewModels;
 
 /// <summary>
-/// Representerer data brukeren fyller inn
-/// når en ny ressurs registreres.
+/// Data som brukes når en ressursleverandør
+/// registrerer en ressurs.
 /// </summary>
-public class RegisterResourceViewModel : IValidatableObject
+public class RegisterResourceViewModel
 {
+    // =========================
+    // RESOURCE INFORMATION
+    // =========================
+
     [Required(
-        ErrorMessage = "Du må velge type ressurs"
+        ErrorMessage = "Velg type ressurs."
     )]
-    [Display(Name = "Type ressurs")]
-    public ResourceType? ResourceType { get; init; }
-
-    
-    [Required(ErrorMessage = "Ressursnavn er påkrevd")]
-    [StringLength(100)]
-    [Display(Name = "Navn på ressurs")]
-    public string ResourceName {get; init;} = string.Empty; //gjort endring
-
-    
-    [Range(1,1000000,ErrorMessage = "Antall må være minst 1")]
-    [Display(Name ="Antall")] 
-    public int Quantity {get; init;} = 1; //gjort endring
-
-    
-    [StringLength(200)]
-    [Display(Name ="Kapasitet")]
-    public string? Capacity {get; init;} //gjort endring
-
-    
-    [StringLength(200)]
-    [Display(Name = "Tilgjengelighet")]
-    public string? Availability { get; init; } //gjort endring
-
-    [StringLength(200)]
-    [Display(Name = "Adresse")]
-    public string? Address { get; init; } //gjort endring
+    [Display(
+        Name = "Ressurstype"
+    )]
+    public ResourceType? ResourceType { get; set; }
 
 
     [Required(
-        ErrorMessage = "Beskrivelse er påkrevd"
+        ErrorMessage = "Navn på ressursen er påkrevd."
+    )]
+    [StringLength(
+        100,
+        ErrorMessage =
+            "Ressursnavnet kan maksimalt være 100 tegn."
+    )]
+    [Display(
+        Name = "Navn på ressurs"
+    )]
+    public string ResourceName { get; set; }
+        = string.Empty;
+
+
+    [Required(
+        ErrorMessage = "Beskrivelse er påkrevd."
     )]
     [StringLength(
         500,
-        ErrorMessage = "Beskrivelsen kan maks være 500 tegn"
+        ErrorMessage =
+            "Beskrivelsen kan maksimalt være 500 tegn."
     )]
-    [Display(Name = "Beskrivelse")]
-    public string Description { get; init; } = string.Empty;
+    [Display(
+        Name = "Beskrivelse"
+    )]
+    public string Description { get; set; }
+        = string.Empty;
 
+
+    [Range(
+        1,
+        100000,
+        ErrorMessage =
+            "Antall må være minst 1."
+    )]
+    [Display(
+        Name = "Antall"
+    )]
+    public int Quantity { get; set; }
+        = 1;
+
+
+    [StringLength(
+        200,
+        ErrorMessage =
+            "Kapasitet kan maksimalt være 200 tegn."
+    )]
+    [Display(
+        Name = "Kapasitet"
+    )]
+    public string? Capacity { get; set; }
+
+
+    [StringLength(
+        200,
+        ErrorMessage =
+            "Tilgjengelighet kan maksimalt være 200 tegn."
+    )]
+    [Display(
+        Name = "Tilgjengelighet"
+    )]
+    public string? Availability { get; set; }
+
+
+    // =========================
+    // LOCATION
+    // =========================
+
+    [StringLength(
+        200,
+        ErrorMessage =
+            "Adresse kan maksimalt være 200 tegn."
+    )]
+    [Display(
+        Name = "Adresse / område"
+    )]
+    public string? Address { get; set; }
+
+
+    [Range(
+        -90,
+        90,
+        ErrorMessage =
+            "Ugyldig breddegrad."
+    )]
+    public double Latitude { get; set; }
+
+
+    [Range(
+        -180,
+        180,
+        ErrorMessage =
+            "Ugyldig lengdegrad."
+    )]
+    public double Longitude { get; set; }
+
+
+    // =========================
+    // CONTACT INFORMATION
+    // =========================
 
     [EmailAddress(
-        ErrorMessage = "Skriv inn en gyldig e-postadresse"
+        ErrorMessage =
+            "Skriv inn en gyldig e-postadresse."
     )]
     [StringLength(
-        150,
-        ErrorMessage = "E-postadressen er for lang"
+        150
     )]
-    [Display(Name = "E-post")]
-    public string? ContactEmail { get; init; }
+    [Display(
+        Name = "Kontakt-e-post"
+    )]
+    public string? ContactEmail { get; set; }
 
 
-    [Required]
-    [StringLength(5)]
-    [Display(Name = "Landskode")]
-    public string ContactPhoneCountryCode { get; init; } = "+47";
+    [StringLength(
+        5
+    )]
+    [Display(
+        Name = "Landkode"
+    )]
+    public string? ContactPhoneCountryCode { get; set; }
+        = "+47";
 
 
     [StringLength(
@@ -181,4 +258,15 @@ public class RegisterResourceViewModel : IValidatableObject
                 break;
         }
     }
+        ErrorMessage =
+            "Telefonnummeret kan maksimalt være 20 tegn."
+    )]
+    [Phone(
+        ErrorMessage =
+            "Skriv inn et gyldig telefonnummer."
+    )]
+    [Display(
+        Name = "Telefonnummer"
+    )]
+    public string? ContactPhoneNumber { get; set; }
 }

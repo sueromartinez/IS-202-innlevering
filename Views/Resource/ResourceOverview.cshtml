@@ -2197,6 +2197,7 @@
         src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
     </script>
 
+<script src="~/js/kartverket.js"></script>
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
@@ -2265,11 +2266,9 @@
                 return;
             }
 
-            // Reuses Leaflet, OpenStreetMap tiles and the existing marker design.
+            // Reuses Leaflet, Kartverket tiles and the existing marker design.
             map = L.map("resourceOverviewMap").setView([58.1467, 7.9956], 10);
-            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-                maxZoom: 19, attribution: "&copy; OpenStreetMap"
-            }).addTo(map);
+            addKartverketLayers(map);
             const resourceIcon = L.divIcon({
                 className: "resource-map-marker",
                 html: '<div class="resource-map-dot"><span></span></div>',

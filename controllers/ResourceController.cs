@@ -1,7 +1,8 @@
-using System.Text.RegularExpressions;
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
 using FirstWebAppInDocker.ViewModels;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,84 +10,105 @@ namespace FirstWebAppInDocker.Controllers;
 
 /// <summary>
 /// Håndterer registrering og visning av ressurser.
+///
+/// Tilgang styres med ASP.NET Core Identity-roller.
 /// </summary>
+[Authorize(
+    Roles =
+        IdentitySeeder.ResourceProviderRole
+        + ","
+        + IdentitySeeder.PublicActorRole
+        + ","
+        + IdentitySeeder.AdminRole
+)]
 public class ResourceController : Controller
 {
-    private const string PublicActorRole = "PublicActor";
-    private const string ResourceProviderRole = "ResourceProvider";
+    private readonly ApplicationDbContext
+        _dbContext;
 
-    private readonly ApplicationDbContext _context;
-
-
-    /// <summary>
-    /// Oppretter controlleren med tilgang til databasen.
-    /// </summary>
-    public ResourceController(ApplicationDbContext context)
-    {
-        _context = context;
-    }
+    private readonly UserManager<ApplicationUser>
+        _userManager;
 
 
-    /// <summary>
-    /// Viser skjemaet for registrering av ressurs.
-    /// Kun ressursleverandører skal registrere ressurser.
-    /// </summary>
-    [HttpGet]
-    public IActionResult RegisterResource()
-    {
-        if (!IsLoggedIn())
-        {
-            return RedirectToHome();
-        }
-
-        if (!IsResourceProvider())
-        {
-            return RedirectToDashboard();
-        }
-
-        return View();
-    }
-
-
-    /// <summary>
-    /// Registrerer en ny ressurs og lagrer den i databasen.
-    /// </summary>
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> RegisterResource(
-        RegisterResourceViewModel model
+    public ResourceController(
+        ApplicationDbContext dbContext,
+        UserManager<ApplicationUser> userManager
     )
     {
-        string? userEmail =
-            HttpContext.Session.GetString("UserEmail");
+        _dbContext = dbContext;
+        _userManager = userManager;
+    }
 
-        if (string.IsNullOrWhiteSpace(userEmail))
-        {
-            return RedirectToHome();
-        }
 
-        if (!IsResourceProvider())
-        {
-            return RedirectToDashboard();
-        }
+    // =========================
+    // REGISTER RESOURCE - GET
+    // =========================
 
+    [HttpGet]
+    [Authorize(
+        Roles =
+            IdentitySeeder.ResourceProviderRole
+    )]
+    public IActionResult RegisterResource()
+    {
+        return View(
+            new RegisterResourceViewModel()
+        );
+    }
+
+
+    // =========================
+    // REGISTER RESOURCE - POST
+    // =========================
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(
+        Roles =
+            IdentitySeeder.ResourceProviderRole
+    )]
+    public async Task<IActionResult>
+        RegisterResource(
+            RegisterResourceViewModel model
+        )
+    {
         if (!ModelState.IsValid)
         {
-            return View(model);
+            return View(
+                model
+            );
         }
 
-        if (
-            model.Latitude == 0
-            &&
-            model.Longitude == 0
-        )
+
+        if (!model.ResourceType.HasValue)
         {
             ModelState.AddModelError(
-                string.Empty,
-                "Du må velge en plassering i kartet."
+                nameof(model.ResourceType),
+                "Velg type ressurs."
             );
 
-            return View(model);
+            return View(
+                model
+            );
+        }
+
+
+        ApplicationUser? user =
+            await _userManager
+                .GetUserAsync(
+                    User
+                );
+
+
+        if (
+            user is null
+            ||
+            string.IsNullOrWhiteSpace(
+                user.Email
+            )
+        )
+        {
+            return Challenge();
         }
 
         // Takes ownership from the server session, never from posted form data.
@@ -158,195 +180,284 @@ public class ResourceController : Controller
 
         await _context.SaveChangesAsync();
 
+        var resource =
+            new Resource
+            {
+                // =========================
+                // RESOURCE INFORMATION
+                // =========================
+
+                ResourceType =
+                    model.ResourceType.Value,
+
+                ResourceName =
+                    model.ResourceName.Trim(),
+
+                Description =
+                    model.Description.Trim(),
+
+                Quantity =
+                    model.Quantity,
+
+        // Restricts provider results in SQL before sending data to the browser.
+        IQueryable<Resource> query =
+            _context.Resources
+                .AsNoTracking();
+                Capacity =
+                    string.IsNullOrWhiteSpace(
+                        model.Capacity
+                    )
+                        ? null
+                        : model.Capacity.Trim(),
+
+                Availability =
+                    string.IsNullOrWhiteSpace(
+                        model.Availability
+                    )
+                        ? null
+                        : model.Availability.Trim(),
+
+
+                // =========================
+                // LOCATION
+                // =========================
+
+                Address =
+                    string.IsNullOrWhiteSpace(
+                        model.Address
+                    )
+                        ? null
+                        : model.Address.Trim(),
+
+                Latitude =
+                    model.Latitude,
+
+                Longitude =
+                    model.Longitude,
+
+
+                // =========================
+                // CONTACT
+                // =========================
+
+                ContactEmail =
+                    string.IsNullOrWhiteSpace(
+                        model.ContactEmail
+                    )
+                        ? user.Email
+                        : model.ContactEmail.Trim(),
+
+                ContactPhoneCountryCode =
+                    string.IsNullOrWhiteSpace(
+                        model.ContactPhoneCountryCode
+                    )
+                        ? null
+                        : model
+                            .ContactPhoneCountryCode
+                            .Trim(),
+
+                ContactPhoneNumber =
+                    string.IsNullOrWhiteSpace(
+                        model.ContactPhoneNumber
+                    )
+                        ? null
+                        : model
+                            .ContactPhoneNumber
+                            .Trim(),
+
+
+                // =========================
+                // OWNERSHIP
+                // =========================
+
+                OwnerUserId =
+                    user.Id,
+
+                OwnerEmail =
+                    user.Email,
+
+
+                // =========================
+                // METADATA
+                // =========================
+
+                CreatedAt =
+                    DateTime.UtcNow
+            };
+
+
+        _dbContext.Resources.Add(
+            resource
+        );
+
+
+        await _dbContext
+            .SaveChangesAsync();
+
+
+        TempData["ResourceSuccess"] =
+            "Ressursen ble registrert.";
+
+
         return RedirectToAction(
             nameof(ResourceOverview)
         );
     }
 
 
-    /// <summary>
-    /// Viser tilgjengelige ressurser.
-    ///
-    /// Offentlige aktører ser alle ressurser.
-    /// Ressursleverandører ser kun egne ressurser.
-    /// </summary>
+    // =========================
+    // RESOURCE OVERVIEW
+    // =========================
+
     [HttpGet]
-    public async Task<IActionResult> ResourceOverview()
+    public async Task<IActionResult>
+        ResourceOverview()
     {
-        string? userEmail =
-            HttpContext.Session.GetString("UserEmail");
+        ApplicationUser? user =
+            await _userManager
+                .GetUserAsync(
+                    User
+                );
 
-        string? userRole =
-            HttpContext.Session.GetString("UserRole");
 
-        if (string.IsNullOrWhiteSpace(userEmail))
+        if (
+            user is null
+            ||
+            string.IsNullOrWhiteSpace(
+                user.Email
+            )
+        )
         {
-            return RedirectToHome();
+            return Challenge();
         }
 
-        // Restricts provider results in SQL before sending data to the browser.
+
+        bool isPublicActor =
+            User.IsInRole(
+                IdentitySeeder.PublicActorRole
+            );
+
+
+        bool isAdmin =
+            User.IsInRole(
+                IdentitySeeder.AdminRole
+            );
+
+
+        bool isResourceProvider =
+            User.IsInRole(
+                IdentitySeeder.ResourceProviderRole
+            );
+
+
         IQueryable<Resource> query =
-            _context.Resources
+            _dbContext.Resources
                 .AsNoTracking();
 
-        if (userRole == ResourceProviderRole)
+
+        // =========================
+        // RESOURCE PROVIDER FILTER
+        // =========================
+        //
+        // Nye ressurser kobles til permanent
+        // Identity UserId.
+        //
+        // Gamle ressurser kan fortsatt ha
+        // OwnerUserId = null og matches da
+        // midlertidig på e-post.
+        //
+
+        if (
+            isResourceProvider
+            &&
+            !isPublicActor
+            &&
+            !isAdmin
+        )
         {
             query =
                 query.Where(
                     resource =>
-                        resource.OwnerEmail == userEmail
+                        resource.OwnerUserId
+                            == user.Id
+                        ||
+                        (
+                            resource.OwnerUserId
+                                == null
+                            &&
+                            resource.OwnerEmail
+                                == user.Email
+                        )
                 );
         }
-        else if (userRole != PublicActorRole)
+
+
+        List<ResourceOverviewViewModel>
+            resources =
+                await query
+                    .OrderByDescending(
+                        resource =>
+                            resource.CreatedAt
+                    )
+                    .Select(
+                        resource =>
+                            new ResourceOverviewViewModel
+                            {
+                                Id =
+                                    resource.Id,
+
+                                ResourceType =
+                                    resource.ResourceType,
+
+                                Description =
+                                    resource.Description,
+
+                                Position =
+                                    new Coordinate(
+                                        resource.Latitude,
+                                        resource.Longitude
+                                    ),
+
+                                ContactEmail =
+                                    resource.ContactEmail,
+
+                                ContactPhoneCountryCode =
+                                    resource
+                                        .ContactPhoneCountryCode,
+
+                                ContactPhoneNumber =
+                                    resource
+                                        .ContactPhoneNumber,
+
+                                OwnerEmail =
+                                    resource.OwnerEmail,
+
+                                CreatedAt =
+                                    resource.CreatedAt
+                            }
+                    )
+                    .ToListAsync();
+
+
+        if (isAdmin)
         {
-            return RedirectToDashboard();
+            ViewBag.UserRole =
+                IdentitySeeder.AdminRole;
+        }
+        else if (isPublicActor)
+        {
+            ViewBag.UserRole =
+                IdentitySeeder.PublicActorRole;
+        }
+        else
+        {
+            ViewBag.UserRole =
+                IdentitySeeder.ResourceProviderRole;
         }
 
-        List<Resource> resources =
-            await query
-                .OrderByDescending(
-                    resource =>
-                        resource.CreatedAt
-                )
-                .ToListAsync();
 
-        List<ResourceOverviewViewModel> viewModel =
+        return View(
             resources
-                .Select(
-                    resource =>
-                        new ResourceOverviewViewModel
-                        {
-                            Id =
-                                resource.Id,
-
-                            ResourceType =
-                                resource.ResourceType,
-
-                            ResourceName = 
-                                resource.ResourceName, //lagt til L
-
-                            Quantity = 
-                                resource.Quantity, //lagt til L   
-
-                            Capacity = 
-                                resource.Capacity, //lagt til L
-
-                            Availability = 
-                                resource.Availability, //lagt til L
-
-                            Address = 
-                                resource.Address, //lagt til L                 
-                        
-
-                            Description =
-                                resource.Description,
-
-                            Position =
-                                new Coordinate(
-                                    resource.Latitude,
-                                    resource.Longitude
-                                ),
-
-                            ContactEmail =
-                                resource.ContactEmail,
-
-                            ContactPhoneCountryCode =
-                                resource.ContactPhoneCountryCode,
-
-                            ContactPhoneNumber =
-                                resource.ContactPhoneNumber,
-
-                            OwnerEmail =
-                                resource.OwnerEmail,
-
-                            CreatedAt =
-                                resource.CreatedAt
-                        }
-                )
-                .ToList();
-
-        return View(viewModel);
-    }
-
-
-    /// <summary>
-    /// Kontrollerer om en bruker er logget inn.
-    /// Midlertidig Session-løsning frem til Identity innføres.
-    /// </summary>
-    private bool IsLoggedIn()
-    {
-        return !string.IsNullOrWhiteSpace(
-            HttpContext.Session.GetString(
-                "UserEmail"
-            )
-        );
-    }
-
-
-    /// <summary>
-    /// Kontrollerer om innlogget bruker er ressursleverandør.
-    /// </summary>
-    private bool IsResourceProvider()
-    {
-        return HttpContext.Session.GetString(
-            "UserRole"
-        ) == ResourceProviderRole;
-    }
-
-
-    /// <summary>
-    /// Sender brukeren tilbake til den offentlige forsiden.
-    /// </summary>
-    private RedirectToActionResult RedirectToHome()
-    {
-        return RedirectToAction(
-            "Index",
-            "Home"
-        );
-    }
-
-
-    /// <summary>
-    /// Sender brukeren tilbake til dashboardet.
-    /// </summary>
-    private RedirectToActionResult RedirectToDashboard()
-    {
-        return RedirectToAction(
-            "Dashboard",
-            "Home"
-        );
-    }
-
-
-    /// <summary>
-    /// Fjerner unødvendig mellomrom fra valgfri tekst.
-    /// </summary>
-    private static string? NormalizeOptionalText(
-        string? value
-    )
-    {
-        return string.IsNullOrWhiteSpace(value)
-            ? null
-            : value.Trim();
-    }
-
-
-    /// <summary>
-    /// Normaliserer telefonnummer før lagring.
-    /// </summary>
-    private static string? NormalizePhoneNumber(
-        string? phoneNumber
-    )
-    {
-        if (string.IsNullOrWhiteSpace(phoneNumber))
-        {
-            return null;
-        }
-
-        return Regex.Replace(
-            phoneNumber,
-            @"\D",
-            ""
         );
     }
 }

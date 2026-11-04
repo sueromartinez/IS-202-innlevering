@@ -1,75 +1,123 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FirstWebAppInDocker.Models;
 
 /// <summary>
-/// Representerer en ressurs som lagres
-/// permanent i databasen.
+/// Representerer en ressurs som en ressursleverandør
+/// har registrert i Beredskapsportalen.
 /// </summary>
 public class Resource
 {
-    /// <summary>
-    /// Unik identifikator.
-    /// </summary>
-    public int Id { get; init; }
+    public int Id { get; set; }
 
+
+    // =========================
+    // RESOURCE INFORMATION
+    // =========================
 
     [Required]
-    public ResourceType ResourceType { get; init; }
+    public ResourceType ResourceType { get; set; }
+
 
     [Required]
     [StringLength(100)]
-    public string ResourceName { get; init; } = string.Empty; //lagt til L
+    public string ResourceName { get; set; }
+        = string.Empty;
 
 
     [Required]
     [StringLength(500)]
-    public string Description { get; init; } = string.Empty;
+    public string Description { get; set; }
+        = string.Empty;
 
-    [Range(1, 1000000)]
-    public int Quantity {get; init;} = 1; // lagt til L
+
+    [Range(
+        1,
+        int.MaxValue
+    )]
+    public int Quantity { get; set; }
+        = 1;
+
 
     [StringLength(200)]
-    public string? Capacity {get; init;} //lagt til L
+    public string? Capacity { get; set; }
+
 
     [StringLength(200)]
-    public string? Availability {get; init;} //lagt til L
+    public string? Availability { get; set; }
+
+
+    // =========================
+    // LOCATION
+    // =========================
 
     [StringLength(200)]
-    public string? Address {get; init;} //lagt til L
+    public string? Address { get; set; }
 
 
-    public double Latitude { get; init; }
+    public double Latitude { get; set; }
+
+    public double Longitude { get; set; }
 
 
-    public double Longitude { get; init; }
-
+    // =========================
+    // CONTACT INFORMATION
+    // =========================
 
     [EmailAddress]
     [StringLength(150)]
-    public string? ContactEmail { get; init; }
+    public string? ContactEmail { get; set; }
 
 
     [StringLength(5)]
-    public string? ContactPhoneCountryCode { get; init; }
+    public string? ContactPhoneCountryCode { get; set; }
 
 
     [StringLength(20)]
-    public string? ContactPhoneNumber { get; init; }
+    public string? ContactPhoneNumber { get; set; }
+
+
+    // =========================
+    // OWNERSHIP
+    // =========================
+
+    /// <summary>
+    /// Permanent Identity-ID til brukeren
+    /// som eier ressursen.
+    ///
+    /// Nullable foreløpig fordi eldre ressurser
+    /// kan være registrert før Identity ble innført.
+    /// </summary>
+    [StringLength(255)]
+    public string? OwnerUserId { get; set; }
 
 
     /// <summary>
-    /// Midlertidig eieridentifikasjon.
-    /// Dette erstattes av Identity UserId senere.
+    /// Navigasjon til brukeren i AspNetUsers.
+    /// OwnerUserId brukes som foreign key.
+    /// </summary>
+    [ForeignKey(nameof(OwnerUserId))]
+    public ApplicationUser? Owner { get; set; }
+
+
+    /// <summary>
+    /// Beholdes foreløpig for eldre data
+    /// og kontakt-/historikkformål.
+    ///
+    /// Selve eierskapet skal styres
+    /// gjennom OwnerUserId.
     /// </summary>
     [Required]
     [StringLength(150)]
-    public string OwnerEmail { get; init; } = string.Empty;
+    public string OwnerEmail { get; set; }
+        = string.Empty;
 
 
-    /// <summary>
-    /// Tidspunkt ressursen ble registrert.
-    /// </summary>
-    public DateTime CreatedAt { get; init; } =
-        DateTime.UtcNow;
+    // =========================
+    // METADATA
+    // =========================
+
+    public DateTime CreatedAt { get; set; }
+        = DateTime.UtcNow;
 }
