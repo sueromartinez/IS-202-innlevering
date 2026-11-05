@@ -120,6 +120,9 @@ namespace FirstWebAppInDocker.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("varchar(150)");
 
+                    b.Property<string>("OwnerUserId")
+                        .HasColumnType("varchar(255)");
+
                     b.Property<int>("Priority")
                         .HasColumnType("int");
 
@@ -130,6 +133,8 @@ namespace FirstWebAppInDocker.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
 
                     b.ToTable("Needs");
                 });
@@ -337,6 +342,15 @@ namespace FirstWebAppInDocker.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
+                });
+
+            modelBuilder.Entity("FirstWebAppInDocker.Models.Need", b =>
+                {
+                    b.HasOne("FirstWebAppInDocker.Models.ApplicationUser", "OwnerUser")
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId");
+
+                    b.Navigation("OwnerUser");
                 });
 
             modelBuilder.Entity("FirstWebAppInDocker.Models.Resource", b =>
