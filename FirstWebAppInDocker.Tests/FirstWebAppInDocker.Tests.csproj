@@ -20,19 +20,17 @@
   <ItemGroup>
 
     <!-- Testkjøring og oppdagelse av tester -->
-    <PackageReference
-      Include="Microsoft.NET.Test.Sdk"
-      Version="17.14.1" />
+    <PackageReference Include="coverlet.collector" Version="10.1.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
 
     <!-- xUnit -->
-    <PackageReference
-      Include="xunit"
-      Version="2.9.3" />
+    <PackageReference Include="xunit" Version="2.9.3" />
 
     <!-- xUnit adapter for dotnet test -->
-    <PackageReference
-      Include="xunit.runner.visualstudio"
-      Version="3.1.4">
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4">
       <IncludeAssets>
         runtime; build; native; contentfiles; analyzers; buildtransitive
       </IncludeAssets>
@@ -40,26 +38,20 @@
     </PackageReference>
 
     <!-- Midlertidig EF Core-database til testing -->
-    <PackageReference
-      Include="Microsoft.EntityFrameworkCore.InMemory"
-      Version="10.0.14" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.14" />
 
     <!-- Mocking av Identity og andre avhengigheter -->
-    <PackageReference
-      Include="Moq"
-      Version="4.20.72" />
+    <PackageReference Include="Moq" Version="4.20.72" />
 
   </ItemGroup>
 
   <ItemGroup>
 
     <!-- Tilgang til ASP.NET Core-klasser -->
-    <FrameworkReference
-      Include="Microsoft.AspNetCore.App" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
 
     <!-- Tilgang til hovedprosjektets kode -->
-    <ProjectReference
-      Include="..\FirstWebAppInDocker.csproj" />
+    <ProjectReference Include="..\FirstWebAppInDocker.csproj" />
 
   </ItemGroup>
 

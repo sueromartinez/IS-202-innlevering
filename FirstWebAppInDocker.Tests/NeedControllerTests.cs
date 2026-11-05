@@ -1,11 +1,13 @@
 
 using System.Reflection;
+using System.Security.Claims;
 using FirstWebAppInDocker.Controllers;
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
 using FirstWebAppInDocker.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore;
@@ -32,77 +34,92 @@ public class NeedControllerTests
 
 
     // ========================================
-    // HJELPER - TESTSESSION
-    // ========================================
-
-    private sealed class TestSession : ISession
-    {
-        private readonly Dictionary<string, byte[]> _values = new();
-
-        public bool IsAvailable => true;
-
-        public string Id => "test-session";
-
-        public IEnumerable<string> Keys => _values.Keys;
-
-        public void Clear()
-        {
-            _values.Clear();
-        }
-
-        public Task CommitAsync(
-            CancellationToken cancellationToken = default)
-        {
-            return Task.CompletedTask;
-        }
-
-        public Task LoadAsync(
-            CancellationToken cancellationToken = default)
-        {
-            return Task.CompletedTask;
-        }
-
-        public void Remove(string key)
-        {
-            _values.Remove(key);
-        }
-
-        public void Set(string key, byte[] value)
-        {
-            _values[key] = value;
-        }
-
-        public bool TryGetValue(
-            string key,
-            out byte[] value)
-        {
-            return _values.TryGetValue(key, out value!);
-        }
-    }
-
-
-    // ========================================
-    // HJELPER - CONTROLLER
+    // HJELPER - CONTROLLER MED IDENTITY
+    //
+    // Ingen Session brukes.
+    // Bruker og roller simuleres med Identity.
     // ========================================
 
     private static NeedController CreateController(
         ApplicationDbContext database,
-        string? role = "PublicActor",
-        string email = "actor@example.com")
+        string? role = IdentitySeeder.PublicActorRole,
+        string email = "actor@example.com",
+        bool isAuthenticated = true,
+        bool returnNoUser = false)
     {
-        var httpContext = new DefaultHttpContext
-        {
-            Session = new TestSession()
-        };
+        ApplicationUser? currentUser = returnNoUser
+            ? null
+            : new ApplicationUser
+            {
+                Id = "test-user-123",
+                Name = "Testbruker",
+                UserName = email,
+                Email = email,
+                CreatedAt = DateTime.UtcNow
+            };
 
-        if (role != null)
+        var store =
+            new Mock<IUserStore<ApplicationUser>>();
+
+        var userManager =
+            new Mock<UserManager<ApplicationUser>>(
+                store.Object,
+                null!,
+                null!,
+                null!,
+                null!,
+                null!,
+                null!,
+                null!,
+                null!
+            );
+
+        userManager
+            .Setup(manager =>
+                manager.GetUserAsync(
+                    It.IsAny<ClaimsPrincipal>()
+                )
+            )
+            .ReturnsAsync(currentUser);
+
+        var claims = new List<Claim>();
+
+        if (currentUser is not null)
         {
-            httpContext.Session.SetString("UserRole", role);
+            claims.Add(
+                new Claim(
+                    ClaimTypes.NameIdentifier,
+                    currentUser.Id
+                )
+            );
         }
 
-        httpContext.Session.SetString("UserEmail", email);
+        if (role is not null)
+        {
+            claims.Add(
+                new Claim(
+                    ClaimTypes.Role,
+                    role
+                )
+            );
+        }
 
-        return new NeedController(database)
+        var identity = new ClaimsIdentity(
+            claims,
+            isAuthenticated
+                ? "TestAuthentication"
+                : null
+        );
+
+        var httpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(identity)
+        };
+
+        return new NeedController(
+            database,
+            userManager.Object
+        )
         {
             ControllerContext = new ControllerContext
             {
@@ -116,9 +133,6 @@ public class NeedControllerTests
 
     // ========================================
     // HJELPER - GYLDIG BEHOV
-    //
-    // Verdiene settes direkte ved opprettelse,
-    // fordi NeedItemViewModel bruker init.
     // ========================================
 
     private static NeedItemViewModel CreateNeedItem(
@@ -126,12 +140,13 @@ public class NeedControllerTests
         int id = 0,
         int quantity = 2,
         double? latitude = 58.1467,
-        double? longitude = 7.9956)
+        double? longitude = 7.9956,
+        ResourceType? resourceType = ResourceType.Generator)
     {
         return new NeedItemViewModel
         {
             Id = id,
-            ResourceType = ResourceType.Generator,
+            ResourceType = resourceType,
             Priority = NeedPriority.Acute,
             Quantity = quantity,
             Description = description,
@@ -160,9 +175,6 @@ public class NeedControllerTests
 
     // ========================================
     // HJELPER - LAGRET BEHOV
-    //
-    // CreatedAt settes ved opprettelse
-    // fordi egenskapen bruker init.
     // ========================================
 
     private static Need CreateStoredNeed(
@@ -223,8 +235,8 @@ public class NeedControllerTests
 
     // ========================================
     // TEST 2
-    // SKRIVEOPERASJONER KREVER POST OG
-    // ANTIFORGERY
+    // SKRIVEOPERASJONER KREVER POST
+    // OG ANTIFORGERY
     // ========================================
 
     [Fact]
@@ -308,6 +320,7 @@ public class NeedControllerTests
 
         Assert.Equal(2, needs.Count);
 
+        // Eieren skal hentes fra Identity.
         Assert.All(
             needs,
             need => Assert.Equal(
@@ -340,8 +353,8 @@ public class NeedControllerTests
 
     // ========================================
     // TEST 4
-    // RESSURSLEVERANDØR KAN IKKE REGISTRERE
-    // BEHOV
+    // RESSURSLEVERANDØR KAN IKKE
+    // REGISTRERE BEHOV
     // ========================================
 
     [Fact]
@@ -351,25 +364,14 @@ public class NeedControllerTests
 
         var controller = CreateController(
             database,
-            role: "ResourceProvider"
+            role: IdentitySeeder.ResourceProviderRole
         );
 
         var result = await controller.RegisterNeed(
             CreateRegistration()
         );
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
-
-        Assert.Equal(
-            "Dashboard",
-            redirect.ActionName
-        );
-
-        Assert.Equal(
-            "Home",
-            redirect.ControllerName
-        );
+        Assert.IsType<ForbidResult>(result);
 
         Assert.Empty(
             await database.Needs.ToListAsync()
@@ -674,6 +676,207 @@ public class NeedControllerTests
         var result = await controller.DeleteNeed(need.Id);
 
         Assert.IsType<NotFoundResult>(result);
+
+        Assert.Single(
+            await database.Needs.ToListAsync()
+        );
+    }
+
+
+    // ========================================
+    // TEST 13 OG 14
+    // PUBLICACTOR OG ADMIN KAN REGISTRERE
+    // ========================================
+
+    [Theory]
+    [InlineData("PublicActor")]
+    [InlineData("Admin")]
+    public async Task RegisterNeed_AllowedRoles_ShouldSave(
+        string role)
+    {
+        using var database = CreateDatabase();
+
+        var controller = CreateController(
+            database,
+            role: role
+        );
+
+        var result = await controller.RegisterNeed(
+            CreateRegistration()
+        );
+
+        var redirect =
+            Assert.IsType<RedirectToActionResult>(result);
+
+        Assert.Equal(
+            "NeedOverview",
+            redirect.ActionName
+        );
+
+        var savedNeed = await database.Needs.SingleAsync();
+
+        Assert.Equal(
+            "actor@example.com",
+            savedNeed.OwnerEmail
+        );
+    }
+
+
+    // ========================================
+    // TEST 15
+    // UINNLOGGET BRUKER SKAL AVVISES
+    // ========================================
+
+    [Fact]
+    public async Task RegisterNeed_Unauthenticated_ShouldChallenge()
+    {
+        using var database = CreateDatabase();
+
+        var controller = CreateController(
+            database,
+            isAuthenticated: false
+        );
+
+        var result = await controller.RegisterNeed(
+            CreateRegistration()
+        );
+
+        Assert.IsType<ChallengeResult>(result);
+
+        Assert.Empty(
+            await database.Needs.ToListAsync()
+        );
+    }
+
+
+    // ========================================
+    // TEST 16
+    // MANGLENDE IDENTITY-BRUKER SKAL AVVISES
+    // ========================================
+
+    [Fact]
+    public async Task RegisterNeed_WithoutIdentityUser_ShouldChallenge()
+    {
+        using var database = CreateDatabase();
+
+        var controller = CreateController(
+            database,
+            returnNoUser: true
+        );
+
+        var result = await controller.RegisterNeed(
+            CreateRegistration()
+        );
+
+        Assert.IsType<ChallengeResult>(result);
+
+        Assert.Empty(
+            await database.Needs.ToListAsync()
+        );
+    }
+
+
+    // ========================================
+    // TEST 17
+    // MANGLENDE RESSURSTYPE SKAL AVVISES
+    // ========================================
+
+    [Fact]
+    public async Task RegisterNeed_MissingResourceType_ShouldFail()
+    {
+        using var database = CreateDatabase();
+
+        var controller = CreateController(database);
+
+        var model = CreateRegistration(
+            CreateNeedItem(
+                resourceType: null
+            )
+        );
+
+        var result = await controller.RegisterNeed(model);
+
+        Assert.IsType<ViewResult>(result);
+
+        Assert.False(controller.ModelState.IsValid);
+
+        Assert.True(
+            controller.ModelState.ContainsKey(
+                "Needs[0].ResourceType"
+            )
+        );
+
+        Assert.Empty(
+            await database.Needs.ToListAsync()
+        );
+    }
+
+
+    // ========================================
+    // TEST 18
+    // RESSURSLEVERANDØR KAN IKKE ENDRE BEHOV
+    // ========================================
+
+    [Fact]
+    public async Task EditNeed_ResourceProvider_ShouldForbid()
+    {
+        using var database = CreateDatabase();
+
+        var need = CreateStoredNeed();
+
+        database.Needs.Add(need);
+
+        await database.SaveChangesAsync();
+
+        var controller = CreateController(
+            database,
+            role: IdentitySeeder.ResourceProviderRole
+        );
+
+        var model = CreateNeedItem(
+            description: "Uautorisert endring",
+            id: need.Id
+        );
+
+        var result = await controller.EditNeed(model);
+
+        Assert.IsType<ForbidResult>(result);
+
+        var unchanged = await database.Needs
+            .SingleAsync(n => n.Id == need.Id);
+
+        Assert.Equal(
+            "Eksisterende behov",
+            unchanged.Description
+        );
+    }
+
+
+    // ========================================
+    // TEST 19
+    // MANGLENDE IDENTITY-BRUKER KAN IKKE
+    // SLETTE BEHOV
+    // ========================================
+
+    [Fact]
+    public async Task DeleteNeed_WithoutIdentityUser_ShouldChallenge()
+    {
+        using var database = CreateDatabase();
+
+        var need = CreateStoredNeed();
+
+        database.Needs.Add(need);
+
+        await database.SaveChangesAsync();
+
+        var controller = CreateController(
+            database,
+            returnNoUser: true
+        );
+
+        var result = await controller.DeleteNeed(need.Id);
+
+        Assert.IsType<ChallengeResult>(result);
 
         Assert.Single(
             await database.Needs.ToListAsync()
