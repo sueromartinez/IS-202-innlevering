@@ -35,4 +35,51 @@ public class ApplicationDbContext
     /// Behov registrert av offentlige aktører.
     /// </summary>
     public DbSet<Need> Needs => Set<Need>();
+
+
+    /// <summary>
+    /// Forespørsler/tildelinger mellom behov og ressurser.
+    /// </summary>
+    public DbSet<NeedAssignment> NeedAssignments => Set<NeedAssignment>();
+
+
+    /// <summary>
+    /// Varsler som vises under varselklokken.
+    /// </summary>
+    public DbSet<Notification> Notifications => Set<Notification>();
+
+
+    protected override void OnModelCreating(
+        ModelBuilder builder
+    )
+    {
+        // Identity-tabellene må konfigureres først.
+        base.OnModelCreating(builder);
+
+
+        builder.Entity<NeedAssignment>(entity =>
+        {
+            // Slettes et behov eller en ressurs,
+            // forsvinner også forespørslene som gjelder dem.
+            entity.HasOne(assignment => assignment.Need)
+                .WithMany()
+                .HasForeignKey(assignment => assignment.NeedId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(assignment => assignment.Resource)
+                .WithMany()
+                .HasForeignKey(assignment => assignment.ResourceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(assignment => assignment.Status);
+        });
+
+
+        builder.Entity<Notification>(entity =>
+        {
+            // Varselklokken spør ofte etter uleste varsler for én bruker.
+            entity.HasIndex(notification =>
+                new { notification.UserId, notification.IsRead });
+        });
+    }
 }

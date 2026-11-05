@@ -158,7 +158,7 @@ Testbrukeren opprettes gjennom `IdentitySeeder.cs`.
 
 Passordet er ment for testing og utvikling, og skal ikke brukes i et produksjonsmiljø.
 
-Det opprettes ikke automatisk en standard administratorkonto.
+En administratorkonto opprettes også ved oppstart (e-post og passord kan settes i `.env`). Se «Testbrukere» under «Roller».
 
 # Opprette bruker
 
@@ -202,6 +202,86 @@ Før koden pushes bør gruppemedlemmene:
 3. Gjennomføre en enkel egenkontroll.
 4. Kontrollere at endringene ikke påvirker eksisterende funksjonalitet.
 5. Opprette en Pull Request for gjennomgang og integrering i `main`.
+
+# Roller
+
+| Rolle | Kan gjøre |
+|---|---|
+| Ressursleverandør / frivillig | Registrere og endre egne ressurser, se forespørsler og bekrefte/avslå, se behov de kan hjelpe med |
+| Offentlig aktør | Registrere behov, se alle ressurser, matche ressurser med behov, markere behov som løst |
+| Admin | Alt en offentlig aktør kan, pluss å opprette offentlige aktører, endre roller og deaktivere brukere |
+
+Offentlige aktører kan ikke registrere seg selv. De opprettes av admin under **Brukere**.
+Brukere deaktiveres i stedet for å slettes, slik at historikken beholdes.
+
+## Testbrukere (bare lokalt)
+
+| Rolle | E-post | Passord |
+|---|---|---|
+| Admin | admin@beredskap.no | Admin123! (kan endres i `.env`) |
+| Offentlig aktør | offentlig@beredskap.no | Test123! |
+| Frivillig | frivillig@beredskap.no | Test123! |
+| Bedrift | entreprenor@beredskap.no | Test123! |
+
+Frivillig- og bedriftsbrukeren, ressursene og behovene er demodata som opprettes når databasen er tom
+(kun i Development). Slå av med miljøvariabelen `Seed__DemoData=false`.
+
+---
+
+# Matching og statusflyt
+
+1. Offentlig aktør trykker **Finn ressurser** på et behov. Systemet viser tilgjengelige ressurser sortert etter avstand (Haversine).
+2. **Send forespørsel** → behovet får status *Vurderes*, og eieren av ressursen får varsel i portalen (klokken), på e-post og simulert SMS.
+3. Eieren bekrefter under **Forespørsler** → behovet blir *Tildelt*, ressursen *Opptatt*.
+4. **Marker behovet som løst** → behovet blir *Løst*, ressursen blir tilgjengelig igjen.
+
+E-post fanges av **Mailpit** og kan leses på http://localhost:8025. SMS logges bare i konsollen.
+
+---
+
+# Sami – AI-assistenten
+
+Sami er hjelpeboten nede i høyre hjørne på alle sider etter innlogging.
+
+- **Frivillig:** hjelp til navigasjon og registrering, og «hvilke behov kan jeg hjelpe med?»
+- **Offentlig aktør:** beskriv en hendelse («flom i Grimstad sentrum»), så finner Sami ressurser i nærheten og foreslår matcher. Forslag vises som kort med knappen **Send forespørsel**; Sami lagrer aldri noe selv.
+- **Admin:** det samme, pluss tall for hele portalen.
+
+Avstand og filtrering beregnes i C# (`ResourceMatchingService`). Språkmodellen får ferdige kandidater, uten kontaktinformasjon, og forklarer og rangerer dem.
+
+## Språkmodell
+
+Standard er en **lokal modell via Ollama** (gratis, ingen API-nøkkel, ingen data forlater maskinen).
+`docker compose up` starter Ollama og laster ned modellen `qwen2.5:7b` (ca. 4–5 GB) første gang.
+Følg med på nedlastingen med:
+
+    docker compose logs -f ollama-pull
+
+Svar kan ta noen sekunder på en laptop uten skjermkort.
+
+### Bytte til Claude API (valgfritt)
+
+Legg dette i `.env` (aldri commit nøkkelen):
+
+    SAMI_PROVIDER=Claude
+    ANTHROPIC_API_KEY=sk-ant-...
+
+---
+
+# Etter at denne endringen er hentet
+
+Datamodellen har fått nye tabeller og felt (status på behov og ressurser, forespørsler og varsler).
+Lag migrasjonen én gang før appen startes:
+
+    dotnet tool install --global dotnet-ef   (hvis du ikke har det)
+    dotnet ef migrations add AddMatchingNotificationsAndSami
+    dotnet build
+    dotnet test FirstWebAppInDocker.Tests
+    docker compose up --build
+
+Migrasjonen kjøres automatisk når appen starter.
+
+---
 
 # KI-redegjørelse
 

@@ -4,6 +4,10 @@ using FirstWebAppInDocker.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
+using FirstWebAppInDocker.Services.Ai;
+using FirstWebAppInDocker.Services.Matching;
+using FirstWebAppInDocker.Services.Notifications;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -99,6 +103,52 @@ builder.Services.ConfigureApplicationCookie(
 // =========================
 
 builder.Services.AddControllersWithViews();
+
+
+// =========================
+// MATCHING OG VARSLING
+// =========================
+
+builder.Services.Configure<SmtpOptions>(
+    builder.Configuration.GetSection("Smtp")
+);
+
+builder.Services.AddScoped<IPortalEmailSender, SmtpEmailSender>();
+builder.Services.AddScoped<ISmsSender, SimulatedSmsSender>();
+builder.Services.AddScoped<NotificationService>();
+builder.Services.AddScoped<ResourceMatchingService>();
+builder.Services.AddScoped<AssignmentService>();
+
+
+// =========================
+// SAMI (AI-ASSISTENT)
+// =========================
+//
+// Modellen velges i appsettings.json med "Sami:Provider":
+// - "Ollama": lokal modell, gratis, standard
+// - "Claude": Claude API, krever ANTHROPIC_API_KEY
+//
+
+builder.Services.Configure<SamiOptions>(
+    builder.Configuration.GetSection("Sami")
+);
+
+builder.Services.AddHttpClient<OllamaChatClient>();
+builder.Services.AddHttpClient<ClaudeChatClient>();
+builder.Services.AddHttpClient<NominatimGeocoder>();
+
+builder.Services.AddScoped<IChatModelClient>(services =>
+{
+    SamiOptions options =
+        services.GetRequiredService<IOptions<SamiOptions>>().Value;
+
+    return string.Equals(options.Provider, "Claude", StringComparison.OrdinalIgnoreCase)
+        ? (IChatModelClient)services.GetRequiredService<ClaudeChatClient>()
+        : services.GetRequiredService<OllamaChatClient>();
+});
+
+builder.Services.AddScoped<SamiTools>();
+builder.Services.AddScoped<SamiAssistantService>();
 
 
 // =========================
@@ -206,6 +256,29 @@ using (var scope = app.Services.CreateScope())
 await IdentitySeeder.SeedAsync(
     app.Services
 );
+
+
+// =========================
+// DEMODATA
+// =========================
+//
+// Fyller en tom database med falske ressurser, behov og
+// testbrukere, slik at matching og Sami kan demonstreres.
+// Kjøres bare i Development, og kan slås av med Seed:DemoData=false.
+//
+
+if (
+    app.Environment.IsDevelopment()
+    && !string.Equals(
+        app.Configuration["Seed:DemoData"],
+        "false",
+        StringComparison.OrdinalIgnoreCase)
+)
+{
+    await DemoDataSeeder.SeedAsync(
+        app.Services
+    );
+}
 
 
 // =========================

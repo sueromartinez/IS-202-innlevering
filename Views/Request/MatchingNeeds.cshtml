@@ -1,0 +1,82 @@
+@model FirstWebAppInDocker.ViewModels.MatchingNeedsViewModel
+@using FirstWebAppInDocker.Services
+@{
+    Layout = "_PortalLayout";
+    ViewData["Title"] = "Behov jeg kan hjelpe med";
+
+    var radiusOptions = new[] { 10, 25, 50, 100, 200 };
+}
+
+<div class="page-top">
+    <div>
+        <span class="page-eyebrow">Frivillig innsats</span>
+        <h1 class="page-heading">Behov jeg kan hjelpe med</h1>
+        <p class="page-description">
+            Åpne behov som passer ressursene dine. Av hensyn til sikkerhet vises bare
+            omtrentlig avstand, ikke nøyaktig sted eller hvem som har meldt behovet.
+        </p>
+    </div>
+
+    <form method="get" asp-action="MatchingNeeds" class="inline-role-form">
+        <label for="radiusKm" class="visually-hidden">Søkeradius</label>
+        <select id="radiusKm" name="radiusKm" onchange="this.form.submit()">
+            @foreach (int radius in radiusOptions)
+            {
+                <option value="@radius" selected="@(Math.Abs(radius - Model.RadiusKm) < 0.1)">Innen @radius km</option>
+            }
+        </select>
+        <noscript><button type="submit" class="small-action">Søk</button></noscript>
+    </form>
+</div>
+
+@if (TempData["RequestMessage"] is string message)
+{
+    <div class="alert alert-success" role="status">@message</div>
+}
+@if (TempData["RequestError"] is string error)
+{
+    <div class="alert alert-error" role="alert">@error</div>
+}
+
+<section class="app-card portal-section">
+    @if (!Model.HasAvailableResources)
+    {
+        <p class="empty-state">
+            Du har ingen tilgjengelige ressurser registrert ennå.
+            <a asp-controller="Resource" asp-action="RegisterResource">Registrer en ressurs</a>
+            for å se behov du kan hjelpe med.
+        </p>
+    }
+    else if (Model.Needs.Count == 0)
+    {
+        <p class="empty-state">
+            Ingen åpne behov passer ressursene dine innen @Model.RadiusKm km akkurat nå. Takk for at du står klar!
+        </p>
+    }
+    else
+    {
+        <ul class="card-list">
+            @foreach (var need in Model.Needs)
+            {
+                <li class="list-card">
+                    <div>
+                        <h3>@EnumDisplay.Name(need.ResourceType) – antall @need.Quantity</h3>
+                        <p>@need.Description</p>
+                        <div class="list-card-meta">
+                            <span class="status-badge @(need.Priority == NeedPriority.Acute ? "priority-acute" : "priority-planned")">
+                                @EnumDisplay.Name(need.Priority)
+                            </span>
+                            <span>ca. @need.DistanceKm.ToString("0") km fra «@need.MatchingResourceName»</span>
+                        </div>
+                    </div>
+
+                    <form asp-action="OfferHelp" method="post" class="cell-actions">
+                        <input type="hidden" name="needId" value="@need.NeedId" />
+                        <input type="hidden" name="resourceId" value="@need.MatchingResourceId" />
+                        <button type="submit" class="primary-action">Jeg kan hjelpe</button>
+                    </form>
+                </li>
+            }
+        </ul>
+    }
+</section>
