@@ -6,9 +6,15 @@ namespace FirstWebAppInDocker.ViewModels;
 /// <summary>
 /// Representerer informasjonen som
 /// vises og redigeres på profilsiden.
+///
+/// Validerer navn, e-post og telefonnummer.
 /// </summary>
 public class ProfileViewModel : IValidatableObject
 {
+    // ========================================
+    // NAVN
+    // ========================================
+
     [Required(
         ErrorMessage = "Navn er påkrevd"
     )]
@@ -21,13 +27,28 @@ public class ProfileViewModel : IValidatableObject
         string.Empty;
 
 
-    /// <summary>
-    /// E-post hentes fra ASP.NET Core Identity.
-    /// Den kan foreløpig ikke endres fra profilsiden.
-    /// </summary>
+    // ========================================
+    // E-POST
+    // ========================================
+
+    [Required(
+        ErrorMessage = "E-post er påkrevd"
+    )]
+    [EmailAddress(
+        ErrorMessage = "Skriv inn en gyldig e-postadresse"
+    )]
+    [StringLength(
+        150,
+        ErrorMessage = "E-postadressen er for lang"
+    )]
+    [Display(Name = "E-post")]
     public string Email { get; set; } =
         string.Empty;
 
+
+    // ========================================
+    // TELEFON
+    // ========================================
 
     [Required(
         ErrorMessage = "Landskode er påkrevd"
@@ -46,36 +67,45 @@ public class ProfileViewModel : IValidatableObject
     public string? PhoneNumber { get; set; }
 
 
-    /// <summary>
-    /// Tidspunkt kontoen ble opprettet.
-    /// Kun visningsdata.
-    /// </summary>
+    // ========================================
+    // VISNINGSDATA
+    // ========================================
+
     public DateTime CreatedAt { get; set; }
 
-
-    /// <summary>
-    /// Viser om brukeren har aktivert 2FA.
-    /// Kun visningsdata.
-    /// </summary>
     public bool TwoFactorEnabled { get; set; }
 
-
-    /// <summary>
-    /// Brukerens primære Identity-rolle.
-    /// Kun visningsdata.
-    /// </summary>
     public string Role { get; set; } =
         string.Empty;
 
 
-    /// <summary>
-    /// Validerer telefonnummer basert
-    /// på valgt landskode.
-    /// </summary>
+    // ========================================
+    // VALIDERING AV TELEFONNUMMER
+    // ========================================
+
     public IEnumerable<ValidationResult> Validate(
         ValidationContext validationContext
     )
     {
+        if (
+            PhoneCountryCode != "+47"
+            &&
+            PhoneCountryCode != "+45"
+            &&
+            PhoneCountryCode != "+46"
+        )
+        {
+            yield return new ValidationResult(
+                "Velg en gyldig landskode.",
+                new[] { nameof(PhoneCountryCode) }
+            );
+
+            yield break;
+        }
+
+
+        // Telefonnummer er valgfritt.
+
         if (
             string.IsNullOrWhiteSpace(
                 PhoneNumber
@@ -86,6 +116,8 @@ public class ProfileViewModel : IValidatableObject
         }
 
 
+        // Kun sifre, mellomrom og bindestreker.
+
         if (
             !Regex.IsMatch(
                 PhoneNumber,
@@ -95,15 +127,15 @@ public class ProfileViewModel : IValidatableObject
         {
             yield return new ValidationResult(
                 "Telefonnummeret kan bare inneholde sifre, mellomrom og bindestrek.",
-                new[]
-                {
-                    nameof(PhoneNumber)
-                }
+                new[] { nameof(PhoneNumber) }
             );
 
             yield break;
         }
 
+
+        // Fjern mellomrom og bindestreker
+        // før vi kontrollerer lengden.
 
         string normalizedPhoneNumber =
             Regex.Replace(
@@ -118,16 +150,12 @@ public class ProfileViewModel : IValidatableObject
             case "+47":
 
                 if (
-                    normalizedPhoneNumber.Length
-                    != 8
+                    normalizedPhoneNumber.Length != 8
                 )
                 {
                     yield return new ValidationResult(
                         "Norske telefonnumre må inneholde nøyaktig 8 sifre.",
-                        new[]
-                        {
-                            nameof(PhoneNumber)
-                        }
+                        new[] { nameof(PhoneNumber) }
                     );
                 }
 
@@ -137,16 +165,12 @@ public class ProfileViewModel : IValidatableObject
             case "+45":
 
                 if (
-                    normalizedPhoneNumber.Length
-                    != 8
+                    normalizedPhoneNumber.Length != 8
                 )
                 {
                     yield return new ValidationResult(
                         "Danske telefonnumre må inneholde nøyaktig 8 sifre.",
-                        new[]
-                        {
-                            nameof(PhoneNumber)
-                        }
+                        new[] { nameof(PhoneNumber) }
                     );
                 }
 
@@ -163,25 +187,9 @@ public class ProfileViewModel : IValidatableObject
                 {
                     yield return new ValidationResult(
                         "Svenske telefonnumre må inneholde mellom 7 og 10 sifre.",
-                        new[]
-                        {
-                            nameof(PhoneNumber)
-                        }
+                        new[] { nameof(PhoneNumber) }
                     );
                 }
-
-                break;
-
-
-            default:
-
-                yield return new ValidationResult(
-                    "Velg en gyldig landskode.",
-                    new[]
-                    {
-                        nameof(PhoneCountryCode)
-                    }
-                );
 
                 break;
         }
