@@ -1,42 +1,77 @@
-﻿<!-- Forteller at dette er et ASP.NET Core webprosjekt -->
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
 
     <!-- Prosjektet bruker .NET 10 -->
     <TargetFramework>net10.0</TargetFramework>
 
-    <!-- Hjelper med å unngå feil med null-verdier -->
+    <!-- Håndtering av null-verdier -->
     <Nullable>enable</Nullable>
 
-    <!-- Gjør at vanlige using-linjer legges til automatisk -->
+    <!-- Automatiske using-direktiver -->
     <ImplicitUsings>enable</ImplicitUsings>
 
+    <!-- User Secrets -->
     <UserSecretsId>17684ef3-fdb8-44ef-a662-7b7398a77623</UserSecretsId>
+
+    <!--
+      Viktig:
+      Ekskluder hele testprosjektet fra
+      hovedprosjektets automatiske filinkludering.
+
+      Hindrer at testprosjektets bin/obj-filer
+      kopieres rekursivt under bygging.
+    -->
+    <DefaultItemExcludes>
+      $(DefaultItemExcludes);FirstWebAppInDocker.Tests/**
+    </DefaultItemExcludes>
+
   </PropertyGroup>
 
 
   <ItemGroup>
 
-    <!-- Gjør at filer i testmappen ikke blir en del av hovedprosjektet -->
+    <!--
+      Testprosjektet skal bygges separat.
+      Ingen filer fra testmappen skal inkluderes
+      som kode, innhold eller ressurser i webappen.
+    -->
+
     <Compile Remove="FirstWebAppInDocker.Tests/**" />
+
+    <Content Remove="FirstWebAppInDocker.Tests/**" />
+
+    <None Remove="FirstWebAppInDocker.Tests/**" />
+
+    <EmbeddedResource Remove="FirstWebAppInDocker.Tests/**" />
 
   </ItemGroup>
 
 
   <ItemGroup>
 
-    <!-- EF Core-verktøy for blant annet migrations -->
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.14" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11">
+    <!-- ASP.NET Core Identity -->
+    <PackageReference
+      Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore"
+      Version="10.0.14" />
+
+    <!-- Entity Framework Core Design -->
+    <PackageReference
+      Include="Microsoft.EntityFrameworkCore.Design"
+      Version="10.0.11">
+
       <IncludeAssets>
         runtime; build; native; contentfiles; analyzers; buildtransitive
       </IncludeAssets>
+
       <PrivateAssets>all</PrivateAssets>
+
     </PackageReference>
 
-    <!-- Gjør at EF Core kan kommunisere med MariaDB/MySQL -->
-    <PackageReference Include="Microting.EntityFrameworkCore.MySql" Version="10.0.11" />
+    <!-- MariaDB / MySQL -->
+    <PackageReference
+      Include="Microting.EntityFrameworkCore.MySql"
+      Version="10.0.11" />
 
   </ItemGroup>
 
