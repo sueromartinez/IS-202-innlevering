@@ -40,4 +40,7 @@ public class ResourceOverviewViewModel
         = string.Empty;
 
     public DateTime CreatedAt { get; init; }
+
+    public ResourceStatus Status { get; init; }
+        = ResourceStatus.Available;
 }

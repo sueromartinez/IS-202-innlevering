@@ -301,3 +301,11 @@ form select:focus, form input:focus, form textarea:focus {
     text-align: center;
 }
 .cancel-link:hover { color: var(--primary); }
+/* Status i behovslisten (Ny → Vurderes → Tildelt → Løst) */
+.need-status { margin-left: auto; padding: 3px 9px; border-radius: 999px; font-size: .72rem; font-weight: 750; white-space: nowrap; }
+.need-status.status-new { color: #8a5a00; background: #fdf3df; }
+.need-status.status-review { color: #125770; background: #e5f2f6; }
+.need-status.status-assigned { color: #1b6b48; background: #e4f3ec; }
+.need-status.status-resolved { color: #475467; background: #eef1f4; }
+.small-button.primary { color: white; border-color: var(--primary, #176b87); background: var(--primary, #176b87); text-decoration: none; }
+.small-button.primary:hover { background: var(--primary-dark, #125770); }

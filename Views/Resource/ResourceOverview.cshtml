@@ -8,8 +8,10 @@
     string? userName =
         Context.Session.GetString("UserName");
 
+    // Rollen settes av ResourceController fra Identity.
     string? userRole =
-        Context.Session.GetString("UserRole");
+        ViewBag.UserRole as string
+        ?? Context.Session.GetString("UserRole");
 
     bool isResourceProvider =
         userRole == "ResourceProvider";
@@ -226,6 +228,12 @@
 ========================================= -->
 
 <main class="overview-page">
+
+    @if (TempData["ResourceSuccess"] is string resourceMessage)
+    {
+        <div class="resource-flash" role="status">@resourceMessage</div>
+    }
+
 
 
     <!-- =====================================
@@ -607,6 +615,31 @@
                                 Vis i kart
 
                             </button>
+
+
+                            <!-- TILGJENGELIGHET (STATUS) -->
+                            <div class="resource-availability-status">
+                                <span class="resource-state resource-state-@resource.Status.ToString().ToLowerInvariant()">
+                                    @(resource.Status switch
+                                    {
+                                        ResourceStatus.Busy => "Opptatt",
+                                        ResourceStatus.Unavailable => "Utilgjengelig",
+                                        _ => "Tilgjengelig"
+                                    })
+                                </span>
+
+                                @if (isResourceProvider && resource.Status != ResourceStatus.Busy)
+                                {
+                                    <form asp-controller="Resource" asp-action="SetStatus" method="post">
+                                        <input type="hidden" name="id" value="@resource.Id" />
+                                        <input type="hidden" name="status"
+                                               value="@(resource.Status == ResourceStatus.Available ? ResourceStatus.Unavailable : ResourceStatus.Available)" />
+                                        <button type="submit" class="resource-state-toggle">
+                                            @(resource.Status == ResourceStatus.Available ? "Marker som utilgjengelig" : "Marker som tilgjengelig")
+                                        </button>
+                                    </form>
+                                }
+                            </div>
 
                         </article>
                     }
@@ -2204,6 +2237,27 @@
     }
     .resource-category-option span { overflow-wrap: anywhere; }
 
+    /* Tilgjengelighet (status) per ressurs */
+    .resource-flash {
+        margin: 0 0 18px; padding: 12px 15px; border-radius: 10px;
+        color: #1b6b48; background: #e4f3ec; font-size: .86rem; font-weight: 600;
+    }
+    .resource-availability-status {
+        display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px;
+    }
+    .resource-availability-status form { margin: 0; }
+    .resource-state {
+        padding: 4px 9px; border-radius: 999px; font-size: .72rem; font-weight: 750;
+        color: #1b6b48; background: #e4f3ec;
+    }
+    .resource-state-busy { color: #8a5a00; background: #fdf3df; }
+    .resource-state-unavailable { color: #9d2f2f; background: #fbe9e9; }
+    .resource-state-toggle {
+        min-height: 32px; padding: 0 11px; border: 1px solid var(--border, #dfe4e8); border-radius: 8px;
+        background: white; color: #344054; font: inherit; font-size: .75rem; font-weight: 700; cursor: pointer;
+    }
+    .resource-state-toggle:hover { background: #f6f8f9; }
+
 </style>
 
 
@@ -2367,6 +2421,7 @@ function createSymbolMarker(color, type, badge) {
 }
 
 
+<partial name="_Sami" />
 </body>
 
 </html>

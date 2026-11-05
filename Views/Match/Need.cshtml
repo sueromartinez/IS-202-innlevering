@@ -1,0 +1,223 @@
+@model FirstWebAppInDocker.ViewModels.MatchNeedViewModel
+@using FirstWebAppInDocker.Services
+@{
+    Layout = "_PortalLayout";
+    ViewData["Title"] = "Finn ressurser";
+
+    var need = Model.Need;
+    bool isResolved = need.Status == NeedStatus.Resolved;
+
+    string NeedStatusClass(NeedStatus status) => status switch
+    {
+        NeedStatus.UnderReview => "status-review",
+        NeedStatus.Assigned => "status-assigned",
+        NeedStatus.Resolved => "status-resolved",
+        _ => "status-new"
+    };
+
+    string AssignmentStatusClass(AssignmentStatus status) => status switch
+    {
+        AssignmentStatus.Confirmed => "status-confirmed",
+        AssignmentStatus.Declined => "status-declined",
+        AssignmentStatus.Cancelled => "status-cancelled",
+        _ => "status-requested"
+    };
+
+    var radiusOptions = new[] { 10, 25, 50, 100, 200 };
+}
+
+<div class="page-top">
+    <div>
+        <span class="page-eyebrow">Matching</span>
+        <h1 class="page-heading">@EnumDisplay.Name(need.ResourceType)</h1>
+        <p class="page-description">@need.Description</p>
+    </div>
+
+    <a asp-controller="Need" asp-action="NeedOverview" class="secondary-action">← Tilbake til behov</a>
+</div>
+
+@if (TempData["MatchMessage"] is string message)
+{
+    <div class="alert alert-success" role="status">@message</div>
+}
+@if (TempData["MatchError"] is string error)
+{
+    <div class="alert alert-error" role="alert">@error</div>
+}
+
+<section class="app-card portal-section">
+    <dl class="detail-grid">
+        <div>
+            <dt>Status</dt>
+            <dd><span class="status-badge @NeedStatusClass(need.Status)">@EnumDisplay.Name(need.Status)</span></dd>
+        </div>
+        <div>
+            <dt>Prioritet</dt>
+            <dd>
+                <span class="status-badge @(need.Priority == NeedPriority.Acute ? "priority-acute" : "priority-planned")">
+                    @EnumDisplay.Name(need.Priority)
+                </span>
+            </dd>
+        </div>
+        <div>
+            <dt>Antall</dt>
+            <dd>@need.Quantity</dd>
+        </div>
+        <div>
+            <dt>Registrert</dt>
+            <dd>@need.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</dd>
+        </div>
+    </dl>
+
+    @if (!isResolved)
+    {
+        <form asp-action="Resolve" method="post" class="form-actions"
+              onsubmit="return confirm('Markere behovet som løst? Bekreftede ressurser blir ledige igjen.');">
+            <input type="hidden" name="needId" value="@need.Id" />
+            <button type="submit" class="secondary-action">Marker behovet som løst</button>
+        </form>
+    }
+</section>
+
+
+<section class="app-card portal-section">
+    <h2>Forespørsler</h2>
+    <p class="section-hint">
+        Eieren av ressursen får varsel i portalen og på e-post, og må bekrefte at de kan stille.
+        Behovet blir «Tildelt» når minst én har bekreftet.
+    </p>
+
+    @if (Model.Assignments.Count == 0)
+    {
+        <p class="empty-state">Ingen forespørsler sendt ennå.</p>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="portal-table">
+                <thead>
+                    <tr>
+                        <th>Ressurs</th>
+                        <th>Status</th>
+                        <th>Kontakt</th>
+                        <th>Sendt</th>
+                        <th><span class="visually-hidden">Handlinger</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var assignment in Model.Assignments)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@assignment.ResourceName</strong>
+                                <span class="cell-muted">
+                                    @EnumDisplay.Name(assignment.ResourceType)
+                                    @(assignment.SuggestedByAssistant ? " · foreslått av Sami" : "")
+                                </span>
+                            </td>
+                            <td><span class="status-badge @AssignmentStatusClass(assignment.Status)">@EnumDisplay.Name(assignment.Status)</span></td>
+                            <td>
+                                @assignment.ContactEmail
+                                @if (assignment.ContactPhone is not null)
+                                {
+                                    <span class="cell-muted">@assignment.ContactPhone</span>
+                                }
+                            </td>
+                            <td>@assignment.CreatedAt.ToLocalTime().ToString("dd.MM HH:mm")</td>
+                            <td>
+                                @if ((assignment.Status is AssignmentStatus.Requested or AssignmentStatus.Confirmed) && !isResolved)
+                                {
+                                    <div class="cell-actions">
+                                        <form asp-action="Cancel" method="post">
+                                            <input type="hidden" name="assignmentId" value="@assignment.Id" />
+                                            <input type="hidden" name="needId" value="@need.Id" />
+                                            <button type="submit" class="small-action">Avbryt</button>
+                                        </form>
+                                    </div>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+
+@if (!isResolved)
+{
+    <section class="app-card portal-section">
+        <div class="page-top" style="margin-bottom: 8px;">
+            <div>
+                <h2>Tilgjengelige ressurser i nærheten</h2>
+                <p class="section-hint">
+                    Ressurser av typen «@EnumDisplay.Name(need.ResourceType)», sortert etter avstand i luftlinje.
+                    Trenger du hjelp til å vurdere andre typer ressurser, spør Sami nede i hjørnet.
+                </p>
+            </div>
+
+            <form method="get" asp-action="Need" asp-route-id="@need.Id" class="inline-role-form">
+                <label for="radiusKm" class="visually-hidden">Søkeradius</label>
+                <select id="radiusKm" name="radiusKm" onchange="this.form.submit()">
+                    @foreach (int radius in radiusOptions)
+                    {
+                        <option value="@radius" selected="@(Math.Abs(radius - Model.RadiusKm) < 0.1)">Innen @radius km</option>
+                    }
+                </select>
+                <noscript><button type="submit" class="small-action">Søk</button></noscript>
+            </form>
+        </div>
+
+        @if (Model.Candidates.Count == 0)
+        {
+            <p class="empty-state">
+                Fant ingen tilgjengelige ressurser av denne typen innen @Model.RadiusKm km.
+                Prøv en større radius.
+            </p>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="portal-table">
+                    <thead>
+                        <tr>
+                            <th>Ressurs</th>
+                            <th>Avstand</th>
+                            <th>Antall / kapasitet</th>
+                            <th>Tilgjengelighet</th>
+                            <th><span class="visually-hidden">Handlinger</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var candidate in Model.Candidates)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@candidate.ResourceName</strong>
+                                    <span class="cell-muted">@candidate.Description</span>
+                                </td>
+                                <td>@candidate.DistanceKm.ToString("0.0") km</td>
+                                <td>
+                                    @candidate.Quantity stk
+                                    @if (!string.IsNullOrWhiteSpace(candidate.Capacity))
+                                    {
+                                        <span class="cell-muted">@candidate.Capacity</span>
+                                    }
+                                </td>
+                                <td>@(candidate.Availability ?? "Ikke oppgitt")</td>
+                                <td>
+                                    <form asp-action="SendRequest" method="post" class="cell-actions">
+                                        <input type="hidden" name="needId" value="@need.Id" />
+                                        <input type="hidden" name="resourceId" value="@candidate.ResourceId" />
+                                        <button type="submit" class="small-action primary">Send forespørsel</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+}

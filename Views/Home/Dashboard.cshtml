@@ -12,6 +12,11 @@
 
     string userRole =
         ViewBag.UserRole ?? "";
+
+    // Admin ser samme dashboard som offentlige aktører.
+    bool isOfficial =
+        userRole == "PublicActor"
+        || userRole == "Admin";
 }
 
 <!DOCTYPE html>
@@ -31,7 +36,7 @@
     </title>
 
 
-    @if (userRole == "PublicActor")
+    @if (isOfficial)
     {
         <link
             rel="stylesheet"
@@ -44,7 +49,7 @@
 <body>
 
 
-@if (userRole == "PublicActor")
+@if (isOfficial)
 {
     <!-- =========================================
          OFFENTLIG AKTØR
@@ -118,10 +123,14 @@
                     </strong>
 
                     <span>
-                        Offentlig aktør
+                        @(userRole == "Admin" ? "Administrator" : "Offentlig aktør")
                     </span>
 
                 </div>
+
+
+                <link rel="stylesheet" href="~/css/top-navigation.css" asp-append-version="true" />
+                @await Component.InvokeAsync("NotificationBell")
 
 
                 <form
@@ -241,6 +250,33 @@
                         </span>
 
                     </a>
+
+
+                    @if (userRole == "Admin")
+                    {
+                        <a
+                            asp-controller="Admin"
+                            asp-action="Users"
+                            class="public-navigation-item">
+
+                            <span class="navigation-icon">
+                                ⚙
+                            </span>
+
+                            <span>
+
+                                <strong>
+                                    Brukere
+                                </strong>
+
+                                <small>
+                                    Administrer kontoer
+                                </small>
+
+                            </span>
+
+                        </a>
+                    }
 
                 </nav>
 
@@ -757,6 +793,30 @@ else if (userRole == "ResourceProvider")
                     Registrer ressurs
 
                 </a>
+
+
+                <a
+                    asp-controller="Request"
+                    asp-action="Index"
+                    class="provider-nav-link">
+
+                    Forespørsler
+
+                </a>
+
+
+                <a
+                    asp-controller="Request"
+                    asp-action="MatchingNeeds"
+                    class="provider-nav-link">
+
+                    Behov jeg kan hjelpe med
+
+                </a>
+
+
+                <link rel="stylesheet" href="~/css/top-navigation.css" asp-append-version="true" />
+                @await Component.InvokeAsync("NotificationBell")
 
 
                 <a
@@ -3132,7 +3192,7 @@ else
 
 
 
-@if (userRole == "PublicActor")
+@if (isOfficial)
 {
     <script
         src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
@@ -3478,6 +3538,8 @@ else
     </script>
 }
 
+
+<partial name="_Sami" />
 
 </body>
 

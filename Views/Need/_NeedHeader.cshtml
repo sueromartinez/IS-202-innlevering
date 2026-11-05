@@ -23,10 +23,14 @@
     <div class="header-user">
         <a asp-controller="Home" asp-action="Dashboard" class="header-link">Oversikt</a>
         <a asp-controller="Need" asp-action="NeedOverview" class="header-link">Behov</a>
+        <a asp-controller="Resource" asp-action="ResourceOverview" class="header-link">Ressurser</a>
+
+        <link rel="stylesheet" href="~/css/top-navigation.css" asp-append-version="true" />
+        @await Component.InvokeAsync("NotificationBell")
 
         <div class="header-user-text">
             <strong>@userName</strong>
-            <span>Offentlig aktør</span>
+            <span>@(User.IsInRole("Admin") ? "Administrator" : "Offentlig aktør")</span>
         </div>
 
         <form asp-controller="Account" asp-action="Logout" method="post">

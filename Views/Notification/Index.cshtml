@@ -1,0 +1,57 @@
+@model List<FirstWebAppInDocker.Models.Notification>
+@{
+    Layout = "_PortalLayout";
+    ViewData["Title"] = "Varsler";
+
+    var unreadIds = ViewBag.UnreadIds as HashSet<int> ?? new HashSet<int>();
+}
+
+<div class="page-top">
+    <div>
+        <span class="page-eyebrow">Innboks</span>
+        <h1 class="page-heading">Varsler</h1>
+        <p class="page-description">
+            Varsler om forespørsler og svar. De samme varslene sendes også på e-post.
+        </p>
+    </div>
+</div>
+
+<section class="app-card portal-section">
+    @if (Model.Count == 0)
+    {
+        <p class="empty-state">Du har ingen varsler ennå.</p>
+    }
+    else
+    {
+        <ul class="card-list">
+            @foreach (var notification in Model)
+            {
+                bool wasUnread = unreadIds.Contains(notification.Id);
+
+                <li class="list-card @(wasUnread ? "unread" : "")">
+                    <div>
+                        <h3>
+                            @if (wasUnread)
+                            {
+                                <span class="visually-hidden">Nytt: </span>
+                            }
+                            @notification.Title
+                        </h3>
+                        <p>@notification.Message</p>
+                        <div class="list-card-meta">
+                            <span>@notification.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+                        </div>
+                    </div>
+
+                    @* Kun relative lenker i portalen, aldri eksterne. *@
+                    @if (!string.IsNullOrEmpty(notification.Link)
+                         && notification.Link.StartsWith('/')
+                         && !notification.Link.StartsWith("//"))
+                    {
+                        <a href="@notification.Link" class="secondary-action">Åpne</a>
+                    }
+                </li>
+            }
+        </ul>
+    }
+</section>
