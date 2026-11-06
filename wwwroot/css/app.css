@@ -74,7 +74,7 @@ body {
 
     z-index: 1000;
 
-    background: white;
+    background: var(--surface);
 
     border-bottom:
         1px solid var(--border);
@@ -89,7 +89,7 @@ body {
 
     gap: 11px;
 
-    color: var(--navy);
+    color: var(--heading);
 
     text-decoration: none;
 }
@@ -104,7 +104,7 @@ body {
 
     border-radius: 10px;
 
-    color: var(--primary);
+    color: var(--link);
 
     background:
         rgba(23, 107, 135, 0.08);
@@ -129,7 +129,7 @@ body {
 
     margin-top: 2px;
 
-    color: #7b8794;
+    color: var(--text-secondary);
 
     font-size: 0.62rem;
     font-weight: 700;
@@ -157,7 +157,7 @@ body {
 
     border-radius: 8px;
 
-    color: #52606c;
+    color: var(--text-secondary);
 
     text-decoration: none;
 
@@ -167,7 +167,7 @@ body {
 
 
 .app-navigation a:hover {
-    color: var(--primary);
+    color: var(--link);
 
     background:
         rgba(23, 107, 135, 0.07);
@@ -189,9 +189,9 @@ body {
 
     border-radius: 8px;
 
-    color: #344054;
+    color: var(--text);
 
-    background: white;
+    background: var(--surface);
 
     text-decoration: none;
 
@@ -201,7 +201,7 @@ body {
 
 
 .app-logout:hover {
-    background: #f6f8f9;
+    background: var(--surface-soft);
 }
 
 
@@ -232,7 +232,7 @@ body {
 
     margin-bottom: 7px;
 
-    color: var(--primary);
+    color: var(--link);
 
     font-size: 0.68rem;
     font-weight: 800;
@@ -313,7 +313,7 @@ body {
 
     border-radius: 15px;
 
-    background: white;
+    background: var(--surface);
 
     box-shadow:
         0 10px 35px

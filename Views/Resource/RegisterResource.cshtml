@@ -54,7 +54,7 @@
 
         body {
             background:
-                #f5f7f8;
+                var(--background);
 
             color:
                 #17212b;
@@ -95,7 +95,7 @@
                 14px 32px;
 
             background:
-                white;
+                var(--surface);
 
             border-bottom:
                 1px solid #e5e9ec;
@@ -254,7 +254,7 @@
                 9px 14px;
 
             background:
-                white;
+                var(--surface);
 
             color:
                 #344054;
@@ -389,7 +389,7 @@
                 10px;
 
             background:
-                white;
+                var(--surface);
 
             color:
                 #344054;
@@ -407,7 +407,7 @@
 
         .back-button:hover {
             background:
-                #f8fafb;
+                var(--surface-soft);
         }
 
 
@@ -439,7 +439,7 @@
                 18px;
 
             background:
-                white;
+                var(--surface);
 
             box-shadow:
                 0 12px 35px
@@ -616,7 +616,7 @@
                 11px 13px;
 
             background:
-                white;
+                var(--surface);
 
             color:
                 #17212b;
@@ -777,7 +777,7 @@
                 #23855b;
 
             color:
-                white;
+                var(--surface);
 
             cursor:
                 pointer;
@@ -1124,7 +1124,7 @@
         /* Matches Leaflet controls and keeps the fullscreen button easy to tap. */
         .resource-fullscreen-control button {
             display: grid; place-items: center; width: 40px; height: 40px;
-            padding: 8px; border: 0; background: white; color: #17212b; cursor: pointer;
+            padding: 8px; border: 0; background: white; color: var(--text); cursor: pointer;
         }
         .resource-fullscreen-control button:hover { background: #f4f4f4; }
         .resource-fullscreen-control button:focus-visible { outline: 3px solid #176b87; outline-offset: -3px; }
@@ -1142,6 +1142,9 @@
 
     </style>
 
+    <!-- Fargetema: lyst/mørkt tema -->
+    <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
+    <script src="~/js/theme.js" asp-append-version="true"></script>
 </head>
 
 
