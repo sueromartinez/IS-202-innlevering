@@ -167,63 +167,7 @@
      HEADER
 ========================================= -->
 
-<header class="provider-header portal-navigation-header">
-
-    <a
-        asp-controller="Home"
-        asp-action="Dashboard"
-        class="provider-brand">
-
-        <div class="brand-icon">
-
-            <svg
-                viewBox="0 0 24 24"
-                aria-hidden="true">
-
-                <path
-                    d="M12 2L4 5.5V11c0 5.1 3.4 9.8 8 11 4.6-1.2 8-5.9 8-11V5.5L12 2Z"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.7"
-                />
-
-                <path
-                    d="M8.5 12.5L11 15l4.8-6"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                />
-
-            </svg>
-
-        </div>
-
-
-        <div>
-
-            <strong>
-                Beredskapsportal
-            </strong>
-
-            <span>
-                @roleLabel
-            </span>
-
-        </div>
-
-    </a>
-
-
-    @* Uses existing routes and only shows provider links to providers. *@
-    <partial name="_TopNavigation" />
-    <div class="provider-user-text">
-        <strong>@displayName</strong>
-        <span>@roleLabel</span>
-    </div>
-
-</header>
+<partial name="_PortalHeader" />
 
 
 <!-- =========================================

@@ -1,0 +1,27 @@
+@using FirstWebAppInDocker.Data
+@* Felles toppmeny for alle innloggede sider: logo, meny og bruker *@
+@{
+    // Rollen hentes fra Identity, navnet fra økten
+    string rolle = User.IsInRole(IdentitySeeder.AdminRole) ? "Administrator"
+        : User.IsInRole(IdentitySeeder.PublicActorRole) ? "Offentlig aktør"
+        : "Ressursleverandør";
+}
+<link rel="stylesheet" href="~/css/top-navigation.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/portal-header.css" asp-append-version="true" />
+
+<header class="pv-header">
+    <a asp-controller="Home" asp-action="Dashboard" class="pv-brand">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M12 2L4 5.5V11c0 5.1 3.4 9.8 8 11 4.6-1.2 8-5.9 8-11V5.5L12 2Z" />
+            <path d="M8.5 12.5L11 15l4.8-6" />
+        </svg>
+        <span><strong>Beredskapsportal</strong><small>@rolle</small></span>
+    </a>
+
+    <partial name="_TopNavigation" />
+
+    <div class="pv-user">
+        <strong>@(Context.Session.GetString("UserName") ?? rolle)</strong>
+        <small>@rolle</small>
+    </div>
+</header>
