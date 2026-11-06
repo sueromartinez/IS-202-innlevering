@@ -1133,7 +1133,7 @@ else if (userRole == "ResourceProvider")
 
             <!-- NIVÅER -->
 
-            <section class="rank-levels">
+            <details class="rank-levels"><summary>Slik stiger du i nivå</summary>
 
                 <span class="provider-eyebrow">
                     NIVÅER
@@ -1198,7 +1198,7 @@ else if (userRole == "ResourceProvider")
 
                 </ul>
 
-            </section>
+            </details>
 
 
             <!-- RESSURSER -->
@@ -1225,9 +1225,12 @@ else if (userRole == "ResourceProvider")
                     </div>
 
 
-                    <span>
-                        @Model.ResourceCount ressurser
-                    </span>
+                    <div class="provider-header-actions">
+                        <span>@Model.ResourceCount ressurser</span>
+                        <a asp-controller="Resource" asp-action="RegisterResource" class="provider-add-button">
+                            + Registrer ressurs
+                        </a>
+                    </div>
 
                 </div>
 
@@ -2493,7 +2496,7 @@ else
         font-size: 0.72rem;
         font-weight: 800;
 
-        var(--surface)-space: nowrap;
+        white-space: nowrap;
 
         cursor: pointer;
 
@@ -3062,6 +3065,41 @@ else
         font-size: 0.59rem;
     }
 
+
+    /* KOMPAKT: mindre toppboks, smalere kort og lukket nivåliste */
+    .provider-hero-rank {
+        grid-template-columns: 1fr auto;
+        padding: 20px 26px;
+        gap: 20px;
+    }
+    .provider-hero-rank .provider-eyebrow,
+    .provider-hero-rank .provider-hero-content > p,
+    .provider-hero-rank .provider-main-action,
+    .provider-hero-info p:last-child { display: none; }
+    .provider-hero-rank .rank-head { margin: 0; }
+    .provider-hero-rank .rank-badge { width: 50px; height: 59px; }
+    .provider-hero-rank .rank-title-row h1 { font-size: 1.6rem; }
+    .provider-hero-rank .rank-progress { margin-top: 8px; }
+    .provider-hero-info { padding: 12px 16px; }
+    .provider-status-grid { gap: 12px; margin: 12px 0 16px; }
+    .provider-stat { padding: 14px 18px; }
+    .provider-stat small { display: none; }
+    .provider-stat strong { margin: 4px 0 0; }
+    .rank-levels { padding: 0 20px; }
+    .rank-levels summary { padding: 14px 0; color: var(--heading); font-weight: 800; cursor: pointer; }
+    .rank-levels .provider-eyebrow,
+    .rank-levels h2 { display: none; }
+    .rank-level-list { padding-bottom: 20px; }
+    .provider-header-actions { display: flex; align-items: center; gap: 16px; }
+    .provider-add-button {
+        padding: 11px 18px;
+        border-radius: 8px;
+        color: #ffffff;
+        background: var(--primary);
+        font-size: 0.75rem;
+        font-weight: 850;
+        text-decoration: none;
+    }
 
     /* =========================================
        PROVIDER RESOURCES
