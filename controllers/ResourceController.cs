@@ -1,7 +1,8 @@
-using System.Text.RegularExpressions;
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
 using FirstWebAppInDocker.ViewModels;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,153 +10,211 @@ namespace FirstWebAppInDocker.Controllers;
 
 /// <summary>
 /// Håndterer registrering og visning av ressurser.
+///
+/// ASP.NET Core Identity brukes for autentisering,
+/// roller og eierskap.
 /// </summary>
+[Authorize(
+    Roles =
+        IdentitySeeder.ResourceProviderRole
+        + ","
+        + IdentitySeeder.PublicActorRole
+        + ","
+        + IdentitySeeder.AdminRole
+)]
 public class ResourceController : Controller
 {
-    private const string PublicActorRole = "PublicActor";
-    private const string ResourceProviderRole = "ResourceProvider";
+    private readonly ApplicationDbContext _dbContext;
 
-    private readonly ApplicationDbContext _context;
+    private readonly UserManager<ApplicationUser> _userManager;
 
 
-    /// <summary>
-    /// Oppretter controlleren med tilgang til databasen.
-    /// </summary>
-    public ResourceController(ApplicationDbContext context)
+    public ResourceController(
+        ApplicationDbContext dbContext,
+        UserManager<ApplicationUser> userManager
+    )
     {
-        _context = context;
+        _dbContext = dbContext;
+        _userManager = userManager;
     }
 
 
-    /// <summary>
-    /// Viser skjemaet for registrering av ressurs.
-    /// Kun ressursleverandører skal registrere ressurser.
-    /// </summary>
+    // =========================================================
+    // REGISTER RESOURCE - GET
+    // =========================================================
+
     [HttpGet]
+    [Authorize(
+        Roles =
+            IdentitySeeder.ResourceProviderRole
+    )]
     public IActionResult RegisterResource()
     {
-        if (!IsLoggedIn())
-        {
-            return RedirectToHome();
-        }
-
-        if (!IsResourceProvider())
-        {
-            return RedirectToDashboard();
-        }
-
-        return View();
+        return View(
+            new RegisterResourceViewModel()
+        );
     }
 
 
-    /// <summary>
-    /// Registrerer en ny ressurs og lagrer den i databasen.
-    /// </summary>
+    // =========================================================
+    // REGISTER RESOURCE - POST
+    // =========================================================
+
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(
+        Roles =
+            IdentitySeeder.ResourceProviderRole
+    )]
     public async Task<IActionResult> RegisterResource(
         RegisterResourceViewModel model
     )
     {
-        string? userEmail =
-            HttpContext.Session.GetString("UserEmail");
-
-        if (string.IsNullOrWhiteSpace(userEmail))
-        {
-            return RedirectToHome();
-        }
-
-        if (!IsResourceProvider())
-        {
-            return RedirectToDashboard();
-        }
-
         if (!ModelState.IsValid)
         {
-            return View(model);
+            return View(
+                model
+            );
         }
 
-        if (
-            model.Latitude == 0
-            &&
-            model.Longitude == 0
-        )
+
+        if (!model.ResourceType.HasValue)
         {
             ModelState.AddModelError(
-                string.Empty,
-                "Du må velge en plassering i kartet."
+                nameof(model.ResourceType),
+                "Velg type ressurs."
             );
 
-            return View(model);
+            return View(
+                model
+            );
         }
 
-        var resource = new Resource
+
+        ApplicationUser? user =
+            await _userManager.GetUserAsync(
+                User
+            );
+
+
+        if (
+            user is null
+            ||
+            string.IsNullOrWhiteSpace(
+                user.Email
+            )
+        )
         {
-            Name =
-                model.ResourceName.Trim(),
+            return Challenge();
+        }
 
-            ResourceType =
-                model.ResourceType!.Value,
+        var resource =
+            new Resource
+            {
+                // =============================================
+                // RESOURCE INFORMATION
+                // =============================================
 
-            ResourceName =
-                model.ResourceName.Trim(), //endret l
+                ResourceType =
+                    model.ResourceType.Value,
 
-            Quantity =  
-                model.Quantity, //endret l
+                ResourceName =
+                    model.ResourceName.Trim(),
 
-            Capacity =  
-                NormalizeOptionalText(
-                    model.Capacity
-                ), // endret l
+                Description =
+                    model.Description.Trim(),
 
-            Availability =  
-                NormalizeOptionalText(
-                    model.Availability
-                ), // endret l
-            
-            Address =  
-                NormalizeOptionalText(
-                    model.Address), // endret l
+                Quantity =
+                    model.Quantity,
 
-            Description =
-                model.Description.Trim(),
+                Capacity =
+                    NormalizeOptionalText(
+                        model.Capacity
+                    ),
 
-            
-    
-    
-            Latitude =
-                model.Latitude,
+                Availability =
+                    NormalizeOptionalText(
+                        model.Availability
+                    ),
 
-            Longitude =
-                model.Longitude,
 
-            ContactEmail =
-                NormalizeOptionalText(
-                    model.ContactEmail
-                ),
+                // =============================================
+                // LOCATION
+                // =============================================
 
-            ContactPhoneCountryCode =
-                string.IsNullOrWhiteSpace(
-                    model.ContactPhoneNumber
-                )
-                    ? null
-                    : model.ContactPhoneCountryCode,
+                Address =
+                    NormalizeOptionalText(
+                        model.Address
+                    ),
 
-            ContactPhoneNumber =
-                NormalizePhoneNumber(
-                    model.ContactPhoneNumber
-                ),
+                Latitude =
+                    model.Latitude,
 
-            OwnerEmail =
-                userEmail,
+                Longitude =
+                    model.Longitude,
 
-            CreatedAt =
-                DateTime.UtcNow
-        };
 
-        _context.Resources.Add(resource);
+                // =============================================
+                // CONTACT
+                // =============================================
 
-        await _context.SaveChangesAsync();
+                ContactEmail =
+                    string.IsNullOrWhiteSpace(
+                        model.ContactEmail
+                    )
+                        ? user.Email
+                        : model.ContactEmail.Trim(),
+
+                ContactPhoneCountryCode =
+                    NormalizeOptionalText(
+                        model.ContactPhoneCountryCode
+                    ),
+
+                ContactPhoneNumber =
+                    NormalizeOptionalText(
+                        model.ContactPhoneNumber
+                    ),
+
+
+                // =============================================
+                // OWNERSHIP
+                // =============================================
+                //
+                // OwnerUserId er den permanente
+                // koblingen mellom ressurs og bruker.
+                //
+                // OwnerEmail beholdes foreløpig
+                // for bakoverkompatibilitet.
+                //
+
+                OwnerUserId =
+                    user.Id,
+
+                OwnerEmail =
+                    user.Email,
+
+
+                // =============================================
+                // METADATA
+                // =============================================
+
+                CreatedAt =
+                    DateTime.UtcNow
+            };
+
+
+        _dbContext.Resources.Add(
+            resource
+        );
+
+
+        await _dbContext
+            .SaveChangesAsync();
+
+
+        TempData["ResourceSuccess"] =
+            "Ressursen ble registrert.";
+
 
         return RedirectToAction(
             nameof(ResourceOverview)
@@ -163,53 +222,121 @@ public class ResourceController : Controller
     }
 
 
-    /// <summary>
-    /// Viser tilgjengelige ressurser.
-    ///
-    /// Offentlige aktører ser alle ressurser.
-    /// Ressursleverandører ser kun egne ressurser.
-    /// </summary>
+    // =========================================================
+    // RESOURCE OVERVIEW
+    // =========================================================
+
     [HttpGet]
     public async Task<IActionResult> ResourceOverview()
     {
-        string? userEmail =
-            HttpContext.Session.GetString("UserEmail");
+        ApplicationUser? user =
+            await _userManager.GetUserAsync(
+                User
+            );
 
-        string? userRole =
-            HttpContext.Session.GetString("UserRole");
 
-        if (string.IsNullOrWhiteSpace(userEmail))
+        if (
+            user is null
+            ||
+            string.IsNullOrWhiteSpace(
+                user.Email
+            )
+        )
         {
-            return RedirectToHome();
+            return Challenge();
         }
 
+
+        bool isPublicActor =
+            User.IsInRole(
+                IdentitySeeder.PublicActorRole
+            );
+
+
+        bool isAdmin =
+            User.IsInRole(
+                IdentitySeeder.AdminRole
+            );
+
+
+        bool isResourceProvider =
+            User.IsInRole(
+                IdentitySeeder.ResourceProviderRole
+            );
+
+
+        // =============================================
+        // LINK LEGACY RESOURCES
+        // =============================================
+        //
+        // Eldre ressurser kan være opprettet før
+        // OwnerUserId ble innført.
+        //
+        // Dersom en slik ressurs har samme
+        // OwnerEmail som den innloggede brukeren,
+        // kobles den nå permanent til brukerens
+        // Identity-ID.
+        //
+        // Dette gjør at ressursen fortsatt tilhører
+        // brukeren selv om e-postadressen endres.
+        //
+
+        if (
+            isResourceProvider
+            &&
+            !isPublicActor
+            &&
+            !isAdmin
+        )
+        {
+            await LinkLegacyResourcesToIdentityUserAsync(
+                user
+            );
+        }
+
+
         IQueryable<Resource> query =
-            _context.Resources
+            _dbContext.Resources
                 .AsNoTracking();
 
-        if (userRole == ResourceProviderRole)
+
+        // Ressursleverandører ser bare
+        // ressurser de selv eier.
+        if (
+            isResourceProvider
+            &&
+            !isPublicActor
+            &&
+            !isAdmin
+        )
         {
             query =
                 query.Where(
                     resource =>
-                        resource.OwnerEmail == userEmail
+                        resource.OwnerUserId
+                            == user.Id
+
+                        ||
+
+                        (
+                            resource.OwnerUserId
+                                == null
+
+                            &&
+
+                            resource.OwnerEmail
+                                == user.Email
+                        )
                 );
         }
-        else if (userRole != PublicActorRole)
-        {
-            return RedirectToDashboard();
-        }
 
-        List<Resource> resources =
+
+        List<ResourceOverviewViewModel> resources =
             await query
                 .OrderByDescending(
                     resource =>
                         resource.CreatedAt
                 )
-                .ToListAsync();
-
-        List<ResourceOverviewViewModel> viewModel =
-            resources
                 .Select(
                     resource =>
                         new ResourceOverviewViewModel
@@ -222,22 +349,6 @@ public class ResourceController : Controller
 
                             ResourceType =
                                 resource.ResourceType,
-
-                            ResourceName = 
-                                resource.ResourceName, //lagt til L
-
-                            Quantity = 
-                                resource.Quantity, //lagt til L   
-
-                            Capacity = 
-                                resource.Capacity, //lagt til L
-
-                            Availability = 
-                                resource.Availability, //lagt til L
-
-                            Address = 
-                                resource.Address, //lagt til L                 
-                        
 
                             Description =
                                 resource.Description,
@@ -264,90 +375,119 @@ public class ResourceController : Controller
                                 resource.CreatedAt
                         }
                 )
-                .ToList();
+                .ToListAsync();
 
-        return View(viewModel);
+
+        if (isAdmin)
+        {
+            ViewBag.UserRole =
+                IdentitySeeder.AdminRole;
+        }
+        else if (isPublicActor)
+        {
+            ViewBag.UserRole =
+                IdentitySeeder.PublicActorRole;
+        }
+        else
+        {
+            ViewBag.UserRole =
+                IdentitySeeder.ResourceProviderRole;
+        }
+
+
+        return View(
+            resources
+        );
     }
 
 
+    // =========================================================
+    // LEGACY OWNERSHIP HELPER
+    // =========================================================
+
     /// <summary>
-    /// Kontrollerer om en bruker er logget inn.
-    /// Midlertidig Session-løsning frem til Identity innføres.
+    /// Kobler eldre ressurser som bare har
+    /// OwnerEmail til brukerens permanente
+    /// ASP.NET Core Identity-ID.
+    ///
+    /// Dette er overgangslogikk for ressurser
+    /// som ble opprettet før OwnerUserId
+    /// ble innført.
     /// </summary>
-    private bool IsLoggedIn()
+    private async Task
+        LinkLegacyResourcesToIdentityUserAsync(
+            ApplicationUser user
+        )
     {
-        return !string.IsNullOrWhiteSpace(
-            HttpContext.Session.GetString(
-                "UserEmail"
+        if (
+            string.IsNullOrWhiteSpace(
+                user.Email
             )
-        );
+        )
+        {
+            return;
+        }
+
+
+        List<Resource> legacyResources =
+            await _dbContext.Resources
+                .Where(
+                    resource =>
+                        resource.OwnerUserId
+                            == null
+
+                        &&
+
+                        resource.OwnerEmail
+                            == user.Email
+                )
+                .ToListAsync();
+
+
+        if (legacyResources.Count == 0)
+        {
+            return;
+        }
+
+
+        foreach (
+            Resource resource
+            in legacyResources
+        )
+        {
+            resource.OwnerUserId =
+                user.Id;
+        }
+
+
+        await _dbContext
+            .SaveChangesAsync();
     }
 
 
-    /// <summary>
-    /// Kontrollerer om innlogget bruker er ressursleverandør.
-    /// </summary>
-    private bool IsResourceProvider()
-    {
-        return HttpContext.Session.GetString(
-            "UserRole"
-        ) == ResourceProviderRole;
-    }
-
+    // =========================================================
+    // HELPERS
+    // =========================================================
 
     /// <summary>
-    /// Sender brukeren tilbake til den offentlige forsiden.
-    /// </summary>
-    private RedirectToActionResult RedirectToHome()
-    {
-        return RedirectToAction(
-            "Index",
-            "Home"
-        );
-    }
-
-
-    /// <summary>
-    /// Sender brukeren tilbake til dashboardet.
-    /// </summary>
-    private RedirectToActionResult RedirectToDashboard()
-    {
-        return RedirectToAction(
-            "Dashboard",
-            "Home"
-        );
-    }
-
-
-    /// <summary>
-    /// Fjerner unødvendig mellomrom fra valgfri tekst.
+    /// Gjør tom eller whitespace-tekst om til null.
+    /// Ellers fjernes unødvendige mellomrom
+    /// foran og bak teksten.
     /// </summary>
     private static string? NormalizeOptionalText(
         string? value
     )
     {
-        return string.IsNullOrWhiteSpace(value)
-            ? null
-            : value.Trim();
-    }
-
-
-    /// <summary>
-    /// Normaliserer telefonnummer før lagring.
-    /// </summary>
-    private static string? NormalizePhoneNumber(
-        string? phoneNumber
-    )
-    {
-        if (string.IsNullOrWhiteSpace(phoneNumber))
+        if (
+            string.IsNullOrWhiteSpace(
+                value
+            )
+        )
         {
             return null;
         }
 
-        return Regex.Replace(
-            phoneNumber,
-            @"\D",
-            ""
-        );
+
+        return value.Trim();
     }
 }

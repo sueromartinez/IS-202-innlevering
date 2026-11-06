@@ -1,162 +1,145 @@
+
 using System.ComponentModel.DataAnnotations;
-using System.Text.RegularExpressions;
 using FirstWebAppInDocker.Models;
 
 namespace FirstWebAppInDocker.ViewModels;
 
 /// <summary>
-/// Representerer data brukeren fyller inn
-/// når en ny ressurs registreres.
+/// ViewModel for registrering av en ressurs.
+/// Eierskap settes på serversiden i ResourceController.
 /// </summary>
 public class RegisterResourceViewModel : IValidatableObject
 {
-    [Required(
-        ErrorMessage = "Du må velge type ressurs"
-    )]
-    [Display(Name = "Type ressurs")]
-    public ResourceType? ResourceType { get; init; }
+    // RESOURCE INFORMATION
 
-    [Required(ErrorMessage = "Ressursnavn er påkrevd")]
-    [StringLength(
-        150,
-        ErrorMessage = "Ressursnavnet kan maks være 150 tegn"
-    )]
+    [Required(ErrorMessage = "Velg type ressurs.")]
+    [Display(Name = "Ressurstype")]
+    public ResourceType? ResourceType { get; set; }
+
+    [Required(ErrorMessage = "Ressursnavn er påkrevd.")]
+    [StringLength(100, ErrorMessage = "Ressursnavnet kan maksimalt være 100 tegn.")]
     [Display(Name = "Ressursnavn")]
-    public string ResourceName { get; init; } = string.Empty;
+    public string ResourceName { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "Beskrivelse er påkrevd.")]
+    [StringLength(500, ErrorMessage = "Beskrivelsen kan maksimalt være 500 tegn.")]
+    [Display(Name = "Beskrivelse")]
+    public string Description { get; set; } = string.Empty;
 
-    [Range(1, 1000000, ErrorMessage = "Antall må være minst 1")]
+    [Range(1, 100000, ErrorMessage = "Antall må være minst 1.")]
     [Display(Name = "Antall")]
-    public int Quantity { get; init; } = 1;
-
+    public int Quantity { get; set; } = 1;
 
     [StringLength(200)]
     [Display(Name = "Kapasitet")]
-    public string? Capacity { get; init; }
-
+    public string? Capacity { get; set; }
 
     [StringLength(200)]
     [Display(Name = "Tilgjengelighet")]
-    public string? Availability { get; init; }
+    public string? Availability { get; set; }
 
+    // LOCATION
 
     [StringLength(200)]
-    [Display(Name = "Adresse")]
-    public string? Address { get; init; }
-    
-    [Display(Name = "Beskrivelse")]
-    public string Description { get; init; } = string.Empty;
+    [Display(Name = "Adresse / område")]
+    public string? Address { get; set; }
 
+    [Range(-90, 90, ErrorMessage = "Breddegrad må være mellom -90 og 90.")]
+    public double Latitude { get; set; }
 
-    [EmailAddress(
-        ErrorMessage = "Skriv inn en gyldig e-postadresse"
-    )]
-    [StringLength(
-        150,
-        ErrorMessage = "E-postadressen er for lang"
-    )]
-    [Display(Name = "E-post")]
-    public string? ContactEmail { get; init; }
+    [Range(-180, 180, ErrorMessage = "Lengdegrad må være mellom -180 og 180.")]
+    public double Longitude { get; set; }
 
+    // CONTACT INFORMATION
 
-    [Required]
+    [EmailAddress(ErrorMessage = "Skriv inn en gyldig e-postadresse.")]
+    [StringLength(150)]
+    [Display(Name = "Kontakt-e-post")]
+    public string? ContactEmail { get; set; }
+
     [StringLength(5)]
-    [Display(Name = "Landskode")]
-    public string ContactPhoneCountryCode { get; init; } = "+47";
+    [Display(Name = "Landkode")]
+    public string? ContactPhoneCountryCode { get; set; } = "+47";
 
-
-    [StringLength(
-        20,
-        ErrorMessage = "Telefonnummeret er for langt"
-    )]
+    [StringLength(20)]
+    [Phone(ErrorMessage = "Skriv inn et gyldig telefonnummer.")]
     [Display(Name = "Telefonnummer")]
-    public string? ContactPhoneNumber { get; init; }
+    public string? ContactPhoneNumber { get; set; }
 
+    // CUSTOM VALIDATION
 
-    /// <summary>
-    /// Breddegrad valgt i kartet.
-    /// </summary>
-    public double Latitude { get; init; }
-
-
-    /// <summary>
-    /// Lengdegrad valgt i kartet.
-    /// </summary>
-    public double Longitude { get; init; }
-
-
-    /// <summary>
-    /// Validerer telefonnummer basert på valgt landskode.
-    /// </summary>
     public IEnumerable<ValidationResult> Validate(
-        ValidationContext validationContext
-    )
+        ValidationContext validationContext)
     {
+        if (
+            !double.IsFinite(Latitude) ||
+            !double.IsFinite(Longitude) ||
+            Latitude < -90 ||
+            Latitude > 90 ||
+            Longitude < -180 ||
+            Longitude > 180
+        )
+        {
+            yield return new ValidationResult(
+                "Velg en gyldig plassering i kartet.",
+                new[] { nameof(Latitude), nameof(Longitude) }
+            );
+        }
+
+        if (Latitude == 0 && Longitude == 0)
+        {
+            yield return new ValidationResult(
+                "Velg plassering for ressursen i kartet.",
+                new[] { nameof(Latitude), nameof(Longitude) }
+            );
+        }
+
         if (string.IsNullOrWhiteSpace(ContactPhoneNumber))
         {
             yield break;
         }
 
-        if (!Regex.IsMatch(
-                ContactPhoneNumber,
-                @"^[0-9\s-]+$"
-            ))
-        {
-            yield return new ValidationResult(
-                "Telefonnummeret kan bare inneholde sifre, mellomrom og bindestrek.",
-                new[] { nameof(ContactPhoneNumber) }
-            );
-
-            yield break;
-        }
-
-        string phoneNumber =
-            Regex.Replace(
-                ContactPhoneNumber,
-                @"[\s-]",
-                ""
-            );
+        string phoneNumber = new string(
+            ContactPhoneNumber.Where(char.IsDigit).ToArray()
+        );
 
         switch (ContactPhoneCountryCode)
         {
             case "+47":
-            case "+45":
-
                 if (phoneNumber.Length != 8)
                 {
                     yield return new ValidationResult(
-                        "Telefonnummeret må inneholde nøyaktig 8 sifre.",
+                        "Norske telefonnummer må inneholde 8 sifre.",
                         new[] { nameof(ContactPhoneNumber) }
                     );
                 }
-
                 break;
 
+            case "+45":
+                if (phoneNumber.Length != 8)
+                {
+                    yield return new ValidationResult(
+                        "Danske telefonnummer må inneholde 8 sifre.",
+                        new[] { nameof(ContactPhoneNumber) }
+                    );
+                }
+                break;
 
             case "+46":
-
-                if (
-                    phoneNumber.Length < 7
-                    ||
-                    phoneNumber.Length > 10
-                )
+                if (phoneNumber.Length < 7 || phoneNumber.Length > 10)
                 {
                     yield return new ValidationResult(
                         "Svenske telefonnummer må inneholde mellom 7 og 10 sifre.",
                         new[] { nameof(ContactPhoneNumber) }
                     );
                 }
-
                 break;
 
-
             default:
-
                 yield return new ValidationResult(
                     "Ugyldig landskode.",
                     new[] { nameof(ContactPhoneCountryCode) }
                 );
-
                 break;
         }
     }

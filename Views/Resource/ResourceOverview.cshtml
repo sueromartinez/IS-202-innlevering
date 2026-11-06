@@ -87,10 +87,16 @@
                     resource.Id,
 
                 name =
-                    resource.Name,
+                    string.IsNullOrWhiteSpace(resource.ResourceName)
+                        ? resource.Name
+                        : resource.ResourceName,
+
+                availability = resource.Availability,
 
                 typeId =
                     (int)resource.ResourceType,
+
+                typeKey = resource.ResourceType.ToString(),
 
                 type =
                     GetResourceTypeName(
@@ -151,6 +157,7 @@
         href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
 
+    <link rel="stylesheet" href="~/css/top-navigation.css" asp-append-version="true" />
 </head>
 
 <body>
@@ -160,7 +167,7 @@
      HEADER
 ========================================= -->
 
-<header class="provider-header">
+<header class="provider-header portal-navigation-header">
 
     <a
         asp-controller="Home"
@@ -231,22 +238,7 @@
 </nav>
 
     @* Uses existing routes and only shows provider links to providers. *@
-    <nav class="overview-navigation" aria-label="Brukermeny">
-        <a asp-controller="Home" asp-action="Dashboard">Oversikt</a>
-        @if (isResourceProvider)
-        {
-            <a asp-controller="Resource" asp-action="ResourceOverview" aria-current="page">Mine ressurser</a>
-            <a asp-controller="Resource" asp-action="RegisterResource">Registrer ressurs</a>
-            <a asp-controller="Account" asp-action="Profile">Profil</a>
-        }
-        else
-        {
-            <a asp-controller="Resource" asp-action="ResourceOverview" aria-current="page">Ressursoversikt</a>
-        }
-        <form asp-controller="Account" asp-action="Logout" method="post">
-            <button type="submit" class="logout-button">Logg ut</button>
-        </form>
-    </nav>
+    <partial name="_TopNavigation" />
     <div class="provider-user-text">
         <strong>@displayName</strong>
         <span>@roleLabel</span>
@@ -434,19 +426,32 @@
 
         @* Combines category and description filters for the list and map. *@
         <form id="resourceFilters" class="resource-filters" role="search" aria-label="Filtrer ressurser" hidden>
-            <div class="filter-field">
-                <label for="resourceTypeFilter">Ressurstype</label>
-                <select id="resourceTypeFilter">
-                    <option value="">Alle ressurstyper</option>
+            @* Builds selected category checkboxes from the resources this user may access. *@
+            <fieldset class="resource-category-filter">
+                <legend>Ressurstype</legend>
+                <div class="resource-category-options">
                     @foreach (var type in resources.Select(resource => resource.ResourceType).Distinct().OrderBy(type => GetResourceTypeName(type)))
                     {
-                        <option value="@((int)type)">@GetResourceTypeName(type)</option>
+                        <label class="resource-category-option">
+                            <input type="checkbox" name="resourceTypes" value="@((int)type)" checked />
+                            <span>@GetResourceTypeName(type)</span>
+                        </label>
                     }
+                </div>
+            </fieldset>
+            @* Applies availability together with category and search to the same results. *@
+            <div class="filter-field">
+                <label for="resourceAvailabilityFilter">Tilgjengelighet</label>
+                <select id="resourceAvailabilityFilter">
+                    <option value="">Alle statuser</option>
+                    <option value="Tilgjengelig">Tilgjengelig</option>
+                    <option value="Ikke tilgjengelig">Ikke tilgjengelig</option>
+                    <option value="unspecified">Ikke oppgitt / annen status</option>
                 </select>
             </div>
             <div class="filter-field filter-search">
-                <label for="resourceSearch">S?k i beskrivelse</label>
-                <input id="resourceSearch" type="search" placeholder="S?k etter en ressurs ?" />
+                <label for="resourceSearch">Søk i navn eller beskrivelse</label>
+                <input id="resourceSearch" type="search" placeholder="Søk etter en ressurs …" />
             </div>
             <button type="reset" class="logout-button">Nullstill filtre</button>
             <p id="filterSummary" role="status" aria-live="polite"></p>
@@ -484,7 +489,7 @@
                 </div>
 
 
-                <p id="noMatchingResources" class="filter-empty" hidden>Ingen ressurser passer til filtrene. Pr?v en annen ressurstype eller nullstill filtrene.</p>
+                <p id="noMatchingResources" class="filter-empty" hidden>Ingen ressurser passer til filtrene. Prøv en annen ressurstype eller nullstill filtrene.</p>
                 <div class="resource-list">
 
                     @foreach (var resource in resources)
@@ -519,7 +524,10 @@
                                     </span>
 
                                     <h3>
-                                        @resource.ResourceName
+                                        @(string.IsNullOrWhiteSpace(resource.ResourceName)
+                                        
+                                            ? resource.Description
+                                            : resource.ResourceName)
                                     </h3>
 
                                     <p>
@@ -530,7 +538,7 @@
 
 
                                 <span class="resource-status">
-                                    Registrert
+                                    @(string.IsNullOrWhiteSpace(resource.Availability) ? "Ikke oppgitt" : resource.Availability)
                                 </span>
 
                             </div>
@@ -2228,6 +2236,31 @@
         #resourceOverviewMap { height: 340px; }
     }
 
+
+    /* Wraps category controls like the dashboard map filters, including on mobile. */
+    .resource-category-filter {
+        flex: 1 1 100%; min-width: 0; margin: 0; padding: 0; border: 0;
+    }
+    .resource-category-filter legend {
+        padding: 0; margin-bottom: 10px; color: var(--navy);
+        font-size: .85rem; font-weight: 700;
+    }
+    .resource-category-options { display: flex; flex-wrap: wrap; gap: 8px; }
+    .resource-category-option {
+        display: inline-flex; align-items: center; gap: 8px;
+        min-height: 44px; max-width: 100%; padding: 9px 12px;
+        border: 1px solid var(--border); border-radius: 9px;
+        background: #f8fafb; color: var(--navy); font-size: .85rem; cursor: pointer;
+    }
+    .resource-category-option input {
+        flex-shrink: 0; width: 18px; height: 18px; margin: 0;
+        accent-color: var(--primary); cursor: pointer;
+    }
+    .resource-category-option:has(input:checked) {
+        border-color: var(--primary); background: #eef5f8;
+    }
+    .resource-category-option span { overflow-wrap: anywhere; }
+
 </style>
 
 
@@ -2237,24 +2270,37 @@
         src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
     </script>
 
+<script src="~/js/kartverket.js"></script>
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const resources = @Html.Raw(mapResourcesJson);
             const filterForm = document.getElementById("resourceFilters");
-            const typeFilter = document.getElementById("resourceTypeFilter");
+            const categoryCheckboxes = Array.from(
+                filterForm.querySelectorAll('input[name="resourceTypes"]'));
+            const availabilityFilter = document.getElementById("resourceAvailabilityFilter");
             const searchInput = document.getElementById("resourceSearch");
             const cards = new Map(Array.from(document.querySelectorAll(".resource-item"))
                 .map(card => [Number(card.dataset.resourceId), card]));
             const markers = new Map();
             let map;
 
-            // Applies both filters to the same resources before updating cards and markers.
+            // Keeps unknown legacy availability text separate from explicit statuses.
+            function availabilityStatus(value) {
+                const status = (value || "").trim().toLocaleLowerCase("nb-NO");
+                return ["tilgjengelig", "ikke tilgjengelig"].includes(status) ? status : "unspecified";
+            }
+
+            // Applies all filters to the same resources before updating cards and markers.
             function applyFilters() {
                 const search = searchInput.value.trim().toLocaleLowerCase("nb-NO");
+                // Matches any selected category, then combines it with status and search.
+                const selectedTypes = new Set(categoryCheckboxes
+                    .filter(checkbox => checkbox.checked).map(checkbox => checkbox.value));
                 const matching = resources.filter(resource =>
-                    (typeFilter.value === "" || String(resource.typeId) === typeFilter.value) &&
-                    resource.description.toLocaleLowerCase("nb-NO").includes(search));
+                    selectedTypes.has(String(resource.typeId)) &&
+                    (availabilityFilter.value === "" || availabilityStatus(resource.availability) === availabilityFilter.value.toLocaleLowerCase("nb-NO")) &&
+                    `${resource.name} ${resource.description}`.toLocaleLowerCase("nb-NO").includes(search));
                 const matchingIds = new Set(matching.map(resource => resource.id));
                 cards.forEach((card, id) => { card.hidden = !matchingIds.has(id); });
                 document.getElementById("filteredResourceCount").textContent = matching.length;
@@ -2283,10 +2329,14 @@
             // Keeps list filtering available if the external map library cannot load.
             filterForm.hidden = false;
             filterForm.addEventListener("submit", event => event.preventDefault());
-            typeFilter.addEventListener("change", applyFilters);
+            // Each checkbox updates the resource cards and map markers immediately.
+            categoryCheckboxes.forEach(checkbox => checkbox.addEventListener("change", applyFilters));
+            availabilityFilter.addEventListener("change", applyFilters);
             searchInput.addEventListener("input", applyFilters);
             filterForm.addEventListener("reset", function () {
-                typeFilter.value = "";
+                // Restores every category before recalculating the complete result set.
+                categoryCheckboxes.forEach(checkbox => { checkbox.checked = true; });
+                availabilityFilter.value = "";
                 searchInput.value = "";
                 applyFilters();
             });
@@ -2297,25 +2347,52 @@
                 return;
             }
 
-            // Reuses Leaflet, OpenStreetMap tiles and the existing marker design.
+            // Reuses Leaflet, Kartverket tiles and the existing marker design.
             map = L.map("resourceOverviewMap").setView([58.1467, 7.9956], 10);
-            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-                maxZoom: 19, attribution: "&copy; OpenStreetMap"
-            }).addTo(map);
-            const resourceIcon = L.divIcon({
-                className: "resource-map-marker",
-                html: '<div class="resource-map-dot"><span></span></div>',
-                iconSize: [34, 38], iconAnchor: [17, 36], popupAnchor: [0, -32]
-            });
+            addKartverketLayers(map);
+            // SVG_SYMBOL_V3
+// Kartsymboler: symbolFor() gir SVG-ikonet som passer til typen behov eller ressurs,
+// og createSymbolMarker() tegner kartpinnen med ikonet (og eventuelt et nummer).
+function symbolFor(type) {
+    const icons = {
+        Transport: "<path d='M1 3h15v13H1z'/><path d='M16 8h4l3 3v5h-7z'/><circle cx='5.5' cy='18.5' r='2.5'/><circle cx='18.5' cy='18.5' r='2.5'/>",
+        Drone: "<circle cx='12' cy='12' r='3'/><circle cx='5' cy='5' r='2.5'/><circle cx='19' cy='5' r='2.5'/><circle cx='5' cy='19' r='2.5'/><circle cx='19' cy='19' r='2.5'/><path d='M7 7l3 3M17 7l-3 3M7 17l3-3M17 17l-3-3'/>",
+        Generator: "<polygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'/>",
+        Machinery: "<path d='M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z'/>",
+        CommunicationEquipment: "<circle cx='12' cy='12' r='2'/><path d='M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14'/>",
+        Personnel: "<path d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/><circle cx='9' cy='7' r='4'/><path d='M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'/>",
+        Premises: "<path d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/><polyline points='9 22 9 12 15 12 15 22'/>",
+        SandAndGravel: "<polygon points='12 2 2 7 12 12 22 7 12 2'/><polyline points='2 17 12 22 22 17'/><polyline points='2 12 12 17 22 12'/>",
+        Boat: "<circle cx='12' cy='5' r='3'/><line x1='12' y1='22' x2='12' y2='8'/><path d='M5 12H2a10 10 0 0 0 20 0h-3'/>",
+        Other: "<circle cx='12' cy='12' r='10'/><line x1='12' y1='8' x2='12' y2='12'/><line x1='12' y1='16' x2='12.01' y2='16'/>"
+    };
+    return icons[type] || icons.Other;
+}
+
+function createSymbolMarker(color, type, badge) {
+    const svg = "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='" + color + "' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'>" + symbolFor(type) + "</svg>";
+    const badgeHtml = badge ? "<div style='position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;padding:0 4px;border-radius:10px;background:#102d43;color:white;border:2px solid white;box-sizing:border-box;font:700 11px/16px sans-serif;text-align:center;'>" + badge + "</div>" : "";
+    return L.divIcon({
+        className: "",
+        html: "<div style='position:relative;width:50px;height:62px;'><div style='position:absolute;left:0;top:0;width:50px;height:50px;box-sizing:border-box;border:3px solid white;border-radius:50% 50% 50% 8px;transform:rotate(-45deg);background:" + color + ";box-shadow:0 5px 14px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;'><div style='transform:rotate(45deg);width:36px;height:36px;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center;'>" + svg + "</div></div>" + badgeHtml + "</div>",
+        iconSize: [50, 62],
+        iconAnchor: [25, 60],
+        popupAnchor: [0, -54]
+    });
+}
+
+
 
             // Uses textContent so resource descriptions and contact details stay plain text.
             resources.forEach(resource => {
-                const marker = L.marker([resource.latitude, resource.longitude], { icon: resourceIcon });
+                const marker = L.marker([resource.latitude, resource.longitude], { icon: createSymbolMarker("#23855b", resource.typeKey, "") });
                 const popup = document.createElement("div");
                 popup.className = "resource-popup";
                 const details = [
                     ["span", resource.type, "resource-popup-type"],
-                    ["strong", resource.description],
+                    ["strong", resource.name || resource.description],
+                    ["p", resource.description],
+                    ["small", resource.availability || "Ikke oppgitt"],
                     ["p", `${resource.latitude.toFixed(5)}, ${resource.longitude.toFixed(5)}`],
                     ["small", resource.email],
                     ["small", resource.phone]

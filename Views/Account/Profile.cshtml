@@ -1,0 +1,1228 @@
+@model FirstWebAppInDocker.ViewModels.ProfileViewModel
+
+@using FirstWebAppInDocker.Data
+@using FirstWebAppInDocker.Models
+@using Microsoft.AspNetCore.Identity
+
+@inject UserManager<ApplicationUser> UserManager
+
+@{
+    Layout = null;
+
+    var currentUser =
+        await UserManager.GetUserAsync(User);
+
+    var roles =
+        currentUser is null
+            ? new List<string>()
+            : (await UserManager.GetRolesAsync(currentUser))
+                .ToList();
+
+    var userName =
+        string.IsNullOrWhiteSpace(Model.Name)
+            ? currentUser?.Name ?? "Ressursleverandør"
+            : Model.Name;
+
+    var createdAt =
+        currentUser?.CreatedAt
+            .ToLocalTime()
+            .ToString("dd.MM.yyyy")
+        ?? "Ukjent";
+
+    var twoFactorEnabled =
+        currentUser?.TwoFactorEnabled
+        ?? false;
+
+    string roleName;
+
+    if (
+        roles.Contains(
+            IdentitySeeder.AdminRole
+        )
+    )
+    {
+        roleName =
+            "Administrator";
+    }
+    else if (
+        roles.Contains(
+            IdentitySeeder.PublicActorRole
+        )
+    )
+    {
+        roleName =
+            "Offentlig aktør";
+    }
+    else
+    {
+        roleName =
+            "Privat ressursleverandør";
+    }
+}
+
+<!DOCTYPE html>
+
+<html lang="no">
+
+<head>
+
+    <meta charset="utf-8" />
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0" />
+
+    <title>
+        Min profil - Beredskapsportal
+    </title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+
+        body {
+            font-family:
+                Inter,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+
+            background: #f4f6f7;
+            color: #17212b;
+        }
+
+
+        a {
+            text-decoration: none;
+        }
+
+
+        button,
+        input,
+        select {
+            font-family: inherit;
+        }
+
+
+        /* =========================================
+           HEADER
+           ========================================= */
+
+        .site-header {
+            height: 82px;
+
+            background: white;
+
+            border-bottom:
+                1px solid #e3e8eb;
+
+            display: flex;
+            align-items: center;
+        }
+
+
+        .header-inner {
+            width: 100%;
+            max-width: 1280px;
+
+            margin: 0 auto;
+            padding: 0 30px;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+
+            color: #123047;
+        }
+
+
+        .brand-icon {
+            width: 43px;
+            height: 43px;
+
+            border-radius: 12px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            background: #e5f6ef;
+            color: #08765c;
+
+            font-size: 21px;
+            font-weight: 800;
+        }
+
+
+        .brand-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+
+        .brand-title {
+            font-size: 17px;
+            font-weight: 800;
+        }
+
+
+        .brand-subtitle {
+            margin-top: 2px;
+
+            font-size: 10px;
+            font-weight: 800;
+
+            letter-spacing: 1.6px;
+
+            color: #73808a;
+        }
+
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+
+        .dashboard-link {
+            padding: 10px 16px;
+
+            border-radius: 8px;
+            border: 1px solid #d9e0e4;
+
+            color: #123047;
+
+            font-size: 14px;
+            font-weight: 700;
+
+            transition: 0.2s;
+        }
+
+
+        .dashboard-link:hover {
+            background: #f4f6f7;
+        }
+
+
+        .logout-form {
+            margin: 0;
+        }
+
+
+        .logout-button {
+            padding: 10px 16px;
+
+            border: 0;
+            border-radius: 8px;
+
+            background: #123047;
+            color: white;
+
+            font-size: 14px;
+            font-weight: 700;
+
+            cursor: pointer;
+
+            transition: 0.2s;
+        }
+
+
+        .logout-button:hover {
+            background: #0c2639;
+        }
+
+
+        /* =========================================
+           PAGE
+           ========================================= */
+
+        .profile-page {
+            max-width: 1180px;
+
+            margin: 0 auto;
+            padding: 42px 30px 70px;
+        }
+
+
+        /* =========================================
+           HERO
+           ========================================= */
+
+        .profile-hero {
+            position: relative;
+
+            overflow: hidden;
+
+            padding: 48px 50px;
+
+            border-radius: 22px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #102d43 0%,
+                    #123b50 55%,
+                    #12636c 100%
+                );
+
+            color: white;
+
+            box-shadow:
+                0 15px 40px
+                rgba(17, 47, 68, 0.13);
+        }
+
+
+        .profile-hero::after {
+            content: "";
+
+            position: absolute;
+
+            width: 320px;
+            height: 320px;
+
+            right: -100px;
+            top: -140px;
+
+            border-radius: 50%;
+
+            border:
+                1px solid
+                rgba(255, 255, 255, 0.12);
+        }
+
+
+        .hero-kicker {
+            display: inline-block;
+
+            margin-bottom: 15px;
+
+            color: #7fe0c1;
+
+            font-size: 12px;
+            font-weight: 800;
+
+            letter-spacing: 2px;
+        }
+
+
+        .profile-hero h1 {
+            position: relative;
+            z-index: 1;
+
+            margin:
+                0 0 12px;
+
+            max-width: 650px;
+
+            font-size: 42px;
+            line-height: 1.08;
+
+            letter-spacing: -1.2px;
+        }
+
+
+        .profile-hero p {
+            position: relative;
+            z-index: 1;
+
+            margin: 0;
+
+            max-width: 620px;
+
+            color:
+                rgba(255, 255, 255, 0.77);
+
+            font-size: 16px;
+            line-height: 1.65;
+        }
+
+
+        /* =========================================
+           CONTENT
+           ========================================= */
+
+        .profile-grid {
+            display: grid;
+
+            grid-template-columns:
+                minmax(0, 1.65fr)
+                minmax(280px, 0.75fr);
+
+            gap: 24px;
+
+            margin-top: 28px;
+        }
+
+
+        .profile-card {
+            background: white;
+
+            border:
+                1px solid #e0e6e9;
+
+            border-radius: 16px;
+
+            padding: 30px;
+
+            box-shadow:
+                0 8px 25px
+                rgba(18, 48, 71, 0.04);
+        }
+
+
+        .section-label {
+            display: block;
+
+            margin-bottom: 8px;
+
+            color: #168169;
+
+            font-size: 11px;
+            font-weight: 800;
+
+            letter-spacing: 1.8px;
+        }
+
+
+        .profile-card h2 {
+            margin:
+                0 0 7px;
+
+            color: #123047;
+
+            font-size: 23px;
+        }
+
+
+        .section-description {
+            margin:
+                0 0 28px;
+
+            color: #6b7780;
+
+            line-height: 1.55;
+        }
+
+
+        /* =========================================
+           MESSAGES
+           ========================================= */
+
+        .profile-success {
+            margin-bottom: 24px;
+
+            padding: 14px 16px;
+
+            border:
+                1px solid #b8e1d3;
+
+            border-radius: 10px;
+
+            background: #eaf8f3;
+
+            color: #08765c;
+
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+
+        .profile-error-summary {
+            margin-bottom: 24px;
+
+            color: #a12a1f;
+
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+
+        .profile-error-summary:empty {
+            display: none;
+        }
+
+
+        .profile-error-summary ul {
+            margin: 0;
+
+            padding: 14px 16px 14px 34px;
+
+            border:
+                1px solid #efc4bf;
+
+            border-radius: 10px;
+
+            background: #fff3f2;
+        }
+
+
+        /* =========================================
+           PROFILE DETAILS
+           ========================================= */
+
+        .profile-fields {
+            display: grid;
+            gap: 0;
+        }
+
+
+        .profile-field {
+            display: grid;
+
+            grid-template-columns:
+                180px 1fr;
+
+            gap: 20px;
+
+            padding: 20px 0;
+
+            border-bottom:
+                1px solid #edf0f2;
+        }
+
+
+        .profile-field:first-child {
+            padding-top: 0;
+        }
+
+
+        .profile-field:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+
+        .field-label {
+            padding-top: 11px;
+
+            color: #77828b;
+
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+
+        .field-value {
+            display: flex;
+            align-items: center;
+
+            min-height: 42px;
+
+            color: #17212b;
+
+            font-size: 15px;
+            font-weight: 700;
+
+            word-break: break-word;
+        }
+
+
+        .field-help {
+            display: block;
+
+            margin-top: 6px;
+
+            color: #87929a;
+
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+
+        /* =========================================
+           FORM
+           ========================================= */
+
+        .profile-input,
+        .profile-select {
+            width: 100%;
+
+            padding: 11px 13px;
+
+            border:
+                1px solid #d4dde1;
+
+            border-radius: 8px;
+
+            background: white;
+            color: #17212b;
+
+            font-size: 15px;
+
+            outline: none;
+
+            transition:
+                border-color 0.2s,
+                box-shadow 0.2s;
+        }
+
+
+        .profile-input:focus,
+        .profile-select:focus {
+            border-color: #168169;
+
+            box-shadow:
+                0 0 0 3px
+                rgba(22, 129, 105, 0.12);
+        }
+
+
+        .phone-group {
+            display: grid;
+
+            grid-template-columns:
+                120px minmax(0, 1fr);
+
+            gap: 10px;
+        }
+
+
+        .validation-message {
+            display: block;
+
+            margin-top: 6px;
+
+            color: #b42318;
+
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+
+        .role-badge {
+            display: inline-flex;
+
+            width: fit-content;
+
+            padding: 6px 10px;
+
+            border-radius: 999px;
+
+            background: #e5f6ef;
+
+            color: #08765c;
+
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+
+        /* =========================================
+           SECURITY
+           ========================================= */
+
+        .security-card {
+            display: flex;
+            flex-direction: column;
+        }
+
+
+        .security-icon {
+            width: 48px;
+            height: 48px;
+
+            margin-bottom: 20px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 14px;
+
+            background: #e5f6ef;
+
+            color: #08765c;
+
+            font-size: 22px;
+            font-weight: 900;
+        }
+
+
+        .security-status {
+            margin-top: 7px;
+
+            padding: 16px;
+
+            border-radius: 10px;
+
+            background: #f5f8f8;
+        }
+
+
+        .security-status strong {
+            display: block;
+
+            margin-bottom: 5px;
+
+            color: #123047;
+
+            font-size: 14px;
+        }
+
+
+        .security-status span {
+            color: #66737c;
+
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+
+        .status-enabled {
+            color: #08765c !important;
+        }
+
+
+        .status-disabled {
+            color: #a45b19 !important;
+        }
+
+
+        /* =========================================
+           ACTIONS
+           ========================================= */
+
+        .profile-actions {
+            display: flex;
+            flex-wrap: wrap;
+
+            gap: 12px;
+
+            margin-top: 26px;
+        }
+
+
+        .primary-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            padding: 12px 18px;
+
+            border: none;
+            border-radius: 8px;
+
+            background: #168169;
+            color: white;
+
+            font-size: 14px;
+            font-weight: 800;
+
+            cursor: pointer;
+
+            transition: 0.2s;
+        }
+
+
+        .primary-action:hover {
+            background: #106d59;
+        }
+
+
+        .secondary-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            padding: 12px 18px;
+
+            border:
+                1px solid #d9e0e4;
+
+            border-radius: 8px;
+
+            color: #123047;
+
+            font-size: 14px;
+            font-weight: 800;
+
+            transition: 0.2s;
+        }
+
+
+        .secondary-action:hover {
+            background: #f4f6f7;
+        }
+
+
+        /* =========================================
+           RESPONSIVE
+           ========================================= */
+
+        @@media (
+            max-width: 850px
+        ) {
+
+            .profile-grid {
+                grid-template-columns: 1fr;
+            }
+
+
+            .profile-hero {
+                padding:
+                    38px 28px;
+            }
+
+
+            .profile-hero h1 {
+                font-size: 34px;
+            }
+
+        }
+
+
+        @@media (
+            max-width: 600px
+        ) {
+
+            .header-inner {
+                padding:
+                    0 16px;
+            }
+
+
+            .brand-subtitle {
+                display: none;
+            }
+
+
+            .dashboard-link {
+                display: none;
+            }
+
+
+            .profile-page {
+                padding:
+                    25px 16px 50px;
+            }
+
+
+            .profile-card {
+                padding: 23px;
+            }
+
+
+            .profile-field {
+                grid-template-columns: 1fr;
+                gap: 7px;
+            }
+
+
+            .field-label {
+                padding-top: 0;
+            }
+
+
+            .phone-group {
+                grid-template-columns: 1fr;
+            }
+
+
+            .profile-actions {
+                flex-direction: column;
+            }
+
+
+            .primary-action,
+            .secondary-action {
+                width: 100%;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<header class="site-header">
+
+    <div class="header-inner">
+
+        <a
+            asp-controller="Dashboard"
+            asp-action="Index"
+            class="brand">
+
+            <div class="brand-icon">
+                ✓
+            </div>
+
+            <div class="brand-text">
+
+                <span class="brand-title">
+                    Beredskapsportal
+                </span>
+
+                <span class="brand-subtitle">
+                    TOTALFORSVARET
+                </span>
+
+            </div>
+
+        </a>
+
+
+        <div class="header-actions">
+
+            <a
+                asp-controller="Dashboard"
+                asp-action="Index"
+                class="dashboard-link">
+
+                Til dashboard
+
+            </a>
+
+
+            <form
+                asp-controller="Account"
+                asp-action="Logout"
+                method="post"
+                class="logout-form">
+
+                @Html.AntiForgeryToken()
+
+                <button
+                    type="submit"
+                    class="logout-button">
+
+                    Logg ut
+
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</header>
+
+
+<main class="profile-page">
+
+    <section class="profile-hero">
+
+        <span class="hero-kicker">
+            MIN PROFIL
+        </span>
+
+        <h1>
+            Hei, @userName
+        </h1>
+
+        <p>
+            Her finner du informasjonen som er knyttet
+            til brukerkontoen din i Beredskapsportalen.
+        </p>
+
+    </section>
+
+
+    <div class="profile-grid">
+
+        <section class="profile-card">
+
+            <span class="section-label">
+                KONTOINFORMASJON
+            </span>
+
+            <h2>
+                Din profil
+            </h2>
+
+            <p class="section-description">
+                Oppdater navn, e-post og kontaktinformasjon.
+                Endringene lagres på brukerkontoen din.
+            </p>
+
+
+            @if (
+                TempData["ProfileSuccess"]
+                is string successMessage
+            )
+            {
+                <div class="profile-success">
+                    @successMessage
+                </div>
+            }
+
+
+            <div
+                asp-validation-summary="ModelOnly"
+                class="profile-error-summary">
+            </div>
+
+
+            <form
+                asp-controller="Account"
+                asp-action="Profile"
+                method="post">
+
+                @Html.AntiForgeryToken()
+
+
+                <div class="profile-fields">
+
+                    <div class="profile-field">
+
+                        <label
+                            asp-for="Name"
+                            class="field-label">
+                        </label>
+
+                        <div>
+
+                            <input
+                                asp-for="Name"
+                                class="profile-input"
+                                autocomplete="name" />
+
+                            <span
+                                asp-validation-for="Name"
+                                class="validation-message">
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="profile-field">
+
+                        <label
+                            asp-for="Email"
+                            class="field-label">
+                        </label>
+
+                        <div>
+
+                            <input
+                                asp-for="Email"
+                                class="profile-input"
+                                type="email"
+                                autocomplete="email" />
+
+                            <span
+                                asp-validation-for="Email"
+                                class="validation-message">
+                            </span>
+
+                            <span class="field-help">
+                                E-postadressen brukes også
+                                når du logger inn.
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="profile-field">
+
+                        <span class="field-label">
+                            Telefonnummer
+                        </span>
+
+                        <div>
+
+                            <div class="phone-group">
+
+                                <select
+                                    asp-for="PhoneCountryCode"
+                                    class="profile-select">
+
+                                    <option value="+47">
+                                        +47 Norge
+                                    </option>
+
+                                    <option value="+45">
+                                        +45 Danmark
+                                    </option>
+
+                                    <option value="+46">
+                                        +46 Sverige
+                                    </option>
+
+                                </select>
+
+
+                                <input
+                                    asp-for="PhoneNumber"
+                                    class="profile-input"
+                                    autocomplete="tel"
+                                    inputmode="tel"
+                                    placeholder="F.eks. 91234567" />
+
+                            </div>
+
+                            <span
+                                asp-validation-for="PhoneCountryCode"
+                                class="validation-message">
+                            </span>
+
+                            <span
+                                asp-validation-for="PhoneNumber"
+                                class="validation-message">
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="profile-field">
+
+                        <span class="field-label">
+                            Brukertype
+                        </span>
+
+                        <span class="field-value">
+
+                            <span class="role-badge">
+                                @roleName
+                            </span>
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="profile-field">
+
+                        <span class="field-label">
+                            Medlem siden
+                        </span>
+
+                        <span class="field-value">
+                            @createdAt
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="profile-actions">
+
+                    <button
+                        type="submit"
+                        class="primary-action">
+
+                        Lagre endringer
+
+                    </button>
+
+
+                    <a
+                        asp-controller="Dashboard"
+                        asp-action="Index"
+                        class="secondary-action">
+
+                        Tilbake til dashboard
+
+                    </a>
+
+
+                    <a
+                        asp-controller="Resource"
+                        asp-action="ResourceOverview"
+                        class="secondary-action">
+
+                        Mine ressurser
+
+                    </a>
+
+                </div>
+
+            </form>
+
+        </section>
+
+
+        <aside class="profile-card security-card">
+
+            <div class="security-icon">
+                ✓
+            </div>
+
+            <span class="section-label">
+                SIKKERHET
+            </span>
+
+            <h2>
+                Kontosikkerhet
+            </h2>
+
+            <p class="section-description">
+                Sikkerhetsstatus for brukerkontoen din.
+            </p>
+
+
+            <div class="security-status">
+
+                <strong>
+                    Passordbeskyttet konto
+                </strong>
+
+                <span>
+                    Kontoen din bruker ASP.NET Core
+                    Identity for autentisering.
+                </span>
+
+            </div>
+
+
+            <div class="security-status">
+
+                <strong>
+                    Tofaktorautentisering
+                </strong>
+
+                @if (twoFactorEnabled)
+                {
+                    <span class="status-enabled">
+                        Aktivert
+                    </span>
+                }
+                else
+                {
+                    <span class="status-disabled">
+                        Ikke aktivert ennå
+                    </span>
+                }
+
+            </div>
+
+        </aside>
+
+    </div>
+
+</main>
+
+</body>
+
+</html>

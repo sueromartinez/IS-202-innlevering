@@ -40,7 +40,7 @@ builder.Services
     .AddIdentity<ApplicationUser, IdentityRole>(
         options =>
         {
-            // Hver e-postadresse kan bare brukes én gang.
+            // Hver e-postadresse skal være unik.
             options.User.RequireUniqueEmail = true;
 
 
@@ -52,12 +52,11 @@ builder.Services
             options.Password.RequireNonAlphanumeric = true;
 
 
-            // E-postbekreftelse aktiveres eventuelt senere.
+            // E-postbekreftelse kan aktiveres senere.
             options.SignIn.RequireConfirmedEmail = false;
 
 
-            // Beskyttelse mot mange feilaktige
-            // innloggingsforsøk.
+            // Beskyttelse mot brute-force.
             options.Lockout.AllowedForNewUsers = true;
 
             options.Lockout.MaxFailedAccessAttempts = 5;
@@ -77,8 +76,11 @@ builder.Services
 builder.Services.ConfigureApplicationCookie(
     options =>
     {
-        // Innloggingen ligger på hovedsiden.
+        // Innlogging ligger på hovedsiden.
         options.LoginPath = "/";
+
+        options.AccessDeniedPath =
+            "/Account/AccessDenied";
 
         options.Cookie.HttpOnly = true;
 
@@ -103,11 +105,11 @@ builder.Services.AddControllersWithViews();
 // SESSION
 // =========================
 //
-// Session beholdes foreløpig fordi deler
-// av dashboardet fortsatt bruker Session.
+// Session beholdes midlertidig fordi deler
+// av eksisterende dashboard fortsatt bruker den.
 //
-// Senere erstatter vi autentiseringsdataene
-// i Session med Identity.
+// Tilgangskontroll skal styres av
+// ASP.NET Core Identity og roller.
 //
 
 builder.Services.AddDistributedMemoryCache();
@@ -157,18 +159,53 @@ builder.Services.Configure<RequestLocalizationOptions>(
 
 var app = builder.Build();
 
-// =========================
-// DATABASE: LAG TABELLER
-// =========================
 
-// Midlertidig løsning frem til vi tar i bruk migrations.
+// =========================
+// DATABASE MIGRATIONS
+// =========================
+//
+// Kjører alle ventende EF Core-migrasjoner
+// automatisk når applikasjonen starter.
+//
+// På en ny PC / ny Docker-volume vil dette
+// opprette databasestrukturen automatisk.
+//
+// På en eksisterende database kjøres kun
+// migrasjoner som ikke allerede er registrert
+// i __EFMigrationsHistory.
+//
+
 using (var scope = app.Services.CreateScope())
 {
-    scope.ServiceProvider
-        .GetRequiredService<ApplicationDbContext>()
-        .Database
-        .EnsureCreated();
+    var dbContext =
+        scope.ServiceProvider
+            .GetRequiredService<ApplicationDbContext>();
+
+    await dbContext.Database.MigrateAsync();
 }
+
+
+// =========================
+// IDENTITY ROLE SEEDING
+// =========================
+//
+// Sørger for at rollene:
+// - Admin
+// - PublicActor
+// - ResourceProvider
+//
+// finnes i AspNetRoles.
+//
+// Seeder også eventuelle brukere som er
+// definert i IdentitySeeder.
+//
+// Hvis dataene allerede finnes,
+// skjer ingenting.
+//
+
+await IdentitySeeder.SeedAsync(
+    app.Services
+);
 
 
 // =========================
@@ -220,7 +257,9 @@ app.UseSession();
 
 
 // Identity autentisering.
-// Authentication må komme før Authorization.
+//
+// Authentication må alltid komme
+// før Authorization.
 app.UseAuthentication();
 
 app.UseAuthorization();

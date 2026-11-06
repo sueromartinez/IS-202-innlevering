@@ -98,7 +98,15 @@ namespace FirstWebAppInDocker.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            // Definerer hvordan Resource-entiteten skal representeres i databasen.
+            // Definerer relasjonen mellom roller og rollekrav.
+            modelBuilder.Entity("FirstWebAppInDocker.Models.Resource", b =>
+                {
+                    b.HasOne("FirstWebAppInDocker.Models.ApplicationUser", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId");
+
+                    b.Navigation("Owner");
+                });
             modelBuilder.Entity("FirstWebAppInDocker.Models.Resource", b =>
                 {
                     b.Property<int>("Id")
@@ -106,6 +114,18 @@ namespace FirstWebAppInDocker.Migrations
                         .HasColumnType("int");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("Availability")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("Capacity")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
 
                     b.Property<string>("ContactEmail")
                         .HasMaxLength(150)
@@ -148,10 +168,24 @@ namespace FirstWebAppInDocker.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("varchar(150)");
 
+                    b.Property<string>("OwnerUserId")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ResourceName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
                     b.Property<int>("ResourceType")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
 
                     b.ToTable("Resources");
                 });
@@ -294,7 +328,15 @@ namespace FirstWebAppInDocker.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            // Definerer relasjonen mellom roller og rollekrav.
+            // Definerer relasjonen mellom ressursen og eieren.
+            modelBuilder.Entity("FirstWebAppInDocker.Models.Resource", b =>
+                {
+                    b.HasOne("FirstWebAppInDocker.Models.ApplicationUser", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId");
+
+                    b.Navigation("Owner");
+                });
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)

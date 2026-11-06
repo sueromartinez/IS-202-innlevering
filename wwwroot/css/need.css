@@ -1,3 +1,8 @@
+/* =========================================
+   STIL FOR BEHOVSSIDENE
+   Brukes av RegisterNeed, NeedOverview og EditNeed.
+========================================= */
+
 :root {
     --navy: #123047;
     --primary: #176b87;
@@ -25,7 +30,11 @@ body {
 a { color: inherit; text-decoration: none; }
 button, input, select, textarea { font: inherit; }
 
-/* HEADER */
+
+/* =========================================
+   HEADER
+========================================= */
+
 .header {
     min-height: 72px;
     display: flex;
@@ -66,7 +75,11 @@ button, input, select, textarea { font: inherit; }
     cursor: pointer;
 }
 
-/* SIDE */
+
+/* =========================================
+   SIDE
+========================================= */
+
 .page { width: min(1550px, calc(100% - 64px)); margin: 0 auto; padding: 48px 0 70px; }
 .page-header {
     display: flex; align-items: flex-end; justify-content: space-between;
@@ -96,7 +109,11 @@ h1 { margin: 10px 0; color: var(--navy); font-size: clamp(2.2rem, 4vw, 3rem); le
     box-shadow: 0 8px 25px rgba(18, 48, 71, 0.04);
 }
 
-/* BEHOVSKORT */
+
+/* =========================================
+   BEHOVSKORT (registrering)
+========================================= */
+
 #needList { display: grid; gap: 14px; }
 .need {
     padding: 16px;
@@ -129,15 +146,20 @@ h1 { margin: 10px 0; color: var(--navy); font-size: clamp(2.2rem, 4vw, 3rem); le
 .need-remove:hover { color: var(--danger); }
 .need-row { display: grid; grid-template-columns: 2fr 1.2fr 0.8fr; gap: 10px; }
 
-label { display: block; margin-bottom: 10px; color: #344054; font-size: 0.72rem; font-weight: 750; }
-select, input, textarea {
+
+/* =========================================
+   SKJEMAFELT
+========================================= */
+
+form label { display: block; margin-bottom: 10px; color: #344054; font-size: 0.72rem; font-weight: 750; }
+form select, form input, form textarea {
     width: 100%; min-height: 42px; margin-top: 6px; padding: 0 11px;
     border: 1px solid #d0d5dd; border-radius: 8px;
     color: var(--text); background: white;
     font-size: 0.77rem; font-weight: 400;
 }
-textarea { padding: 10px 11px; resize: vertical; }
-select:focus, input:focus, textarea:focus {
+form textarea { padding: 10px 11px; resize: vertical; }
+form select:focus, form input:focus, form textarea:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 4px rgba(23, 107, 135, 0.09);
@@ -158,7 +180,11 @@ select:focus, input:focus, textarea:focus {
 .primary-button { border: 0; color: white; background: var(--primary); }
 .primary-button:hover { background: var(--primary-dark); }
 
-/* KART */
+
+/* =========================================
+   KART
+========================================= */
+
 .map-card { position: sticky; top: 24px; }
 .map-help { margin: 0 0 14px; padding: 10px 12px; border-radius: 8px; background: #f5f7f8; color: #52606c; font-size: 0.7rem; }
 #map { height: 620px; border: 1px solid #d9e0e4; border-radius: 12px; cursor: crosshair; }
@@ -176,14 +202,26 @@ select:focus, input:focus, textarea:focus {
 }
 .pin span { transform: rotate(45deg); color: white; font-size: 0.7rem; font-weight: 850; }
 
-/* MOBIL */
-@media (max-width: 950px) {
-    .grid { grid-template-columns: 1fr; }
-    .map-card { position: static; order: -1; }
-    #map { height: 380px; }
-    .page-header { flex-direction: column; align-items: flex-start; gap: 18px; }
-    .header-user-text, .header-link { display: none; }
+/* Valgboksen for kartene (Vanlig / Topografisk / Sjøkart).
+   Sørger for at den ikke får samme stil som skjemafeltene,
+   slik at den ser lik ut som på dashbordet. */
+.leaflet-control-layers label {
+    display: block;
+    margin: 0;
+    color: #333;
+    font-size: 0.8rem;
+    font-weight: 400;
 }
+.leaflet-control-layers input,
+.leaflet-control-layers input:focus {
+    width: auto;
+    min-height: 0;
+    margin: 0 4px 0 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+}
+
 
 /* =========================================
    OVERSIKT
