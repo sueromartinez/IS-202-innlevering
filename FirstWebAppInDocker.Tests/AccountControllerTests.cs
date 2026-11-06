@@ -1,22 +1,25 @@
+
 using System.Reflection;
 using System.Security.Claims;
 using FirstWebAppInDocker.Controllers;
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
+using FirstWebAppInDocker.Services;
 using FirstWebAppInDocker.ViewModels;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
-// Skiller Identity sitt SignInResult fra MVC sitt.
-using IdentitySignInResult = Microsoft.AspNetCore.Identity.SignInResult;
+using IdentitySignInResult =
+    Microsoft.AspNetCore.Identity.SignInResult;
 
 namespace FirstWebAppInDocker.Tests;
 
@@ -44,17 +47,20 @@ public class AccountControllerTests
             CancellationToken cancellationToken = default)
             => Task.CompletedTask;
 
-        public void Remove(string key) => _values.Remove(key);
+        public void Remove(string key)
+            => _values.Remove(key);
 
         public void Set(string key, byte[] value)
             => _values[key] = value;
 
-        public bool TryGetValue(string key, out byte[] value)
+        public bool TryGetValue(
+            string key,
+            out byte[] value)
             => _values.TryGetValue(key, out value!);
     }
 
     // ========================================
-    // HJELPER - TESTMILJØ MED IDENTITY
+    // HJELPER - TESTMILJØ
     // ========================================
 
     private sealed class TestEnvironment
@@ -62,6 +68,10 @@ public class AccountControllerTests
         public Mock<UserManager<ApplicationUser>> Users { get; }
 
         public Mock<SignInManager<ApplicationUser>> SignIn { get; }
+
+        public Mock<IEmailCodeSender> Emails { get; }
+
+        public Mock<IUrlHelper> UrlHelper { get; }
 
         public AccountController Controller { get; }
 
@@ -101,16 +111,38 @@ public class AccountControllerTests
                 Mock.Of<IUserConfirmation<ApplicationUser>>()
             );
 
+            Emails = new Mock<IEmailCodeSender>();
+
+            UrlHelper = new Mock<IUrlHelper>();
+
+            // To ulike bekreftelseslenker:
+            // registrering og endring av e-post.
+
+            UrlHelper.Setup(helper =>
+                helper.Action(
+                    It.IsAny<UrlActionContext>()
+                )
+            ).Returns((UrlActionContext context) =>
+                context.Action == "ConfirmChange"
+                    ? "http://localhost:8080/EmailVerification/ConfirmChange?userId=test-user-123&newEmail=ny%40example.com&code=test"
+                    : "http://localhost:8080/EmailVerification/Confirm?userId=test-user-123&code=test"
+            );
+
             Controller = new AccountController(
                 Users.Object,
-                SignIn.Object
+                SignIn.Object,
+                emailSender: Emails.Object
             )
             {
                 ControllerContext = new ControllerContext
                 {
                     HttpContext = HttpContext
                 },
-                TempData = new Mock<ITempDataDictionary>().Object
+
+                TempData =
+                    new Mock<ITempDataDictionary>().Object,
+
+                Url = UrlHelper.Object
             };
         }
 
@@ -134,6 +166,34 @@ public class AccountControllerTests
             SignIn.Setup(manager =>
                 manager.RefreshSignInAsync(
                     It.IsAny<ApplicationUser>()
+                )
+            ).Returns(Task.CompletedTask);
+        }
+
+        public void AllowEmailChange(
+            ApplicationUser user,
+            string newEmail = "ny@example.com")
+        {
+            Users.Setup(manager =>
+                manager.FindByEmailAsync(newEmail)
+            ).ReturnsAsync((ApplicationUser?)null);
+
+            Users.Setup(manager =>
+                manager.FindByNameAsync(newEmail)
+            ).ReturnsAsync((ApplicationUser?)null);
+
+            Users.Setup(manager =>
+                manager.GenerateChangeEmailTokenAsync(
+                    user,
+                    newEmail
+                )
+            ).ReturnsAsync("test-change-email-token");
+
+            Emails.Setup(sender =>
+                sender.SendConfirmationAsync(
+                    newEmail,
+                    It.IsAny<string>(),
+                    It.IsAny<CancellationToken>()
                 )
             ).Returns(Task.CompletedTask);
         }
@@ -204,7 +264,8 @@ public class AccountControllerTests
 
     // ========================================
     // TEST 1
-    // REGISTRERING GIR RESOURCEPROVIDER
+    // REGISTRERING GIR RIKTIG ROLLE
+    // OG SENDER E-POSTBEKREFTELSE
     // ========================================
 
     [Fact]
@@ -236,11 +297,17 @@ public class AccountControllerTests
             )
         ).ReturnsAsync(IdentityResult.Success);
 
-        env.SignIn.Setup(manager =>
-            manager.SignInAsync(
-                It.IsAny<ApplicationUser>(),
-                false,
-                null
+        env.Users.Setup(manager =>
+            manager.GenerateEmailConfirmationTokenAsync(
+                It.IsAny<ApplicationUser>()
+            )
+        ).ReturnsAsync("example-confirmation-token");
+
+        env.Emails.Setup(sender =>
+            sender.SendConfirmationAsync(
+                "ola@example.com",
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()
             )
         ).Returns(Task.CompletedTask);
 
@@ -251,8 +318,10 @@ public class AccountControllerTests
         var redirect =
             Assert.IsType<RedirectToActionResult>(result);
 
-        Assert.Equal("Dashboard", redirect.ActionName);
-        Assert.Equal("Home", redirect.ControllerName);
+        Assert.Equal(
+            "RegistrationPending",
+            redirect.ActionName
+        );
 
         Assert.NotNull(createdUser);
 
@@ -263,20 +332,47 @@ public class AccountControllerTests
 
         env.Users.Verify(manager =>
             manager.AddToRoleAsync(
-                It.IsAny<ApplicationUser>(),
+                createdUser,
                 IdentitySeeder.ResourceProviderRole
             ),
             Times.Once
         );
 
-        Assert.Equal(
-            IdentitySeeder.ResourceProviderRole,
-            env.HttpContext.Session.GetString("UserRole")
+        env.Users.Verify(manager =>
+            manager.GenerateEmailConfirmationTokenAsync(
+                createdUser
+            ),
+            Times.Once
         );
 
-        Assert.Equal(
-            "ola@example.com",
+        env.Emails.Verify(sender =>
+            sender.SendConfirmationAsync(
+                "ola@example.com",
+                It.Is<string>(url =>
+                    url.Contains("EmailVerification/Confirm")
+                ),
+                It.IsAny<CancellationToken>()
+            ),
+            Times.Once
+        );
+
+        // Ingen automatisk innlogging.
+
+        env.SignIn.Verify(manager =>
+            manager.SignInAsync(
+                It.IsAny<ApplicationUser>(),
+                It.IsAny<bool>(),
+                It.IsAny<string?>()
+            ),
+            Times.Never
+        );
+
+        Assert.Null(
             env.HttpContext.Session.GetString("UserEmail")
+        );
+
+        Assert.Null(
+            env.HttpContext.Session.GetString("UserRole")
         );
     }
 
@@ -367,7 +463,8 @@ public class AccountControllerTests
             IdentityResult.Failed(
                 new IdentityError
                 {
-                    Description = "Brukeren kunne ikke opprettes."
+                    Description =
+                        "Brukeren kunne ikke opprettes."
                 }
             )
         );
@@ -556,6 +653,48 @@ public class AccountControllerTests
 
     // ========================================
     // TEST 8
+    // UBEKREFTET E-POST KAN IKKE LOGGE INN
+    // ========================================
+
+    [Fact]
+    public async Task Login_UnconfirmedEmail_ShouldNotSignIn()
+    {
+        var env = new TestEnvironment();
+        var user = CreateUser();
+
+        user.EmailConfirmed = false;
+
+        env.Users.Setup(manager =>
+            manager.FindByEmailAsync("ola@example.com")
+        ).ReturnsAsync(user);
+
+        var result = await env.Controller.Login(
+            CreateLogin()
+        );
+
+        var redirect =
+            Assert.IsType<RedirectToActionResult>(result);
+
+        Assert.Equal("Index", redirect.ActionName);
+        Assert.Equal("Home", redirect.ControllerName);
+
+        env.SignIn.Verify(manager =>
+            manager.PasswordSignInAsync(
+                It.IsAny<ApplicationUser>(),
+                It.IsAny<string>(),
+                It.IsAny<bool>(),
+                It.IsAny<bool>()
+            ),
+            Times.Never
+        );
+
+        Assert.Null(
+            env.HttpContext.Session.GetString("UserEmail")
+        );
+    }
+
+    // ========================================
+    // TEST 9
     // FEIL PASSORD
     // ========================================
 
@@ -593,7 +732,7 @@ public class AccountControllerTests
     }
 
     // ========================================
-    // TEST 9
+    // TEST 10
     // TOFAKTOR KREVES
     // ========================================
 
@@ -614,7 +753,9 @@ public class AccountControllerTests
                 false,
                 true
             )
-        ).ReturnsAsync(IdentitySignInResult.TwoFactorRequired);
+        ).ReturnsAsync(
+            IdentitySignInResult.TwoFactorRequired
+        );
 
         var result = await env.Controller.Login(
             CreateLogin()
@@ -623,15 +764,27 @@ public class AccountControllerTests
         var redirect =
             Assert.IsType<RedirectToActionResult>(result);
 
-        Assert.Equal("Index", redirect.ActionName);
+        Assert.Equal("Login", redirect.ActionName);
+        Assert.Equal("TwoFactor", redirect.ControllerName);
 
         Assert.Null(
             env.HttpContext.Session.GetString("UserEmail")
         );
+
+        Assert.Null(
+            env.HttpContext.Session.GetString("UserRole")
+        );
+
+        env.Users.Verify(manager =>
+            manager.GetRolesAsync(
+                It.IsAny<ApplicationUser>()
+            ),
+            Times.Never
+        );
     }
 
     // ========================================
-    // TEST 10
+    // TEST 11
     // LÅST KONTO
     // ========================================
 
@@ -669,7 +822,7 @@ public class AccountControllerTests
     }
 
     // ========================================
-    // TEST 11
+    // TEST 12
     // UTLOGGING
     // ========================================
 
@@ -709,7 +862,7 @@ public class AccountControllerTests
     }
 
     // ========================================
-    // TEST 12
+    // TEST 13
     // PROFIL HENTER BRUKERDATA
     // ========================================
 
@@ -735,7 +888,7 @@ public class AccountControllerTests
     }
 
     // ========================================
-    // TEST 13
+    // TEST 14
     // OPPDATERING AV NAVN OG TELEFON
     // ========================================
 
@@ -748,7 +901,7 @@ public class AccountControllerTests
         env.SetCurrentUser(user);
         env.AllowProfileUpdate();
 
-        var originalUserId = user.Id;
+        string originalUserId = user.Id;
 
         var model = CreateProfile(
             name: " Kari Nordmann ",
@@ -778,8 +931,8 @@ public class AccountControllerTests
     }
 
     // ========================================
-    // TEST 14
-    // E-POSTENDRING BEHOLDER IDENTITY-ID
+    // TEST 15
+    // E-POSTENDRING KREVER BEKREFTELSE
     // ========================================
 
     [Fact]
@@ -790,35 +943,75 @@ public class AccountControllerTests
 
         env.SetCurrentUser(user);
         env.AllowProfileUpdate();
+        env.AllowEmailChange(user);
 
-        var originalId = user.Id;
+        string originalId = user.Id;
 
-        env.Users.Setup(manager =>
-            manager.FindByEmailAsync("ny@example.com")
-        ).ReturnsAsync((ApplicationUser?)null);
-
-        env.Users.Setup(manager =>
-            manager.FindByNameAsync("ny@example.com")
-        ).ReturnsAsync((ApplicationUser?)null);
-
-        var model = CreateProfile(
-            email: "ny@example.com"
+        var result = await env.Controller.Profile(
+            CreateProfile(email: "ny@example.com")
         );
-
-        var result = await env.Controller.Profile(model);
 
         var redirect =
             Assert.IsType<RedirectToActionResult>(result);
 
         Assert.Equal("Profile", redirect.ActionName);
-        Assert.Equal("ny@example.com", user.Email);
-        Assert.Equal("ny@example.com", user.UserName);
+
+        // E-posten skal IKKE endres ennå.
+
+        Assert.Equal("ola@example.com", user.Email);
+        Assert.Equal("ola@example.com", user.UserName);
+
+        // Identity-ID og bekreftelsesstatus
+        // skal fortsatt være uendret.
+
         Assert.Equal(originalId, user.Id);
-        Assert.False(user.EmailConfirmed);
+        Assert.True(user.EmailConfirmed);
+
+        // Eksisterende sesjon bruker gammel adresse.
 
         Assert.Equal(
-            "ny@example.com",
+            "ola@example.com",
             env.HttpContext.Session.GetString("UserEmail")
+        );
+
+        Assert.Equal(
+            "ola@example.com",
+            env.HttpContext.Session.GetString("ContactEmail")
+        );
+
+        // Bekreftelsestoken for ny e-post.
+
+        env.Users.Verify(manager =>
+            manager.GenerateChangeEmailTokenAsync(
+                user,
+                "ny@example.com"
+            ),
+            Times.Once
+        );
+
+        // E-post sendes til NY adresse.
+
+        env.Emails.Verify(sender =>
+            sender.SendConfirmationAsync(
+                "ny@example.com",
+                It.Is<string>(url =>
+                    url.Contains("EmailVerification/ConfirmChange")
+                ),
+                It.IsAny<CancellationToken>()
+            ),
+            Times.Once
+        );
+
+        // Den faktiske e-postendringen må
+        // først utføres av bekreftelsescontrolleren.
+
+        env.Users.Verify(manager =>
+            manager.ChangeEmailAsync(
+                It.IsAny<ApplicationUser>(),
+                It.IsAny<string>(),
+                It.IsAny<string>()
+            ),
+            Times.Never
         );
 
         env.Users.Verify(manager =>
@@ -828,7 +1021,76 @@ public class AccountControllerTests
     }
 
     // ========================================
-    // TEST 15
+    // TEST 16 - NY
+    // SMTP-FEIL SKAL IKKE ENDRE E-POST
+    // ========================================
+
+    [Fact]
+    public async Task Profile_EmailSendFails_ShouldKeepOldEmail()
+    {
+        var env = new TestEnvironment();
+        var user = CreateUser();
+
+        env.SetCurrentUser(user);
+        env.AllowProfileUpdate();
+        env.AllowEmailChange(user);
+
+        // Simuler feil hos SMTP-serveren.
+
+        env.Emails.Setup(sender =>
+            sender.SendConfirmationAsync(
+                "ny@example.com",
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()
+            )
+        ).ThrowsAsync(
+            new InvalidOperationException(
+                "SMTP unavailable"
+            )
+        );
+
+        var result = await env.Controller.Profile(
+            CreateProfile(email: "ny@example.com")
+        );
+
+        // Controlleren skal vise en feilmelding.
+
+        Assert.IsType<ViewResult>(result);
+        Assert.False(env.Controller.ModelState.IsValid);
+
+        // Den gamle e-posten fungerer fortsatt.
+
+        Assert.Equal("ola@example.com", user.Email);
+        Assert.Equal("ola@example.com", user.UserName);
+
+        Assert.True(user.EmailConfirmed);
+
+        Assert.Equal(
+            "ola@example.com",
+            env.HttpContext.Session.GetString("UserEmail")
+        );
+
+        // Ingen faktisk e-postendring.
+
+        env.Users.Verify(manager =>
+            manager.ChangeEmailAsync(
+                It.IsAny<ApplicationUser>(),
+                It.IsAny<string>(),
+                It.IsAny<string>()
+            ),
+            Times.Never
+        );
+
+        // Navn og telefon kan likevel lagres.
+
+        env.Users.Verify(manager =>
+            manager.UpdateAsync(user),
+            Times.Once
+        );
+    }
+
+    // ========================================
+    // TEST 17
     // OPPTATT E-POST AVVISES
     // ========================================
 
@@ -848,7 +1110,9 @@ public class AccountControllerTests
         };
 
         env.Users.Setup(manager =>
-            manager.FindByEmailAsync("opptatt@example.com")
+            manager.FindByEmailAsync(
+                "opptatt@example.com"
+            )
         ).ReturnsAsync(otherUser);
 
         var model = CreateProfile(
@@ -871,7 +1135,7 @@ public class AccountControllerTests
     }
 
     // ========================================
-    // TEST 16
+    // TEST 18
     // UGYLDIG PROFIL LAGRES IKKE
     // ========================================
 
@@ -902,7 +1166,7 @@ public class AccountControllerTests
     }
 
     // ========================================
-    // TEST 17
+    // TEST 19
     // MISLYKKET LAGRING OPPDATERER IKKE COOKIE
     // ========================================
 
@@ -941,7 +1205,7 @@ public class AccountControllerTests
     }
 
     // ========================================
-    // TEST 18
+    // TEST 20
     // AUTORISASJON OG ANTIFORGERY
     // ========================================
 
@@ -981,20 +1245,21 @@ public class AccountControllerTests
 
             Assert.NotNull(
                 method.GetCustomAttribute<
-                    ValidateAntiForgeryTokenAttribute
-                >()
+                    ValidateAntiForgeryTokenAttribute>()
             );
         }
 
-        var profileGet = typeof(AccountController).GetMethod(
-            nameof(AccountController.Profile),
-            Type.EmptyTypes
-        );
+        var profileGet =
+            typeof(AccountController).GetMethod(
+                nameof(AccountController.Profile),
+                Type.EmptyTypes
+            );
 
-        var profilePost = typeof(AccountController).GetMethod(
-            nameof(AccountController.Profile),
-            new[] { typeof(ProfileViewModel) }
-        );
+        var profilePost =
+            typeof(AccountController).GetMethod(
+                nameof(AccountController.Profile),
+                new[] { typeof(ProfileViewModel) }
+            );
 
         Assert.NotNull(profileGet);
         Assert.NotNull(profilePost);
