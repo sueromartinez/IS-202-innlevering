@@ -42,20 +42,20 @@ button, input, select, textarea { font: inherit; }
     justify-content: space-between;
     padding: 0 4vw;
     border-bottom: 1px solid var(--border);
-    background: white;
+    background: var(--surface);
 }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand-icon {
     width: 41px; height: 41px;
     display: grid; place-items: center;
     border-radius: 11px;
-    color: var(--primary);
+    color: var(--link);
     background: rgba(23, 107, 135, 0.08);
 }
-.brand strong { display: block; color: var(--navy); font-size: 0.93rem; }
+.brand strong { display: block; color: var(--heading); font-size: 0.93rem; }
 .brand span {
     display: block;
-    color: #7b8794;
+    color: var(--text-secondary);
     font-size: 0.58rem; font-weight: 750;
     letter-spacing: 0.12em; text-transform: uppercase;
 }
@@ -64,13 +64,13 @@ button, input, select, textarea { font: inherit; }
 .header-user-text { text-align: right; }
 .header-user-text strong { display: block; font-size: 0.79rem; }
 .header-user-text span { color: var(--secondary); font-size: 0.66rem; }
-.header-link { color: #52606c; font-size: 0.73rem; font-weight: 700; }
+.header-link { color: var(--text-secondary); font-size: 0.73rem; font-weight: 700; }
 .logout-button, .back-button {
     padding: 9px 14px;
     border: 1px solid var(--border);
     border-radius: 8px;
-    color: var(--navy);
-    background: white;
+    color: var(--heading);
+    background: var(--surface);
     font-size: 0.73rem; font-weight: 700;
     cursor: pointer;
 }
@@ -85,13 +85,13 @@ button, input, select, textarea { font: inherit; }
     display: flex; align-items: flex-end; justify-content: space-between;
     gap: 40px; margin-bottom: 28px;
 }
-.eyebrow { color: var(--primary); font-size: 0.67rem; font-weight: 850; letter-spacing: 0.11em; }
-h1 { margin: 10px 0; color: var(--navy); font-size: clamp(2.2rem, 4vw, 3rem); letter-spacing: -0.045em; }
+.eyebrow { color: var(--link); font-size: 0.67rem; font-weight: 850; letter-spacing: 0.11em; }
+h1 { margin: 10px 0; color: var(--heading); font-size: clamp(2.2rem, 4vw, 3rem); letter-spacing: -0.045em; }
 .page-header p { margin: 0; color: var(--secondary); font-size: 0.9rem; }
 .success {
     margin-bottom: 20px; padding: 13px 16px;
     border-radius: 10px;
-    color: var(--green); background: rgba(35, 133, 91, 0.08);
+    color: var(--success-text); background: rgba(35, 133, 91, 0.08);
     font-size: 0.8rem; font-weight: 700;
 }
 
@@ -105,7 +105,7 @@ h1 { margin: 10px 0; color: var(--navy); font-size: clamp(2.2rem, 4vw, 3rem); le
     padding: 26px;
     border: 1px solid var(--border);
     border-radius: 15px;
-    background: white;
+    background: var(--surface);
     box-shadow: 0 8px 25px rgba(18, 48, 71, 0.04);
 }
 
@@ -126,7 +126,7 @@ h1 { margin: 10px 0; color: var(--navy); font-size: clamp(2.2rem, 4vw, 3rem); le
 .need.planned { border-left-color: var(--planned); }
 .need.active { background: white; box-shadow: 0 0 0 3px rgba(23, 107, 135, 0.15); }
 .need-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.need-top strong { color: var(--navy); font-size: 0.8rem; }
+.need-top strong { color: var(--heading); font-size: 0.8rem; }
 .need-number {
     width: 26px; height: 26px;
     display: grid; place-items: center;
@@ -138,12 +138,12 @@ h1 { margin: 10px 0; color: var(--navy); font-size: clamp(2.2rem, 4vw, 3rem); le
 .need-position {
     margin-left: auto; padding: 4px 9px;
     border-radius: 999px;
-    color: #7b8794; background: #eef1f3;
+    color: var(--text-secondary); background: #eef1f3;
     font-size: 0.6rem; font-weight: 750;
 }
-.need-position.set { color: var(--green); background: rgba(35, 133, 91, 0.09); }
-.need-remove { border: 0; background: none; color: #7b8794; font-size: 1.2rem; cursor: pointer; }
-.need-remove:hover { color: var(--danger); }
+.need-position.set { color: var(--success-text); background: rgba(35, 133, 91, 0.09); }
+.need-remove { border: 0; background: none; color: var(--text-secondary); font-size: 1.2rem; cursor: pointer; }
+.need-remove:hover { color: var(--danger-text); }
 .need-row { display: grid; grid-template-columns: 2fr 1.2fr 0.8fr; gap: 10px; }
 
 
@@ -151,10 +151,10 @@ h1 { margin: 10px 0; color: var(--navy); font-size: clamp(2.2rem, 4vw, 3rem); le
    SKJEMAFELT
 ========================================= */
 
-form label { display: block; margin-bottom: 10px; color: #344054; font-size: 0.72rem; font-weight: 750; }
+form label { display: block; margin-bottom: 10px; color: var(--text); font-size: 0.72rem; font-weight: 750; }
 form select, form input, form textarea {
     width: 100%; min-height: 42px; margin-top: 6px; padding: 0 11px;
-    border: 1px solid #d0d5dd; border-radius: 8px;
+    border: 1px solid var(--border); border-radius: 8px;
     color: var(--text); background: white;
     font-size: 0.77rem; font-weight: 400;
 }
@@ -165,7 +165,7 @@ form select:focus, form input:focus, form textarea:focus {
     box-shadow: 0 0 0 4px rgba(23, 107, 135, 0.09);
 }
 
-.error { display: block; margin-top: 4px; color: var(--danger); font-size: 0.67rem; font-weight: 400; }
+.error { display: block; margin-top: 4px; color: var(--danger-text); font-size: 0.67rem; font-weight: 400; }
 .error ul { margin: 0 0 14px; padding-left: 18px; }
 .validation-summary-valid { display: none; }
 
@@ -175,7 +175,7 @@ form select:focus, form input:focus, form textarea:focus {
     font-size: 0.76rem; font-weight: 800;
     cursor: pointer;
 }
-.add-button { border: 1.5px dashed #c3ccd3; color: var(--primary); background: none; }
+.add-button { border: 1.5px dashed #c3ccd3; color: var(--link); background: none; }
 .add-button:disabled { opacity: 0.5; cursor: not-allowed; }
 .primary-button { border: 0; color: white; background: var(--primary); }
 .primary-button:hover { background: var(--primary-dark); }
@@ -186,7 +186,7 @@ form select:focus, form input:focus, form textarea:focus {
 ========================================= */
 
 .map-card { position: sticky; top: 24px; }
-.map-help { margin: 0 0 14px; padding: 10px 12px; border-radius: 8px; background: #f5f7f8; color: #52606c; font-size: 0.7rem; }
+.map-help { margin: 0 0 14px; padding: 10px 12px; border-radius: 8px; background: #f5f7f8; color: var(--text-secondary); font-size: 0.7rem; }
 #map { height: 620px; border: 1px solid #d9e0e4; border-radius: 12px; cursor: crosshair; }
 .legend { display: flex; gap: 18px; margin: 12px 0 0; color: var(--secondary); font-size: 0.68rem; }
 .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
@@ -195,7 +195,7 @@ form select:focus, form input:focus, form textarea:focus {
 .pin {
     width: 30px; height: 30px;
     display: grid; place-items: center;
-    border: 3px solid white;
+    border: 3px solid var(--surface);
     border-radius: 50% 50% 50% 7px;
     transform: rotate(-45deg);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
@@ -238,7 +238,7 @@ form select:focus, form input:focus, form textarea:focus {
 .primary-link:hover { background: var(--primary-dark); }
 
 .empty-state { text-align: center; padding: 50px 26px; }
-.empty-state strong { display: block; color: var(--navy); }
+.empty-state strong { display: block; color: var(--heading); }
 .empty-state p { margin: 8px 0 22px; color: var(--secondary); font-size: 0.8rem; }
 .empty-state .primary-link { display: inline-block; }
 
@@ -257,11 +257,11 @@ form select:focus, form input:focus, form textarea:focus {
 .entry.planned .need-number { background: var(--planned); }
 
 .entry-top { display: flex; align-items: center; gap: 10px; }
-.entry-top strong { color: var(--navy); font-size: 0.82rem; }
+.entry-top strong { color: var(--heading); font-size: 0.82rem; }
 .badge {
     padding: 3px 8px;
     border-radius: 999px;
-    color: var(--acute); background: rgba(211, 75, 75, 0.1);
+    color: var(--danger-text); background: rgba(211, 75, 75, 0.1);
     font-size: 0.6rem; font-weight: 800;
 }
 .entry.planned .badge { color: #a86f0b; background: rgba(217, 154, 36, 0.14); }
@@ -279,13 +279,13 @@ form select:focus, form input:focus, form textarea:focus {
     padding: 7px 12px;
     border: 1px solid var(--border);
     border-radius: 7px;
-    color: var(--navy);
-    background: white;
+    color: var(--heading);
+    background: var(--surface);
     font-size: 0.68rem; font-weight: 750;
     cursor: pointer;
 }
 .small-button:hover { background: #f5f7f8; }
-.small-button.danger { color: var(--danger); }
+.small-button.danger { color: var(--danger-text); }
 .small-button.danger:hover { border-color: var(--danger); background: rgba(198, 61, 61, 0.06); }
 
 
@@ -300,4 +300,12 @@ form select:focus, form input:focus, form textarea:focus {
     font-size: 0.72rem; font-weight: 700;
     text-align: center;
 }
-.cancel-link:hover { color: var(--primary); }
+.cancel-link:hover { color: var(--link); }
+/* Status i behovslisten (Ny → Vurderes → Tildelt → Løst) */
+.need-status { margin-left: auto; padding: 3px 9px; border-radius: 999px; font-size: .72rem; font-weight: 750; white-space: nowrap; }
+.need-status.status-new { color: #8a5a00; background: #fdf3df; }
+.need-status.status-review { color: #125770; background: #e5f2f6; }
+.need-status.status-assigned { color: #1b6b48; background: #e4f3ec; }
+.need-status.status-resolved { color: #475467; background: #eef1f4; }
+.small-button.primary { color: white; border-color: var(--primary, #176b87); background: var(--primary, #176b87); text-decoration: none; }
+.small-button.primary:hover { background: var(--primary-dark, #125770); }

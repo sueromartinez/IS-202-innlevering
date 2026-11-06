@@ -6,6 +6,10 @@ using FirstWebAppInDocker.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
+using FirstWebAppInDocker.Services.Ai;
+using FirstWebAppInDocker.Services.Matching;
+using FirstWebAppInDocker.Services.Notifications;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -313,6 +317,29 @@ using (var scope = app.Services.CreateScope())
 await IdentitySeeder.SeedAsync(
     app.Services
 );
+
+
+// =========================
+// DEMODATA
+// =========================
+//
+// Fyller en tom database med falske ressurser, behov og
+// testbrukere, slik at matching og Sami kan demonstreres.
+// Kjøres bare i Development, og kan slås av med Seed:DemoData=false.
+//
+
+if (
+    app.Environment.IsDevelopment()
+    && !string.Equals(
+        app.Configuration["Seed:DemoData"],
+        "false",
+        StringComparison.OrdinalIgnoreCase)
+)
+{
+    await DemoDataSeeder.SeedAsync(
+        app.Services
+    );
+}
 
 
 // =========================

@@ -196,5 +196,103 @@ public static class IdentitySeeder
                 );
             }
         }
+
+
+        // =========================
+        // ADMIN USER
+        // =========================
+
+        IConfiguration configuration =
+            scope.ServiceProvider
+                .GetRequiredService<IConfiguration>();
+
+        await SeedAdminAsync(
+            userManager,
+            configuration
+        );
+    }
+
+
+    /// <summary>
+    /// Oppretter en admin-bruker hvis den ikke finnes.
+    ///
+    /// E-post og passord hentes fra konfigurasjon
+    /// (Seed:AdminEmail / Seed:AdminPassword, eller
+    /// miljøvariablene Seed__AdminEmail / Seed__AdminPassword
+    /// i docker-compose). Standardverdiene under er kun
+    /// for lokal utvikling og demo.
+    /// </summary>
+    private static async Task SeedAdminAsync(
+        UserManager<ApplicationUser> userManager,
+        IConfiguration configuration
+    )
+    {
+        string adminEmail =
+            configuration["Seed:AdminEmail"]
+            ?? "admin@beredskap.no";
+
+        string adminPassword =
+            configuration["Seed:AdminPassword"]
+            ?? "Admin123!";
+
+
+        ApplicationUser? admin =
+            await userManager.FindByEmailAsync(
+                adminEmail
+            );
+
+
+        if (admin is null)
+        {
+            admin =
+                new ApplicationUser
+                {
+                    UserName = adminEmail,
+                    Email = adminEmail,
+                    Name = "Administrator",
+                    EmailConfirmed = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+
+            IdentityResult createResult =
+                await userManager.CreateAsync(
+                    admin,
+                    adminPassword
+                );
+
+
+            if (!createResult.Succeeded)
+            {
+                string errors =
+                    string.Join(
+                        ", ",
+                        createResult.Errors.Select(
+                            error => error.Description
+                        )
+                    );
+
+                throw new InvalidOperationException(
+                    $"Kunne ikke opprette admin-bruker: {errors}"
+                );
+            }
+        }
+
+
+        if (!await userManager.IsInRoleAsync(admin, AdminRole))
+        {
+            IdentityResult roleResult =
+                await userManager.AddToRoleAsync(
+                    admin,
+                    AdminRole
+                );
+
+            if (!roleResult.Succeeded)
+            {
+                throw new InvalidOperationException(
+                    "Kunne ikke gi admin-brukeren rollen Admin."
+                );
+            }
+        }
     }
 }

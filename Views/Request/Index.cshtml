@@ -1,0 +1,119 @@
+@model List<FirstWebAppInDocker.ViewModels.VolunteerRequestViewModel>
+@using FirstWebAppInDocker.Services
+@{
+    Layout = "_PortalLayout";
+    ViewData["Title"] = "Forespørsler";
+
+    var pending = Model.Where(r => r.Status == AssignmentStatus.Requested).ToList();
+    var earlier = Model.Where(r => r.Status != AssignmentStatus.Requested).ToList();
+
+    string StatusClass(AssignmentStatus status) => status switch
+    {
+        AssignmentStatus.Confirmed => "status-confirmed",
+        AssignmentStatus.Declined => "status-declined",
+        AssignmentStatus.Cancelled => "status-cancelled",
+        _ => "status-requested"
+    };
+}
+
+<div class="page-top">
+    <div>
+        <span class="page-eyebrow">Mine ressurser</span>
+        <h1 class="page-heading">Forespørsler</h1>
+        <p class="page-description">
+            Her ser du når en offentlig aktør ønsker å bruke en av ressursene dine.
+            Bekreft bare hvis du faktisk kan stille.
+        </p>
+    </div>
+
+    <a asp-action="MatchingNeeds" class="secondary-action">Se behov jeg kan hjelpe med</a>
+</div>
+
+@if (TempData["RequestMessage"] is string message)
+{
+    <div class="alert alert-success" role="status">@message</div>
+}
+@if (TempData["RequestError"] is string error)
+{
+    <div class="alert alert-error" role="alert">@error</div>
+}
+
+<section class="app-card portal-section">
+    <h2>Venter på svar fra deg</h2>
+    <p class="section-hint">Den offentlige aktøren får beskjed med en gang du svarer.</p>
+
+    @if (pending.Count == 0)
+    {
+        <p class="empty-state">Ingen forespørsler venter på svar.</p>
+    }
+    else
+    {
+        <ul class="card-list">
+            @foreach (var request in pending)
+            {
+                <li class="list-card unread">
+                    <div>
+                        <h3>@request.ResourceName er ønsket</h3>
+                        <p>@request.NeedDescription</p>
+                        @if (!string.IsNullOrWhiteSpace(request.Message))
+                        {
+                            <p><em>Melding: @request.Message</em></p>
+                        }
+                        <div class="list-card-meta">
+                            <span class="status-badge @(request.NeedPriority == NeedPriority.Acute ? "priority-acute" : "priority-planned")">
+                                @EnumDisplay.Name(request.NeedPriority)
+                            </span>
+                            <span>@EnumDisplay.Name(request.NeedType) · antall @request.NeedQuantity</span>
+                            <span>ca. @request.DistanceKm.ToString("0.0") km fra ressursen din</span>
+                            <span>Sendt @request.CreatedAt.ToLocalTime().ToString("dd.MM HH:mm")</span>
+                        </div>
+                    </div>
+
+                    <div class="cell-actions">
+                        <form asp-action="Respond" method="post">
+                            <input type="hidden" name="id" value="@request.Id" />
+                            <input type="hidden" name="accept" value="false" />
+                            <button type="submit" class="secondary-action">Kan ikke</button>
+                        </form>
+                        <form asp-action="Respond" method="post">
+                            <input type="hidden" name="id" value="@request.Id" />
+                            <input type="hidden" name="accept" value="true" />
+                            <button type="submit" class="primary-action">Bekreft at jeg kan stille</button>
+                        </form>
+                    </div>
+                </li>
+            }
+        </ul>
+    }
+</section>
+
+<section class="app-card portal-section">
+    <h2>Tidligere forespørsler</h2>
+
+    @if (earlier.Count == 0)
+    {
+        <p class="empty-state">Ingen tidligere forespørsler.</p>
+    }
+    else
+    {
+        <ul class="card-list">
+            @foreach (var request in earlier)
+            {
+                <li class="list-card">
+                    <div>
+                        <h3>@request.ResourceName</h3>
+                        <p>@request.NeedDescription</p>
+                        <div class="list-card-meta">
+                            <span class="status-badge @StatusClass(request.Status)">@EnumDisplay.Name(request.Status)</span>
+                            <span>@request.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</span>
+                            @if (request.RequesterContact is not null)
+                            {
+                                <span>Kontakt: @request.RequesterContact</span>
+                            }
+                        </div>
+                    </div>
+                </li>
+            }
+        </ul>
+    }
+</section>

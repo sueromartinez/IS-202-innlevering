@@ -8,8 +8,10 @@
     string? userName =
         Context.Session.GetString("UserName");
 
+    // Rollen settes av ResourceController fra Identity.
     string? userRole =
-        Context.Session.GetString("UserRole");
+        ViewBag.UserRole as string
+        ?? Context.Session.GetString("UserRole");
 
     bool isResourceProvider =
         userRole == "ResourceProvider";
@@ -153,6 +155,9 @@
     />
 
     <link rel="stylesheet" href="~/css/top-navigation.css" asp-append-version="true" />
+    <!-- Fargetema: lyst/mørkt tema -->
+    <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
+    <script src="~/js/theme.js" asp-append-version="true"></script>
 </head>
 
 <body>
@@ -226,6 +231,12 @@
 ========================================= -->
 
 <main class="overview-page">
+
+    @if (TempData["ResourceSuccess"] is string resourceMessage)
+    {
+        <div class="resource-flash" role="status">@resourceMessage</div>
+    }
+
 
 
     <!-- =====================================
@@ -608,6 +619,31 @@
 
                             </button>
 
+
+                            <!-- TILGJENGELIGHET (STATUS) -->
+                            <div class="resource-availability-status">
+                                <span class="resource-state resource-state-@resource.Status.ToString().ToLowerInvariant()">
+                                    @(resource.Status switch
+                                    {
+                                        ResourceStatus.Busy => "Opptatt",
+                                        ResourceStatus.Unavailable => "Utilgjengelig",
+                                        _ => "Tilgjengelig"
+                                    })
+                                </span>
+
+                                @if (isResourceProvider && resource.Status != ResourceStatus.Busy)
+                                {
+                                    <form asp-controller="Resource" asp-action="SetStatus" method="post">
+                                        <input type="hidden" name="id" value="@resource.Id" />
+                                        <input type="hidden" name="status"
+                                               value="@(resource.Status == ResourceStatus.Available ? ResourceStatus.Unavailable : ResourceStatus.Available)" />
+                                        <button type="submit" class="resource-state-toggle">
+                                            @(resource.Status == ResourceStatus.Available ? "Marker som utilgjengelig" : "Marker som tilgjengelig")
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+
                         </article>
                     }
 
@@ -832,7 +868,7 @@
         border-bottom:
             1px solid var(--border);
 
-        background: white;
+        background: var(--surface);
     }
 
 
@@ -857,7 +893,7 @@
 
         border-radius: 11px;
 
-        color: var(--primary);
+        color: var(--link);
 
         background:
             rgba(
@@ -878,7 +914,7 @@
     .provider-brand strong {
         display: block;
 
-        color: var(--navy);
+        color: var(--heading);
 
         font-size: 0.93rem;
     }
@@ -889,7 +925,7 @@
 
         margin-top: 2px;
 
-        color: #7b8794;
+        color: var(--text-secondary);
 
         font-size: 0.58rem;
         font-weight: 750;
@@ -944,7 +980,7 @@
 
         border-radius: 8px;
 
-        color: #52606c;
+        color: var(--text-secondary);
 
         font-size: 0.73rem;
         font-weight: 700;
@@ -952,7 +988,7 @@
 
 
     .dashboard-link:hover {
-        color: var(--primary);
+        color: var(--link);
 
         background:
             rgba(
@@ -973,9 +1009,9 @@
 
         border-radius: 8px;
 
-        color: #344054;
+        color: var(--text);
 
-        background: white;
+        background: var(--surface);
 
         font-size: 0.75rem;
         font-weight: 700;
@@ -985,7 +1021,7 @@
 
 
     .logout-button:hover {
-        background: #f7f8f9;
+        background: var(--surface-soft);
     }
 
 
@@ -1031,7 +1067,7 @@
 
         margin-bottom: 9px;
 
-        color: var(--primary);
+        color: var(--link);
 
         font-size: 0.66rem;
         font-weight: 850;
@@ -1046,7 +1082,7 @@
         margin:
             0 0 10px;
 
-        color: var(--navy-dark);
+        color: var(--heading);
 
         font-size:
             clamp(
@@ -1139,7 +1175,7 @@
 
         border-radius: 13px;
 
-        background: white;
+        background: var(--surface);
     }
 
 
@@ -1167,12 +1203,12 @@
 
 
     .status-card > strong.green-number {
-        color: var(--green);
+        color: var(--success-text);
     }
 
 
     .status-card small {
-        color: #98a2b3;
+        color: var(--text-secondary);
 
         font-size: 0.64rem;
     }
@@ -1210,7 +1246,7 @@
 
         border-radius: 15px;
 
-        background: white;
+        background: var(--surface);
 
         box-shadow:
             0 8px 25px
@@ -1247,7 +1283,7 @@
     .section-heading h2 {
         margin: 0;
 
-        color: var(--navy);
+        color: var(--heading);
 
         font-size: 1.25rem;
 
@@ -1270,7 +1306,7 @@
 
         border-radius: 999px;
 
-        color: var(--primary);
+        color: var(--link);
 
         background:
             rgba(
@@ -1327,7 +1363,7 @@
 
         border-radius: 12px;
 
-        background: #ffffff;
+        background: var(--surface);
 
         transition:
             border-color 150ms ease,
@@ -1400,7 +1436,7 @@
         margin:
             1px 0 4px;
 
-        color: var(--primary);
+        color: var(--link);
 
         font-size: 0.6rem;
         font-weight: 850;
@@ -1416,7 +1452,7 @@
 
         overflow-wrap: anywhere;
 
-        color: var(--navy);
+        color: var(--heading);
 
         font-size: 0.83rem;
 
@@ -1430,7 +1466,7 @@
 
         border-radius: 999px;
 
-        color: var(--green);
+        color: var(--success-text);
 
         background:
             rgba(
@@ -1467,7 +1503,7 @@
 
         border-radius: 9px;
 
-        background: #f6f8f9;
+        background: var(--surface-soft);
     }
 
 
@@ -1481,7 +1517,7 @@
 
         margin-bottom: 3px;
 
-        color: #98a2b3;
+        color: var(--text-secondary);
 
         font-size: 0.56rem;
         font-weight: 750;
@@ -1497,7 +1533,7 @@
 
         overflow: hidden;
 
-        color: #52606c;
+        color: var(--text-secondary);
 
         font-size: 0.65rem;
 
@@ -1537,7 +1573,7 @@
     .contact-title {
         margin-bottom: 1px;
 
-        color: var(--navy);
+        color: var(--heading);
 
         font-size: 0.61rem;
         font-weight: 800;
@@ -1571,9 +1607,9 @@
 
         border-radius: 8px;
 
-        color: var(--primary);
+        color: var(--link);
 
-        background: white;
+        background: var(--surface);
 
         font-size: 0.67rem;
         font-weight: 750;
@@ -1630,7 +1666,7 @@
         margin:
             0 0 5px;
 
-        color: var(--navy);
+        color: var(--heading);
 
         font-size: 1.25rem;
 
@@ -1666,9 +1702,9 @@
 
         border-radius: 8px;
 
-        color: #52606c;
+        color: var(--text-secondary);
 
-        background: #f5f7f8;
+        background: var(--surface-soft);
 
         font-size: 0.61rem;
     }
@@ -1740,7 +1776,7 @@
 
         border-radius: 50%;
 
-        background: white;
+        background: var(--surface);
     }
 
 
@@ -1765,7 +1801,7 @@
 
         margin-bottom: 5px;
 
-        color: var(--primary);
+        color: var(--link);
 
         font-size: 0.59rem;
         font-weight: 850;
@@ -1779,7 +1815,7 @@
 
         margin-bottom: 5px;
 
-        color: var(--navy);
+        color: var(--heading);
 
         font-size: 0.82rem;
     }
@@ -1789,7 +1825,7 @@
         margin:
             0 0 8px;
 
-        color: #59636e;
+        color: var(--text-secondary);
 
         font-size: 0.7rem;
 
@@ -1804,7 +1840,7 @@
 
         overflow-wrap: anywhere;
 
-        color: #7b8794;
+        color: var(--text-secondary);
 
         font-size: 0.62rem;
     }
@@ -1863,7 +1899,7 @@
 
         border-radius: 8px;
 
-        color: var(--primary);
+        color: var(--link);
 
         background:
             rgba(
@@ -1919,7 +1955,7 @@
 
         text-align: center;
 
-        background: white;
+        background: var(--surface);
     }
 
 
@@ -1935,7 +1971,7 @@
 
         border-radius: 14px;
 
-        color: var(--primary);
+        color: var(--link);
 
         background:
             rgba(
@@ -1953,7 +1989,7 @@
         margin:
             0 0 10px;
 
-        color: var(--navy);
+        color: var(--heading);
 
         font-size: 1.5rem;
     }
@@ -2147,7 +2183,7 @@
     /* Keeps navigation visible and allows buttons to wrap on small screens. */
     .provider-header { flex-wrap: wrap; padding-top: 16px; padding-bottom: 16px; gap: 16px; }
     .overview-navigation { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-    .overview-navigation a { padding: 10px 12px; border-radius: 8px; color: var(--navy); font-size: .8rem; font-weight: 700; }
+    .overview-navigation a { padding: 10px 12px; border-radius: 8px; color: var(--heading); font-size: .8rem; font-weight: 700; }
     .overview-navigation a:hover { background: #eef5f8; }
     .overview-navigation a[aria-current="page"] { background: var(--primary); color: white; }
     .overview-navigation form { margin: 0; }
@@ -2158,7 +2194,7 @@
     .resource-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; padding: 20px; margin-bottom: 20px; background: white; border: 1px solid var(--border); border-radius: 15px; }
     .filter-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; flex: 1 1 200px; }
     .filter-search { flex-grow: 2; }
-    .filter-field label { font-weight: 700; font-size: .85rem; color: var(--navy); }
+    .filter-field label { font-weight: 700; font-size: .85rem; color: var(--heading); }
     .filter-field select, .filter-field input { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: white; color: var(--text); font: inherit; }
     .resource-filters button { min-height: 44px; }
     #filterSummary { flex-basis: 100%; margin: 0; color: var(--secondary); font-size: .85rem; }
@@ -2185,7 +2221,7 @@
         flex: 1 1 100%; min-width: 0; margin: 0; padding: 0; border: 0;
     }
     .resource-category-filter legend {
-        padding: 0; margin-bottom: 10px; color: var(--navy);
+        padding: 0; margin-bottom: 10px; color: var(--heading);
         font-size: .85rem; font-weight: 700;
     }
     .resource-category-options { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -2193,7 +2229,7 @@
         display: inline-flex; align-items: center; gap: 8px;
         min-height: 44px; max-width: 100%; padding: 9px 12px;
         border: 1px solid var(--border); border-radius: 9px;
-        background: #f8fafb; color: var(--navy); font-size: .85rem; cursor: pointer;
+        background: var(--surface-soft); color: var(--heading); font-size: .85rem; cursor: pointer;
     }
     .resource-category-option input {
         flex-shrink: 0; width: 18px; height: 18px; margin: 0;
@@ -2203,6 +2239,27 @@
         border-color: var(--primary); background: #eef5f8;
     }
     .resource-category-option span { overflow-wrap: anywhere; }
+
+    /* Tilgjengelighet (status) per ressurs */
+    .resource-flash {
+        margin: 0 0 18px; padding: 12px 15px; border-radius: 10px;
+        color: #1b6b48; background: #e4f3ec; font-size: .86rem; font-weight: 600;
+    }
+    .resource-availability-status {
+        display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px;
+    }
+    .resource-availability-status form { margin: 0; }
+    .resource-state {
+        padding: 4px 9px; border-radius: 999px; font-size: .72rem; font-weight: 750;
+        color: #1b6b48; background: #e4f3ec;
+    }
+    .resource-state-busy { color: #8a5a00; background: #fdf3df; }
+    .resource-state-unavailable { color: #9d2f2f; background: #fbe9e9; }
+    .resource-state-toggle {
+        min-height: 32px; padding: 0 11px; border: 1px solid var(--border, #dfe4e8); border-radius: 8px;
+        background: var(--surface); color: var(--text); font: inherit; font-size: .75rem; font-weight: 700; cursor: pointer;
+    }
+    .resource-state-toggle:hover { background: #f6f8f9; }
 
 </style>
 
@@ -2367,6 +2424,7 @@ function createSymbolMarker(color, type, badge) {
 }
 
 
+<partial name="_Sami" />
 </body>
 
 </html>

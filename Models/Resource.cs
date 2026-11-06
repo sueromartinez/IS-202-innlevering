@@ -120,4 +120,33 @@ public class Resource
 
     public DateTime CreatedAt { get; set; }
         = DateTime.UtcNow;
+
+
+    // =========================
+    // STATUS
+    // =========================
+
+    /// <summary>
+    /// Om ressursen kan spørres om hjelp nå.
+    /// Settes til Busy når en frivillig bekrefter
+    /// en tildeling, og tilbake når behovet er løst.
+    /// </summary>
+    public ResourceStatus Status { get; set; }
+        = ResourceStatus.Available;
+}
+
+
+/// <summary>
+/// Tilgjengelighet for en ressurs.
+/// </summary>
+public enum ResourceStatus
+{
+    [Display(Name = "Tilgjengelig")]
+    Available,
+
+    [Display(Name = "Opptatt")]
+    Busy,
+
+    [Display(Name = "Utilgjengelig")]
+    Unavailable
 }

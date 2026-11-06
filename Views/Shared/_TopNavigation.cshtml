@@ -1,23 +1,35 @@
+@using FirstWebAppInDocker.Data
 @{
-    var role = Context.Session.GetString("UserRole");
     var controller = ViewContext.RouteData.Values["controller"]?.ToString();
     var action = ViewContext.RouteData.Values["action"]?.ToString();
     var links = new List<(string Text, string Controller, string Action)>();
 
-    // Uses the existing session role to keep each user's menu separate.
-    if (role == "PublicActor")
+    // Rollen hentes fra ASP.NET Core Identity, ikke Session,
+    // slik at Admin også får riktig meny.
+    bool isAdmin = User.IsInRole(IdentitySeeder.AdminRole);
+    bool isPublicActor = User.IsInRole(IdentitySeeder.PublicActorRole);
+    bool isProvider = User.IsInRole(IdentitySeeder.ResourceProviderRole);
+
+    if (isPublicActor || isAdmin)
     {
         links.AddRange(new[] {
             ("Oversikt", "Home", "Dashboard"), ("Behov", "Need", "NeedOverview"),
-            ("Registrer behov", "Need", "RegisterNeed"), ("Ressurser", "Resource", "ResourceOverview"),
-            ("Profil", "Account", "Profile")
+            ("Registrer behov", "Need", "RegisterNeed"), ("Ressurser", "Resource", "ResourceOverview")
         });
+
+        if (isAdmin)
+        {
+            links.Add(("Brukere", "Admin", "Users"));
+        }
+
+        links.Add(("Profil", "Account", "Profile"));
     }
-    else if (role == "ResourceProvider")
+    else if (isProvider)
     {
         links.AddRange(new[] {
             ("Oversikt", "Home", "Dashboard"), ("Mine ressurser", "Resource", "ResourceOverview"),
-            ("Registrer ressurs", "Resource", "RegisterResource"), ("Profil", "Account", "Profile")
+            ("Registrer ressurs", "Resource", "RegisterResource"), ("Forespørsler", "Request", "Index"),
+            ("Behov jeg kan hjelpe med", "Request", "MatchingNeeds"), ("Profil", "Account", "Profile")
         });
     }
 }
@@ -27,12 +39,17 @@
     <nav class="portal-top-navigation" aria-label="Brukermeny">
         @foreach (var link in links)
         {
-            // Keeps editing a need under the overview menu item.
+            // Keeps editing a need and matching under the "Behov" menu item.
             bool active = string.Equals(controller, link.Controller, StringComparison.OrdinalIgnoreCase)
                 && (string.Equals(action, link.Action, StringComparison.OrdinalIgnoreCase)
-                    || (link.Action == "NeedOverview" && action == "EditNeed"));
+                    || (link.Action == "NeedOverview" && action == "EditNeed")
+                    || (link.Controller == "Admin" && controller == "Admin"));
             <a asp-controller="@link.Controller" asp-action="@link.Action" aria-current="@(active ? "page" : null)">@link.Text</a>
         }
+
+        @* Varselklokke med antall uleste varsler. *@
+        @await Component.InvokeAsync("NotificationBell")
+
         @* Keeps logout as a POST with the existing antiforgery protection. *@
         <form asp-controller="Account" asp-action="Logout" method="post">
             <button type="submit">Logg ut</button>

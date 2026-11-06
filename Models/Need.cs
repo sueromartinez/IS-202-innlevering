@@ -87,6 +87,17 @@ public class Need
     // ========================================
 
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+
+
+    // ========================================
+    // STATUS
+    // ========================================
+
+    /// <summary>
+    /// Hvor behovet er i statusflyten:
+    /// Ny → Vurderes → Tildelt → Løst.
+    /// </summary>
+    public NeedStatus Status { get; set; } = NeedStatus.New;
 }
 
 
@@ -100,4 +111,29 @@ public enum NeedPriority
 
     [Display(Name = "Planlagt")]
     Planned
+}
+
+
+/// <summary>
+/// Statusflyten for et behov, slik caset beskriver den.
+/// </summary>
+public enum NeedStatus
+{
+    [Display(Name = "Ny")]
+    New,
+
+    /// <summary>
+    /// Minst én ressurs er spurt, venter på svar.
+    /// </summary>
+    [Display(Name = "Vurderes")]
+    UnderReview,
+
+    /// <summary>
+    /// En frivillig har bekreftet at ressursen stiller.
+    /// </summary>
+    [Display(Name = "Tildelt")]
+    Assigned,
+
+    [Display(Name = "Løst")]
+    Resolved
 }

@@ -1,0 +1,127 @@
+@model List<FirstWebAppInDocker.ViewModels.AdminUserViewModel>
+@using FirstWebAppInDocker.Data
+@{
+    Layout = "_PortalLayout";
+    ViewData["Title"] = "Brukere";
+
+    string RoleLabel(string role) => role switch
+    {
+        IdentitySeeder.AdminRole => "Administrator",
+        IdentitySeeder.PublicActorRole => "Offentlig aktør",
+        IdentitySeeder.ResourceProviderRole => "Ressursleverandør",
+        _ => role
+    };
+
+    var roleOptions = new[]
+    {
+        IdentitySeeder.ResourceProviderRole,
+        IdentitySeeder.PublicActorRole,
+        IdentitySeeder.AdminRole
+    };
+}
+
+<div class="page-top">
+    <div>
+        <span class="page-eyebrow">Administrasjon</span>
+        <h1 class="page-heading">Brukere</h1>
+        <p class="page-description">
+            Opprett offentlige aktører, endre roller og deaktiver kontoer.
+            Brukere deaktiveres i stedet for å slettes, slik at historikken beholdes.
+        </p>
+    </div>
+
+    <a asp-action="CreatePublicActor" class="primary-action">Opprett offentlig aktør</a>
+</div>
+
+@if (TempData["AdminMessage"] is string message)
+{
+    <div class="alert alert-success" role="status">@message</div>
+}
+@if (TempData["AdminError"] is string error)
+{
+    <div class="alert alert-error" role="alert">@error</div>
+}
+
+<section class="app-card portal-section">
+    <div class="table-wrap">
+        <table class="portal-table">
+            <thead>
+                <tr>
+                    <th>Bruker</th>
+                    <th>Rolle</th>
+                    <th>Status</th>
+                    <th>Opprettet</th>
+                    <th><span class="visually-hidden">Handlinger</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in Model)
+                {
+                    <tr>
+                        <td>
+                            <strong>@user.Name</strong>
+                            <span class="cell-muted">@user.Email</span>
+                        </td>
+                        <td>
+                            @if (user.IsCurrentUser)
+                            {
+                                @RoleLabel(user.Role)
+                                <span class="cell-muted">(deg)</span>
+                            }
+                            else
+                            {
+                                <form asp-action="ChangeRole" method="post" class="inline-role-form">
+                                    <input type="hidden" name="userId" value="@user.Id" />
+                                    <label class="visually-hidden" for="role-@user.Id">Rolle for @user.Name</label>
+                                    <select id="role-@user.Id" name="role" onchange="this.form.submit()">
+                                        @foreach (string role in roleOptions)
+                                        {
+                                            <option value="@role" selected="@(role == user.Role)">@RoleLabel(role)</option>
+                                        }
+                                    </select>
+                                    <noscript><button type="submit" class="small-action">Lagre</button></noscript>
+                                </form>
+                            }
+                        </td>
+                        <td>
+                            @if (user.IsDeactivated)
+                            {
+                                <span class="status-badge status-locked">Deaktivert</span>
+                            }
+                            else if (user.IsTemporarilyLocked)
+                            {
+                                <span class="status-badge status-requested">Midlertidig låst</span>
+                            }
+                            else
+                            {
+                                <span class="status-badge status-available">Aktiv</span>
+                            }
+                        </td>
+                        <td>@user.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</td>
+                        <td>
+                            <div class="cell-actions">
+                                @if (user.IsDeactivated || user.IsTemporarilyLocked)
+                                {
+                                    <form asp-action="Reactivate" method="post">
+                                        <input type="hidden" name="userId" value="@user.Id" />
+                                        <button type="submit" class="small-action">
+                                            @(user.IsDeactivated ? "Reaktiver" : "Lås opp")
+                                        </button>
+                                    </form>
+                                }
+                                @if (!user.IsDeactivated && !user.IsCurrentUser)
+                                {
+                                    <form asp-action="Deactivate" method="post"
+                                          onsubmit="return confirm('Deaktivere denne brukeren? Brukeren blir logget ut og kan ikke logge inn.');">
+                                        <input type="hidden" name="userId" value="@user.Id" />
+                                        <button type="submit" class="danger-action">Deaktiver</button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>

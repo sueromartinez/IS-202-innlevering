@@ -1,0 +1,48 @@
+@model FirstWebAppInDocker.ViewModels.CreatePublicActorViewModel
+@{
+    Layout = "_PortalLayout";
+    ViewData["Title"] = "Opprett offentlig aktør";
+}
+
+<div class="page-top">
+    <div>
+        <span class="page-eyebrow">Administrasjon</span>
+        <h1 class="page-heading">Opprett offentlig aktør</h1>
+        <p class="page-description">
+            Offentlige aktører (kommune, politi, brann, helse, Sivilforsvaret, Heimevernet)
+            ser alle ressurser med kontaktinformasjon, og opprettes derfor bare av admin.
+            Gi personen det midlertidige passordet på en trygg måte.
+        </p>
+    </div>
+</div>
+
+<section class="app-card portal-section">
+    <form asp-action="CreatePublicActor" method="post" novalidate>
+        <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+
+        <div class="form-grid">
+            <div class="form-field">
+                <label asp-for="Name"></label>
+                <input asp-for="Name" placeholder="F.eks. Grimstad kommune – beredskap" />
+                <span asp-validation-for="Name" class="field-error"></span>
+            </div>
+
+            <div class="form-field">
+                <label asp-for="Email"></label>
+                <input asp-for="Email" autocomplete="off" />
+                <span asp-validation-for="Email" class="field-error"></span>
+            </div>
+
+            <div class="form-field">
+                <label asp-for="Password"></label>
+                <input asp-for="Password" autocomplete="new-password" />
+                <span asp-validation-for="Password" class="field-error"></span>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="primary-action">Opprett bruker</button>
+            <a asp-action="Users" class="secondary-action">Avbryt</a>
+        </div>
+    </form>
+</section>

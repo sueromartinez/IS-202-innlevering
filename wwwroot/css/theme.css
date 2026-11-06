@@ -1,0 +1,395 @@
+/*
+  theme.css
+  Fargesystem for hele portalen.
+    - Lyseblått tema (standard)
+    - Marineblått tema (mørk modus), byttes med sol/måne-knappen
+
+  CSS-filene bruker fargevariabler (var(--surface), var(--text) ...).
+  Her bestemmer vi hva variablene betyr i hvert tema.
+
+  PRINSIPPER SOM ER FULGT
+  1. Kontrast (WCAG 2.1 nivå AA): vanlig tekst har minst 4,5 : 1 mot
+     bakgrunnen, og knapper med hvit tekst har minst 4,5 : 1.
+  2. Lag (figur og bakgrunn): siden er mørkest/lysest i bakgrunnen,
+     kortene ligger litt over, og menyen skiller seg ut.
+  3. Fargene har faste roller. Blå = handling (knapper, lenker),
+     grønn = ok/tilgjengelig, rød = hastverk/feil, gul = planlagt/advarsel.
+     Samme farge betyr alltid det samme (konsistens).
+  4. Tekstfarger er egne variabler (--link, --success-text, ...), fordi en
+     farge som fungerer som bakgrunn ofte er for mørk eller for lys som
+     tekst.
+  5. Tastaturbrukere får en tydelig fokusring (--focus).
+
+  html:root                    = lyseblått tema (standard)
+  html:root[data-theme="navy"] = marineblått tema (mørk modus, settes av theme.js)
+*/
+
+/* ---------- LYSEBLÅTT TEMA (standard) ---------- */
+html:root {
+    --background: #d2e7fb;                      /* sidebakgrunn */
+    --surface: #e4f1fd;                         /* kort og bokser */
+    --surface-soft: #d9eafc;                    /* hover, tabelloverskrift */
+    --surface-translucent: rgba(228, 241, 253, 0.94);
+
+    --heading: #173a63;                         /* overskrifter  10,0 : 1 */
+    --text: #12304f;                            /* vanlig tekst  11,7 : 1 */
+    --text-secondary: #42628a;                  /* grå tekst      5,0 : 1 */
+    --secondary: #42628a;
+
+    --border: #9dbde3;
+    --accent: #3668a0;
+
+    --primary: #3668a0;                         /* knapp, hvit tekst 5,8 : 1 */
+    --primary-dark: #2a5a8f;                    /* hover */
+    --link: #2a5a8f;                            /* lenketekst     6,2 : 1 */
+    --focus: #2a5a8f;                           /* fokusring */
+
+    /* Statusfarger brukt som TEKST (alle over 4,5 : 1) */
+    --success-text: #1b6b48;                    /* grønn */
+    --danger-text: #a62f2f;                     /* rød   */
+    --warning-text: #8a5a00;                    /* gul   */
+
+    /* Bannere med hvit tekst */
+    --navy: #234e80;
+    --navy-dark: #1a3d66;
+    --navy-light: #2f66a3;
+
+    color-scheme: light;
+}
+
+/* ---------- MARINEBLÅTT TEMA (mørk modus) ---------- */
+/* html:root[...] er mer spesifikk enn html:root, så dette vinner når temaet er satt */
+html:root[data-theme="navy"] {
+    --background: #061727;
+    --surface: #0b233f;
+    --surface-soft: #0f2c4d;
+    --surface-translucent: rgba(11, 35, 63, 0.94);
+
+    --heading: #f4f8fd;                         /* ikke ren hvit, blir hard mot mørkt */
+    --text: #e4ecf6;                            /* 13 : 1 */
+    --text-secondary: #b4c3d6;                  /*  8,8 : 1 */
+    --secondary: #b4c3d6;
+
+    --border: #234a78;
+    --accent: #adcbf1;
+
+    --primary: #316bc0;                         /* knapp, hvit tekst 5,3 : 1 */
+    --primary-dark: #2559a8;
+    --link: #8fbaf0;                            /*  7,9 : 1 */
+    --focus: #adcbf1;
+
+    --success-text: #4cc38a;
+    --danger-text: #ff7b7b;
+    --warning-text: #f2c14e;
+
+    --navy: #113360;
+    --navy-dark: #0a2548;
+    --navy-light: #1a4580;
+
+    color-scheme: dark;
+}
+
+/* ---------- FOKUSRING (tastaturnavigasjon) ---------- */
+html :focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+}
+
+/* ---------- KNAPP FOR TEMA ---------- */
+/* Rund knapp med sol- eller måneikon. theme.js legger den i menyen. */
+.theme-toggle {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0 10px 0 0;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+}
+
+.theme-toggle:hover {
+    border-color: var(--accent);
+    background: var(--surface-soft);
+}
+
+.theme-toggle svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Hvis siden ikke har noen meny å legge knappen i, ligger den fast øverst til høyre */
+.theme-toggle.theme-toggle-fixed {
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    margin: 0;
+    z-index: 2000;
+}
+
+/* ---------- DEN BLÅ BOKSEN PÅ FORSIDEN ---------- */
+/* I mørk modus blir den dypere, så den ikke lyser mot resten av siden. */
+html:root[data-theme="navy"] .network {
+    background: linear-gradient(145deg, #17437f, #0f3163);
+}
+
+
+/* =====================================================================
+   MØRK MODUS: RETTELSER FOR SIDER MED FASTE FARGER
+   Alt her er pakket inn i html:root[data-theme="navy"], så det gjelder
+   bare i mørk modus. "&" betyr "html:root[data-theme="navy"]".
+   Hver gruppe bytter faste farger med fargevariablene fra toppen av filen.
+===================================================================== */
+html:root[data-theme="navy"] {
+
+    /* ---------- MENYEN ---------- */
+    & .portal-top-navigation a,
+    & .portal-top-navigation button,
+    & .notification-bell {
+        color: var(--heading);
+    }
+
+    & .portal-top-navigation a:hover:not([aria-current="page"]),
+    & .portal-top-navigation button:hover,
+    & .notification-bell:hover,
+    & .overview-navigation a:hover:not([aria-current="page"]) {
+        background: var(--surface-soft);
+    }
+
+    /* ---------- OVERSKRIFTER (lys tekst) ---------- */
+    & .brand,
+    & .header-user-info strong,
+    & .resource-top h1,
+    & .card-heading h2,
+    & .form-section-title,
+    & .selected-position strong,
+    & .map-card-header h2,
+    & .map-help-item strong {
+        color: var(--heading);
+    }
+
+    /* ---------- VANLIG TEKST ---------- */
+    & body,
+    & .form-group label,
+    & .form-control,
+    & .country-code,
+    & .logout-button,
+    & .back-button {
+        color: var(--text);
+    }
+
+    /* ---------- GRÅ TEKST ---------- */
+    & .brand span,
+    & .header-user-info span,
+    & .resource-top p,
+    & .card-heading p,
+    & .field-note,
+    & .field-help,
+    & .field-label,
+    & .map-card-header p,
+    & .map-help-item span,
+    & .selected-position span,
+    & .brand-subtitle,
+    & .section-description,
+    & .security-status span,
+    & .provider-resource-meta,
+    & .overview-help p,
+    & .provider-help p {
+        color: var(--text-secondary);
+    }
+
+    & .overview-help strong,
+    & .provider-help strong {
+        color: var(--heading);
+    }
+
+    /* Små grønne overskrifter over seksjoner */
+    & .resource-eyebrow,
+    & .card-heading span,
+    & .profile-card .section-label {
+        color: var(--success-text);
+    }
+
+    /* Feilmeldinger */
+    & .required-mark,
+    & .validation-message,
+    & .validation-summary,
+    & .profile-error-summary {
+        color: var(--danger-text);
+    }
+
+    & .status-enabled {
+        color: var(--success-text) !important;
+    }
+
+    & .status-disabled {
+        color: var(--warning-text) !important;
+    }
+
+    /* ---------- BAKGRUNNER SOM VAR HVITE ---------- */
+    & .resource-filters,
+    & .filter-field select,
+    & .filter-field input,
+    & .need,
+    & .entry,
+    & .resource-fullscreen-control button {
+        color: var(--text);
+        background: var(--surface);
+    }
+
+    /* Valgt kort/rad i listene */
+    & .need.active,
+    & .entry.active {
+        background: var(--surface-soft);
+    }
+
+    /* Skjemafelt på Behov-sidene (vanlige tekstfelt, ikke avkryssingsbokser) */
+    & form select,
+    & form textarea,
+    & form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="submit"]):not([type="button"]) {
+        color: var(--text);
+        background: var(--surface-soft);
+    }
+
+    /* Små bokser, hjelpetekster og valgte alternativer */
+    & .need-position,
+    & .selected-position,
+    & .map-help,
+    & .map-help-item,
+    & .security-status,
+    & .resource-category-option:has(input:checked),
+    & .small-button:hover,
+    & .secondary-action:hover,
+    & .logout-button:hover,
+    & .resource-state-toggle:hover {
+        background: var(--surface-soft);
+    }
+
+    /* De tre små stegene nederst (var hvit gjennomsiktig, ble grå) */
+    & .overview-help,
+    & .provider-help {
+        background: var(--surface);
+    }
+
+    & .help-number {
+        color: var(--link);
+        background: var(--surface-soft);
+    }
+
+    /* Logo-ikonet (var lysegrønt) */
+    & .brand-icon {
+        color: var(--success-text);
+        background: var(--surface-soft);
+    }
+
+    /* ---------- LYSE KANTLINJER ---------- */
+    & .provider-resource-card,
+    & .resource-item,
+    & .resource-card,
+    & .profile-card,
+    & .form-control,
+    & .country-code,
+    & .profile-input,
+    & .profile-select,
+    & .back-button,
+    & .logout-button,
+    & .dashboard-link,
+    & .secondary-action,
+    & .filter-option,
+    & .site-header,
+    & .map-card-header,
+    & .form-section,
+    & .profile-field,
+    & .quick-actions,
+    & .sidebar-legend,
+    & .summary-item,
+    & .add-button,
+    & #map,
+    & #resourceMap,
+    & #situationMap {
+        border-color: var(--border);
+    }
+
+    /* ---------- STATUSMERKER OG MELDINGER ---------- */
+    /* Før: lyse pastellfarger. Nå: mørk bakgrunn med fargetekst.
+       Rekkefølgen er viktig: grønn først, så gul og rød, siden de
+       overstyrer hverandre når et element har flere klasser. */
+    & .status-assigned,
+    & .status-confirmed,
+    & .status-available,
+    & .need-status.status-assigned,
+    & .alert-success,
+    & .resource-flash,
+    & .resource-state,
+    & .profile-success,
+    & .role-badge,
+    & .security-icon {
+        color: var(--success-text);
+        background: color-mix(in srgb, var(--success-text) 16%, transparent);
+    }
+
+    & .status-review,
+    & .need-status.status-review {
+        color: var(--link);
+        background: color-mix(in srgb, var(--link) 16%, transparent);
+    }
+
+    & .status-resolved,
+    & .status-cancelled,
+    & .need-status.status-resolved {
+        color: var(--text-secondary);
+        background: var(--surface-soft);
+    }
+
+    & .status-new,
+    & .status-requested,
+    & .status-busy,
+    & .priority-planned,
+    & .need-status.status-new,
+    & .resource-state-busy,
+    & .availability-warning {
+        color: var(--warning-text);
+        background: color-mix(in srgb, var(--warning-text) 16%, transparent);
+    }
+
+    & .status-declined,
+    & .status-locked,
+    & .status-unavailable,
+    & .priority-acute,
+    & .alert-error,
+    & .resource-state-unavailable,
+    & .profile-error-summary ul {
+        color: var(--danger-text);
+        background: color-mix(in srgb, var(--danger-text) 16%, transparent);
+    }
+
+    & .danger-action {
+        color: var(--danger-text);
+        border-color: color-mix(in srgb, var(--danger-text) 45%, transparent);
+    }
+
+    & .danger-action:hover {
+        background: color-mix(in srgb, var(--danger-text) 16%, transparent);
+    }
+
+    /* Hovedknapper: hvit tekst på blå bunn */
+    & .submit-button {
+        color: #ffffff;
+        background: var(--navy-light);
+    }
+
+    /* ---------- TOPPBOKS PÅ PROFIL-SIDEN ---------- */
+    /* Var fast grønnblå. Følger nå det blå temaet. */
+    & .profile-hero {
+        background: linear-gradient(135deg, var(--navy-dark), var(--navy-light));
+    }
+
+    & .profile-hero .hero-kicker {
+        color: #cfe3ff;
+    }
+}

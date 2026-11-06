@@ -1,0 +1,388 @@
+/* =========================================================
+   PORTAL – felles stil for matching, forespørsler,
+   varsler og admin. Bygger på fargene i app.css.
+   ========================================================= */
+
+/* Headeren får plass til den lange menyen. */
+.portal-header {
+    grid-template-columns: auto 1fr;
+    padding: 12px 32px;
+}
+
+.portal-header .portal-top-navigation {
+    justify-content: flex-end;
+}
+
+.page-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 26px;
+}
+
+
+/* -----------------------
+   KORT OG SEKSJONER
+----------------------- */
+
+.portal-section {
+    margin-bottom: 22px;
+    padding: 22px 24px;
+}
+
+.portal-section h2 {
+    margin: 0 0 4px;
+    font-size: 1.05rem;
+    letter-spacing: -0.01em;
+}
+
+.section-hint {
+    margin: 0 0 16px;
+    color: var(--text-secondary);
+    font-size: 0.86rem;
+    line-height: 1.55;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 14px 22px;
+    margin: 0;
+}
+
+.detail-grid dt {
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.detail-grid dd {
+    margin: 4px 0 0;
+    font-size: 0.92rem;
+    font-weight: 600;
+}
+
+
+/* -----------------------
+   TABELLER
+----------------------- */
+
+.table-wrap {
+    overflow-x: auto;
+}
+
+.portal-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.86rem;
+}
+
+.portal-table th {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.portal-table td {
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+.portal-table tr:last-child td {
+    border-bottom: 0;
+}
+
+.cell-muted {
+    display: block;
+    margin-top: 2px;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+}
+
+.cell-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-end;
+}
+
+.cell-actions form {
+    margin: 0;
+}
+
+
+/* -----------------------
+   STATUSMERKER
+----------------------- */
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 750;
+    white-space: nowrap;
+    color: var(--text);
+    background: var(--surface-soft);
+}
+
+.status-badge::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.status-new, .status-requested { color: #8a5a00; background: #fdf3df; }
+.status-review { color: #125770; background: #e5f2f6; }
+.status-assigned, .status-confirmed, .status-available { color: #1b6b48; background: #e4f3ec; }
+.status-resolved, .status-cancelled { color: #475467; background: #eef1f4; }
+.status-declined, .status-locked, .status-unavailable { color: #9d2f2f; background: #fbe9e9; }
+.status-busy { color: #8a5a00; background: #fdf3df; }
+
+.priority-acute { color: #9d2f2f; background: #fbe9e9; }
+.priority-planned { color: #8a5a00; background: #fdf3df; }
+
+
+/* -----------------------
+   KNAPPER
+----------------------- */
+
+.secondary-action,
+.danger-action,
+.small-action {
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 13px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    background: var(--surface);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 750;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.secondary-action:hover { background: #f6f8f9; }
+
+.danger-action {
+    color: #9d2f2f;
+    border-color: #f1c6c6;
+}
+
+.danger-action:hover { background: #fdf2f2; }
+
+.small-action.primary {
+    border-color: var(--primary);
+    color: white;
+    background: var(--primary);
+}
+
+.small-action.primary:hover { background: var(--primary-dark); }
+
+.primary-action:focus-visible,
+.secondary-action:focus-visible,
+.danger-action:focus-visible,
+.small-action:focus-visible {
+    outline: 3px solid var(--primary);
+    outline-offset: 2px;
+}
+
+
+/* -----------------------
+   SKJEMA
+----------------------- */
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px 20px;
+}
+
+.form-field label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.8rem;
+    font-weight: 750;
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    font: inherit;
+    font-size: 0.9rem;
+    background: var(--surface);
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+    outline: 3px solid rgba(23, 107, 135, 0.18);
+    border-color: var(--primary);
+}
+
+.field-error,
+.validation-summary-errors {
+    color: var(--danger-text);
+    font-size: 0.78rem;
+}
+
+.validation-summary-errors ul {
+    margin: 0 0 14px;
+    padding-left: 18px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+
+/* -----------------------
+   MELDINGER OG TOMME LISTER
+----------------------- */
+
+.alert {
+    margin-bottom: 18px;
+    padding: 12px 15px;
+    border-radius: 10px;
+    font-size: 0.86rem;
+    font-weight: 600;
+}
+
+.alert-success { color: #1b6b48; background: #e4f3ec; }
+.alert-error { color: #9d2f2f; background: #fbe9e9; }
+
+.empty-state {
+    padding: 28px 10px;
+    color: var(--text-secondary);
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+
+/* -----------------------
+   FORESPØRSLER OG VARSLER (kortlister)
+----------------------- */
+
+.card-list {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.list-card {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 16px 18px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+}
+
+.list-card.unread {
+    border-color: rgba(23, 107, 135, 0.45);
+    background: var(--surface-soft);
+}
+
+.list-card h3 {
+    margin: 0 0 4px;
+    font-size: 0.95rem;
+}
+
+.list-card p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.86rem;
+    line-height: 1.5;
+}
+
+.list-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 9px;
+    color: var(--text-secondary);
+    font-size: 0.76rem;
+}
+
+
+/* -----------------------
+   RESPONSIVT
+----------------------- */
+
+@media (max-width: 900px) {
+    .portal-header {
+        display: flex;
+        flex-wrap: wrap;
+        padding: 12px 16px;
+        gap: 10px;
+    }
+
+    .portal-header .portal-top-navigation {
+        flex-basis: 100%;
+        justify-content: flex-start;
+    }
+
+    .portal-section {
+        padding: 18px 16px;
+    }
+}
+
+
+/* -----------------------
+   DIVERSE
+----------------------- */
+
+.visually-hidden {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+.inline-role-form {
+    margin: 0;
+}
+
+.inline-role-form select {
+    min-height: 36px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font: inherit;
+    font-size: 0.82rem;
+    background: var(--surface);
+}
