@@ -751,67 +751,7 @@
      HEADER
      ======================================== -->
 
-<header class="site-header">
-
-    <div class="header-inner">
-
-        <a
-            asp-controller="Home"
-            asp-action="Dashboard"
-            class="brand">
-
-            <div class="brand-icon">
-                ✓
-            </div>
-
-            <div class="brand-text">
-
-                <span class="brand-title">
-                    Beredskapsportalen
-                </span>
-
-                <span class="brand-subtitle">
-                    TOTALFORSVARET
-                </span>
-
-            </div>
-
-        </a>
-
-        <div class="header-actions">
-
-            <a
-                asp-controller="Home"
-                asp-action="Dashboard"
-                class="dashboard-link">
-
-                Til dashboard
-
-            </a>
-
-            <form
-                asp-controller="Account"
-                asp-action="Logout"
-                method="post"
-                class="logout-form">
-
-                @Html.AntiForgeryToken()
-
-                <button
-                    type="submit"
-                    class="logout-button">
-
-                    Logg ut
-
-                </button>
-
-            </form>
-
-        </div>
-
-    </div>
-
-</header>
+<partial name="_PortalHeader" />
 
 <!-- ========================================
      PAGE

@@ -1,0 +1,39 @@
+/* Felles toppmeny: lik størrelse og plassering på alle sider */
+.pv-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-sizing: border-box;
+    min-height: 72px;
+    padding: 0 max(24px, calc((100% - 1400px) / 2));
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+}
+.pv-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--heading);
+    text-decoration: none;
+}
+/* Logoen: skjold i en liten rute */
+.pv-brand svg {
+    box-sizing: border-box;
+    width: 40px;
+    height: 40px;
+    padding: 9px;
+    border-radius: 10px;
+    color: var(--link);
+    background: var(--surface-soft);
+}
+.pv-header strong, .pv-header small { display: block; }
+.pv-header strong { font-size: 0.9rem; }
+.pv-header small { color: var(--text-secondary); font-size: 0.65rem; }
+.pv-user { color: var(--heading); text-align: right; }
+.pv-header .portal-top-navigation { flex: 1; }
+
+/* Smale skjermer: menyen får egen linje */
+@media (max-width: 1100px) {
+    .pv-header { flex-wrap: wrap; padding-block: 12px; }
+    .pv-header .portal-top-navigation { order: 3; flex-basis: 100%; }
+}
