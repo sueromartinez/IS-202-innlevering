@@ -878,7 +878,87 @@ else if (userRole == "ResourceProvider")
 
             <!-- HERO -->
 
-            <section class="provider-hero">
+            <!-- Skjold-symboler: tegnes én gang her og brukes flere steder med <use> -->
+            <svg
+                width="0"
+                height="0"
+                style="position: absolute"
+                aria-hidden="true"
+                focusable="false">
+
+            <symbol id="rank-shield-bronse" viewBox="0 0 64 76">
+                <linearGradient id="rim-bronse" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#f6c08a" />
+                    <stop offset="0.5" stop-color="#c27a3a" />
+                    <stop offset="1" stop-color="#6e3a14" />
+                </linearGradient>
+                <linearGradient id="face-bronse" x1="0" y1="0" x2="0.8" y2="1">
+                    <stop offset="0" stop-color="#d78a43" />
+                    <stop offset="1" stop-color="#8a4a1a" />
+                </linearGradient>
+                <path d="M32 2L58 12V36C58 54 46 68 32 74C18 68 6 54 6 36V12Z" fill="url(#rim-bronse)" />
+                <path d="M32 8.5L52 16.5V36C52 50 43 61 32 66.5C21 61 12 50 12 36V16.5Z" fill="url(#face-bronse)" />
+                <path d="M32 8.5L52 16.5V36C52 50 43 61 32 66.5C21 61 12 50 12 36V16.5Z" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="1" />
+                <path d="M22 39L29.5 46.5L43 30" fill="none" stroke="#fff1dd" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M32 2L58 12V30C44 27 22 21 6 31V12Z" fill="#ffffff" fill-opacity="0.2" />
+            </symbol>
+
+            <symbol id="rank-shield-solv" viewBox="0 0 64 76">
+                <linearGradient id="rim-solv" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#ffffff" />
+                    <stop offset="0.5" stop-color="#b7c1ce" />
+                    <stop offset="1" stop-color="#6f7a89" />
+                </linearGradient>
+                <linearGradient id="face-solv" x1="0" y1="0" x2="0.8" y2="1">
+                    <stop offset="0" stop-color="#dfe6ef" />
+                    <stop offset="1" stop-color="#8793a3" />
+                </linearGradient>
+                <path d="M32 2L58 12V36C58 54 46 68 32 74C18 68 6 54 6 36V12Z" fill="url(#rim-solv)" />
+                <path d="M32 8.5L52 16.5V36C52 50 43 61 32 66.5C21 61 12 50 12 36V16.5Z" fill="url(#face-solv)" />
+                <path d="M32 8.5L52 16.5V36C52 50 43 61 32 66.5C21 61 12 50 12 36V16.5Z" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="1" />
+                <path d="M22 39L29.5 46.5L43 30" fill="none" stroke="#1f2a3a" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M32 2L58 12V30C44 27 22 21 6 31V12Z" fill="#ffffff" fill-opacity="0.2" />
+            </symbol>
+
+            <symbol id="rank-shield-gull" viewBox="0 0 64 76">
+                <linearGradient id="rim-gull" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#fff3b8" />
+                    <stop offset="0.5" stop-color="#e0b53a" />
+                    <stop offset="1" stop-color="#9a6a05" />
+                </linearGradient>
+                <linearGradient id="face-gull" x1="0" y1="0" x2="0.8" y2="1">
+                    <stop offset="0" stop-color="#f9dc78" />
+                    <stop offset="1" stop-color="#c08a12" />
+                </linearGradient>
+                <path d="M32 2L58 12V36C58 54 46 68 32 74C18 68 6 54 6 36V12Z" fill="url(#rim-gull)" />
+                <path d="M32 8.5L52 16.5V36C52 50 43 61 32 66.5C21 61 12 50 12 36V16.5Z" fill="url(#face-gull)" />
+                <path d="M32 8.5L52 16.5V36C52 50 43 61 32 66.5C21 61 12 50 12 36V16.5Z" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="1" />
+                <path d="M32.0 24.0L35.4 33.3L45.3 33.7L37.5 39.8L40.2 49.3L32.0 43.8L23.8 49.3L26.5 39.8L18.7 33.7L28.6 33.3Z" fill="#5a3b00" />
+                <path d="M32 2L58 12V30C44 27 22 21 6 31V12Z" fill="#ffffff" fill-opacity="0.2" />
+            </symbol>
+
+            <symbol id="rank-shield-platina" viewBox="0 0 64 76">
+                <linearGradient id="rim-platina" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#f1f6ff" />
+                    <stop offset="0.5" stop-color="#9fb0c8" />
+                    <stop offset="1" stop-color="#4d5c72" />
+                </linearGradient>
+                <linearGradient id="face-platina" x1="0" y1="0" x2="0.8" y2="1">
+                    <stop offset="0" stop-color="#243146" />
+                    <stop offset="1" stop-color="#0c121d" />
+                </linearGradient>
+                <path d="M32 2L58 12V36C58 54 46 68 32 74C18 68 6 54 6 36V12Z" fill="url(#rim-platina)" />
+                <path d="M32 8.5L52 16.5V36C52 50 43 61 32 66.5C21 61 12 50 12 36V16.5Z" fill="url(#face-platina)" />
+                <path d="M32 8.5L52 16.5V36C52 50 43 61 32 66.5C21 61 12 50 12 36V16.5Z" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="1" />
+                <circle cx="32" cy="38" r="19" fill="none" stroke="#9fb0c8" stroke-width="1.4" />
+                <path d="M32.0 24.0L35.4 33.3L45.3 33.7L37.5 39.8L40.2 49.3L32.0 43.8L23.8 49.3L26.5 39.8L18.7 33.7L28.6 33.3Z" fill="#e8f1ff" />
+                <path d="M32 2L58 12V30C44 27 22 21 6 31V12Z" fill="#ffffff" fill-opacity="0.2" />
+            </symbol>
+
+            </svg>
+
+
+            <section class="provider-hero provider-hero-rank rank-@Model.RankKey">
 
                 <div class="provider-hero-content">
 
@@ -886,9 +966,62 @@ else if (userRole == "ResourceProvider")
                         MINE RESSURSER
                     </span>
 
-                    <h1>
-                        Hei, @userName
-                    </h1>
+                    <!-- Skjold med nivåfarge, navn og nivå-merke -->
+                    <div class="rank-head">
+
+                        <div
+                            class="rank-badge"
+                            aria-hidden="true">
+
+                            <svg viewBox="0 0 64 76">
+
+                                <use href="#rank-shield-@Model.RankKey" />
+
+                            </svg>
+
+                        </div>
+
+                        <div class="rank-text">
+
+                            <div class="rank-title-row">
+
+                                <h1>
+                                    Hei, @userName
+                                </h1>
+
+                                <span class="rank-pill">
+                                    @Model.RankName
+                                </span>
+
+                            </div>
+
+                            <!-- Poengstolpe: bredden er prosent av veien til neste nivå -->
+                            <div class="rank-progress">
+
+                                <div
+                                    class="rank-bar"
+                                    role="progressbar"
+                                    aria-label="Fremdrift mot neste nivå"
+                                    aria-valuemin="0"
+                                    aria-valuemax="100"
+                                    aria-valuenow="@Model.RankProgressPercent">
+
+                                    <div
+                                        class="rank-bar-fill"
+                                        style="width: @Model.RankProgressPercent%">
+                                    </div>
+
+                                </div>
+
+                                <span>
+                                    @Model.RankXpText
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
 
                     <p>
                         Registrer ressurser du kan stille
@@ -913,21 +1046,25 @@ else if (userRole == "ResourceProvider")
                 </div>
 
 
+                <!-- Boks med neste nivå -->
                 <div class="provider-hero-info">
 
                     <div class="provider-info-icon">
-                        ✓
+                        →
                     </div>
 
                     <div>
 
                         <strong>
-                            Dine ressurser
+                            @Model.NextRankTitle
                         </strong>
 
                         <p>
-                            Du vil kun få tilgang til ressurser
-                            du selv har registrert.
+                            @Model.NextRankHint
+                        </p>
+
+                        <p>
+                            Du ser kun ressurser du selv har registrert.
                         </p>
 
                     </div>
@@ -990,6 +1127,76 @@ else if (userRole == "ResourceProvider")
                     </small>
 
                 </article>
+
+            </section>
+
+
+            <!-- NIVÅER -->
+
+            <section class="rank-levels">
+
+                <span class="provider-eyebrow">
+                    NIVÅER
+                </span>
+
+                <h2>
+                    Slik stiger du i nivå
+                </h2>
+
+                <p>
+                    Hver ressurs du registrerer gir 100 poeng.
+                    Jo flere ressurser, jo høyere nivå.
+                </p>
+
+                <ul class="rank-level-list">
+
+                    @foreach (var level in Model.RankLevels)
+                    {
+                        <li class="rank-level-row rank-@level.Key @(level.IsCurrent ? "rank-level-current" : "")">
+
+                            <div class="rank-level-icon">
+
+                                <svg
+                                    viewBox="0 0 64 76"
+                                    aria-hidden="true">
+
+                                    <use href="#rank-shield-@level.Key" />
+
+                                </svg>
+
+                            </div>
+
+                            <div>
+
+                                <div class="rank-level-title">
+
+                                    <strong>
+                                        @level.Name – @level.Title
+                                    </strong>
+
+                                    <span class="rank-level-pill">
+                                        Nivå @level.Number
+                                    </span>
+
+                                    @if (level.IsCurrent)
+                                    {
+                                        <span class="rank-level-here">
+                                            Du er her
+                                        </span>
+                                    }
+
+                                </div>
+
+                                <p>
+                                    @level.Description
+                                </p>
+
+                            </div>
+
+                        </li>
+                    }
+
+                </ul>
 
             </section>
 
@@ -2520,6 +2727,279 @@ else
 
         font-size: 0.62rem;
 
+        line-height: 1.5;
+    }
+
+
+    /* =========================================
+       RANGERING (skjold, nivå og poengstolpe)
+       ========================================= */
+
+    /* Fargen på skjoldet og stolpen styres av nivået (rank-bronse osv.) */
+    .rank-bronse {
+        --rank-color: #cd7f32;
+    }
+
+    .rank-solv {
+        --rank-color: #c9d3e0;
+    }
+
+    .rank-gull {
+        --rank-color: #f2c14e;
+    }
+
+    .rank-platina {
+        --rank-color: #9fe8f5;
+    }
+
+    /* Bakgrunnen følger fargetemaet (blått) i stedet for fast grønnblått */
+    .provider-hero-rank {
+        background:
+            linear-gradient(
+                125deg,
+                var(--navy-dark),
+                var(--navy-light)
+            );
+    }
+
+    .provider-hero-rank .provider-eyebrow {
+        color: #cfe3ff;
+    }
+
+    .rank-head {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+
+        margin: 10px 0 14px;
+    }
+
+    .rank-badge {
+        flex: none;
+
+        width: 78px;
+        height: 90px;
+
+        color: var(--rank-color);
+
+        filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.35));
+    }
+
+    .rank-badge svg {
+        display: block;
+
+        width: 100%;
+        height: 100%;
+    }
+
+    .rank-text {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .rank-title-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .provider-hero-rank .rank-title-row h1 {
+        margin: 0;
+    }
+
+    .rank-pill {
+        padding: 5px 15px;
+
+        border-radius: 999px;
+
+        color: #10243a;
+        background: var(--rank-color);
+
+        font-size: 0.72rem;
+        font-weight: 850;
+    }
+
+    .rank-progress {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 14px;
+
+        margin-top: 14px;
+
+        font-size: 0.72rem;
+        font-weight: 750;
+    }
+
+    .rank-bar {
+        flex: 1 1 160px;
+
+        max-width: 320px;
+        height: 10px;
+
+        overflow: hidden;
+
+        border-radius: 999px;
+
+        background: rgba(255, 255, 255, 0.28);
+    }
+
+    .rank-bar-fill {
+        height: 100%;
+
+        border-radius: 999px;
+
+        background: var(--rank-color);
+    }
+
+    /* Knappen følger samme stil som resten av det blå temaet */
+    .provider-hero-rank .provider-main-action {
+        color: var(--navy-dark);
+        background: #ffffff;
+    }
+
+    .provider-hero-rank .provider-info-icon {
+        color: #ffffff;
+        background: rgba(255, 255, 255, 0.16);
+    }
+
+    @@media (max-width: 650px) {
+
+        .rank-head {
+            gap: 14px;
+        }
+
+        .rank-badge {
+            width: 58px;
+            height: 68px;
+        }
+    }
+
+
+    /* =========================================
+       RANGERING-NIVAER (liste over nivåene)
+       ========================================= */
+
+    .rank-levels {
+        margin-bottom: 16px;
+
+        padding: 26px 28px;
+
+        border: 1px solid var(--border);
+        border-radius: 16px;
+
+        background: var(--surface);
+    }
+
+    .rank-levels h2 {
+        margin: 6px 0;
+
+        color: var(--heading);
+
+        font-size: 1.25rem;
+    }
+
+    .rank-levels > p {
+        margin: 0 0 18px;
+
+        color: var(--text-secondary);
+
+        font-size: 0.78rem;
+    }
+
+    .rank-level-list {
+        display: grid;
+        gap: 10px;
+
+        margin: 0;
+        padding: 0;
+
+        list-style: none;
+    }
+
+    .rank-level-row {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+
+        padding: 14px 16px;
+
+        border: 1px solid var(--border);
+        border-radius: 12px;
+
+        background: var(--surface-soft);
+    }
+
+    /* Nivået leverandøren er på får en tydelig ramme */
+    .rank-level-current {
+        border-color: var(--primary);
+
+        box-shadow: 0 0 0 2px var(--primary);
+    }
+
+    .rank-level-icon {
+        flex: none;
+
+        display: grid;
+        place-items: center;
+
+        width: 56px;
+        height: 64px;
+    }
+
+    .rank-level-icon svg {
+        width: 48px;
+        height: 57px;
+    }
+
+    .rank-level-title {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+
+        color: var(--heading);
+
+        font-size: 0.85rem;
+    }
+
+    .rank-level-pill {
+        padding: 2px 10px;
+
+        border: 1px solid var(--rank-color);
+        border-radius: 999px;
+
+        color: var(--text);
+        background:
+            color-mix(
+                in srgb,
+                var(--rank-color) 20%,
+                transparent
+            );
+
+        font-size: 0.65rem;
+        font-weight: 800;
+    }
+
+    .rank-level-here {
+        padding: 2px 10px;
+
+        border-radius: 999px;
+
+        color: #ffffff;
+        background: var(--primary);
+
+        font-size: 0.65rem;
+        font-weight: 800;
+    }
+
+    .rank-level-row p {
+        margin: 4px 0 0;
+
+        color: var(--text-secondary);
+
+        font-size: 0.75rem;
         line-height: 1.5;
     }
 
