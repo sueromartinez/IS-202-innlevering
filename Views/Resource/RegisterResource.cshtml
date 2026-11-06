@@ -1481,6 +1481,7 @@
                             class="form-control"
                             maxlength="200"
                             placeholder="F.eks. Kristiansand, Vennesla eller gateadresse"
+                            aria-describedby="addressLookupStatus addressLocationNote"
                         />
 
                         <span
@@ -1488,7 +1489,9 @@
                             class="validation-message">
                         </span>
 
-                        <small class="field-note">
+                        @* Announces optional address suggestions without blocking manual entry or submission. *@
+                        <small id="addressLookupStatus" class="field-note" role="status" aria-live="polite"></small>
+                        <small id="addressLocationNote" class="field-note">
                             Velg også nøyaktig plassering i kartet.
                         </small>
 
@@ -1858,6 +1861,81 @@
 
             addKartverketLayers(map);
 
+            const addressInput = document.querySelector('.form-card form [name="Address"]');
+            const addressStatus = document.getElementById("addressLookupStatus");
+            let addressRequestId = 0;
+            let addressController;
+            let lastSuggestedAddress = null;
+
+            // Cancels pending suggestions when the user corrects the address manually.
+            addressInput.addEventListener("input", function () {
+                addressRequestId++;
+                addressController?.abort();
+                lastSuggestedAddress = null;
+                addressStatus.textContent = "Adressen er endret manuelt. Kartpunktet beholdes.";
+            });
+
+            // Uses a conservative radius so distant addresses are never silently assigned.
+            async function lookupAddress(latitude, longitude) {
+                const requestId = ++addressRequestId;
+                addressController?.abort();
+                const controller = new AbortController();
+                addressController = controller;
+                const radius = 100;
+                if (lastSuggestedAddress !== null && addressInput.value === lastSuggestedAddress) {
+                    addressInput.value = "";
+                }
+                lastSuggestedAddress = null;
+                addressStatus.textContent = "Henter adresse ...";
+                const timeout = window.setTimeout(() => controller.abort(), 10000);
+                try {
+                    const url = new URL("https://api.kartverket.no/adresser/v1/punktsok");
+                    url.search = new URLSearchParams({
+                        lat: String(latitude), lon: String(longitude), radius: String(radius),
+                        koordsys: "4326", treffPerSide: "10"
+                    }).toString();
+                    const response = await fetch(url, { signal: controller.signal });
+                    if (!response.ok) throw new Error("Address lookup failed");
+                    const data = await response.json();
+                    // Ignores responses for older marker positions or manually edited addresses.
+                    if (requestId !== addressRequestId) return;
+                    const nearest = (Array.isArray(data.adresser) ? data.adresser : [])
+                        .filter(address => address.adressetekst && /^\d{4}$/.test(address.postnummer)
+                            && address.poststed && address.kommunenavn
+                            && typeof address.meterDistanseTilPunkt === "number"
+                            && Number.isFinite(address.meterDistanseTilPunkt)
+                            && address.meterDistanseTilPunkt >= 0 && address.meterDistanseTilPunkt <= radius)
+                        .sort((a, b) => a.meterDistanseTilPunkt - b.meterDistanseTilPunkt)[0];
+                    if (!nearest) {
+                        addressStatus.textContent = "Ingen registrert adresse funnet. Du kan skrive adresse eller område selv.";
+                        return;
+                    }
+                    const formatted = `${nearest.adressetekst}, ${nearest.postnummer} ${nearest.poststed} – ${nearest.kommunenavn} kommune`;
+                    const distance = Math.round(nearest.meterDistanseTilPunkt);
+                    if (formatted.length > addressInput.maxLength) {
+                        addressStatus.textContent = `Nærmeste adresseforslag (${distance} m): ${formatted}. Forkort adressen manuelt til 200 tegn.`;
+                        return;
+                    }
+                    addressInput.value = formatted;
+                    lastSuggestedAddress = formatted;
+                    addressStatus.textContent = `Adresseforslag fra Kartverket, ca. ${distance} m fra kartpunktet. Kontroller og korriger ved behov. Kartpunktet er uendret.`;
+                } catch {
+                    if (requestId !== addressRequestId) return;
+                    addressStatus.textContent = "Kunne ikke hente adresse. Skriv adresse eller område selv, eller behold bare kartpunktet.";
+                } finally {
+                    window.clearTimeout(timeout);
+                }
+            }
+
+            // Makes both new and restored markers draggable using the same coordinate handler.
+            function createResourceMarker(latitude, longitude) {
+                return L.marker([latitude, longitude], { draggable: true })
+                    .addTo(map).on("dragend", function (event) {
+                        const position = event.target.getLatLng();
+                        updateResourcePosition(position.lat, position.lng);
+                    });
+            }
+
             let marker =
                 null;
 
@@ -1893,17 +1971,7 @@
                 )
             )
             {
-                marker =
-                    L.marker(
-                        [
-                            existingLatitude,
-                            existingLongitude
-                        ]
-                    )
-                    .addTo(
-                        map
-                    );
-
+                marker = createResourceMarker(existingLatitude, existingLongitude);
 
                 map.setView(
                     [
@@ -1921,57 +1989,19 @@
             }
 
 
-            map.on(
-                "click",
-                function (event)
-                {
-                    const latitude =
-                        event.latlng.lat;
+            // Saves the clicked or dragged point immediately, independently of address lookup.
+            function updateResourcePosition(latitude, longitude) {
+                latitudeInput.value = latitude;
+                longitudeInput.value = longitude;
+                if (marker === null) marker = createResourceMarker(latitude, longitude);
+                else marker.setLatLng([latitude, longitude]);
+                updatePositionText(latitude, longitude);
+                lookupAddress(latitude, longitude);
+            }
 
-
-                    const longitude =
-                        event.latlng.lng;
-
-
-                    latitudeInput.value =
-                        latitude;
-
-
-                    longitudeInput.value =
-                        longitude;
-
-
-                    if (marker === null)
-                    {
-                        marker =
-                            L.marker(
-                                [
-                                    latitude,
-                                    longitude
-                                ]
-                            )
-                            .addTo(
-                                map
-                            );
-                    }
-                    else
-                    {
-                        marker.setLatLng(
-                            [
-                                latitude,
-                                longitude
-                            ]
-                        );
-                    }
-
-
-                    updatePositionText(
-                        latitude,
-                        longitude
-                    );
-                }
-            );
-
+            map.on("click", function (event) {
+                updateResourcePosition(event.latlng.lat, event.latlng.lng);
+            });
 
             function updatePositionText(
                 latitude,
