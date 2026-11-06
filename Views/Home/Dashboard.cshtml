@@ -597,7 +597,7 @@
                                     <div>
 
                                         <strong>
-                                            @need.ResourceType
+                                            @FirstWebAppInDocker.Services.EnumDisplay.Name(need.ResourceType)
                                         </strong>
 
                                         <p>
@@ -619,6 +619,15 @@
                                 Ingen registrerte behov.
                             </p>
                         }
+
+                         <a
+                            asp-controller="Need"
+                            asp-action="NeedOverview"
+                            class="summary-link">
+
+                            Se alle behov →
+
+                        </a>
 
                     </article>
 

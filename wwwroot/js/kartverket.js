@@ -1,8 +1,8 @@
 /**
  * Felles kartoppsett for alle kart i Beredskapsportalen.
  *
- * Legger til en valgboks øverst til høyre i kartet der brukeren
- * kan bytte mellom tre kart:
+ * Legger til en liten nedtrekksmeny øverst til høyre i kartet der
+ * brukeren kan bytte mellom tre kart:
  *   - Vanlig kart      (OpenStreetMap)
  *   - Topografisk kart (Kartverket "topo")
  *   - Sjøkart          (Kartverket "sjokartraster")
@@ -34,18 +34,109 @@ function addKartverketLayers(map) {
     const seaMap = L.tileLayer(kartverketUrl, { ...kartverketOptions, layer: "sjokartraster" });
 
 
+    // Kartene som kan velges i menyen
+    const maps = {
+        "Vanlig kart": normalMap,
+        "Topografisk kart": topographicMap,
+        "Sjøkart": seaMap
+    };
+
+
     // Vanlig kart vises når siden åpnes
-    normalMap.addTo(map);
+    let activeMap = normalMap;
+    activeMap.addTo(map);
 
 
-    // Valgboks øverst til høyre i kartet
-    L.control.layers(
-        {
-            "Vanlig kart": normalMap,
-            "Topografisk kart": topographicMap,
-            "Sjøkart": seaMap
-        },
-        null,
-        { collapsed: false }
-    ).addTo(map);
+    addMapMenuStyles();
+
+
+    // Nedtrekksmeny øverst til høyre i kartet
+    const MapMenu = L.Control.extend({
+        options: { position: "topright" },
+
+        onAdd: function () {
+            const container = L.DomUtil.create("div", "leaflet-control kart-meny");
+
+            const select = L.DomUtil.create("select", "kart-meny-select", container);
+            select.setAttribute("aria-label", "Velg karttype");
+
+            Object.keys(maps).forEach(function (name) {
+                const option = document.createElement("option");
+                option.value = name;
+                option.textContent = name;
+                select.appendChild(option);
+            });
+
+            select.addEventListener("change", function () {
+                const chosen = maps[select.value];
+
+                if (chosen && chosen !== activeMap) {
+                    map.removeLayer(activeMap);
+                    chosen.addTo(map);
+                    activeMap = chosen;
+                }
+            });
+
+            // Hindrer at klikk og scrolling i menyen flytter eller zoomer kartet.
+            L.DomEvent.disableClickPropagation(container);
+            L.DomEvent.disableScrollPropagation(container);
+
+            return container;
+        }
+    });
+
+    new MapMenu().addTo(map);
+}
+
+
+/**
+ * Stilen til menyen legges inn én gang fra JavaScript,
+ * slik at den ser lik ut på alle sider med kart.
+ */
+function addMapMenuStyles() {
+    if (document.getElementById("kart-meny-styles")) {
+        return;
+    }
+
+    const style = document.createElement("style");
+    style.id = "kart-meny-styles";
+    style.textContent = `
+        .leaflet-control.kart-meny {
+            border: 0;
+            border-radius: 8px;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.35);
+            background: white;
+        }
+
+        .kart-meny-select,
+        .kart-meny-select:focus {
+            width: auto;
+            min-width: 0;
+            min-height: 0;
+            height: 32px;
+            margin: 0;
+            padding: 0 28px 0 10px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            box-shadow: none;
+            color: #333;
+            background-color: white;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='%23333' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 9px center;
+            font: inherit;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        .kart-meny-select:focus-visible {
+            outline: 3px solid rgba(23, 107, 135, 0.45);
+            outline-offset: 1px;
+        }
+    `;
+
+    document.head.appendChild(style);
 }
