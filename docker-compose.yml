@@ -71,6 +71,21 @@ services:
         User=beredskap_user;
         Password=${MARIADB_PASSWORD:-beredskap_dev_password};
 
+      # Admin-bruker (se .env.example)
+      Seed__AdminEmail: ${ADMIN_EMAIL:-admin@beredskap.no}
+      Seed__AdminPassword: ${ADMIN_PASSWORD:-Admin123!}
+
+      # Sami – AI-assistenten
+      Sami__Provider: ${SAMI_PROVIDER:-Ollama}
+      Sami__Ollama__BaseUrl: http://ollama:11434
+      Sami__Ollama__Model: ${SAMI_OLLAMA_MODEL:-qwen2.5:7b}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+
+      # E-post går til Mailpit (se http://localhost:8025)
+      Smtp__Host: mailpit
+      Smtp__Port: 1025
+
+
     # Kun tilgjengelig fra egen PC.
     ports:
       - "127.0.0.1:8080:5216"
@@ -80,10 +95,6 @@ services:
     volumes:
       - beredskap-dataprotection:/home/app/.aspnet/DataProtection-Keys
 
-
-# ========================================
-# PERSISTENT DOCKER VOLUMES
-# ========================================
 
   # =========================================
   # OLLAMA – lokal språkmodell for Sami
@@ -97,7 +108,7 @@ services:
     # Port 11434 åpnes også lokalt, så man kan kjøre appen
     # med "dotnet run" utenfor Docker og fortsatt bruke Sami.
     ports:
-      - "11434:11434"
+      - "127.0.0.1:11434:11434"
 
 
   # Laster ned modellen første gang (ca. 4–5 GB). Avslutter når den er ferdig.
@@ -122,8 +133,12 @@ services:
     container_name: beredskap-mailpit
     restart: unless-stopped
     ports:
-      - "8025:8025"
+      - "127.0.0.1:8025:8025"
 
+
+# ========================================
+# PERSISTENT DOCKER VOLUMES
+# ========================================
 
 volumes:
 
@@ -132,3 +147,6 @@ volumes:
 
   # Nøkler til innloggingscookies og Data Protection.
   beredskap-dataprotection:
+
+  # Språkmodellen til Sami (ca. 5 GB).
+  ollama-models:
