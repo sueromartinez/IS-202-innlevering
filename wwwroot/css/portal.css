@@ -90,7 +90,7 @@
     letter-spacing: 0.06em;
     text-align: left;
     text-transform: uppercase;
-    var(--surface)-space: nowrap;
+    white-space: nowrap;
 }
 
 .portal-table td {
@@ -134,7 +134,7 @@
     border-radius: 999px;
     font-size: 0.72rem;
     font-weight: 750;
-    var(--surface)-space: nowrap;
+    white-space: nowrap;
     color: var(--text);
     background: var(--surface-soft);
 }
@@ -179,7 +179,7 @@
     font-weight: 750;
     text-decoration: none;
     cursor: pointer;
-    var(--surface)-space: nowrap;
+    white-space: nowrap;
 }
 
 .secondary-action:hover { background: #f6f8f9; }
@@ -370,7 +370,7 @@
     height: 1px;
     overflow: hidden;
     clip: rect(0 0 0 0);
-    var(--surface)-space: nowrap;
+    white-space: nowrap;
 }
 
 .inline-role-form {

@@ -137,3 +137,259 @@ html :focus-visible {
 html:root[data-theme="navy"] .network {
     background: linear-gradient(145deg, #17437f, #0f3163);
 }
+
+
+/* =====================================================================
+   MØRK MODUS: RETTELSER FOR SIDER MED FASTE FARGER
+   Alt her er pakket inn i html:root[data-theme="navy"], så det gjelder
+   bare i mørk modus. "&" betyr "html:root[data-theme="navy"]".
+   Hver gruppe bytter faste farger med fargevariablene fra toppen av filen.
+===================================================================== */
+html:root[data-theme="navy"] {
+
+    /* ---------- MENYEN ---------- */
+    & .portal-top-navigation a,
+    & .portal-top-navigation button,
+    & .notification-bell {
+        color: var(--heading);
+    }
+
+    & .portal-top-navigation a:hover:not([aria-current="page"]),
+    & .portal-top-navigation button:hover,
+    & .notification-bell:hover,
+    & .overview-navigation a:hover:not([aria-current="page"]) {
+        background: var(--surface-soft);
+    }
+
+    /* ---------- OVERSKRIFTER (lys tekst) ---------- */
+    & .brand,
+    & .header-user-info strong,
+    & .resource-top h1,
+    & .card-heading h2,
+    & .form-section-title,
+    & .selected-position strong,
+    & .map-card-header h2,
+    & .map-help-item strong {
+        color: var(--heading);
+    }
+
+    /* ---------- VANLIG TEKST ---------- */
+    & body,
+    & .form-group label,
+    & .form-control,
+    & .country-code,
+    & .logout-button,
+    & .back-button {
+        color: var(--text);
+    }
+
+    /* ---------- GRÅ TEKST ---------- */
+    & .brand span,
+    & .header-user-info span,
+    & .resource-top p,
+    & .card-heading p,
+    & .field-note,
+    & .field-help,
+    & .field-label,
+    & .map-card-header p,
+    & .map-help-item span,
+    & .selected-position span,
+    & .brand-subtitle,
+    & .section-description,
+    & .security-status span,
+    & .provider-resource-meta,
+    & .overview-help p,
+    & .provider-help p {
+        color: var(--text-secondary);
+    }
+
+    & .overview-help strong,
+    & .provider-help strong {
+        color: var(--heading);
+    }
+
+    /* Små grønne overskrifter over seksjoner */
+    & .resource-eyebrow,
+    & .card-heading span,
+    & .profile-card .section-label {
+        color: var(--success-text);
+    }
+
+    /* Feilmeldinger */
+    & .required-mark,
+    & .validation-message,
+    & .validation-summary,
+    & .profile-error-summary {
+        color: var(--danger-text);
+    }
+
+    & .status-enabled {
+        color: var(--success-text) !important;
+    }
+
+    & .status-disabled {
+        color: var(--warning-text) !important;
+    }
+
+    /* ---------- BAKGRUNNER SOM VAR HVITE ---------- */
+    & .resource-filters,
+    & .filter-field select,
+    & .filter-field input,
+    & .need,
+    & .entry,
+    & .resource-fullscreen-control button {
+        color: var(--text);
+        background: var(--surface);
+    }
+
+    /* Valgt kort/rad i listene */
+    & .need.active,
+    & .entry.active {
+        background: var(--surface-soft);
+    }
+
+    /* Skjemafelt på Behov-sidene (vanlige tekstfelt, ikke avkryssingsbokser) */
+    & form select,
+    & form textarea,
+    & form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="submit"]):not([type="button"]) {
+        color: var(--text);
+        background: var(--surface-soft);
+    }
+
+    /* Små bokser, hjelpetekster og valgte alternativer */
+    & .need-position,
+    & .selected-position,
+    & .map-help,
+    & .map-help-item,
+    & .security-status,
+    & .resource-category-option:has(input:checked),
+    & .small-button:hover,
+    & .secondary-action:hover,
+    & .logout-button:hover,
+    & .resource-state-toggle:hover {
+        background: var(--surface-soft);
+    }
+
+    /* De tre små stegene nederst (var hvit gjennomsiktig, ble grå) */
+    & .overview-help,
+    & .provider-help {
+        background: var(--surface);
+    }
+
+    & .help-number {
+        color: var(--link);
+        background: var(--surface-soft);
+    }
+
+    /* Logo-ikonet (var lysegrønt) */
+    & .brand-icon {
+        color: var(--success-text);
+        background: var(--surface-soft);
+    }
+
+    /* ---------- LYSE KANTLINJER ---------- */
+    & .provider-resource-card,
+    & .resource-item,
+    & .resource-card,
+    & .profile-card,
+    & .form-control,
+    & .country-code,
+    & .profile-input,
+    & .profile-select,
+    & .back-button,
+    & .logout-button,
+    & .dashboard-link,
+    & .secondary-action,
+    & .filter-option,
+    & .site-header,
+    & .map-card-header,
+    & .form-section,
+    & .profile-field,
+    & .quick-actions,
+    & .sidebar-legend,
+    & .summary-item,
+    & .add-button,
+    & #map,
+    & #resourceMap,
+    & #situationMap {
+        border-color: var(--border);
+    }
+
+    /* ---------- STATUSMERKER OG MELDINGER ---------- */
+    /* Før: lyse pastellfarger. Nå: mørk bakgrunn med fargetekst.
+       Rekkefølgen er viktig: grønn først, så gul og rød, siden de
+       overstyrer hverandre når et element har flere klasser. */
+    & .status-assigned,
+    & .status-confirmed,
+    & .status-available,
+    & .need-status.status-assigned,
+    & .alert-success,
+    & .resource-flash,
+    & .resource-state,
+    & .profile-success,
+    & .role-badge,
+    & .security-icon {
+        color: var(--success-text);
+        background: color-mix(in srgb, var(--success-text) 16%, transparent);
+    }
+
+    & .status-review,
+    & .need-status.status-review {
+        color: var(--link);
+        background: color-mix(in srgb, var(--link) 16%, transparent);
+    }
+
+    & .status-resolved,
+    & .status-cancelled,
+    & .need-status.status-resolved {
+        color: var(--text-secondary);
+        background: var(--surface-soft);
+    }
+
+    & .status-new,
+    & .status-requested,
+    & .status-busy,
+    & .priority-planned,
+    & .need-status.status-new,
+    & .resource-state-busy,
+    & .availability-warning {
+        color: var(--warning-text);
+        background: color-mix(in srgb, var(--warning-text) 16%, transparent);
+    }
+
+    & .status-declined,
+    & .status-locked,
+    & .status-unavailable,
+    & .priority-acute,
+    & .alert-error,
+    & .resource-state-unavailable,
+    & .profile-error-summary ul {
+        color: var(--danger-text);
+        background: color-mix(in srgb, var(--danger-text) 16%, transparent);
+    }
+
+    & .danger-action {
+        color: var(--danger-text);
+        border-color: color-mix(in srgb, var(--danger-text) 45%, transparent);
+    }
+
+    & .danger-action:hover {
+        background: color-mix(in srgb, var(--danger-text) 16%, transparent);
+    }
+
+    /* Hovedknapper: hvit tekst på blå bunn */
+    & .submit-button {
+        color: #ffffff;
+        background: var(--navy-light);
+    }
+
+    /* ---------- TOPPBOKS PÅ PROFIL-SIDEN ---------- */
+    /* Var fast grønnblå. Følger nå det blå temaet. */
+    & .profile-hero {
+        background: linear-gradient(135deg, var(--navy-dark), var(--navy-light));
+    }
+
+    & .profile-hero .hero-kicker {
+        color: #cfe3ff;
+    }
+}
