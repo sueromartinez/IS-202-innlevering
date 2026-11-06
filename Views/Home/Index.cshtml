@@ -133,28 +133,24 @@
 
 
 <!-- ==========================================
-     HERO
+     HERO (bakgrunnsbilde: wwwroot/images/forside/hero.jpg)
 =========================================== -->
 
-<section class="hero">
+<section class="hero-banner">
 
-    <div class="hero-content">
+    <div class="hero-banner-content">
 
         <div class="hero-label">
             Sammen for et tryggere Norge
         </div>
 
         <h1>
-            Gjør en forskjell
-            <span>
-                når det virkelig gjelder.
-            </span>
+            Gjør en forskjell når det faktisk gjelder
         </h1>
 
         <p class="hero-description">
-            Har du utstyr, kompetanse eller kapasitet
-            som kan være nyttig når samfunnet blir satt på prøve?
-            Registrer det du kan bidra med.
+            Del utstyr, kompetanse og ressurser med andre, og styrk
+            beredskapen i lokalsamfunnet, regionen og hele Norge.
         </p>
 
         <div class="hero-actions">
@@ -164,7 +160,7 @@
                 class="primary-button"
                 data-open-auth="register">
 
-                Jeg vil bidra
+                Registrer ressurs
 
                 <span aria-hidden="true">
                     →
@@ -182,135 +178,175 @@
 
         </div>
 
-        <div class="hero-audience">
+    </div>
 
-            <span>
-                Privatpersoner
+</section>
+
+
+<!-- ==========================================
+     STYRK BEREDSKAPEN (bilde: sivilt.jpg)
+=========================================== -->
+
+<section class="feature-section">
+
+    <div class="feature-split">
+
+        <div
+            class="feature-image"
+            role="img"
+            aria-label="Person i fjellandskap med utsikt over fjorden">
+        </div>
+
+        <div class="feature-copy">
+
+            <span class="section-label">
+                Dele ressurser
             </span>
 
-            <span>
-                Virksomheter
-            </span>
+            <h2>
+                Styrk beredskapen der du bor
+            </h2>
 
-            <span>
-                Frivillige organisasjoner
-            </span>
+            <p>
+                Din ressurs kan være avgjørende. Gjør den synlig for
+                andre, og bidra til et mer robust og forberedt
+                lokalsamfunn.
+            </p>
+
+            <a
+                href="#login"
+                class="feature-link"
+                data-open-auth="register">
+
+                Kom i gang
+
+                <span aria-hidden="true">
+                    →
+                </span>
+
+            </a>
 
         </div>
 
     </div>
 
+</section>
 
-    <!-- EKSEMPLER PÅ RESSURSER -->
 
-    <div class="hero-visual">
+<!-- ==========================================
+     DEL, FINN OG BIDRA (fire kort med bilder)
+=========================================== -->
 
-        <div class="resource-card">
+<section class="topics-section">
 
-            <div class="resource-visual">
+    <div class="section-container">
 
-                <div class="resource-grid">
+        <div class="section-heading">
 
-                    <div class="resource-item">
+            <span class="section-label">
+                Ressurser og kompetanse
+            </span>
 
-                        <div class="resource-icon">
-                            T
-                        </div>
+            <h2>
+                Del, finn og bidra med ressurser
+            </h2>
 
-                        <div>
+            <p>
+                En felles plattform for utstyr, kompetanse og kapasitet
+                som kan være avgjørende når det virkelig gjelder.
+            </p>
 
-                            <strong>
-                                Transport
-                            </strong>
+            <div class="hero-audience">
 
-                            <span>
-                                Bil, båt eller traktor
-                            </span>
+                <span>
+                    Privatpersoner
+                </span>
 
-                        </div>
+                <span>
+                    Virksomheter
+                </span>
 
-                    </div>
+                <span>
+                    Frivillige organisasjoner
+                </span>
 
-                    <div class="resource-item">
+            </div>
 
-                        <div class="resource-icon">
-                            A
-                        </div>
+        </div>
 
-                        <div>
+        <div class="topics-grid">
 
-                            <strong>
-                                Aggregat
-                            </strong>
+            <article class="topic-card">
 
-                            <span>
-                                Strøm ved bortfall
-                            </span>
-
-                        </div>
-
-                    </div>
-
-                    <div class="resource-item">
-
-                        <div class="resource-icon">
-                            D
-                        </div>
-
-                        <div>
-
-                            <strong>
-                                Drone
-                            </strong>
-
-                            <span>
-                                Utstyr og operatør
-                            </span>
-
-                        </div>
-
-                    </div>
-
-                    <div class="resource-item">
-
-                        <div class="resource-icon">
-                            K
-                        </div>
-
-                        <div>
-
-                            <strong>
-                                Kompetanse
-                            </strong>
-
-                            <span>
-                                Erfaring og personell
-                            </span>
-
-                        </div>
-
-                    </div>
-
+                <div
+                    class="topic-image topic-transport"
+                    role="img"
+                    aria-label="Terrengbil med henger i vinterlandskap">
                 </div>
 
-            </div>
-
-            <div class="resource-card-copy">
-
-                <small>
-                    Lokale ressurser
-                </small>
-
-                <h2>
-                    Det du har kan være det noen trenger.
-                </h2>
+                <h3>
+                    Transport og maskiner
+                </h3>
 
                 <p>
-                    Ressurser som er vanlige i hverdagen
-                    kan bli svært viktige når situasjonen endrer seg.
+                    Kjøretøy, henger, båt, traktor og tunge maskiner.
                 </p>
 
-            </div>
+            </article>
+
+            <article class="topic-card">
+
+                <div
+                    class="topic-image topic-utstyr"
+                    role="img"
+                    aria-label="Drone og utstyr, og samband i snølandskap">
+                </div>
+
+                <h3>
+                    Utstyr og kritisk infrastruktur
+                </h3>
+
+                <p>
+                    Droner, samband, aggregat, strøm og støttefunksjoner.
+                </p>
+
+            </article>
+
+            <article class="topic-card">
+
+                <div
+                    class="topic-image topic-kompetanse"
+                    role="img"
+                    aria-label="Frivillige i røde jakker som samarbeider">
+                </div>
+
+                <h3>
+                    Kompetanse og mannskap
+                </h3>
+
+                <p>
+                    Fagkunnskap, erfaring og ressurspersoner.
+                </p>
+
+            </article>
+
+            <article class="topic-card">
+
+                <div
+                    class="topic-image topic-forsyninger"
+                    role="img"
+                    aria-label="Lager med drivstoffdunker og materiell">
+                </div>
+
+                <h3>
+                    Forsyninger og materiell
+                </h3>
+
+                <p>
+                    Drivstoff, mat, varme, telt og annet utstyr.
+                </p>
+
+            </article>
 
         </div>
 
@@ -336,66 +372,78 @@
             </span>
 
             <h2>
-                Tre enkle steg.
+                Tre enkle steg
             </h2>
 
             <p>
-                Du trenger ikke kjenne hele systemet.
-                Registrering skal være raskt og enkelt.
+                Kom i gang på få minutter. Registrer en ressurs,
+                gjør den tilgjengelig og bidra til økt beredskap
+                i ditt område.
             </p>
 
         </div>
 
-        <div class="steps">
+        <div class="steps-row">
 
-            <article class="step">
+            <article class="flow-step">
 
                 <div class="step-number">
                     01
                 </div>
 
-                <h3>
-                    Registrer ressursen
-                </h3>
-
-                <p>
-                    Fortell hva du kan bidra med
-                    og hvor ressursen befinner seg.
-                </p>
+                <div>
+                    <h3>
+                        Registrer ressursen
+                    </h3>
+                    <p>
+                        Legg inn utstyr, kompetanse eller kapasitet
+                        du kan dele.
+                    </p>
+                </div>
 
             </article>
 
-            <article class="step">
+            <span class="flow-arrow" aria-hidden="true">
+                →
+            </span>
+
+            <article class="flow-step">
 
                 <div class="step-number">
                     02
                 </div>
 
-                <h3>
-                    Gjør den tilgjengelig
-                </h3>
-
-                <p>
-                    Ressursen blir tilgjengelig
-                    for relevante offentlige aktører.
-                </p>
+                <div>
+                    <h3>
+                        Gjør den tilgjengelig
+                    </h3>
+                    <p>
+                        Bestem tilgjengelighet, omfang og relevante
+                        detaljer.
+                    </p>
+                </div>
 
             </article>
 
-            <article class="step">
+            <span class="flow-arrow" aria-hidden="true">
+                →
+            </span>
+
+            <article class="flow-step">
 
                 <div class="step-number">
                     03
                 </div>
 
-                <h3>
-                    Bidra ved behov
-                </h3>
-
-                <p>
-                    Når et behov oppstår blir det enklere
-                    å finne riktig ressurs raskt.
-                </p>
+                <div>
+                    <h3>
+                        Bidra ved behov
+                    </h3>
+                    <p>
+                        Ressursen kan finne sin plass når det oppstår
+                        et reelt behov.
+                    </p>
+                </div>
 
             </article>
 
@@ -407,52 +455,56 @@
 
 
 <!-- ==========================================
-     FELLESSKAP
+     DIN RESSURS KAN VÆRE AVGJØRENDE (bilde: katastrofe.jpg)
 =========================================== -->
 
-<section class="community-section">
+<section class="mission-section">
 
-    <div class="community-card">
+    <div class="mission-card">
 
-        <div class="community-copy">
-
-            <span class="section-label">
-                Sammen står vi sterkere
-            </span>
+        <div class="mission-copy">
 
             <h2>
-                Din ressurs kan være akkurat det noen trenger.
+                Din ressurs kan være avgjørende
             </h2>
 
             <p>
-                En person kan bidra med litt.
-                En virksomhet kan bidra med noe annet.
-                Samlet kan det gjøre samfunnet bedre rustet.
+                Alt fra en drone og en henger til fagkunnskap og
+                mannskap kan gjøre en stor forskjell når samfunnet
+                utfordres. Bli en del av Beredskapsportal i dag.
             </p>
 
-            <strong>
-                Sammen for et tryggere Norge.
-            </strong>
+            <div class="mission-actions">
 
-        </div>
+                <a
+                    href="#login"
+                    class="primary-button"
+                    data-open-auth="register">
 
-        <div class="network">
+                    Registrer ressurs
 
-            <div class="network-ring">
+                    <span aria-hidden="true">
+                        →
+                    </span>
 
-                <span class="network-point point-one"></span>
-                <span class="network-point point-two"></span>
-                <span class="network-point point-three"></span>
-                <span class="network-point point-four"></span>
+                </a>
 
-                <div class="network-center">
-                    Felles
-                    <br />
-                    beredskap
-                </div>
+                <a
+                    href="#how"
+                    class="secondary-button">
+
+                    Les mer
+
+                </a>
 
             </div>
 
+        </div>
+
+        <div
+            class="mission-image"
+            role="img"
+            aria-label="Redningsmannskap og helikopter ved et steinras">
         </div>
 
     </div>

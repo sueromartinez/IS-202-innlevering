@@ -19,6 +19,9 @@
 
 html {
     scroll-behavior: smooth;
+
+    /* FORSIDE-POLERING: større grunntekst. All tekst i rem blir større */
+    font-size: 125%;
 }
 
 body {
@@ -108,7 +111,7 @@ input {
 
     color: var(--text-secondary);
 
-    font-size: 0.58rem;
+    font-size: 0.65rem;
     font-weight: 800;
 
     letter-spacing: 0.12em;
@@ -314,7 +317,7 @@ input {
 
     line-height: 1;
 
-    letter-spacing: -0.055em;
+    letter-spacing: -0.03em;
 }
 
 .hero h1 span {
@@ -497,7 +500,7 @@ input {
 .resource-item span {
     color: var(--secondary);
 
-    font-size: 0.59rem;
+    font-size: 0.65rem;
 }
 
 .resource-card-copy {
@@ -517,7 +520,7 @@ input {
 
     color: var(--success-text);
 
-    font-size: 0.6rem;
+    font-size: 0.65rem;
     font-weight: 850;
 
     letter-spacing: 0.09em;
@@ -565,7 +568,7 @@ input {
 
     color: var(--link);
 
-    font-size: 0.63rem;
+    font-size: 0.65rem;
     font-weight: 850;
 
     letter-spacing: 0.1em;
@@ -606,7 +609,7 @@ input {
 
     line-height: 1.1;
 
-    letter-spacing: -0.045em;
+    letter-spacing: -0.025em;
 }
 
 .section-heading p {
@@ -744,7 +747,7 @@ input {
 
     line-height: 1.08;
 
-    letter-spacing: -0.045em;
+    letter-spacing: -0.025em;
 }
 
 .community-copy p {
@@ -898,7 +901,7 @@ input {
 
     line-height: 1.08;
 
-    letter-spacing: -0.045em;
+    letter-spacing: -0.025em;
 }
 
 .login-copy p {
@@ -1035,7 +1038,7 @@ input {
 
     color: var(--link);
 
-    font-size: 0.61rem;
+    font-size: 0.65rem;
     font-weight: 850;
 
     letter-spacing: 0.09em;
@@ -1173,7 +1176,7 @@ input {
 
     color: var(--text-secondary);
 
-    font-size: 0.59rem;
+    font-size: 0.65rem;
 }
 
 .login-divider::before,
@@ -1217,7 +1220,7 @@ input {
 
     text-align: center;
 
-    font-size: 0.58rem;
+    font-size: 0.65rem;
 
     line-height: 1.45;
 }
@@ -1242,7 +1245,7 @@ input {
 
     background: var(--surface-soft);
 
-    font-size: 0.62rem;
+    font-size: 0.65rem;
 }
 
 .footer strong {
@@ -1365,4 +1368,458 @@ input {
 
     font-size: 0.68rem;
     font-weight: 650;
+}
+
+/* =====================================
+   FORSIDE-RUNDE-3: NY FORSIDE
+   Bildene ligger i wwwroot/images/forside/.
+   Mangler et bilde, vises bakgrunnsfargen i stedet.
+====================================== */
+
+
+/* ---------- HERO MED BAKGRUNNSBILDE ---------- */
+
+.hero-banner {
+    padding: 90px 6vw 84px;
+
+    display: grid;
+    place-items: center;
+
+    text-align: center;
+
+    color: #ffffff;
+
+    /* Fallback-farge hvis bildet mangler */
+    background-color: #0a2548;
+
+    /* To lag: mørk toning over bildet (for lesbar tekst), og selve bildet */
+    background-image:
+        linear-gradient(
+            rgba(7, 24, 43, 0.74),
+            rgba(7, 24, 43, 0.86)
+        ),
+        url("/images/forside/hero.jpg");
+
+    background-size: cover;
+    background-position: center;
+}
+
+.hero-banner-content {
+    max-width: 760px;
+}
+
+.hero-banner .hero-label {
+    justify-content: center;
+
+    color: #cfe3ff;
+}
+
+.hero-banner h1 {
+    margin: 0 0 20px;
+
+    color: #ffffff;
+
+    font-size:
+        clamp(
+            2.2rem,
+            5vw,
+            3.6rem
+        );
+
+    line-height: 1.08;
+
+    letter-spacing: -0.02em;
+
+    text-wrap: balance;
+}
+
+.hero-banner .hero-description {
+    max-width: 34rem;
+
+    margin: 0 auto 30px;
+
+    color: #e4edf8;
+
+    font-size: 0.95rem;
+
+    line-height: 1.6;
+}
+
+/* Knappene i hero ligger på et mørkt bilde: sekundærknappen får lys ramme */
+.hero-banner .secondary-button,
+.mission-card .secondary-button {
+    color: #ffffff;
+
+    background: transparent;
+
+    border: 1px solid rgba(255, 255, 255, 0.75);
+}
+
+.hero-banner .secondary-button:hover,
+.mission-card .secondary-button:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+
+/* ---------- STYRK BEREDSKAPEN: BILDE + TEKST ---------- */
+
+.feature-section {
+    padding: 70px 6vw 20px;
+
+    background: var(--background);
+}
+
+.feature-split {
+    max-width: 1060px;
+
+    display: grid;
+    grid-template-columns: 1.25fr 1fr;
+
+    overflow: hidden;
+
+    margin: 0 auto;
+
+    border: 1px solid var(--border);
+    border-radius: 20px;
+
+    background: var(--surface);
+
+    box-shadow:
+        0 18px 50px
+        rgba(18, 48, 71, 0.10);
+}
+
+.feature-image {
+    min-height: 340px;
+
+    background-color: var(--navy-light);
+
+    background-image: url("/images/forside/sivilt.jpg");
+
+    background-size: cover;
+    background-position: center;
+}
+
+.feature-copy {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+
+    gap: 14px;
+
+    padding: 40px 38px;
+}
+
+.feature-copy h2 {
+    margin: 0;
+
+    color: var(--heading);
+
+    font-size:
+        clamp(
+            1.5rem,
+            2.6vw,
+            2rem
+        );
+
+    line-height: 1.15;
+
+    letter-spacing: -0.02em;
+}
+
+.feature-copy p {
+    margin: 0;
+
+    color: var(--text-secondary);
+
+    font-size: 0.8rem;
+
+    line-height: 1.65;
+}
+
+.feature-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
+    margin-top: 6px;
+
+    color: var(--link);
+
+    font-size: 0.85rem;
+    font-weight: 750;
+}
+
+.feature-link:hover {
+    text-decoration: underline;
+}
+
+
+/* ---------- DEL, FINN OG BIDRA: FIRE BILDEKORT ---------- */
+
+.topics-section {
+    padding: 70px 6vw 80px;
+
+    background: var(--background);
+}
+
+.topics-grid {
+    max-width: 1060px;
+
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 34px 32px;
+
+    margin: 0 auto;
+}
+
+.topic-card h3 {
+    margin: 14px 0 4px;
+
+    color: var(--heading);
+
+    font-size: 0.95rem;
+}
+
+.topic-card p {
+    margin: 0;
+
+    color: var(--text-secondary);
+
+    font-size: 0.75rem;
+
+    line-height: 1.5;
+}
+
+.topic-image {
+    aspect-ratio: 16 / 9;
+
+    border-radius: 14px;
+
+    background-color: var(--navy-light);
+
+    background-size: cover;
+    background-position: center;
+}
+
+.topic-transport {
+    background-image: url("/images/forside/transport-maskiner.jpg");
+}
+
+.topic-utstyr {
+    background-image: url("/images/forside/utstyr-infrastruktur.jpg");
+}
+
+.topic-kompetanse {
+    background-image: url("/images/forside/kompetanse.jpg");
+}
+
+.topic-forsyninger {
+    background-image: url("/images/forside/forsyninger.jpg");
+}
+
+
+/* ---------- SLIK FUNGERER DET: TRE STEG VED SIDEN AV HVERANDRE ---------- */
+
+.how-section {
+    background: var(--surface);
+}
+
+.steps-row {
+    max-width: 960px;
+
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    align-items: start;
+    gap: 14px;
+
+    margin: 0 auto;
+}
+
+.flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+}
+
+.flow-step h3 {
+    margin: 2px 0 6px;
+
+    color: var(--heading);
+
+    font-size: 0.9rem;
+}
+
+.flow-step p {
+    margin: 0;
+
+    color: var(--text-secondary);
+
+    font-size: 0.72rem;
+
+    line-height: 1.55;
+}
+
+.flow-arrow {
+    margin-top: 6px;
+
+    color: var(--text-secondary);
+
+    font-size: 1rem;
+}
+
+
+/* ---------- DIN RESSURS KAN VÆRE AVGJØRENDE: TEKST + BILDE ---------- */
+
+.mission-section {
+    padding: 70px 6vw 80px;
+
+    background: var(--background);
+}
+
+.mission-card {
+    max-width: 1100px;
+
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+
+    overflow: hidden;
+
+    margin: 0 auto;
+
+    border-radius: 22px;
+
+    color: #ffffff;
+
+    background: var(--navy-dark);
+
+    box-shadow:
+        0 22px 60px
+        rgba(18, 48, 71, 0.18);
+}
+
+.mission-copy {
+    position: relative;
+    z-index: 1;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+
+    gap: 16px;
+
+    padding: 48px 44px;
+}
+
+.mission-copy h2 {
+    margin: 0;
+
+    color: #ffffff;
+
+    font-size:
+        clamp(
+            1.6rem,
+            3vw,
+            2.3rem
+        );
+
+    line-height: 1.12;
+
+    letter-spacing: -0.02em;
+}
+
+.mission-copy p {
+    max-width: 30rem;
+
+    margin: 0;
+
+    color: #dbe7f5;
+
+    font-size: 0.8rem;
+
+    line-height: 1.65;
+}
+
+.mission-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+
+    margin-top: 8px;
+}
+
+/* Hovedknappen i den mørke boksen er hvit, så den skiller seg tydelig ut */
+.mission-card .primary-button {
+    color: var(--navy-dark);
+
+    background: #ffffff;
+}
+
+.mission-card .primary-button:hover {
+    background: #e4ecf6;
+}
+
+/* Bildet til høyre toner ut mot den mørke tekstboksen */
+.mission-image {
+    min-height: 340px;
+
+    background-color: var(--navy-light);
+
+    background-image:
+        linear-gradient(
+            90deg,
+            var(--navy-dark) 0%,
+            rgba(0, 0, 0, 0) 40%
+        ),
+        url("/images/forside/katastrofe.jpg");
+
+    background-size: cover;
+    background-position: center;
+}
+
+
+/* ---------- MOBIL OG SMAL SKJERM ---------- */
+
+@media (max-width: 860px) {
+
+    .feature-split,
+    .mission-card {
+        grid-template-columns: 1fr;
+    }
+
+    .feature-image {
+        min-height: 240px;
+    }
+
+    .feature-copy,
+    .mission-copy {
+        padding: 32px 26px;
+    }
+
+    .mission-image {
+        min-height: 240px;
+
+        background-image:
+            linear-gradient(
+                180deg,
+                var(--navy-dark) 0%,
+                rgba(0, 0, 0, 0) 40%
+            ),
+            url("/images/forside/katastrofe.jpg");
+    }
+
+    .topics-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .steps-row {
+        grid-template-columns: 1fr;
+        gap: 22px;
+    }
+
+    .flow-arrow {
+        display: none;
+    }
 }
