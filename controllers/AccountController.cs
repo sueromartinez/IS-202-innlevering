@@ -1,49 +1,41 @@
 
+using System.Text;
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
+using FirstWebAppInDocker.Services;
 using FirstWebAppInDocker.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Hosting;
 
 namespace FirstWebAppInDocker.Controllers;
 
-/// <summary>
-/// Håndterer registrering, innlogging,
-/// utlogging og profil.
-///
-/// ASP.NET Core Identity håndterer:
-/// - brukere
-/// - passord
-/// - roller
-/// - autentisering
-///
-/// Session beholdes midlertidig for
-/// bakoverkompatibilitet med eksisterende kode.
-///
-/// Identity er sannhetskilden for brukerdata.
-/// </summary>
 public class AccountController : Controller
 {
     private readonly UserManager<ApplicationUser> _userManager;
-
     private readonly SignInManager<ApplicationUser> _signInManager;
-
     private readonly IWebHostEnvironment? _environment;
+    private readonly IEmailCodeSender? _emailSender;
 
+    // Brukes bare til å følge registreringsstatus
+    // mens brukeren venter på e-postbekreftelse.
+    private const string PendingRegistrationUserIdKey =
+        "PendingRegistrationUserId";
 
     public AccountController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
-        IWebHostEnvironment? environment = null)
+        IWebHostEnvironment? environment = null,
+        IEmailCodeSender? emailSender = null)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _environment = environment;
+        _emailSender = emailSender;
     }
-
 
     // ========================================
     // LOGIN
@@ -59,10 +51,7 @@ public class AccountController : Controller
             TempData["LoginError"] =
                 "Fyll inn gyldig e-post og passord.";
 
-            return RedirectToAction(
-                "Index",
-                "Home"
-            );
+            return RedirectToAction("Index", "Home");
         }
 
         string email = model.Email.Trim();
@@ -75,10 +64,20 @@ public class AccountController : Controller
             TempData["LoginError"] =
                 "Feil e-post eller passord.";
 
-            return RedirectToAction(
-                "Index",
-                "Home"
-            );
+            return RedirectToAction("Index", "Home");
+        }
+
+        // E-postadressen må være bekreftet
+        // før vanlig innlogging.
+
+        if (!user.EmailConfirmed)
+        {
+            TempData["LoginError"] =
+                "Du må bekrefte e-postadressen din " +
+                "før du kan logge inn. " +
+                "Sjekk innboksen din.";
+
+            return RedirectToAction("Index", "Home");
         }
 
         var result =
@@ -102,21 +101,23 @@ public class AccountController : Controller
             );
         }
 
+        // Passordet er godkjent, men
+        // tofaktorinnlogging gjenstår.
+
         if (result.RequiresTwoFactor)
         {
-            TempData["LoginError"] =
-                "Denne brukeren krever tofaktorautentisering.";
-
             return RedirectToAction(
-                "Index",
-                "Home"
+                "Login",
+                "TwoFactor"
             );
         }
 
         if (result.IsLockedOut)
         {
             TempData["LoginError"] =
-                "Brukeren er midlertidig låst etter for mange feilaktige innloggingsforsøk.";
+                "Brukeren er midlertidig låst " +
+                "etter for mange feilaktige " +
+                "innloggingsforsøk.";
 
             return RedirectToAction(
                 "Index",
@@ -127,12 +128,8 @@ public class AccountController : Controller
         TempData["LoginError"] =
             "Feil e-post eller passord.";
 
-        return RedirectToAction(
-            "Index",
-            "Home"
-        );
+        return RedirectToAction("Index", "Home");
     }
-
 
     // ========================================
     // REGISTER
@@ -148,12 +145,11 @@ public class AccountController : Controller
         if (!ModelState.IsValid)
         {
             TempData["RegisterError"] =
-                "Kontroller at alle feltene er fylt ut riktig, og at passordene er like.";
+                "Kontroller at alle feltene er " +
+                "fylt ut riktig, og at " +
+                "passordene er like.";
 
-            return RedirectToAction(
-                "Index",
-                "Home"
-            );
+            return RedirectToAction("Index", "Home");
         }
 
         string email = model.Email.Trim();
@@ -164,13 +160,15 @@ public class AccountController : Controller
         if (existingUser is not null)
         {
             TempData["RegisterError"] =
-                "Det finnes allerede en bruker med denne e-postadressen.";
+                "Det finnes allerede en bruker " +
+                "med denne e-postadressen.";
 
-            return RedirectToAction(
-                "Index",
-                "Home"
-            );
+            return RedirectToAction("Index", "Home");
         }
+
+        // ========================================
+        // OPPRETT BRUKER
+        // ========================================
 
         var user = new ApplicationUser
         {
@@ -181,7 +179,6 @@ public class AccountController : Controller
             EmailConfirmed = false
         };
 
-        // Opprett Identity-bruker.
         IdentityResult createResult =
             await _userManager.CreateAsync(
                 user,
@@ -199,14 +196,13 @@ public class AccountController : Controller
 
             TempData["RegisterError"] = errors;
 
-            return RedirectToAction(
-                "Index",
-                "Home"
-            );
+            return RedirectToAction("Index", "Home");
         }
 
-        // Åpen registrering skal kun gi
-        // rollen ResourceProvider.
+        // ========================================
+        // TILDEL RESOURCEPROVIDER-ROLLE
+        // ========================================
+
         IdentityResult roleResult =
             await _userManager.AddToRoleAsync(
                 user,
@@ -225,7 +221,161 @@ public class AccountController : Controller
             );
 
             TempData["RegisterError"] =
-                $"Brukeren kunne ikke få riktig rolle. {errors}";
+                "Brukeren kunne ikke få riktig rolle. " +
+                errors;
+
+            return RedirectToAction("Index", "Home");
+        }
+
+        // ========================================
+        // KONTROLLER E-POSTTJENESTEN
+        // ========================================
+
+        if (_emailSender is null)
+        {
+            TempData["RegisterError"] =
+                "Kontoen ble opprettet, men " +
+                "e-posttjenesten er ikke tilgjengelig. " +
+                "Kontakt administrator.";
+
+            return RedirectToAction("Index", "Home");
+        }
+
+        // ========================================
+        // GENERER BEKREFTELSESTOKEN
+        // ========================================
+
+        string confirmationToken =
+            await _userManager.GenerateEmailConfirmationTokenAsync(
+                user
+            );
+
+        if (string.IsNullOrWhiteSpace(confirmationToken))
+        {
+            TempData["RegisterError"] =
+                "Kontoen ble opprettet, men " +
+                "bekreftelseslenken kunne ikke lages.";
+
+            return RedirectToAction("Index", "Home");
+        }
+
+        string encodedToken =
+            WebEncoders.Base64UrlEncode(
+                Encoding.UTF8.GetBytes(
+                    confirmationToken
+                )
+            );
+
+        // ========================================
+        // GENERER BEKREFTELSESLENKE
+        // ========================================
+
+        string? confirmationUrl = Url.Action(
+            action: "Confirm",
+            controller: "EmailVerification",
+            values: new
+            {
+                userId = user.Id,
+                code = encodedToken
+            },
+            protocol: Request.Scheme
+        );
+
+        if (string.IsNullOrWhiteSpace(confirmationUrl))
+        {
+            TempData["RegisterError"] =
+                "Kontoen ble opprettet, men " +
+                "bekreftelseslenken kunne ikke lages.";
+
+            return RedirectToAction("Index", "Home");
+        }
+
+        // ========================================
+        // SEND BEKREFTELSESMAIL
+        // ========================================
+
+        try
+        {
+            await _emailSender.SendConfirmationAsync(
+                email,
+                confirmationUrl
+            );
+        }
+        catch (Exception)
+        {
+            TempData["RegisterError"] =
+                "Kontoen ble opprettet, men vi " +
+                "klarte ikke å sende bekreftelsesmail. " +
+                "Kontakt administrator.";
+
+            return RedirectToAction("Index", "Home");
+        }
+
+        // ========================================
+        // NYTT: KLARGJØR REGISTRERINGSPOPUP
+        // ========================================
+        //
+        // Brukeren skal IKKE logges inn
+        // automatisk.
+        //
+        // Vi lagrer bare Identity-ID til
+        // registreringen som venter på
+        // bekreftelse.
+        //
+        // Dette er ikke en innloggingssesjon.
+
+        HttpContext.Session.Clear();
+
+        HttpContext.Session.SetString(
+            PendingRegistrationUserIdKey,
+            user.Id
+        );
+
+        // Viser nå Razor-siden med popup
+        // i stedet for ren tekst.
+
+        return RedirectToAction(
+            nameof(RegistrationPending)
+        );
+    }
+
+    // ========================================
+    // NYTT: REGISTRERING VENTER
+    // ========================================
+
+    [AllowAnonymous]
+    [HttpGet]
+    [ResponseCache(
+        Location = ResponseCacheLocation.None,
+        NoStore = true)]
+    public async Task<IActionResult> RegistrationPending()
+    {
+        string? pendingUserId =
+            HttpContext.Session.GetString(
+                PendingRegistrationUserIdKey
+            );
+
+        // Popupen skal bare vise statusen
+        // til registreringen fra denne sesjonen.
+
+        if (string.IsNullOrWhiteSpace(pendingUserId))
+        {
+            return RedirectToAction(
+                "Index",
+                "Home"
+            );
+        }
+
+        ApplicationUser? user =
+            await _userManager.FindByIdAsync(
+                pendingUserId
+            );
+
+        if (user is null)
+        {
+            HttpContext.Session.Remove(
+                PendingRegistrationUserIdKey
+            );
 
             return RedirectToAction(
                 "Index",
@@ -233,54 +383,38 @@ public class AccountController : Controller
             );
         }
 
-        await _signInManager.SignInAsync(
-            user,
-            isPersistent: false
-        );
+        // Vi viser "fullført" først når
+        // e-posten er bekreftet OG tofaktor
+        // er aktivert.
 
-        CreateSession(
-            user,
-            IdentitySeeder.ResourceProviderRole
-        );
+        bool emailConfirmed =
+            await _userManager.IsEmailConfirmedAsync(
+                user
+            );
 
-        return RedirectToAction(
-            "Dashboard",
-            "Home"
-        );
+        bool twoFactorEnabled =
+            await _userManager.GetTwoFactorEnabledAsync(
+                user
+            );
+
+        ViewData["RegistrationComplete"] =
+            emailConfirmed && twoFactorEnabled;
+
+        return View();
     }
-
 
     // ========================================
     // DEMO PUBLIC ACTOR
     // ========================================
 
-    /// <summary>
-    /// Passordfri demoinnlogging.
-    ///
-    /// Kun tilgjengelig i Development.
-    /// Production og andre miljøer avvises.
-    ///
-    /// Dersom miljøet ikke er tilgjengelig,
-    /// avvises innloggingen også.
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DemoPublicActorLogin()
     {
-        // VIKTIG SIKKERHETSKONTROLL:
-        //
-        // Må kontrolleres FØR SignOutAsync,
-        // databaseoppslag og SignInAsync.
-        //
-        // Dermed påvirkes ikke eksisterende
-        // innlogging når funksjonen er deaktivert.
-
         if (_environment?.IsDevelopment() != true)
         {
             return NotFound();
         }
-
-        await _signInManager.SignOutAsync();
 
         ApplicationUser? publicActor =
             await _userManager.FindByEmailAsync(
@@ -290,12 +424,10 @@ public class AccountController : Controller
         if (publicActor is null)
         {
             TempData["LoginError"] =
-                "Offentlig testbruker finnes ikke i databasen.";
+                "Offentlig testbruker finnes " +
+                "ikke i databasen.";
 
-            return RedirectToAction(
-                "Index",
-                "Home"
-            );
+            return RedirectToAction("Index", "Home");
         }
 
         bool hasCorrectRole =
@@ -309,11 +441,28 @@ public class AccountController : Controller
             TempData["LoginError"] =
                 "Offentlig testbruker mangler riktig rolle.";
 
-            return RedirectToAction(
-                "Index",
-                "Home"
-            );
+            return RedirectToAction("Index", "Home");
         }
+
+        // Demoinnlogging skal ikke omgå
+        // en konto med aktivert tofaktor.
+
+        bool twoFactorEnabled =
+            await _userManager.GetTwoFactorEnabledAsync(
+                publicActor
+            );
+
+        if (twoFactorEnabled)
+        {
+            TempData["LoginError"] =
+                "Demoinnlogging kan ikke brukes " +
+                "når tofaktorautentisering er aktivert. " +
+                "Logg inn med e-post og passord.";
+
+            return RedirectToAction("Index", "Home");
+        }
+
+        await _signInManager.SignOutAsync();
 
         await _signInManager.SignInAsync(
             publicActor,
@@ -330,7 +479,6 @@ public class AccountController : Controller
             "Home"
         );
     }
-
 
     // ========================================
     // LOGOUT
@@ -350,7 +498,6 @@ public class AccountController : Controller
         );
     }
 
-
     // ========================================
     // ACCESS DENIED
     // ========================================
@@ -359,14 +506,14 @@ public class AccountController : Controller
     public IActionResult AccessDenied()
     {
         TempData["LoginError"] =
-            "Du har ikke tilgang til denne delen av Beredskapsportalen.";
+            "Du har ikke tilgang til denne " +
+            "delen av Beredskapsportalen.";
 
         return RedirectToAction(
             "Index",
             "Home"
         );
     }
-
 
     // ========================================
     // PROFILE - GET
@@ -397,13 +544,11 @@ public class AccountController : Controller
                 ?? string.Empty,
 
             PhoneCountryCode = phone.CountryCode,
-
             PhoneNumber = phone.Number
         };
 
         return View(model);
     }
-
 
     // ========================================
     // PROFILE - POST
@@ -430,19 +575,22 @@ public class AccountController : Controller
 
         string newEmail = model.Email.Trim();
 
-        string oldEmail =
+        string currentEmail =
             user.Email
             ?? user.UserName
             ?? string.Empty;
 
         bool emailChanged =
             !string.Equals(
-                oldEmail,
+                currentEmail,
                 newEmail,
                 StringComparison.OrdinalIgnoreCase
             );
 
-        // Kontroller ny e-postadresse.
+        // ========================================
+        // VALIDER NY E-POSTADRESSE
+        // ========================================
+
         if (emailChanged)
         {
             ApplicationUser? userWithEmail =
@@ -458,7 +606,8 @@ public class AccountController : Controller
             {
                 ModelState.AddModelError(
                     nameof(ProfileViewModel.Email),
-                    "Det finnes allerede en bruker med denne e-postadressen."
+                    "Det finnes allerede en bruker " +
+                    "med denne e-postadressen."
                 );
 
                 return View(model);
@@ -482,9 +631,28 @@ public class AccountController : Controller
 
                 return View(model);
             }
+
+            if (_emailSender is null)
+            {
+                ModelState.AddModelError(
+                    nameof(ProfileViewModel.Email),
+                    "E-posttjenesten er ikke tilgjengelig. " +
+                    "E-postadressen er ikke endret."
+                );
+
+                return View(model);
+            }
         }
 
-        // Oppdater brukeropplysninger.
+        // ========================================
+        // OPPDATER NAVN OG TELEFON
+        // ========================================
+        //
+        // Vi endrer IKKE e-postadressen her.
+        //
+        // Den gamle adressen fungerer til
+        // brukeren har bekreftet den nye.
+
         user.Name = model.Name.Trim();
 
         user.PhoneNumber =
@@ -492,18 +660,6 @@ public class AccountController : Controller
                 model.PhoneCountryCode,
                 model.PhoneNumber
             );
-
-        if (emailChanged)
-        {
-            // E-post brukes også som brukernavn.
-            // Identity-brukerens Id endres ikke.
-
-            user.Email = newEmail;
-
-            user.UserName = newEmail;
-
-            user.EmailConfirmed = false;
-        }
 
         IdentityResult updateResult =
             await _userManager.UpdateAsync(user);
@@ -524,12 +680,14 @@ public class AccountController : Controller
             return View(model);
         }
 
-        // Oppdater innloggingscookien.
         await _signInManager.RefreshSignInAsync(
             user
         );
 
-        // Session beholdes for eldre kode.
+        // ========================================
+        // OPPDATER SESSION
+        // ========================================
+
         HttpContext.Session.SetString(
             "UserName",
             user.Name
@@ -537,12 +695,12 @@ public class AccountController : Controller
 
         HttpContext.Session.SetString(
             "UserEmail",
-            newEmail
+            currentEmail
         );
 
         HttpContext.Session.SetString(
             "ContactEmail",
-            newEmail
+            currentEmail
         );
 
         HttpContext.Session.SetString(
@@ -550,11 +708,7 @@ public class AccountController : Controller
             model.PhoneCountryCode
         );
 
-        if (
-            string.IsNullOrWhiteSpace(
-                model.PhoneNumber
-            )
-        )
+        if (string.IsNullOrWhiteSpace(model.PhoneNumber))
         {
             HttpContext.Session.Remove(
                 "PhoneNumber"
@@ -568,14 +722,112 @@ public class AccountController : Controller
             );
         }
 
+        // ========================================
+        // INGEN E-POSTENDRING
+        // ========================================
+
+        if (!emailChanged)
+        {
+            TempData["ProfileSuccess"] =
+                "Profilen ble oppdatert.";
+
+            return RedirectToAction(
+                nameof(Profile)
+            );
+        }
+
+        // ========================================
+        // GENERER TOKEN FOR NY E-POST
+        // ========================================
+
+        string changeToken =
+            await _userManager.GenerateChangeEmailTokenAsync(
+                user,
+                newEmail
+            );
+
+        if (string.IsNullOrWhiteSpace(changeToken))
+        {
+            ModelState.AddModelError(
+                nameof(ProfileViewModel.Email),
+                "Navn og telefon er lagret, men " +
+                "vi kunne ikke lage en bekreftelseslenke. " +
+                "Den gamle e-postadressen er fortsatt aktiv."
+            );
+
+            return View(model);
+        }
+
+        string encodedToken =
+            WebEncoders.Base64UrlEncode(
+                Encoding.UTF8.GetBytes(
+                    changeToken
+                )
+            );
+
+        // ========================================
+        // GENERER BEKREFTELSESLENKE
+        // ========================================
+
+        string? confirmationUrl = Url.Action(
+            action: "ConfirmChange",
+            controller: "EmailVerification",
+            values: new
+            {
+                userId = user.Id,
+                newEmail = newEmail,
+                code = encodedToken
+            },
+            protocol: Request.Scheme
+        );
+
+        if (string.IsNullOrWhiteSpace(confirmationUrl))
+        {
+            ModelState.AddModelError(
+                nameof(ProfileViewModel.Email),
+                "Navn og telefon er lagret, men " +
+                "bekreftelseslenken kunne ikke lages. " +
+                "Den gamle e-postadressen er fortsatt aktiv."
+            );
+
+            return View(model);
+        }
+
+        // ========================================
+        // SEND BEKREFTELSE TIL NY E-POST
+        // ========================================
+
+        try
+        {
+            await _emailSender!.SendConfirmationAsync(
+                newEmail,
+                confirmationUrl
+            );
+        }
+        catch (Exception)
+        {
+            ModelState.AddModelError(
+                nameof(ProfileViewModel.Email),
+                "Navn og telefon er lagret, men " +
+                "vi klarte ikke å sende bekreftelseslenken. " +
+                "Den gamle e-postadressen fungerer fortsatt. " +
+                "Prøv igjen senere."
+            );
+
+            return View(model);
+        }
+
         TempData["ProfileSuccess"] =
-            "Profilen ble oppdatert.";
+            "Profilopplysningene er lagret. " +
+            "Vi har sendt en bekreftelseslenke " +
+            "til den nye e-postadressen. " +
+            "Den gamle adressen fungerer " +
+            "frem til den nye er bekreftet.";
 
         return RedirectToAction(
             nameof(Profile)
         );
     }
-
 
     // ========================================
     // PHONE HELPERS
@@ -595,19 +847,12 @@ public class AccountController : Controller
 
         string normalizedPhoneNumber =
             phoneNumber
-                .Replace(
-                    " ",
-                    string.Empty
-                )
-                .Replace(
-                    "-",
-                    string.Empty
-                );
+                .Replace(" ", string.Empty)
+                .Replace("-", string.Empty);
 
         return normalizedCountryCode
             + normalizedPhoneNumber;
     }
-
 
     private static (
         string CountryCode,
@@ -617,10 +862,7 @@ public class AccountController : Controller
     {
         if (string.IsNullOrWhiteSpace(phoneNumber))
         {
-            return (
-                "+47",
-                null
-            );
+            return ("+47", null);
         }
 
         string[] supportedCountryCodes =
@@ -646,12 +888,8 @@ public class AccountController : Controller
             }
         }
 
-        return (
-            "+47",
-            phoneNumber
-        );
+        return ("+47", phoneNumber);
     }
-
 
     // ========================================
     // ROLE HELPER
@@ -663,27 +901,18 @@ public class AccountController : Controller
         IList<string> roles =
             await _userManager.GetRolesAsync(user);
 
-        if (
-            roles.Contains(
-                IdentitySeeder.AdminRole
-            )
-        )
+        if (roles.Contains(IdentitySeeder.AdminRole))
         {
             return IdentitySeeder.AdminRole;
         }
 
-        if (
-            roles.Contains(
-                IdentitySeeder.PublicActorRole
-            )
-        )
+        if (roles.Contains(IdentitySeeder.PublicActorRole))
         {
             return IdentitySeeder.PublicActorRole;
         }
 
         return IdentitySeeder.ResourceProviderRole;
     }
-
 
     // ========================================
     // SESSION HELPER
@@ -747,7 +976,6 @@ public class AccountController : Controller
             );
         }
     }
-
 
     // ========================================
     // REGISTRATION HELPER

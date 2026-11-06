@@ -1,0 +1,708 @@
+
+@{
+    Layout = null;
+
+    ViewData["Title"] = "Bekreft registrering";
+
+    bool completed =
+        ViewData["RegistrationComplete"] is bool value
+        && value;
+
+    string statusUrl =
+        Url.Action("Status", "EmailVerification")
+        ?? "/EmailVerification/Status";
+}
+
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="utf-8" />
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0" />
+
+    <title>
+        Registrering - Beredskapsportalen
+    </title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        [hidden] {
+            display: none !important;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+
+            font-family:
+                Inter,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+
+            background: #eef3f4;
+            color: #123047;
+        }
+
+        /* ========================================
+           BACKGROUND
+           ======================================== */
+
+        .background {
+            min-height: 100vh;
+            padding: 0 24px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #102d43 0%,
+                    #123b50 55%,
+                    #12636c 100%
+                );
+
+            display: flex;
+            flex-direction: column;
+        }
+
+        .background-header {
+            max-width: 1180px;
+            width: 100%;
+            margin: 0 auto;
+
+            padding: 30px 0;
+
+            color: white;
+            font-size: 20px;
+            font-weight: 800;
+        }
+
+        .background-message {
+            max-width: 1180px;
+            width: 100%;
+
+            margin: 100px auto 0;
+
+            opacity: 0.25;
+            color: white;
+        }
+
+        .background-message h2 {
+            margin: 0 0 18px;
+
+            font-size: 48px;
+            line-height: 1.15;
+        }
+
+        .background-message p {
+            max-width: 500px;
+
+            font-size: 18px;
+            line-height: 1.6;
+        }
+
+        /* ========================================
+           MODAL OVERLAY
+           ======================================== */
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+
+            padding: 20px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            background: rgba(7, 25, 38, 0.62);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-card {
+            width: 100%;
+            max-width: 490px;
+
+            padding: 42px 38px;
+
+            background: white;
+            border-radius: 20px;
+
+            text-align: center;
+
+            box-shadow:
+                0 25px 90px rgba(0, 0, 0, 0.22);
+        }
+
+        /* ========================================
+           ICON
+           ======================================== */
+
+        .icon-container {
+            width: 82px;
+            height: 82px;
+
+            margin: 0 auto 24px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 50%;
+            background: #e5f6ef;
+
+            color: #08765c;
+        }
+
+        .icon-container svg {
+            width: 40px;
+            height: 40px;
+        }
+
+        /* ========================================
+           TEXT
+           ======================================== */
+
+        .modal-label {
+            display: inline-block;
+
+            margin-bottom: 14px;
+            padding: 7px 13px;
+
+            background: #e5f6ef;
+            color: #08765c;
+
+            border-radius: 50px;
+
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1.4px;
+        }
+
+        h1 {
+            margin: 0 0 16px;
+
+            font-size: 29px;
+            line-height: 1.2;
+            letter-spacing: -0.5px;
+
+            color: #123047;
+        }
+
+        .description {
+            margin: 0;
+
+            color: #66737c;
+            font-size: 15px;
+            line-height: 1.75;
+        }
+
+        /* ========================================
+           WAITING STATUS
+           ======================================== */
+
+        .waiting-status {
+            margin-top: 28px;
+            padding: 17px;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+
+            background: #f5f8f8;
+            border: 1px solid #e0e8e8;
+            border-radius: 10px;
+
+            color: #47616b;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+
+            border: 2px solid #b8dfd2;
+            border-top-color: #168169;
+            border-radius: 50%;
+
+            animation: spin 0.9s linear infinite;
+        }
+
+        @@keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .help-text {
+            margin-top: 20px;
+
+            color: #87929a;
+            font-size: 12px;
+            line-height: 1.7;
+        }
+
+        /* ========================================
+           SUCCESS STATUS
+           ======================================== */
+
+        .success-info {
+            margin-top: 25px;
+            padding: 17px 18px;
+
+            background: #eaf8f3;
+            border: 1px solid #b8e1d3;
+            border-radius: 11px;
+
+            color: #08765c;
+            font-size: 13px;
+            line-height: 1.65;
+        }
+
+        .success-info strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        /* ========================================
+           BUTTONS
+           ======================================== */
+
+        .primary-button {
+            display: block;
+            width: 100%;
+
+            margin-top: 28px;
+            padding: 15px 20px;
+
+            background: #168169;
+            border: none;
+            border-radius: 10px;
+
+            color: white;
+            font-size: 15px;
+            font-weight: 800;
+
+            text-decoration: none;
+            text-align: center;
+
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .primary-button:hover {
+            background: #106d59;
+        }
+
+        .secondary-link {
+            display: inline-block;
+            margin-top: 23px;
+
+            color: #66737c;
+            font-size: 13px;
+            font-weight: 700;
+
+            text-decoration: none;
+        }
+
+        .secondary-link:hover {
+            color: #168169;
+        }
+
+        /* ========================================
+           RESPONSIVE
+           ======================================== */
+
+        @@media (max-width: 600px) {
+            .background-header {
+                font-size: 17px;
+            }
+
+            .modal-card {
+                padding: 33px 23px;
+            }
+
+            .icon-container {
+                width: 72px;
+                height: 72px;
+            }
+
+            h1 {
+                font-size: 25px;
+            }
+
+            .description {
+                font-size: 14px;
+            }
+
+            .background-message h2 {
+                font-size: 32px;
+            }
+        }
+
+        @@media (prefers-reduced-motion: reduce) {
+            .spinner {
+                animation: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ========================================
+         BACKGROUND
+         ======================================== -->
+
+    <div class="background">
+
+        <header class="background-header">
+            Beredskapsportalen
+        </header>
+
+        <div class="background-message">
+
+            <h2>
+                Sammen er vi bedre forberedt.
+            </h2>
+
+            <p>
+                Registrer ressurser, samarbeid
+                og bidra til Norges beredskap.
+            </p>
+
+        </div>
+
+    </div>
+
+    <!-- ========================================
+         REGISTRATION MODAL
+         ======================================== -->
+
+    <div
+        class="modal-overlay"
+        id="registrationModal"
+        data-complete="@(completed ? "true" : "false")"
+        data-status-url="@statusUrl">
+
+        <section
+            class="modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modalTitle">
+
+            <!-- ICON -->
+
+            <div class="icon-container">
+
+                <svg
+                    id="mailIcon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    hidden="@completed">
+
+                    <rect
+                        x="2"
+                        y="4"
+                        width="20"
+                        height="16"
+                        rx="3" />
+
+                    <path d="m3 6 9 7 9-7" />
+
+                    <path d="m16 16 2 2 4-4" />
+
+                </svg>
+
+                <svg
+                    id="successIcon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                    hidden="@(!completed)">
+
+                    <circle cx="12" cy="12" r="10" />
+
+                    <path d="m7 12 3 3 7-7" />
+
+                </svg>
+
+            </div>
+
+            <!-- ========================================
+                 WAITING
+                 ======================================== -->
+
+            <div
+                id="waitingContent"
+                hidden="@completed">
+
+                <span class="modal-label">
+                    BEKREFTELSE VENTER
+                </span>
+
+                <h1 id="modalTitle">
+                    Sjekk e-posten din!
+                </h1>
+
+                <p class="description">
+                    Registreringen er mottatt.
+
+                    Vi har sendt deg en
+                    bekreftelseslenke på e-post.
+
+                    Åpne lenken for å aktivere
+                    kontoen din.
+                </p>
+
+                <div
+                    class="waiting-status"
+                    role="status">
+
+                    <span
+                        class="spinner"
+                        aria-hidden="true">
+                    </span>
+
+                    Venter på e-postbekreftelse ...
+
+                </div>
+
+                <p class="help-text">
+                    Sjekk også søppelpost.
+
+                    Ved lokal testing finner du
+                    meldingen i Mailpit.
+                </p>
+
+                <a
+                    asp-controller="Home"
+                    asp-action="Index"
+                    class="secondary-link">
+
+                    Tilbake til forsiden
+
+                </a>
+
+            </div>
+
+            <!-- ========================================
+                 COMPLETED
+                 ======================================== -->
+
+            <div
+                id="completedContent"
+                hidden="@(!completed)"
+                aria-live="polite">
+
+                <span class="modal-label">
+                    KONTO AKTIVERT
+                </span>
+
+                <h1 id="completedTitle">
+                    Registrering fullført!
+                </h1>
+
+                <p class="description">
+                    E-postadressen din er bekreftet,
+                    og kontoen din er klar til bruk.
+
+                    Du kan nå logge inn med
+                    e-postadressen og passordet ditt.
+                </p>
+
+                <div class="success-info">
+
+                    <strong>
+                        ✓ E-postbekreftelse fullført
+                    </strong>
+
+                    E-postbasert tofaktorautentisering
+                    er aktivert.
+
+                    Du vil motta en sikkerhetskode
+                    når du logger inn.
+                </div>
+
+                <a
+                    asp-controller="Home"
+                    asp-action="Index"
+                    class="primary-button">
+
+                    Logg inn
+
+                </a>
+
+            </div>
+
+        </section>
+
+    </div>
+
+    <!-- ========================================
+         CHECK CONFIRMATION STATUS
+         ======================================== -->
+
+    <script>
+        (function () {
+
+            const modal =
+                document.getElementById(
+                    "registrationModal"
+                );
+
+            const waiting =
+                document.getElementById(
+                    "waitingContent"
+                );
+
+            const completed =
+                document.getElementById(
+                    "completedContent"
+                );
+
+            const mailIcon =
+                document.getElementById(
+                    "mailIcon"
+                );
+
+            const successIcon =
+                document.getElementById(
+                    "successIcon"
+                );
+
+            const statusUrl =
+                modal.dataset.statusUrl;
+
+            const alreadyCompleted =
+                modal.dataset.complete === "true";
+
+            let checking = false;
+
+            let intervalId = null;
+
+            function showCompleted() {
+
+                waiting.hidden = true;
+                completed.hidden = false;
+
+                mailIcon.hidden = true;
+                successIcon.hidden = false;
+
+                modal.dataset.complete = "true";
+
+                const dialog =
+                    modal.querySelector(
+                        '[role="dialog"]'
+                    );
+
+                dialog.setAttribute(
+                    "aria-labelledby",
+                    "completedTitle"
+                );
+
+                document.title =
+                    "Registrering fullført - " +
+                    "Beredskapsportalen";
+
+                if (intervalId !== null) {
+                    clearInterval(intervalId);
+                    intervalId = null;
+                }
+            }
+
+            async function checkStatus() {
+
+                if (checking) {
+                    return;
+                }
+
+                if (modal.dataset.complete === "true") {
+                    return;
+                }
+
+                if (document.hidden) {
+                    return;
+                }
+
+                checking = true;
+
+                try {
+
+                    const response = await fetch(
+                        statusUrl,
+                        {
+                            method: "GET",
+                            credentials: "same-origin",
+                            cache: "no-store",
+                            headers: {
+                                "Accept": "application/json"
+                            }
+                        }
+                    );
+
+                    if (!response.ok) {
+                        return;
+                    }
+
+                    const result =
+                        await response.json();
+
+                    if (result.confirmed === true) {
+                        showCompleted();
+                    }
+
+                } catch (error) {
+
+                    // Nettverksfeil skal ikke
+                    // ødelegge registreringssiden.
+                    //
+                    // Vi forsøker igjen senere.
+
+                } finally {
+                    checking = false;
+                }
+            }
+
+            if (!alreadyCompleted) {
+
+                intervalId = setInterval(
+                    checkStatus,
+                    4000
+                );
+
+                document.addEventListener(
+                    "visibilitychange",
+                    function () {
+
+                        if (!document.hidden) {
+                            checkStatus();
+                        }
+
+                    }
+                );
+
+            }
+
+        })();
+    </script>
+
+</body>
+</html>

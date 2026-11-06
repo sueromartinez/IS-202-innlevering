@@ -1,4 +1,9 @@
+
 services:
+
+  # ========================================
+  # MARIADB DATABASE
+  # ========================================
 
   mariadb:
     image: mariadb:11.4
@@ -12,9 +17,12 @@ services:
       MARIADB_PASSWORD: ${MARIADB_PASSWORD:-beredskap_dev_password}
       MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-beredskap_root_dev_password}
 
+    # Kun tilgjengelig fra egen PC.
     ports:
-      - "3307:3306"
+      - "127.0.0.1:3307:3306"
 
+    # Databaseinnholdet overlever omstart
+    # og gjenoppretting av containeren.
     volumes:
       - beredskap-db:/var/lib/mysql
 
@@ -31,6 +39,10 @@ services:
       retries: 10
 
 
+  # ========================================
+  # ASP.NET CORE MVC APPLICATION
+  # ========================================
+
   app:
     build:
       context: .
@@ -40,11 +52,14 @@ services:
 
     restart: unless-stopped
 
+    # Vent til MariaDB er klar.
     depends_on:
       mariadb:
         condition: service_healthy
 
     environment:
+      # Kun lokal utvikling og demonstrasjon.
+      # Demoinnlogging er aktiv i Development.
       ASPNETCORE_ENVIRONMENT: Development
 
       ConnectionStrings__DefaultConnection: >-
@@ -54,9 +69,24 @@ services:
         User=beredskap_user;
         Password=${MARIADB_PASSWORD:-beredskap_dev_password};
 
+    # Kun tilgjengelig fra egen PC.
     ports:
-      - "8080:5216"
+      - "127.0.0.1:8080:5216"
 
+    # Behold ASP.NET Core Data Protection-nøkler
+    # når app-containeren opprettes på nytt.
+    volumes:
+      - beredskap-dataprotection:/home/app/.aspnet/DataProtection-Keys
+
+
+# ========================================
+# PERSISTENT DOCKER VOLUMES
+# ========================================
 
 volumes:
+
+  # Brukere, ressurser, behov og Identity-data.
   beredskap-db:
+
+  # Nøkler til innloggingscookies og Data Protection.
+  beredskap-dataprotection:

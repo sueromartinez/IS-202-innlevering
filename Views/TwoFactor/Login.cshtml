@@ -1,0 +1,756 @@
+
+@model FirstWebAppInDocker.ViewModels.TwoFactorLoginViewModel
+
+@{
+    Layout = null;
+    ViewData["Title"] = "Bekreft innlogging";
+}
+
+<!DOCTYPE html>
+<html lang="no">
+
+<head>
+    <meta charset="utf-8" />
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0" />
+
+    <title>
+        Bekreft innlogging - Beredskapsportalen
+    </title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+
+            background: #f4f6f7;
+            color: #17212b;
+
+            font-family:
+                Inter,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+        }
+
+        button,
+        input {
+            font-family: inherit;
+        }
+
+        /* ========================================
+           HEADER
+           ======================================== */
+
+        .site-header {
+            background: white;
+            border-bottom: 1px solid #e3e8eb;
+        }
+
+        .header-inner {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 22px 30px;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .brand {
+            color: #123047;
+            font-size: 19px;
+            font-weight: 800;
+            text-decoration: none;
+        }
+
+        .header-link {
+            color: #66737c;
+            font-size: 13px;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .header-link:hover {
+            color: #168169;
+        }
+
+        /* ========================================
+           PAGE
+           ======================================== */
+
+        .page {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 42px 24px 70px;
+        }
+
+        /* ========================================
+           HERO
+           ======================================== */
+
+        .hero {
+            padding: 38px 40px;
+            border-radius: 20px;
+
+            background: linear-gradient(
+                135deg,
+                #102d43 0%,
+                #123b50 55%,
+                #12636c 100%
+            );
+
+            color: white;
+        }
+
+        .hero-label {
+            color: #7fe0c1;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 2px;
+        }
+
+        .hero h1 {
+            margin: 12px 0;
+            font-size: 34px;
+            line-height: 1.15;
+        }
+
+        .hero p {
+            margin: 0;
+
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.7;
+        }
+
+        /* ========================================
+           CONTENT CARD
+           ======================================== */
+
+        .login-card {
+            margin-top: 25px;
+            padding: 35px 40px;
+
+            background: white;
+            border: 1px solid #e0e6e9;
+            border-radius: 16px;
+
+            box-shadow:
+                0 8px 25px rgba(18, 48, 71, 0.04);
+        }
+
+        .section-label {
+            display: block;
+            margin-bottom: 8px;
+
+            color: #168169;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1.8px;
+        }
+
+        h2 {
+            margin: 0 0 12px;
+
+            color: #123047;
+            font-size: 23px;
+        }
+
+        .description {
+            margin-bottom: 25px;
+
+            color: #66737c;
+            font-size: 15px;
+            line-height: 1.7;
+        }
+
+        /* ========================================
+           E-POST INFORMATION
+           ======================================== */
+
+        .email-notice {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+
+            margin: 22px 0 28px;
+            padding: 18px 20px;
+
+            background: #eaf8f3;
+            border: 1px solid #b8e1d3;
+            border-radius: 12px;
+        }
+
+        .email-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            flex-shrink: 0;
+
+            width: 40px;
+            height: 40px;
+
+            background: #d1eee3;
+            border-radius: 10px;
+
+            color: #08765c;
+            font-size: 21px;
+        }
+
+        .email-notice strong {
+            display: block;
+            margin-bottom: 5px;
+
+            color: #08765c;
+            font-size: 14px;
+        }
+
+        .email-notice p {
+            margin: 0;
+
+            color: #416c5e;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        /* ========================================
+           FORM
+           ======================================== */
+
+        .form-label {
+            display: block;
+            margin-bottom: 10px;
+
+            color: #123047;
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .code-input {
+            display: block;
+
+            width: 100%;
+            padding: 17px 16px;
+
+            border: 1px solid #d4dde1;
+            border-radius: 10px;
+
+            background: white;
+            color: #17212b;
+
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: 7px;
+            text-align: center;
+
+            outline: none;
+            transition: 0.2s;
+        }
+
+        .code-input:focus {
+            border-color: #168169;
+
+            box-shadow:
+                0 0 0 3px rgba(22, 129, 105, 0.12);
+        }
+
+        .code-input::placeholder {
+            color: #b8c1c6;
+        }
+
+        .field-help {
+            display: block;
+            margin-top: 10px;
+
+            color: #87929a;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        /* ========================================
+           VALIDATION
+           ======================================== */
+
+        .validation {
+            display: block;
+            margin-top: 8px;
+
+            color: #b42318;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .validation-summary {
+            margin-bottom: 20px;
+
+            color: #b42318;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .validation-summary:empty {
+            display: none;
+        }
+
+        .validation-summary ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .success-message {
+            margin-bottom: 24px;
+            padding: 15px 18px;
+
+            background: #eaf8f3;
+            border: 1px solid #b8e1d3;
+            border-radius: 10px;
+
+            color: #08765c;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        /* ========================================
+           BUTTONS
+           ======================================== */
+
+        .primary-button {
+            width: 100%;
+            margin-top: 25px;
+            padding: 15px 20px;
+
+            border: none;
+            border-radius: 9px;
+
+            background: #168169;
+            color: white;
+
+            font-size: 15px;
+            font-weight: 800;
+            cursor: pointer;
+
+            transition: background 0.2s;
+        }
+
+        .primary-button:hover {
+            background: #106d59;
+        }
+
+        .secondary-button {
+            width: 100%;
+            padding: 13px 20px;
+
+            border: 1px solid #d9e0e4;
+            border-radius: 9px;
+
+            background: white;
+            color: #123047;
+
+            font-size: 14px;
+            font-weight: 800;
+            cursor: pointer;
+
+            transition: background 0.2s;
+        }
+
+        .secondary-button:hover {
+            background: #f4f6f7;
+        }
+
+        /* ========================================
+           RESEND SECTION
+           ======================================== */
+
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+
+            margin: 34px 0;
+
+            color: #87929a;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: "";
+
+            flex: 1;
+            height: 1px;
+
+            background: #e0e6e9;
+        }
+
+        .resend-section {
+            padding: 24px;
+
+            background: #f5f8f8;
+            border: 1px solid #e0e6e9;
+            border-radius: 12px;
+
+            text-align: center;
+        }
+
+        .resend-section h3 {
+            margin: 0 0 10px;
+
+            color: #123047;
+            font-size: 17px;
+        }
+
+        .resend-section p {
+            margin: 0 0 20px;
+
+            color: #66737c;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* ========================================
+           SECURITY NOTE
+           ======================================== */
+
+        .security-note {
+            margin-top: 26px;
+            padding: 16px 18px;
+
+            background: #fff8e9;
+            border: 1px solid #f0d7a4;
+            border-radius: 10px;
+
+            color: #805a20;
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        .security-note strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .back-link {
+            display: block;
+            margin-top: 28px;
+
+            color: #123047;
+            font-size: 14px;
+            font-weight: 700;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            color: #168169;
+        }
+
+        /* ========================================
+           RESPONSIVE
+           ======================================== */
+
+        @@media (max-width: 600px) {
+
+            .header-inner {
+                padding: 20px 16px;
+            }
+
+            .brand {
+                font-size: 16px;
+            }
+
+            .page {
+                padding: 25px 16px 50px;
+            }
+
+            .hero {
+                padding: 30px 24px;
+            }
+
+            .hero h1 {
+                font-size: 28px;
+            }
+
+            .login-card {
+                padding: 25px 20px;
+            }
+
+            .code-input {
+                font-size: 22px;
+                letter-spacing: 5px;
+            }
+
+            .resend-section {
+                padding: 20px 16px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header class="site-header">
+
+    <div class="header-inner">
+
+        <a
+            asp-controller="Home"
+            asp-action="Index"
+            class="brand">
+
+            Beredskapsportalen
+
+        </a>
+
+        <a
+            asp-controller="Home"
+            asp-action="Index"
+            class="header-link">
+
+            Til forsiden
+
+        </a>
+
+    </div>
+
+</header>
+
+<main class="page">
+
+    <!-- ========================================
+         HERO
+         ======================================== -->
+
+    <section class="hero">
+
+        <span class="hero-label">
+            SIKKER INNLOGGING
+        </span>
+
+        <h1>
+            Bekreft identiteten din
+        </h1>
+
+        <p>
+            Passordet ditt er godkjent.
+            For å fullføre innloggingen må du
+            skrive inn sikkerhetskoden som sendes
+            til e-postadressen din.
+        </p>
+
+    </section>
+
+    <!-- ========================================
+         LOGIN CARD
+         ======================================== -->
+
+    <section class="login-card">
+
+        <span class="section-label">
+            TOFAKTORAUTENTISERING
+        </span>
+
+        <h2>
+            Skriv inn koden fra e-post
+        </h2>
+
+        <p class="description">
+            Vi sender en sekssifret sikkerhetskode
+            til e-postadressen som er registrert
+            på kontoen din.
+        </p>
+
+        <!-- ========================================
+             EMAIL INFORMATION
+             ======================================== -->
+
+        <div class="email-notice">
+
+            <div
+                class="email-icon"
+                aria-hidden="true">
+
+                ✉
+
+            </div>
+
+            <div>
+
+                <strong>
+                    Sjekk innboksen din
+                </strong>
+
+                <p>
+                    Se etter en e-post fra
+                    Beredskapsportalen.
+
+                    Kontroller også søppelpost
+                    hvis du ikke finner meldingen.
+                </p>
+
+            </div>
+
+        </div>
+
+        <!-- ========================================
+             SUCCESS MESSAGE
+             ======================================== -->
+
+        @if (
+            TempData["TwoFactorMessage"]
+            is string successMessage
+        )
+        {
+            <div
+                class="success-message"
+                role="status">
+
+                @successMessage
+
+            </div>
+        }
+
+        <!-- ========================================
+             ERROR MESSAGES
+             ======================================== -->
+
+        <div
+            asp-validation-summary="ModelOnly"
+            class="validation-summary">
+        </div>
+
+        <!-- ========================================
+             VERIFY CODE FORM
+             ======================================== -->
+
+        <form
+            asp-controller="TwoFactor"
+            asp-action="Login"
+            method="post">
+
+            @Html.AntiForgeryToken()
+
+            <label
+                asp-for="Code"
+                class="form-label">
+
+                Sekssifret sikkerhetskode
+
+            </label>
+
+            <input
+                asp-for="Code"
+                class="code-input"
+                type="text"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                pattern="[0-9]{6}"
+                maxlength="6"
+                placeholder="000000"
+                autofocus
+                required />
+
+            <span
+                asp-validation-for="Code"
+                class="validation">
+            </span>
+
+            <span class="field-help">
+
+                Skriv inn alle de seks sifrene
+                fra e-posten du mottok.
+
+            </span>
+
+            <button
+                type="submit"
+                class="primary-button">
+
+                Bekreft og logg inn
+
+            </button>
+
+        </form>
+
+        <!-- ========================================
+             RESEND CODE
+             ======================================== -->
+
+        <div class="divider">
+            FIKK DU IKKE KODEN?
+        </div>
+
+        <section class="resend-section">
+
+            <h3>
+                Trenger du en ny kode?
+            </h3>
+
+            <p>
+                Hvis e-posten ikke har kommet frem,
+                kan du be om å få tilsendt
+                sikkerhetskoden på nytt.
+
+                Du må vente minst 60 sekunder
+                mellom hver forespørsel.
+            </p>
+
+            <form
+                asp-controller="TwoFactor"
+                asp-action="ResendCode"
+                method="post">
+
+                @Html.AntiForgeryToken()
+
+                <button
+                    type="submit"
+                    class="secondary-button">
+
+                    Send ny kode på e-post
+
+                </button>
+
+            </form>
+
+        </section>
+
+        <!-- ========================================
+             SECURITY INFORMATION
+             ======================================== -->
+
+        <div class="security-note">
+
+            <strong>
+                Del aldri sikkerhetskoden din
+            </strong>
+
+            Beredskapsportalen vil aldri be
+            deg oppgi sikkerhetskoden til andre.
+
+            Hvis du ikke forsøker å logge inn,
+            skal du ikke bruke koden.
+
+        </div>
+
+        <a
+            asp-controller="Home"
+            asp-action="Index"
+            class="back-link">
+
+            Tilbake til forsiden
+
+        </a>
+
+    </section>
+
+</main>
+
+</body>
+</html>

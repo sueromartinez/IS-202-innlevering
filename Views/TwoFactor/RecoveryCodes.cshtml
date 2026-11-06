@@ -1,0 +1,454 @@
+
+@model FirstWebAppInDocker.ViewModels.TwoFactorRecoveryCodesViewModel
+
+@{
+    Layout = null;
+    ViewData["Title"] = "Gjenopprettingskoder";
+}
+
+<!DOCTYPE html>
+<html lang="no">
+
+<head>
+    <meta charset="utf-8" />
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0" />
+
+    <title>
+        Gjenopprettingskoder - Beredskapsportalen
+    </title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #f4f6f7;
+            color: #17212b;
+            font-family:
+                Inter,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+        }
+
+        .site-header {
+            background: white;
+            border-bottom: 1px solid #e3e8eb;
+        }
+
+        .header-inner {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 22px 30px;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .brand {
+            color: #123047;
+            font-size: 19px;
+            font-weight: 800;
+            text-decoration: none;
+        }
+
+        .page {
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 42px 24px 70px;
+        }
+
+        .hero {
+            padding: 38px 40px;
+            border-radius: 20px;
+
+            background: linear-gradient(
+                135deg,
+                #102d43 0%,
+                #123b50 55%,
+                #12636c 100%
+            );
+
+            color: white;
+        }
+
+        .hero-label {
+            color: #7fe0c1;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 2px;
+        }
+
+        .hero h1 {
+            margin: 12px 0;
+            font-size: 34px;
+            line-height: 1.15;
+        }
+
+        .hero p {
+            margin: 0;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.7;
+        }
+
+        .content-card {
+            margin-top: 25px;
+            padding: 35px 40px;
+
+            background: white;
+            border: 1px solid #e0e6e9;
+            border-radius: 16px;
+
+            box-shadow:
+                0 8px 25px rgba(18, 48, 71, 0.04);
+        }
+
+        .section-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #168169;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1.8px;
+        }
+
+        h2 {
+            margin: 0 0 12px;
+            color: #123047;
+            font-size: 23px;
+        }
+
+        .description {
+            color: #66737c;
+            line-height: 1.7;
+        }
+
+        .success-message {
+            margin: 25px 0;
+            padding: 18px 20px;
+
+            background: #eaf8f3;
+            border: 1px solid #b8e1d3;
+            border-radius: 10px;
+
+            color: #08765c;
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 1.6;
+        }
+
+        .warning {
+            margin: 25px 0;
+            padding: 18px 20px;
+
+            background: #fff8e9;
+            border: 1px solid #f0d7a4;
+            border-radius: 10px;
+
+            color: #805a20;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .warning strong {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .codes-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+
+            gap: 12px;
+            margin: 28px 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .code-item {
+            padding: 17px 14px;
+
+            background: #f5f8f8;
+            border: 1px solid #dce8e4;
+            border-radius: 10px;
+
+            text-align: center;
+        }
+
+        .code-item code {
+            color: #123047;
+
+            font-family:
+                Consolas,
+                "Courier New",
+                monospace;
+
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            overflow-wrap: anywhere;
+            user-select: all;
+        }
+
+        .help-text {
+            margin: 12px 0;
+            color: #66737c;
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 30px;
+        }
+
+        .primary-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            padding: 13px 20px;
+            border: none;
+            border-radius: 8px;
+
+            background: #168169;
+            color: white;
+
+            font-size: 14px;
+            font-weight: 800;
+            text-decoration: none;
+
+            cursor: pointer;
+        }
+
+        .primary-button:hover {
+            background: #106d59;
+        }
+
+        .secondary-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            padding: 13px 20px;
+
+            border: 1px solid #d9e0e4;
+            border-radius: 8px;
+
+            background: white;
+            color: #123047;
+
+            font-size: 14px;
+            font-weight: 800;
+            text-decoration: none;
+        }
+
+        .secondary-button:hover {
+            background: #f4f6f7;
+        }
+
+        @@media (max-width: 600px) {
+
+            .header-inner {
+                padding: 20px 16px;
+            }
+
+            .page {
+                padding: 25px 16px 50px;
+            }
+
+            .hero {
+                padding: 30px 24px;
+            }
+
+            .hero h1 {
+                font-size: 28px;
+            }
+
+            .content-card {
+                padding: 25px 20px;
+            }
+
+            .codes-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .primary-button,
+            .secondary-button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header class="site-header">
+
+    <div class="header-inner">
+
+        <a
+            asp-controller="Home"
+            asp-action="Dashboard"
+            class="brand">
+
+            Beredskapsportalen
+
+        </a>
+
+    </div>
+
+</header>
+
+<main class="page">
+
+    <section class="hero">
+
+        <span class="hero-label">
+            KONTOSIKKERHET
+        </span>
+
+        <h1>
+            Gjenopprettingskoder
+        </h1>
+
+        <p>
+            Ta vare på reservekodene dine, slik at du
+            fortsatt kan logge inn dersom du mister
+            tilgang til autentiseringsappen.
+        </p>
+
+    </section>
+
+    <section class="content-card">
+
+        <span class="section-label">
+            TOFAKTORAUTENTISERING
+        </span>
+
+        <h2>
+            Ta vare på kodene dine
+        </h2>
+
+        @if (Model.Codes.Count > 0)
+        {
+            <div
+                class="success-message"
+                role="status">
+
+                Tofaktorautentisering er aktivert
+                på kontoen din.
+
+            </div>
+
+            <p class="description">
+                Du har fått @Model.Codes.Count
+                gjenopprettingskoder.
+
+                Hver kode kan brukes én gang
+                dersom du ikke har tilgang til
+                autentiseringsappen.
+            </p>
+
+            <ul class="codes-grid">
+
+                @foreach (string code in Model.Codes)
+                {
+                    <li class="code-item">
+
+                        <code>@code</code>
+
+                    </li>
+                }
+
+            </ul>
+
+            <div class="warning">
+
+                <strong>
+                    Viktig: Lagre kodene nå!
+                </strong>
+
+                Kodene vises bare på denne siden
+                og blir ikke vist igjen etter at
+                du har forlatt den.
+
+                <p>
+                    Oppbevar kodene i en sikker
+                    passordbehandler eller på
+                    et annet trygt sted.
+                </p>
+
+                Ikke del kodene med andre.
+
+            </div>
+        }
+        else
+        {
+            <div
+                class="warning"
+                role="alert">
+
+                <strong>
+                    Gjenopprettingskoder er ikke tilgjengelige.
+                </strong>
+
+                Det ble ikke mottatt noen
+                gjenopprettingskoder.
+
+                Du bør ikke stole på at du kan
+                gjenopprette kontoen før dette
+                er undersøkt.
+
+            </div>
+        }
+
+        <p class="help-text">
+            En gjenopprettingskode erstatter
+            engangskoden fra autentiseringsappen
+            når du logger inn.
+        </p>
+
+        <div class="actions">
+
+            <a
+                asp-controller="Account"
+                asp-action="Profile"
+                class="primary-button">
+
+                Tilbake til profilen
+
+            </a>
+
+            <a
+                asp-controller="Home"
+                asp-action="Dashboard"
+                class="secondary-button">
+
+                Gå til dashboard
+
+            </a>
+
+        </div>
+
+    </section>
+
+</main>
+
+</body>
+</html>

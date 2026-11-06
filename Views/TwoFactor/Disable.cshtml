@@ -1,0 +1,470 @@
+
+@model FirstWebAppInDocker.ViewModels.TwoFactorDisableViewModel
+
+@{
+    Layout = null;
+    ViewData["Title"] = "Deaktiver tofaktorautentisering";
+}
+
+<!DOCTYPE html>
+<html lang="no">
+
+<head>
+    <meta charset="utf-8" />
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0" />
+
+    <title>
+        Deaktiver tofaktor - Beredskapsportalen
+    </title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #f4f6f7;
+            color: #17212b;
+
+            font-family:
+                Inter,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+        }
+
+        button,
+        input {
+            font-family: inherit;
+        }
+
+        .site-header {
+            background: white;
+            border-bottom: 1px solid #e3e8eb;
+        }
+
+        .header-inner {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 22px 30px;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .brand {
+            color: #123047;
+            font-size: 19px;
+            font-weight: 800;
+            text-decoration: none;
+        }
+
+        .back-link {
+            color: #123047;
+            font-size: 14px;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            color: #168169;
+        }
+
+        .page {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 42px 24px 70px;
+        }
+
+        .hero {
+            padding: 38px 40px;
+            border-radius: 20px;
+
+            background: linear-gradient(
+                135deg,
+                #102d43 0%,
+                #123b50 55%,
+                #12636c 100%
+            );
+
+            color: white;
+        }
+
+        .hero-label {
+            color: #7fe0c1;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 2px;
+        }
+
+        .hero h1 {
+            margin: 12px 0;
+            font-size: 34px;
+            line-height: 1.15;
+        }
+
+        .hero p {
+            margin: 0;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.7;
+        }
+
+        .content-card {
+            margin-top: 25px;
+            padding: 35px 40px;
+
+            background: white;
+            border: 1px solid #e0e6e9;
+            border-radius: 16px;
+
+            box-shadow:
+                0 8px 25px
+                rgba(18, 48, 71, 0.04);
+        }
+
+        .section-label {
+            display: block;
+            margin-bottom: 8px;
+
+            color: #168169;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1.8px;
+        }
+
+        h2 {
+            margin: 0 0 12px;
+            color: #123047;
+            font-size: 23px;
+        }
+
+        .description {
+            color: #66737c;
+            line-height: 1.7;
+        }
+
+        .warning {
+            margin: 25px 0;
+            padding: 18px 20px;
+
+            background: #fff8e9;
+            border: 1px solid #f0d7a4;
+            border-radius: 10px;
+
+            color: #805a20;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .warning strong {
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .form-label {
+            display: block;
+            margin: 25px 0 10px;
+
+            color: #123047;
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 14px 16px;
+
+            border: 1px solid #d4dde1;
+            border-radius: 8px;
+
+            background: white;
+            color: #17212b;
+
+            font-size: 16px;
+            outline: none;
+        }
+
+        .password-input:focus {
+            border-color: #168169;
+
+            box-shadow:
+                0 0 0 3px
+                rgba(22, 129, 105, 0.12);
+        }
+
+        .validation {
+            display: block;
+            margin-top: 8px;
+
+            color: #b42318;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .validation-summary {
+            margin-bottom: 20px;
+            color: #b42318;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .validation-summary:empty {
+            display: none;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 30px;
+        }
+
+        .danger-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            padding: 13px 20px;
+
+            border: none;
+            border-radius: 8px;
+
+            background: #b42318;
+            color: white;
+
+            font-size: 14px;
+            font-weight: 800;
+
+            cursor: pointer;
+        }
+
+        .danger-button:hover {
+            background: #912018;
+        }
+
+        .secondary-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            padding: 13px 20px;
+
+            border: 1px solid #d9e0e4;
+            border-radius: 8px;
+
+            background: white;
+            color: #123047;
+
+            font-size: 14px;
+            font-weight: 800;
+            text-decoration: none;
+        }
+
+        .secondary-button:hover {
+            background: #f4f6f7;
+        }
+
+        .security-note {
+            margin-top: 25px;
+            padding: 16px 18px;
+
+            background: #f5f8f8;
+            border: 1px solid #e0e6e9;
+            border-radius: 10px;
+
+            color: #66737c;
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        @@media (max-width: 600px) {
+
+            .header-inner {
+                padding: 20px 16px;
+            }
+
+            .page {
+                padding: 25px 16px 50px;
+            }
+
+            .hero {
+                padding: 30px 24px;
+            }
+
+            .hero h1 {
+                font-size: 28px;
+            }
+
+            .content-card {
+                padding: 25px 20px;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .danger-button,
+            .secondary-button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header class="site-header">
+
+    <div class="header-inner">
+
+        <a
+            asp-controller="Home"
+            asp-action="Dashboard"
+            class="brand">
+
+            Beredskapsportalen
+
+        </a>
+
+        <a
+            asp-controller="Account"
+            asp-action="Profile"
+            class="back-link">
+
+            Tilbake til profil
+
+        </a>
+
+    </div>
+
+</header>
+
+<main class="page">
+
+    <section class="hero">
+
+        <span class="hero-label">
+            KONTOSIKKERHET
+        </span>
+
+        <h1>
+            Deaktiver tofaktor
+        </h1>
+
+        <p>
+            Du er i ferd med å fjerne et ekstra
+            sikkerhetslag fra brukerkontoen din.
+        </p>
+
+    </section>
+
+    <section class="content-card">
+
+        <span class="section-label">
+            SIKKERHETSINNSTILLINGER
+        </span>
+
+        <h2>
+            Bekreft deaktivering
+        </h2>
+
+        <p class="description">
+            For å deaktivere tofaktorautentisering
+            må du bekrefte passordet til
+            brukerkontoen din.
+        </p>
+
+        <div class="warning" role="alert">
+
+            <strong>
+                Advarsel: Redusert kontosikkerhet
+            </strong>
+
+            Når tofaktorautentisering deaktiveres,
+            vil kontoen igjen kunne logges inn på
+            med bare e-postadresse og passord.
+
+            Vi anbefaler at du beholder
+            tofaktorautentisering aktivert.
+
+        </div>
+
+        <form
+            asp-controller="TwoFactor"
+            asp-action="Disable"
+            method="post">
+
+            @Html.AntiForgeryToken()
+
+            <div
+                asp-validation-summary="ModelOnly"
+                class="validation-summary">
+            </div>
+
+            <label
+                asp-for="Password"
+                class="form-label">
+
+                Bekreft passordet ditt
+
+            </label>
+
+            <input
+                asp-for="Password"
+                class="password-input"
+                type="password"
+                autocomplete="current-password"
+                placeholder="Skriv inn passordet ditt"
+                required />
+
+            <span
+                asp-validation-for="Password"
+                class="validation">
+            </span>
+
+            <div class="actions">
+
+                <button
+                    type="submit"
+                    class="danger-button">
+
+                    Deaktiver tofaktor
+
+                </button>
+
+                <a
+                    asp-controller="Account"
+                    asp-action="Profile"
+                    class="secondary-button">
+
+                    Avbryt
+
+                </a>
+
+            </div>
+
+        </form>
+
+        <div class="security-note">
+
+            Du kan aktivere tofaktorautentisering
+            på nytt senere fra profilsiden din.
+
+            Ved ny aktivering må kontoen kobles
+            til en autentiseringsapp igjen.
+
+        </div>
+
+    </section>
+
+</main>
+
+</body>
+</html>
