@@ -40,7 +40,7 @@
     height: 1px;
     overflow: hidden;
     clip: rect(0 0 0 0);
-    white-space: nowrap;
+    var(--surface)-space: nowrap;
 }
 
 
@@ -92,7 +92,7 @@
     flex: 0 0 auto;
     border-radius: 50%;
     color: var(--sami-navy);
-    background: #e3f1f6;
+    background: var(--surface-soft);
 }
 
 .sami-avatar-small {
@@ -286,7 +286,7 @@
     border-radius: 14px 4px 14px 14px;
     color: white;
     background: var(--sami-primary);
-    white-space: pre-wrap;
+    var(--surface)-space: pre-wrap;
 }
 
 .sami-message.is-error {
@@ -440,7 +440,7 @@
 
 .sami-starter:hover {
     border-color: var(--sami-primary);
-    background: #f1f8fb;
+    background: var(--surface-soft);
 }
 
 

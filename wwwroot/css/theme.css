@@ -1,0 +1,139 @@
+/*
+  theme.css
+  Fargesystem for hele portalen.
+    - Lyseblått tema (standard)
+    - Marineblått tema (mørk modus), byttes med sol/måne-knappen
+
+  CSS-filene bruker fargevariabler (var(--surface), var(--text) ...).
+  Her bestemmer vi hva variablene betyr i hvert tema.
+
+  PRINSIPPER SOM ER FULGT
+  1. Kontrast (WCAG 2.1 nivå AA): vanlig tekst har minst 4,5 : 1 mot
+     bakgrunnen, og knapper med hvit tekst har minst 4,5 : 1.
+  2. Lag (figur og bakgrunn): siden er mørkest/lysest i bakgrunnen,
+     kortene ligger litt over, og menyen skiller seg ut.
+  3. Fargene har faste roller. Blå = handling (knapper, lenker),
+     grønn = ok/tilgjengelig, rød = hastverk/feil, gul = planlagt/advarsel.
+     Samme farge betyr alltid det samme (konsistens).
+  4. Tekstfarger er egne variabler (--link, --success-text, ...), fordi en
+     farge som fungerer som bakgrunn ofte er for mørk eller for lys som
+     tekst.
+  5. Tastaturbrukere får en tydelig fokusring (--focus).
+
+  html:root                    = lyseblått tema (standard)
+  html:root[data-theme="navy"] = marineblått tema (mørk modus, settes av theme.js)
+*/
+
+/* ---------- LYSEBLÅTT TEMA (standard) ---------- */
+html:root {
+    --background: #d2e7fb;                      /* sidebakgrunn */
+    --surface: #e4f1fd;                         /* kort og bokser */
+    --surface-soft: #d9eafc;                    /* hover, tabelloverskrift */
+    --surface-translucent: rgba(228, 241, 253, 0.94);
+
+    --heading: #173a63;                         /* overskrifter  10,0 : 1 */
+    --text: #12304f;                            /* vanlig tekst  11,7 : 1 */
+    --text-secondary: #42628a;                  /* grå tekst      5,0 : 1 */
+    --secondary: #42628a;
+
+    --border: #9dbde3;
+    --accent: #3668a0;
+
+    --primary: #3668a0;                         /* knapp, hvit tekst 5,8 : 1 */
+    --primary-dark: #2a5a8f;                    /* hover */
+    --link: #2a5a8f;                            /* lenketekst     6,2 : 1 */
+    --focus: #2a5a8f;                           /* fokusring */
+
+    /* Statusfarger brukt som TEKST (alle over 4,5 : 1) */
+    --success-text: #1b6b48;                    /* grønn */
+    --danger-text: #a62f2f;                     /* rød   */
+    --warning-text: #8a5a00;                    /* gul   */
+
+    /* Bannere med hvit tekst */
+    --navy: #234e80;
+    --navy-dark: #1a3d66;
+    --navy-light: #2f66a3;
+
+    color-scheme: light;
+}
+
+/* ---------- MARINEBLÅTT TEMA (mørk modus) ---------- */
+/* html:root[...] er mer spesifikk enn html:root, så dette vinner når temaet er satt */
+html:root[data-theme="navy"] {
+    --background: #061727;
+    --surface: #0b233f;
+    --surface-soft: #0f2c4d;
+    --surface-translucent: rgba(11, 35, 63, 0.94);
+
+    --heading: #f4f8fd;                         /* ikke ren hvit, blir hard mot mørkt */
+    --text: #e4ecf6;                            /* 13 : 1 */
+    --text-secondary: #b4c3d6;                  /*  8,8 : 1 */
+    --secondary: #b4c3d6;
+
+    --border: #234a78;
+    --accent: #adcbf1;
+
+    --primary: #316bc0;                         /* knapp, hvit tekst 5,3 : 1 */
+    --primary-dark: #2559a8;
+    --link: #8fbaf0;                            /*  7,9 : 1 */
+    --focus: #adcbf1;
+
+    --success-text: #4cc38a;
+    --danger-text: #ff7b7b;
+    --warning-text: #f2c14e;
+
+    --navy: #113360;
+    --navy-dark: #0a2548;
+    --navy-light: #1a4580;
+
+    color-scheme: dark;
+}
+
+/* ---------- FOKUSRING (tastaturnavigasjon) ---------- */
+html :focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+}
+
+/* ---------- KNAPP FOR TEMA ---------- */
+/* Rund knapp med sol- eller måneikon. theme.js legger den i menyen. */
+.theme-toggle {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0 10px 0 0;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+}
+
+.theme-toggle:hover {
+    border-color: var(--accent);
+    background: var(--surface-soft);
+}
+
+.theme-toggle svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Hvis siden ikke har noen meny å legge knappen i, ligger den fast øverst til høyre */
+.theme-toggle.theme-toggle-fixed {
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    margin: 0;
+    z-index: 2000;
+}
+
+/* ---------- DEN BLÅ BOKSEN PÅ FORSIDEN ---------- */
+/* I mørk modus blir den dypere, så den ikke lyser mot resten av siden. */
+html:root[data-theme="navy"] .network {
+    background: linear-gradient(145deg, #17437f, #0f3163);
+}

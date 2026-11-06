@@ -63,7 +63,7 @@ input {
 
     border-bottom: 1px solid var(--border);
 
-    background: rgba(255, 255, 255, 0.96);
+    background: var(--surface-translucent);
 
     backdrop-filter: blur(14px);
 }
@@ -83,7 +83,7 @@ input {
 
     border-radius: 10px;
 
-    color: var(--primary);
+    color: var(--link);
 
     background: rgba(23, 107, 135, 0.08);
 }
@@ -96,7 +96,7 @@ input {
 .brand strong {
     display: block;
 
-    color: var(--navy);
+    color: var(--heading);
 
     font-size: 0.91rem;
 }
@@ -106,7 +106,7 @@ input {
 
     margin-top: 2px;
 
-    color: #89939d;
+    color: var(--text-secondary);
 
     font-size: 0.58rem;
     font-weight: 800;
@@ -128,7 +128,7 @@ input {
 
     border-radius: 8px;
 
-    color: #52606c;
+    color: var(--text-secondary);
 
     font-size: 0.73rem;
     font-weight: 700;
@@ -139,7 +139,7 @@ input {
 }
 
 .header-nav a:hover {
-    color: var(--primary);
+    color: var(--link);
 
     background: rgba(23, 107, 135, 0.06);
 }
@@ -149,9 +149,9 @@ input {
 
     border: 1px solid var(--border);
 
-    color: var(--navy) !important;
+    color: var(--heading) !important;
 
-    background: white;
+    background: var(--surface);
 }
 
 
@@ -201,15 +201,15 @@ input {
 .secondary-button {
     border: 1px solid var(--border);
 
-    color: var(--navy);
+    color: var(--heading);
 
-    background: white;
+    background: var(--surface);
 }
 
 .secondary-button:hover {
-    border-color: #c8d0d6;
+    border-color: var(--border);
 
-    background: #f8fafb;
+    background: var(--surface-soft);
 }
 
 
@@ -238,9 +238,9 @@ input {
     background:
         linear-gradient(
             135deg,
-            #ffffff 0%,
-            #f8fafb 58%,
-            #edf5f7 100%
+            var(--surface) 0%,
+            var(--surface-soft) 58%,
+            var(--surface-soft) 100%
         );
 }
 
@@ -277,7 +277,7 @@ input {
 
     margin-bottom: 18px;
 
-    color: var(--primary);
+    color: var(--link);
 
     font-size: 0.66rem;
     font-weight: 850;
@@ -303,7 +303,7 @@ input {
 
     margin: 0 auto 22px;
 
-    color: var(--navy-dark);
+    color: var(--heading);
 
     font-size:
         clamp(
@@ -318,7 +318,7 @@ input {
 }
 
 .hero h1 span {
-    color: var(--primary);
+    color: var(--link);
 }
 
 .hero-description {
@@ -350,7 +350,7 @@ input {
 
     margin-top: 25px;
 
-    color: #778490;
+    color: var(--text-secondary);
 
     font-size: 0.67rem;
     font-weight: 650;
@@ -366,7 +366,7 @@ input {
 .hero-audience span::before {
     content: "✓";
 
-    color: var(--green);
+    color: var(--success-text);
 
     font-weight: 900;
 }
@@ -398,7 +398,7 @@ input {
 
     border-radius: 20px;
 
-    background: white;
+    background: var(--surface);
 
     box-shadow:
         0 28px 70px
@@ -416,8 +416,8 @@ input {
     background:
         linear-gradient(
             145deg,
-            #dfecef,
-            #edf5f7
+            var(--surface-soft),
+            var(--surface-soft)
         );
 }
 
@@ -453,7 +453,7 @@ input {
 
     text-align: left;
 
-    background: rgba(255, 255, 255, 0.95);
+    background: var(--surface-translucent);
 
     box-shadow:
         0 8px 22px
@@ -489,7 +489,7 @@ input {
 
     margin-bottom: 3px;
 
-    color: var(--navy);
+    color: var(--heading);
 
     font-size: 0.72rem;
 }
@@ -515,7 +515,7 @@ input {
 
     margin-bottom: 6px;
 
-    color: var(--green);
+    color: var(--success-text);
 
     font-size: 0.6rem;
     font-weight: 850;
@@ -528,7 +528,7 @@ input {
 .resource-card-copy h2 {
     margin: 0 0 7px;
 
-    color: var(--navy);
+    color: var(--heading);
 
     font-size: 1.3rem;
 
@@ -563,7 +563,7 @@ input {
 
     margin-bottom: 8px;
 
-    color: var(--primary);
+    color: var(--link);
 
     font-size: 0.63rem;
     font-weight: 850;
@@ -581,7 +581,7 @@ input {
 .how-section {
     padding: 95px 8vw;
 
-    background: white;
+    background: var(--surface);
 }
 
 .section-heading {
@@ -595,7 +595,7 @@ input {
 .section-heading h2 {
     margin: 0 0 10px;
 
-    color: var(--navy-dark);
+    color: var(--heading);
 
     font-size:
         clamp(
@@ -651,7 +651,7 @@ input {
 
     text-align: left;
 
-    background: #fafbfb;
+    background: var(--surface-soft);
 }
 
 .step-number {
@@ -665,7 +665,7 @@ input {
 
     border-radius: 9px;
 
-    color: var(--primary);
+    color: var(--link);
 
     background: rgba(23, 107, 135, 0.08);
 
@@ -676,7 +676,7 @@ input {
 .step h3 {
     margin: 2px 0 6px;
 
-    color: var(--navy);
+    color: var(--heading);
 
     font-size: 0.92rem;
 }
@@ -782,8 +782,8 @@ input {
     background:
         linear-gradient(
             145deg,
-            #176b87,
-            #1a718b
+            var(--primary),
+            var(--primary-dark)
         );
 }
 
@@ -812,9 +812,9 @@ input {
 
     border-radius: 50%;
 
-    color: var(--navy);
+    color: var(--heading);
 
-    background: white;
+    background: var(--surface);
 
     text-align: center;
 
@@ -830,7 +830,7 @@ input {
 
     position: absolute;
 
-    border: 4px solid white;
+    border: 4px solid var(--surface);
 
     border-radius: 50%;
 
@@ -865,7 +865,7 @@ input {
 .login-section {
     padding: 100px 8vw;
 
-    background: white;
+    background: var(--surface);
 }
 
 .login-layout {
@@ -887,7 +887,7 @@ input {
 
     margin: 0 auto 14px;
 
-    color: var(--navy-dark);
+    color: var(--heading);
 
     font-size:
         clamp(
@@ -922,7 +922,7 @@ input {
 
     border-radius: 8px;
 
-    color: var(--green);
+    color: var(--success-text);
 
     background: rgba(35, 133, 91, 0.07);
 
@@ -949,7 +949,7 @@ input {
 
     text-align: left;
 
-    background: #fafbfb;
+    background: var(--surface-soft);
 
     box-shadow:
         0 18px 48px
@@ -976,7 +976,7 @@ input {
     border-radius:
         12px 12px 10px 10px;
 
-    background: #eef2f4;
+    background: var(--surface-soft);
 }
 
 .auth-tab {
@@ -1002,13 +1002,13 @@ input {
 }
 
 .auth-tab:hover {
-    color: var(--navy);
+    color: var(--heading);
 }
 
 .auth-tab.active {
-    color: var(--navy);
+    color: var(--heading);
 
-    background: white;
+    background: var(--surface);
 
     box-shadow:
         0 2px 8px
@@ -1033,7 +1033,7 @@ input {
 
     margin-bottom: 7px;
 
-    color: var(--primary);
+    color: var(--link);
 
     font-size: 0.61rem;
     font-weight: 850;
@@ -1046,7 +1046,7 @@ input {
 .login-card h3 {
     margin: 0 0 21px;
 
-    color: var(--navy);
+    color: var(--heading);
 
     font-size: 1.23rem;
 
@@ -1072,7 +1072,7 @@ input {
 
     margin-bottom: 6px;
 
-    color: #344054;
+    color: var(--text);
 
     font-size: 0.7rem;
     font-weight: 750;
@@ -1084,7 +1084,7 @@ input {
 
     padding: 0 12px;
 
-    border: 1px solid #d0d5dd;
+    border: 1px solid var(--border);
 
     border-radius: 8px;
 
@@ -1092,7 +1092,7 @@ input {
 
     color: var(--text);
 
-    background: white;
+    background: var(--surface);
 
     font-size: 0.75rem;
 
@@ -1115,7 +1115,7 @@ input {
 
     margin-top: 5px;
 
-    color: var(--danger);
+    color: var(--danger-text);
 
     font-size: 0.65rem;
 }
@@ -1171,7 +1171,7 @@ input {
 
     margin: 17px 0;
 
-    color: #98a2b3;
+    color: var(--text-secondary);
 
     font-size: 0.59rem;
 }
@@ -1195,9 +1195,9 @@ input {
 
     border-radius: 8px;
 
-    color: var(--navy);
+    color: var(--heading);
 
-    background: white;
+    background: var(--surface);
 
     font-size: 0.7rem;
     font-weight: 750;
@@ -1206,14 +1206,14 @@ input {
 }
 
 .demo-button:hover {
-    background: #f5f7f8;
+    background: var(--surface-soft);
 }
 
 .demo-note,
 .register-note {
     margin: 12px 0 0;
 
-    color: #98a2b3;
+    color: var(--text-secondary);
 
     text-align: center;
 
@@ -1238,15 +1238,15 @@ input {
 
     border-top: 1px solid var(--border);
 
-    color: #7c8893;
+    color: var(--text-secondary);
 
-    background: #f8fafb;
+    background: var(--surface-soft);
 
     font-size: 0.62rem;
 }
 
 .footer strong {
-    color: var(--navy);
+    color: var(--heading);
 }
 
 
@@ -1359,7 +1359,7 @@ input {
 
     border-radius: 8px;
 
-    color: var(--danger);
+    color: var(--danger-text);
 
     background: rgba(198, 61, 61, 0.07);
 

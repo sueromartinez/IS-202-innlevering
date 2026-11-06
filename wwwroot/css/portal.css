@@ -90,7 +90,7 @@
     letter-spacing: 0.06em;
     text-align: left;
     text-transform: uppercase;
-    white-space: nowrap;
+    var(--surface)-space: nowrap;
 }
 
 .portal-table td {
@@ -134,9 +134,9 @@
     border-radius: 999px;
     font-size: 0.72rem;
     font-weight: 750;
-    white-space: nowrap;
-    color: #344054;
-    background: #eef1f4;
+    var(--surface)-space: nowrap;
+    color: var(--text);
+    background: var(--surface-soft);
 }
 
 .status-badge::before {
@@ -172,14 +172,14 @@
     padding: 0 13px;
     border: 1px solid var(--border);
     border-radius: 8px;
-    color: #344054;
-    background: white;
+    color: var(--text);
+    background: var(--surface);
     font: inherit;
     font-size: 0.78rem;
     font-weight: 750;
     text-decoration: none;
     cursor: pointer;
-    white-space: nowrap;
+    var(--surface)-space: nowrap;
 }
 
 .secondary-action:hover { background: #f6f8f9; }
@@ -235,7 +235,7 @@
     border-radius: 9px;
     font: inherit;
     font-size: 0.9rem;
-    background: white;
+    background: var(--surface);
 }
 
 .form-field input:focus,
@@ -247,7 +247,7 @@
 
 .field-error,
 .validation-summary-errors {
-    color: var(--urgent);
+    color: var(--danger-text);
     font-size: 0.78rem;
 }
 
@@ -307,12 +307,12 @@
     padding: 16px 18px;
     border: 1px solid var(--border);
     border-radius: 12px;
-    background: white;
+    background: var(--surface);
 }
 
 .list-card.unread {
     border-color: rgba(23, 107, 135, 0.45);
-    background: #f5fafc;
+    background: var(--surface-soft);
 }
 
 .list-card h3 {
@@ -370,7 +370,7 @@
     height: 1px;
     overflow: hidden;
     clip: rect(0 0 0 0);
-    white-space: nowrap;
+    var(--surface)-space: nowrap;
 }
 
 .inline-role-form {
@@ -384,5 +384,5 @@
     border-radius: 8px;
     font: inherit;
     font-size: 0.82rem;
-    background: white;
+    background: var(--surface);
 }
