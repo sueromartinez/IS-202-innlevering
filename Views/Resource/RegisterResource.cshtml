@@ -36,6 +36,8 @@
     />
 
 
+    <link rel="stylesheet" href="~/css/top-navigation.css" asp-append-version="true" />
+
     <style>
 
         * {
@@ -275,10 +277,11 @@
            PAGE
         ========================================== */
 
+        /* Uses more desktop width while keeping the original page margins. */
         .resource-page {
             width:
                 min(
-                    1550px,
+                    1500px,
                     calc(100% - 48px)
                 );
 
@@ -286,7 +289,7 @@
                 0 auto;
 
             padding:
-                42px 0 70px;
+                28px 0 44px;
         }
 
 
@@ -325,6 +328,7 @@
         }
 
 
+        /* Balances the title with the navigation and the larger cards below. */
         .resource-top h1 {
             margin:
                 0 0 8px;
@@ -334,9 +338,9 @@
 
             font-size:
                 clamp(
-                    2rem,
-                    4vw,
-                    3.3rem
+                    1.8rem,
+                    2.7vw,
+                    2.5rem
                 );
 
             line-height:
@@ -1026,6 +1030,116 @@
 
         }
 
+
+        /* Balances the columns and uses the dashboard map height as the desktop reference. */
+        @@media (min-width: 951px) {
+            /* Keeps the shared navigation visible above the sticky map. */
+            .site-header.portal-navigation-header {
+                position: sticky;
+                top: 0;
+                z-index: 1100;
+                flex-wrap: wrap;
+                gap: 16px;
+                padding-top: 16px;
+                padding-bottom: 16px;
+            }
+
+            .resource-grid {
+                --resource-panel-height: clamp(640px, calc(100dvh - 260px), 740px);
+                /* Gives the map 65 percent while keeping form fields at their normal size. */
+                grid-template-columns: minmax(0, 0.35fr) minmax(0, 0.65fr);
+                align-items: start;
+                height: auto;
+                /* Gives the tall sticky card real travel space without resizing either card. */
+                min-height: max(
+                    calc(100dvh - var(--register-header-height, 80px) - 32px),
+                    calc(var(--register-map-card-height, 1000px) + clamp(120px, 18dvh, 220px))
+                );
+                overflow: visible;
+            }
+
+            .resource-grid > .resource-card {
+                box-sizing: border-box;
+                display: flex;
+                flex-direction: column;
+                min-width: 0;
+                min-height: 0;
+                height: var(--resource-panel-height);
+            }
+
+            /* Stacks paired fields before the narrower form could clip their contents. */
+            .form-card .form-row { grid-template-columns: minmax(0, 1fr); }
+            .form-card .phone-row { grid-template-columns: 90px minmax(0, 1fr); }
+            .form-card .form-group, .form-card .form-control { min-width: 0; max-width: 100%; }
+
+            /* Keeps all normal-sized fields inside a shorter independent scroll area. */
+            .resource-grid > .form-card {
+                height: var(--resource-panel-height);
+            }
+
+            /* Stays below the real header height and stops at the grid boundary. */
+            .resource-grid > .map-card {
+                position: sticky;
+                top: calc(var(--register-header-height, 80px) + 16px);
+                align-self: start;
+                height: auto;
+                z-index: 1;
+            }
+
+            .form-card > .card-heading,
+            .map-card > .map-card-header,
+            .map-card > .map-help {
+                flex: 0 0 auto;
+            }
+
+            /* Gives the fields their own scroll area, including validation and submit. */
+            .form-card > form {
+                flex: 1 1 0;
+                min-height: 0;
+                overflow-y: auto;
+                scrollbar-gutter: stable;
+                padding-right: 10px;
+            }
+
+            /* Makes the map visibly taller while preserving its width and surrounding layout. */
+            .map-card > #resourceMap {
+                flex: 0 0 auto;
+                min-height: 0;
+                height: clamp(600px, 75dvh, 800px);
+            }
+
+            /* Keeps the document as the scroll container for the sticky map. */
+            .resource-page { overflow: visible; }
+        }
+
+        /* Keeps touch scrolling natural when the cards stack on tablets and phones. */
+        @@media (max-width: 950px) {
+            .site-header.portal-navigation-header { flex-wrap: wrap; gap: 16px; }
+            .resource-grid { height: auto; min-height: 0; }
+            .resource-grid > .map-card { position: static; }
+            .form-card > form { max-height: none; overflow: visible; }
+        }
+
+
+        /* Matches Leaflet controls and keeps the fullscreen button easy to tap. */
+        .resource-fullscreen-control button {
+            display: grid; place-items: center; width: 40px; height: 40px;
+            padding: 8px; border: 0; background: white; color: #17212b; cursor: pointer;
+        }
+        .resource-fullscreen-control button:hover { background: #f4f4f4; }
+        .resource-fullscreen-control button:focus-visible { outline: 3px solid #176b87; outline-offset: -3px; }
+        .resource-fullscreen-control svg { width: 22px; height: 22px; }
+        /* Overrides normal card dimensions only while this same map is fullscreen. */
+        #resourceMap:fullscreen, .resource-fullscreen-dialog #resourceMap {
+            width: 100% !important; height: 100dvh !important;
+            min-height: 0 !important; border: 0; border-radius: 0;
+        }
+        .resource-fullscreen-dialog {
+            width: 100vw; max-width: none; height: 100dvh; max-height: none;
+            margin: 0; padding: 0; border: 0; overflow: hidden;
+        }
+        .resource-fullscreen-dialog::backdrop { background: #17212b; }
+
     </style>
 
 </head>
@@ -1038,7 +1152,7 @@
      HEADER
 ========================================== -->
 
-<header class="site-header">
+<header class="site-header portal-navigation-header">
 
     <a
         asp-controller="Home"
@@ -1108,6 +1222,9 @@
 
 </nav>
 
+    @* Reuses the role menu so RegisterResource receives the same active route styling. *@
+    <partial name="_TopNavigation" />
+
     <div class="header-user">
 
         <div class="header-user-info">
@@ -1123,20 +1240,7 @@
         </div>
 
 
-        <form
-            asp-controller="Account"
-            asp-action="Logout"
-            method="post">
 
-            <button
-                type="submit"
-                class="logout-button">
-
-                Logg ut
-
-            </button>
-
-        </form>
 
     </div>
 
@@ -2720,7 +2824,7 @@
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
 </script>
 
-<script src="~/js/kartverket.js"></script>
+<script src="~/js/kartverket.js" asp-append-version="true"></script>
 
 <script>
 
@@ -2766,6 +2870,99 @@
                     10
                 );
 
+
+            // Reuses one Leaflet map so fullscreen never rebuilds layers or selected coordinates.
+            const mapElement = document.getElementById("resourceMap");
+            const fullscreenDialog = document.createElement("dialog");
+            fullscreenDialog.className = "resource-fullscreen-dialog";
+            fullscreenDialog.setAttribute("aria-label", "Ressurskart i fullskjerm");
+            document.body.appendChild(fullscreenDialog);
+            let mapPlaceholder;
+            let fullscreenButton;
+            const expandIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/></svg>';
+            const collapseIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 9h6V3m6 0v6h6M9 21v-6H3m18 0h-6v6"/></svg>';
+
+            function isMapFullscreen() {
+                return document.fullscreenElement === mapElement || fullscreenDialog.open;
+            }
+
+            // Refreshes the viewport while explicitly retaining the current map center and zoom.
+            function refreshMapSize() {
+                const center = map.getCenter();
+                const zoom = map.getZoom();
+                map.invalidateSize({ pan: false });
+                map.setView(center, zoom, { animate: false, reset: true });
+            }
+
+            function updateFullscreenControl() {
+                const expanded = isMapFullscreen();
+                const label = expanded ? "Avslutt fullskjerm" : "Vis i fullskjerm";
+                fullscreenButton.title = label;
+                fullscreenButton.setAttribute("aria-label", label);
+                fullscreenButton.setAttribute("aria-pressed", String(expanded));
+                fullscreenButton.innerHTML = expanded ? collapseIcon : expandIcon;
+                requestAnimationFrame(refreshMapSize);
+            }
+
+            // Uses a top-layer dialog on browsers that cannot fullscreen arbitrary elements.
+            function openFullscreenDialog() {
+                mapPlaceholder = document.createComment("Original resource map position");
+                mapElement.before(mapPlaceholder);
+                fullscreenDialog.appendChild(mapElement);
+                fullscreenDialog.showModal();
+                updateFullscreenControl();
+                fullscreenButton.focus();
+            }
+
+            fullscreenDialog.addEventListener("close", function () {
+                if (mapPlaceholder) {
+                    mapPlaceholder.replaceWith(mapElement);
+                    mapPlaceholder = null;
+                }
+                updateFullscreenControl();
+                fullscreenButton.focus({ preventScroll: true });
+            });
+            // Escape closes the dialog automatically; native fullscreen emits fullscreenchange.
+            document.addEventListener("fullscreenchange", updateFullscreenControl);
+            // Also handles Escape explicitly where browser fullscreen keys are not forwarded.
+            document.addEventListener("keydown", function (event) {
+                if (event.key !== "Escape" || !isMapFullscreen()) return;
+                event.preventDefault();
+                if (fullscreenDialog.open) fullscreenDialog.close();
+                else document.exitFullscreen();
+            });
+
+            const FullscreenControl = L.Control.extend({
+                options: { position: "topright" },
+                onAdd: function () {
+                    const control = L.DomUtil.create("div", "leaflet-bar resource-fullscreen-control");
+                    fullscreenButton = L.DomUtil.create("button", "", control);
+                    fullscreenButton.type = "button";
+                    L.DomEvent.disableClickPropagation(control);
+                    L.DomEvent.disableScrollPropagation(control);
+                    fullscreenButton.addEventListener("click", async function (event) {
+                        // Prevents the same click from selecting coordinates after moving the map.
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (fullscreenDialog.open) {
+                            fullscreenDialog.close();
+                        } else if (document.fullscreenElement === mapElement) {
+                            await document.exitFullscreen();
+                        } else if (mapElement.requestFullscreen && document.fullscreenEnabled) {
+                            try {
+                                await mapElement.requestFullscreen();
+                            } catch {
+                                openFullscreenDialog();
+                            }
+                        } else {
+                            openFullscreenDialog();
+                        }
+                    });
+                    return control;
+                }
+            });
+            new FullscreenControl().addTo(map);
+            updateFullscreenControl();
 
             addKartverketLayers(map);
 
@@ -2898,6 +3095,43 @@
             }
 
 
+            // Measures wrapped navigation so the sticky map never overlaps the header.
+            const registerHeader = document.querySelector(".site-header");
+            function updateHeaderOffset() {
+                document.documentElement.style.setProperty(
+                    "--register-header-height", registerHeader.offsetHeight + "px");
+            }
+            updateHeaderOffset();
+            window.addEventListener("resize", updateHeaderOffset);
+            if (typeof ResizeObserver !== "undefined") {
+                const headerSizeObserver = new ResizeObserver(updateHeaderOffset);
+                headerSizeObserver.observe(registerHeader);
+            }
+
+            // Measures the complete card so its parent cannot collapse to the sticky height.
+            const registerGrid = document.querySelector(".resource-grid");
+            const registerMapCard = document.querySelector(".map-card");
+            function updateStickyBounds() {
+                if (isMapFullscreen()) return;
+                registerGrid.style.setProperty(
+                    "--register-map-card-height", registerMapCard.offsetHeight + "px");
+            }
+            updateStickyBounds();
+            window.addEventListener("resize", updateStickyBounds);
+            if (typeof ResizeObserver !== "undefined") {
+                const stickyBoundsObserver = new ResizeObserver(updateStickyBounds);
+                stickyBoundsObserver.observe(registerMapCard);
+            }
+
+            // Refreshes Leaflet when responsive layout changes the map container size.
+            if (typeof ResizeObserver !== "undefined")
+            {
+                const mapSizeObserver = new ResizeObserver(function () {
+                    refreshMapSize();
+                });
+                mapSizeObserver.observe(document.getElementById("resourceMap"));
+            }
+
             // Leaflet trenger noen ganger dette
             // etter at layouten er ferdig rendret.
 
@@ -2914,6 +3148,7 @@
 </script>
 
 
+<partial name="_Sami" />
 </body>
 
 </html>

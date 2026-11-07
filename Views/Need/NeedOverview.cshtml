@@ -4,8 +4,12 @@
 @{
     Layout = null;
 
+    // Identity-ID brukes for eierskap, e-post for eldre behov.
+    string? currentUserId =
+        User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
     string? userEmail =
-        Context.Session.GetString("UserEmail");
+        (User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? User.Identity?.Name);
 
     string? message =
         TempData["NeedMessage"] as string;
@@ -71,7 +75,26 @@
                         Need need = Model[i];
 
                         bool isPlanned = need.Priority == NeedPriority.Planned;
-                        bool isOwn = need.OwnerEmail == userEmail;
+                        bool isOwn =
+                            need.OwnerUserId == currentUserId
+                            || (need.OwnerUserId == null && need.OwnerEmail == userEmail);
+
+                        // NeedController lar bare eieren endre og slette.
+                        bool canEdit = isOwn;
+                        string statusClass = need.Status switch
+                        {
+                            NeedStatus.UnderReview => "status-review",
+                            NeedStatus.Assigned => "status-assigned",
+                            NeedStatus.Resolved => "status-resolved",
+                            _ => "status-new"
+                        };
+                        string statusName = need.Status switch
+                        {
+                            NeedStatus.UnderReview => "Vurderes",
+                            NeedStatus.Assigned => "Tildelt",
+                            NeedStatus.Resolved => "Løst",
+                            _ => "Ny"
+                        };
 
                         string typeName =
                             typeNames.GetValueOrDefault(((int)need.ResourceType).ToString())
@@ -87,6 +110,7 @@
                                 <strong>@typeName</strong>
                                 <span class="badge">@(isPlanned ? "Planlagt" : "Akutt")</span>
                                 <span class="entry-quantity">Antall: @need.Quantity</span>
+                                <span class="need-status @statusClass">@statusName</span>
                             </div>
 
                             <p class="entry-description">@need.Description</p>
@@ -97,9 +121,20 @@
                                     @(isOwn ? "av deg" : $"av {need.OwnerEmail}")
                                 </span>
 
-                                @if (isOwn)
+                                <div class="entry-actions">
+                                    @if (need.Status != NeedStatus.Resolved)
+                                    {
+                                        <a asp-controller="Match" asp-action="Need" asp-route-id="@need.Id"
+                                           class="small-button primary">Finn ressurser</a>
+                                    }
+                                    else
+                                    {
+                                        <a asp-controller="Match" asp-action="Need" asp-route-id="@need.Id"
+                                           class="small-button">Se tildeling</a>
+                                    }
+
+                                @if (canEdit)
                                 {
-                                    <div class="entry-actions">
                                         <a asp-controller="Need" asp-action="EditNeed" asp-route-id="@need.Id"
                                            class="small-button">Endre</a>
 
@@ -108,8 +143,8 @@
                                               onsubmit="return confirm('Er du sikker på at du vil slette dette behovet?');">
                                             <button type="submit" class="small-button danger">Slett</button>
                                         </form>
-                                    </div>
                                 }
+                                </div>
                             </div>
 
                         </article>
@@ -137,7 +172,7 @@
 
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="~/js/kartverket.js"></script>
+<script src="~/js/kartverket.js" asp-append-version="true"></script>
 
 <script>
 
@@ -221,5 +256,6 @@ function createSymbolMarker(color, type, badge) {
 
 </script>
 
+<partial name="_Sami" />
 </body>
 </html>

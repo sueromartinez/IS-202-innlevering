@@ -1,25 +1,58 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+
+    <!-- Testprosjektet bruker .NET 10 -->
     <TargetFramework>net10.0</TargetFramework>
+
     <ImplicitUsings>enable</ImplicitUsings>
+
     <Nullable>enable</Nullable>
+
+    <!-- Forteller .NET at dette er et testprosjekt -->
+    <IsTestProject>true</IsTestProject>
+
     <IsPackable>false</IsPackable>
+
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+
+    <!-- Testkjøring og oppdagelse av tester -->
+    <PackageReference Include="coverlet.collector" Version="10.1.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+
+    <!-- xUnit -->
     <PackageReference Include="xunit" Version="2.9.3" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+
+    <!-- xUnit adapter for dotnet test -->
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4">
+      <IncludeAssets>
+        runtime; build; native; contentfiles; analyzers; buildtransitive
+      </IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+
+    <!-- Midlertidig EF Core-database til testing -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.14" />
+
+    <!-- Mocking av Identity og andre avhengigheter -->
+    <PackageReference Include="Moq" Version="4.20.72" />
+
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="Xunit" />
-  </ItemGroup>
 
-  <ItemGroup>
+    <!-- Tilgang til ASP.NET Core-klasser -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+
+    <!-- Tilgang til hovedprosjektets kode -->
     <ProjectReference Include="..\FirstWebAppInDocker.csproj" />
+
   </ItemGroup>
 
 </Project>

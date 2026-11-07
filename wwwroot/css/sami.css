@@ -1,0 +1,547 @@
+/* =========================================================
+   SAMI – hjelpeassistenten
+   Bruker fargene fra app.css (navy og primary) med
+   reserveverdier, så widgeten ser lik ut på alle sider.
+   ========================================================= */
+
+.sami {
+    --sami-navy: var(--navy, #123047);
+    --sami-primary: var(--primary, #176b87);
+    --sami-primary-dark: var(--primary-dark, #125770);
+    --sami-surface: #ffffff;
+    --sami-wash: var(--background, #f4f6f8);
+    --sami-border: var(--border, #dfe4e8);
+    --sami-text: var(--text, #17212b);
+    --sami-muted: var(--text-secondary, #667085);
+    --sami-green: var(--resource, #23855b);
+
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 2000;
+
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--sami-text);
+}
+
+.sami *,
+.sami *::before,
+.sami *::after {
+    box-sizing: border-box;
+}
+
+.sami [hidden] {
+    display: none !important;
+}
+
+.sami-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+
+/* -----------------------
+   KNAPPEN NEDE I HJØRNET
+----------------------- */
+
+.sami-launcher {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    margin-left: auto;
+    padding: 7px 18px 7px 7px;
+    border: 0;
+    border-radius: 999px;
+    color: white;
+    background: var(--sami-navy);
+    box-shadow: 0 12px 30px rgba(18, 48, 71, 0.28);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.sami-launcher:hover {
+    background: #1a3d59;
+}
+
+.sami-launcher:active {
+    transform: translateY(1px);
+}
+
+.sami-launcher:focus-visible,
+.sami-icon-button:focus-visible,
+.sami-send:focus-visible,
+.sami-starter:focus-visible,
+.sami-card-button:focus-visible,
+.sami-hint-close:focus-visible,
+.sami a:focus-visible {
+    outline: 3px solid #8cc7da;
+    outline-offset: 2px;
+}
+
+.sami-avatar {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    color: var(--sami-navy);
+    background: #e3f1f6;
+}
+
+.sami-avatar-small {
+    width: 36px;
+    height: 36px;
+}
+
+.sami-launcher-text strong {
+    display: block;
+    font-size: 0.92rem;
+    line-height: 1.2;
+}
+
+.sami-launcher-text span {
+    display: block;
+    margin-top: 1px;
+    color: #b9cad6;
+    font-size: 0.72rem;
+}
+
+/* Når panelet er åpent, trengs ikke knappen. */
+.sami.is-open .sami-launcher,
+.sami.is-open .sami-hint {
+    display: none;
+}
+
+
+/* -----------------------
+   HILSEN FØRSTE GANG
+----------------------- */
+
+.sami-hint {
+    position: relative;
+    width: 250px;
+    margin: 0 0 12px auto;
+    padding: 13px 34px 13px 15px;
+    border: 1px solid var(--sami-border);
+    border-radius: 14px 14px 4px 14px;
+    background: var(--sami-surface);
+    box-shadow: 0 10px 30px rgba(16, 24, 40, 0.12);
+}
+
+.sami-hint p {
+    margin: 0;
+    font-size: 0.84rem;
+    line-height: 1.45;
+}
+
+.sami-hint-close {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 6px;
+    color: var(--sami-muted);
+    background: transparent;
+    cursor: pointer;
+}
+
+.sami-hint-close:hover {
+    background: var(--sami-wash);
+}
+
+
+/* -----------------------
+   PANELET
+----------------------- */
+
+.sami-panel {
+    width: min(400px, calc(100vw - 32px));
+    height: min(640px, calc(100vh - 48px));
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--sami-border);
+    border-radius: 16px;
+    background: var(--sami-surface);
+    box-shadow: 0 24px 60px rgba(16, 24, 40, 0.22);
+    transform-origin: bottom right;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .sami.is-open .sami-panel {
+        animation: sami-open 0.18s ease-out;
+    }
+}
+
+@keyframes sami-open {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.98);
+    }
+}
+
+.sami-header {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 13px 12px 13px 16px;
+    color: white;
+    background: var(--sami-navy);
+}
+
+.sami-header-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.sami-header h2 {
+    margin: 0;
+    color: white;
+    font-size: 1rem;
+    line-height: 1.2;
+}
+
+.sami-header p {
+    margin: 2px 0 0;
+    color: #b9cad6;
+    font-size: 0.74rem;
+}
+
+.sami-icon-button {
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border: 0;
+    border-radius: 9px;
+    color: #d6e2ea;
+    background: transparent;
+    cursor: pointer;
+}
+
+.sami-icon-button:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+
+/* -----------------------
+   MELDINGER
+----------------------- */
+
+.sami-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px 16px 8px;
+    background: var(--sami-wash);
+}
+
+.sami-message {
+    max-width: 88%;
+    margin-bottom: 12px;
+    padding: 10px 13px;
+    font-size: 0.87rem;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+}
+
+.sami-message p {
+    margin: 0 0 8px;
+}
+
+.sami-message p:last-child,
+.sami-message ul:last-child {
+    margin-bottom: 0;
+}
+
+.sami-message ul {
+    margin: 4px 0 8px;
+    padding-left: 18px;
+}
+
+.sami-message li {
+    margin-bottom: 3px;
+}
+
+.sami-message.from-sami {
+    border: 1px solid var(--sami-border);
+    border-radius: 4px 14px 14px 14px;
+    background: var(--sami-surface);
+}
+
+.sami-message.from-user {
+    margin-left: auto;
+    border-radius: 14px 4px 14px 14px;
+    color: white;
+    background: var(--sami-primary);
+    white-space: pre-wrap;
+}
+
+.sami-message.is-error {
+    border-color: #f1c6c6;
+    color: #9d2f2f;
+    background: #fdf2f2;
+}
+
+.sami-message a {
+    color: var(--sami-primary);
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+/* «Sami skriver …» */
+.sami-typing {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--sami-muted);
+}
+
+.sami-typing-dots {
+    display: inline-flex;
+    gap: 4px;
+}
+
+.sami-typing-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.4;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .sami-typing-dots span {
+        animation: sami-dot 1s infinite ease-in-out;
+    }
+
+    .sami-typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+    .sami-typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+}
+
+@keyframes sami-dot {
+    50% {
+        opacity: 1;
+        transform: translateY(-2px);
+    }
+}
+
+
+/* -----------------------
+   FORSLAG FRA SAMI
+----------------------- */
+
+.sami-card {
+    max-width: 92%;
+    margin: -4px 0 12px;
+    padding: 13px 14px;
+    border: 1px solid var(--sami-border);
+    border-left: 4px solid var(--sami-green);
+    border-radius: 0 12px 12px 0;
+    background: var(--sami-surface);
+    font-size: 0.84rem;
+}
+
+.sami-card h3 {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.sami-card-meta {
+    margin: 2px 0 8px;
+    color: var(--sami-muted);
+    font-size: 0.76rem;
+}
+
+.sami-card-reason {
+    margin: 0 0 4px;
+    line-height: 1.5;
+}
+
+.sami-card-need {
+    margin: 0 0 11px;
+    color: var(--sami-muted);
+    font-size: 0.78rem;
+}
+
+.sami-card-button {
+    min-height: 36px;
+    padding: 0 13px;
+    border: 0;
+    border-radius: 8px;
+    color: white;
+    background: var(--sami-primary);
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+.sami-card-button:hover {
+    background: var(--sami-primary-dark);
+}
+
+.sami-card-button:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+
+.sami-card-status {
+    margin: 9px 0 0;
+    font-size: 0.78rem;
+    font-weight: 650;
+}
+
+.sami-card-status.is-success { color: var(--sami-green); }
+.sami-card-status.is-error { color: #9d2f2f; }
+
+
+/* -----------------------
+   FORSLAG TIL SPØRSMÅL
+----------------------- */
+
+.sami-starters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    padding: 4px 16px 12px;
+    background: var(--sami-wash);
+}
+
+.sami-starters:empty {
+    display: none;
+}
+
+.sami-starter {
+    padding: 8px 12px;
+    border: 1px solid #c9dde6;
+    border-radius: 999px;
+    color: var(--sami-primary-dark);
+    background: var(--sami-surface);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 650;
+    text-align: left;
+    cursor: pointer;
+}
+
+.sami-starter:hover {
+    border-color: var(--sami-primary);
+    background: #f1f8fb;
+}
+
+
+/* -----------------------
+   SKRIVEFELT
+----------------------- */
+
+.sami-composer {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    margin: 0;
+    padding: 12px 12px 6px;
+    border-top: 1px solid var(--sami-border);
+    background: var(--sami-surface);
+}
+
+.sami-composer textarea {
+    flex: 1;
+    min-height: 42px;
+    max-height: 130px;
+    padding: 10px 12px;
+    border: 1px solid var(--sami-border);
+    border-radius: 10px;
+    resize: none;
+    font: inherit;
+    font-size: 0.88rem;
+    line-height: 1.4;
+    color: var(--sami-text);
+}
+
+.sami-composer textarea:focus {
+    outline: 3px solid rgba(23, 107, 135, 0.18);
+    border-color: var(--sami-primary);
+}
+
+.sami-send {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border: 0;
+    border-radius: 10px;
+    color: white;
+    background: var(--sami-primary);
+    cursor: pointer;
+}
+
+.sami-send:hover {
+    background: var(--sami-primary-dark);
+}
+
+.sami-send:disabled {
+    cursor: default;
+    opacity: 0.5;
+}
+
+.sami-footnote {
+    margin: 0;
+    padding: 2px 14px 11px;
+    color: var(--sami-muted);
+    background: var(--sami-surface);
+    font-size: 0.68rem;
+    line-height: 1.4;
+}
+
+
+/* -----------------------
+   MOBIL
+----------------------- */
+
+@media (max-width: 600px) {
+    .sami {
+        right: 14px;
+        bottom: 14px;
+    }
+
+    .sami.is-open {
+        right: 0;
+        bottom: 0;
+        left: 0;
+    }
+
+    .sami-panel {
+        width: 100%;
+        height: 88vh;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .sami-launcher {
+        padding-right: 14px;
+    }
+
+    .sami-launcher-text span {
+        display: none;
+    }
+}
+
+@media print {
+    .sami {
+        display: none;
+    }
+}

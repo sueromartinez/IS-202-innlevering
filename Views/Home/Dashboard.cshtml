@@ -19,6 +19,11 @@
     // Hvis rollen ikke finnes, brukes en tom tekst.
     string userRole =
         ViewBag.UserRole ?? "";
+
+    // Admin ser samme dashboard som offentlige aktører.
+    bool isOfficial =
+        userRole == "PublicActor"
+        || userRole == "Admin";
 }
 
 <!DOCTYPE html>
@@ -39,9 +44,8 @@
         @ViewData["Title"] - Beredskapsportal
     </title>
 
-    @* Leaflet CSS lastes bare inn for offentlige aktører,
-       fordi det er denne rollen som har kartvisningen. *@
-    @if (userRole == "PublicActor")
+ @* Leaflet CSS lastes inn for offentlige aktører og administratorer. *@
+    @if (isOfficial)
     {
         <link
             rel="stylesheet"
@@ -58,7 +62,7 @@
    Denne delen vises bare dersom brukeren har rollen PublicActor.
 ================================================= *@
 
-@if (userRole == "PublicActor")
+@if (isOfficial)
 {
     <!-- =========================================
          OFFENTLIG AKTØR
@@ -68,6 +72,8 @@
 
         @* HEADER: Viser portalens navn, status,
            innlogget bruker og utloggingsknapp. *@
+
+           <header class="public-header">
 
             @* Lenke til dashboardet via HomeController. *@
             <a
@@ -134,13 +140,17 @@
                     </strong>
 
                     <span>
-                        Offentlig aktør
+                        @(userRole == "Admin" ? "Administrator" : "Offentlig aktør")
                     </span>
 
                 </div>
 
                 @* Skjema som sender en POST-forespørsel
                    til Logout-handlingen i AccountController. *@
+
+                <link rel="stylesheet" href="~/css/top-navigation.css" asp-append-version="true" />
+                @await Component.InvokeAsync("NotificationBell")
+                
                 <form
                     asp-controller="Account"
                     asp-action="Logout"
@@ -242,6 +252,33 @@
                         </span>
 
                     </a>
+
+
+                    @if (userRole == "Admin")
+                    {
+                        <a
+                            asp-controller="Admin"
+                            asp-action="Users"
+                            class="public-navigation-item">
+
+                            <span class="navigation-icon">
+                                ⚙
+                            </span>
+
+                            <span>
+
+                                <strong>
+                                    Brukere
+                                </strong>
+
+                                <small>
+                                    Administrer kontoer
+                                </small>
+
+                            </span>
+
+                        </a>
+                    }
 
                 </nav>
 
@@ -753,6 +790,30 @@ else if (userRole == "ResourceProvider")
                     Registrer ressurs
 
                 </a>
+
+
+                <a
+                    asp-controller="Request"
+                    asp-action="Index"
+                    class="provider-nav-link">
+
+                    Forespørsler
+
+                </a>
+
+
+                <a
+                    asp-controller="Request"
+                    asp-action="MatchingNeeds"
+                    class="provider-nav-link">
+
+                    Behov jeg kan hjelpe med
+
+                </a>
+
+
+                <link rel="stylesheet" href="~/css/top-navigation.css" asp-append-version="true" />
+                @await Component.InvokeAsync("NotificationBell")
 
 
                 <a
@@ -3128,13 +3189,13 @@ else
 
 
 
-@if (userRole == "PublicActor")
+@if (isOfficial)
 {
     <script
         src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
     </script>
 
-    <script src="~/js/kartverket.js"></script>
+    <script src="~/js/kartverket.js" asp-append-version="true"></script>
 
 
     <script>
@@ -3473,5 +3534,6 @@ else
 
     </script>
 }
+<partial name="_Sami" />
 </body>
 </html>

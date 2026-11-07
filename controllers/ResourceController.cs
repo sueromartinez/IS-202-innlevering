@@ -372,7 +372,10 @@ public class ResourceController : Controller
                                 resource.OwnerEmail,
 
                             CreatedAt =
-                                resource.CreatedAt
+                                resource.CreatedAt,
+
+                            Status =
+                                resource.Status
                         }
                 )
                 .ToListAsync();
@@ -397,6 +400,76 @@ public class ResourceController : Controller
 
         return View(
             resources
+        );
+    }
+
+
+    // =========================================================
+    // ENDRE TILGJENGELIGHET
+    // =========================================================
+
+    /// <summary>
+    /// Lar eieren markere en ressurs som tilgjengelig eller
+    /// utilgjengelig. "Opptatt" settes bare av systemet når
+    /// en forespørsel er bekreftet.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(
+        Roles =
+            IdentitySeeder.ResourceProviderRole
+    )]
+    public async Task<IActionResult> SetStatus(
+        int id,
+        ResourceStatus status
+    )
+    {
+        if (status == ResourceStatus.Busy)
+        {
+            return BadRequest();
+        }
+
+        string? userId =
+            _userManager.GetUserId(
+                User
+            );
+
+        Resource? resource =
+            await _dbContext.Resources
+                .FirstOrDefaultAsync(
+                    item =>
+                        item.Id == id
+                        && item.OwnerUserId == userId
+                );
+
+        if (resource is null)
+        {
+            return NotFound();
+        }
+
+        if (resource.Status == ResourceStatus.Busy)
+        {
+            TempData["ResourceSuccess"] =
+                "Ressursen er opptatt med et behov. Den blir ledig når behovet er løst eller forespørselen avbrutt.";
+
+            return RedirectToAction(
+                nameof(ResourceOverview)
+            );
+        }
+
+        resource.Status =
+            status;
+
+        await _dbContext
+            .SaveChangesAsync();
+
+        TempData["ResourceSuccess"] =
+            status == ResourceStatus.Available
+                ? "Ressursen er markert som tilgjengelig."
+                : "Ressursen er markert som utilgjengelig og vises ikke i søk.";
+
+        return RedirectToAction(
+            nameof(ResourceOverview)
         );
     }
 

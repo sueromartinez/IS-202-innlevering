@@ -99,14 +99,137 @@ namespace FirstWebAppInDocker.Migrations
                 });
 
             // Definerer relasjonen mellom roller og rollekrav.
-            modelBuilder.Entity("FirstWebAppInDocker.Models.Resource", b =>
-                {
-                    b.HasOne("FirstWebAppInDocker.Models.ApplicationUser", "Owner")
-                        .WithMany()
-                        .HasForeignKey("OwnerUserId");
+          modelBuilder.Entity("FirstWebAppInDocker.Models.Need", b =>
+{
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                    b.Navigation("Owner");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<double>("Latitude")
+                        .HasColumnType("double");
+
+                    b.Property<double>("Longitude")
+                        .HasColumnType("double");
+
+                    b.Property<string>("OwnerEmail")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<string>("OwnerUserId")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ResourceType")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.ToTable("Needs");
                 });
+
+            modelBuilder.Entity("FirstWebAppInDocker.Models.NeedAssignment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<int>("NeedId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RequestedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<int>("ResourceId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("RespondedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("SuggestedByAssistant")
+                        .HasColumnType("tinyint(1)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NeedId");
+
+                    b.HasIndex("ResourceId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("NeedAssignments");
+                });
+
+            modelBuilder.Entity("FirstWebAppInDocker.Models.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Link")
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "IsRead");
+
+                    b.ToTable("Notifications");
+                });
+
             modelBuilder.Entity("FirstWebAppInDocker.Models.Resource", b =>
                 {
                     b.Property<int>("Id")
@@ -181,6 +304,9 @@ namespace FirstWebAppInDocker.Migrations
                         .HasColumnType("varchar(100)");
 
                     b.Property<int>("ResourceType")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -328,7 +454,37 @@ namespace FirstWebAppInDocker.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+
             // Definerer relasjonen mellom ressursen og eieren.
+
+            modelBuilder.Entity("FirstWebAppInDocker.Models.Need", b =>
+                {
+                    b.HasOne("FirstWebAppInDocker.Models.ApplicationUser", "OwnerUser")
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId");
+
+                    b.Navigation("OwnerUser");
+                });
+
+            modelBuilder.Entity("FirstWebAppInDocker.Models.NeedAssignment", b =>
+                {
+                    b.HasOne("FirstWebAppInDocker.Models.Need", "Need")
+                        .WithMany()
+                        .HasForeignKey("NeedId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FirstWebAppInDocker.Models.Resource", "Resource")
+                        .WithMany()
+                        .HasForeignKey("ResourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Need");
+
+                    b.Navigation("Resource");
+                });
+                
             modelBuilder.Entity("FirstWebAppInDocker.Models.Resource", b =>
                 {
                     b.HasOne("FirstWebAppInDocker.Models.ApplicationUser", "Owner")

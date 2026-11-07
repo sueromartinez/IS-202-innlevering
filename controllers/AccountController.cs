@@ -1,9 +1,12 @@
+
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
 using FirstWebAppInDocker.ViewModels;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Hosting;
 
 namespace FirstWebAppInDocker.Controllers;
 
@@ -17,38 +20,39 @@ namespace FirstWebAppInDocker.Controllers;
 /// - roller
 /// - autentisering
 ///
-/// Session beholdes midlertidig fordi deler av
-/// eksisterende dashboard fortsatt bruker den.
+/// Session beholdes midlertidig for
+/// bakoverkompatibilitet med eksisterende kode.
+///
 /// Identity er sannhetskilden for brukerdata.
 /// </summary>
 public class AccountController : Controller
 {
-    private readonly UserManager<ApplicationUser>
-        _userManager;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    private readonly SignInManager<ApplicationUser>
-        _signInManager;
+    private readonly SignInManager<ApplicationUser> _signInManager;
+
+    private readonly IWebHostEnvironment? _environment;
 
 
     public AccountController(
         UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager
-    )
+        SignInManager<ApplicationUser> signInManager,
+        IWebHostEnvironment? environment = null)
     {
         _userManager = userManager;
         _signInManager = signInManager;
+        _environment = environment;
     }
 
 
-    // =========================
+    // ========================================
     // LOGIN
-    // =========================
+    // ========================================
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(
-        LoginViewModel model
-    )
+        LoginViewModel model)
     {
         if (!ModelState.IsValid)
         {
@@ -61,16 +65,10 @@ public class AccountController : Controller
             );
         }
 
-
-        string email =
-            model.Email.Trim();
-
+        string email = model.Email.Trim();
 
         ApplicationUser? user =
-            await _userManager.FindByEmailAsync(
-                email
-            );
-
+            await _userManager.FindByEmailAsync(email);
 
         if (user is null)
         {
@@ -83,37 +81,26 @@ public class AccountController : Controller
             );
         }
 
-
         var result =
-            await _signInManager
-                .PasswordSignInAsync(
-                    user,
-                    model.Password,
-                    isPersistent: false,
-                    lockoutOnFailure: true
-                );
-
+            await _signInManager.PasswordSignInAsync(
+                user,
+                model.Password,
+                isPersistent: false,
+                lockoutOnFailure: true
+            );
 
         if (result.Succeeded)
         {
             string role =
-                await GetPrimaryRoleAsync(
-                    user
-                );
+                await GetPrimaryRoleAsync(user);
 
-
-            CreateSession(
-                user,
-                role
-            );
-
+            CreateSession(user, role);
 
             return RedirectToAction(
                 "Dashboard",
                 "Home"
             );
         }
-
 
         if (result.RequiresTwoFactor)
         {
@@ -126,7 +113,6 @@ public class AccountController : Controller
             );
         }
 
-
         if (result.IsLockedOut)
         {
             TempData["LoginError"] =
@@ -138,10 +124,8 @@ public class AccountController : Controller
             );
         }
 
-
         TempData["LoginError"] =
             "Feil e-post eller passord.";
-
 
         return RedirectToAction(
             "Index",
@@ -150,20 +134,16 @@ public class AccountController : Controller
     }
 
 
-    // =========================
+    // ========================================
     // REGISTER
-    // =========================
+    // ========================================
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(
-        RegisterViewModel model
-    )
+        RegisterViewModel model)
     {
-        SaveRegistrationValues(
-            model
-        );
-
+        SaveRegistrationValues(model);
 
         if (!ModelState.IsValid)
         {
@@ -176,16 +156,10 @@ public class AccountController : Controller
             );
         }
 
-
-        string email =
-            model.Email.Trim();
-
+        string email = model.Email.Trim();
 
         ApplicationUser? existingUser =
-            await _userManager.FindByEmailAsync(
-                email
-            );
-
+            await _userManager.FindByEmailAsync(email);
 
         if (existingUser is not null)
         {
@@ -198,53 +172,32 @@ public class AccountController : Controller
             );
         }
 
+        var user = new ApplicationUser
+        {
+            UserName = email,
+            Email = email,
+            Name = model.Name.Trim(),
+            CreatedAt = DateTime.UtcNow,
+            EmailConfirmed = false
+        };
 
-        var user =
-            new ApplicationUser
-            {
-                UserName =
-                    email,
-
-                Email =
-                    email,
-
-                Name =
-                    model.Name.Trim(),
-
-                CreatedAt =
-                    DateTime.UtcNow,
-
-                EmailConfirmed =
-                    false
-            };
-
-
-        // =========================
-        // CREATE USER
-        // =========================
-
+        // Opprett Identity-bruker.
         IdentityResult createResult =
             await _userManager.CreateAsync(
                 user,
                 model.Password
             );
 
-
         if (!createResult.Succeeded)
         {
-            string errors =
-                string.Join(
-                    " ",
-                    createResult.Errors.Select(
-                        error =>
-                            error.Description
-                    )
-                );
+            string errors = string.Join(
+                " ",
+                createResult.Errors.Select(
+                    error => error.Description
+                )
+            );
 
-
-            TempData["RegisterError"] =
-                errors;
-
+            TempData["RegisterError"] = errors;
 
             return RedirectToAction(
                 "Index",
@@ -252,42 +205,27 @@ public class AccountController : Controller
             );
         }
 
-
-        // =========================
-        // ASSIGN ROLE
-        // =========================
-        //
-        // Åpen registrering gir KUN
-        // ResourceProvider.
-        //
-
+        // Åpen registrering skal kun gi
+        // rollen ResourceProvider.
         IdentityResult roleResult =
             await _userManager.AddToRoleAsync(
                 user,
                 IdentitySeeder.ResourceProviderRole
             );
 
-
         if (!roleResult.Succeeded)
         {
-            await _userManager.DeleteAsync(
-                user
+            await _userManager.DeleteAsync(user);
+
+            string errors = string.Join(
+                " ",
+                roleResult.Errors.Select(
+                    error => error.Description
+                )
             );
-
-
-            string errors =
-                string.Join(
-                    " ",
-                    roleResult.Errors.Select(
-                        error =>
-                            error.Description
-                    )
-                );
-
 
             TempData["RegisterError"] =
                 $"Brukeren kunne ikke få riktig rolle. {errors}";
-
 
             return RedirectToAction(
                 "Index",
@@ -295,18 +233,15 @@ public class AccountController : Controller
             );
         }
 
-
         await _signInManager.SignInAsync(
             user,
             isPersistent: false
         );
 
-
         CreateSession(
             user,
             IdentitySeeder.ResourceProviderRole
         );
-
 
         return RedirectToAction(
             "Dashboard",
@@ -315,23 +250,42 @@ public class AccountController : Controller
     }
 
 
-    // =========================
+    // ========================================
     // DEMO PUBLIC ACTOR
-    // =========================
+    // ========================================
 
+    /// <summary>
+    /// Passordfri demoinnlogging.
+    ///
+    /// Kun tilgjengelig i Development.
+    /// Production og andre miljøer avvises.
+    ///
+    /// Dersom miljøet ikke er tilgjengelig,
+    /// avvises innloggingen også.
+    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult>
-        DemoPublicActorLogin()
+    public async Task<IActionResult> DemoPublicActorLogin()
     {
-        await _signInManager.SignOutAsync();
+        // VIKTIG SIKKERHETSKONTROLL:
+        //
+        // Må kontrolleres FØR SignOutAsync,
+        // databaseoppslag og SignInAsync.
+        //
+        // Dermed påvirkes ikke eksisterende
+        // innlogging når funksjonen er deaktivert.
 
+        if (_environment?.IsDevelopment() != true)
+        {
+            return NotFound();
+        }
+
+        await _signInManager.SignOutAsync();
 
         ApplicationUser? publicActor =
             await _userManager.FindByEmailAsync(
                 IdentitySeeder.PublicActorEmail
             );
-
 
         if (publicActor is null)
         {
@@ -344,13 +298,11 @@ public class AccountController : Controller
             );
         }
 
-
         bool hasCorrectRole =
             await _userManager.IsInRoleAsync(
                 publicActor,
                 IdentitySeeder.PublicActorRole
             );
-
 
         if (!hasCorrectRole)
         {
@@ -363,18 +315,15 @@ public class AccountController : Controller
             );
         }
 
-
         await _signInManager.SignInAsync(
             publicActor,
             isPersistent: false
         );
 
-
         CreateSession(
             publicActor,
             IdentitySeeder.PublicActorRole
         );
-
 
         return RedirectToAction(
             "Dashboard",
@@ -383,9 +332,9 @@ public class AccountController : Controller
     }
 
 
-    // =========================
+    // ========================================
     // LOGOUT
-    // =========================
+    // ========================================
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -395,7 +344,6 @@ public class AccountController : Controller
 
         HttpContext.Session.Clear();
 
-
         return RedirectToAction(
             "Index",
             "Home"
@@ -403,9 +351,9 @@ public class AccountController : Controller
     }
 
 
-    // =========================
+    // ========================================
     // ACCESS DENIED
-    // =========================
+    // ========================================
 
     [HttpGet]
     public IActionResult AccessDenied()
@@ -413,7 +361,6 @@ public class AccountController : Controller
         TempData["LoginError"] =
             "Du har ikke tilgang til denne delen av Beredskapsportalen.";
 
-
         return RedirectToAction(
             "Index",
             "Home"
@@ -421,93 +368,72 @@ public class AccountController : Controller
     }
 
 
-    // =========================
-    // PROFILE
-    // =========================
+    // ========================================
+    // PROFILE - GET
+    // ========================================
 
     [Authorize]
     [HttpGet]
     public async Task<IActionResult> Profile()
     {
         ApplicationUser? user =
-            await _userManager.GetUserAsync(
-                User
-            );
-
+            await _userManager.GetUserAsync(User);
 
         if (user is null)
         {
             return Challenge();
         }
 
-
         var phone =
-            SplitPhoneNumber(
-                user.PhoneNumber
-            );
+            SplitPhoneNumber(user.PhoneNumber);
 
+        var model = new ProfileViewModel
+        {
+            Name = user.Name,
 
-        var model =
-            new ProfileViewModel
-            {
-                Name =
-                    user.Name,
+            Email =
+                user.Email
+                ?? user.UserName
+                ?? string.Empty,
 
-                Email =
-                    user.Email
-                    ?? user.UserName
-                    ?? string.Empty,
+            PhoneCountryCode = phone.CountryCode,
 
-                PhoneCountryCode =
-                    phone.CountryCode,
+            PhoneNumber = phone.Number
+        };
 
-                PhoneNumber =
-                    phone.Number
-            };
-
-
-        return View(
-            model
-        );
+        return View(model);
     }
 
+
+    // ========================================
+    // PROFILE - POST
+    // ========================================
 
     [Authorize]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Profile(
-        ProfileViewModel model
-    )
+        ProfileViewModel model)
     {
         ApplicationUser? user =
-            await _userManager.GetUserAsync(
-                User
-            );
-
+            await _userManager.GetUserAsync(User);
 
         if (user is null)
         {
             return Challenge();
         }
 
-
         if (!ModelState.IsValid)
         {
-            return View(
-                model
-            );
+            return View(model);
         }
 
-
-        string newEmail =
-            model.Email.Trim();
-
+        string newEmail = model.Email.Trim();
 
         string oldEmail =
             user.Email
             ?? user.UserName
             ?? string.Empty;
-
 
         bool emailChanged =
             !string.Equals(
@@ -516,18 +442,13 @@ public class AccountController : Controller
                 StringComparison.OrdinalIgnoreCase
             );
 
-
-        // =========================
-        // CHECK EMAIL
-        // =========================
-
+        // Kontroller ny e-postadresse.
         if (emailChanged)
         {
             ApplicationUser? userWithEmail =
                 await _userManager.FindByEmailAsync(
                     newEmail
                 );
-
 
             if (
                 userWithEmail is not null
@@ -540,18 +461,13 @@ public class AccountController : Controller
                     "Det finnes allerede en bruker med denne e-postadressen."
                 );
 
-
-                return View(
-                    model
-                );
+                return View(model);
             }
-
 
             ApplicationUser? userWithUserName =
                 await _userManager.FindByNameAsync(
                     newEmail
                 );
-
 
             if (
                 userWithUserName is not null
@@ -564,21 +480,12 @@ public class AccountController : Controller
                     "Denne e-postadressen kan ikke brukes."
                 );
 
-
-                return View(
-                    model
-                );
+                return View(model);
             }
         }
 
-
-        // =========================
-        // UPDATE USER
-        // =========================
-
-        user.Name =
-            model.Name.Trim();
-
+        // Oppdater brukeropplysninger.
+        user.Name = model.Name.Trim();
 
         user.PhoneNumber =
             BuildPhoneNumber(
@@ -586,33 +493,20 @@ public class AccountController : Controller
                 model.PhoneNumber
             );
 
-
         if (emailChanged)
         {
-            // E-post brukes også som brukernavn
-            // i denne løsningen.
-            //
-            // Brukerens Id endres IKKE.
+            // E-post brukes også som brukernavn.
+            // Identity-brukerens Id endres ikke.
 
-            user.Email =
-                newEmail;
+            user.Email = newEmail;
 
-            user.UserName =
-                newEmail;
+            user.UserName = newEmail;
 
-            // Hvis vi senere legger inn
-            // e-postbekreftelse, må den nye
-            // adressen bekreftes på nytt.
-            user.EmailConfirmed =
-                false;
+            user.EmailConfirmed = false;
         }
 
-
         IdentityResult updateResult =
-            await _userManager.UpdateAsync(
-                user
-            );
-
+            await _userManager.UpdateAsync(user);
 
         if (!updateResult.Succeeded)
         {
@@ -627,54 +521,34 @@ public class AccountController : Controller
                 );
             }
 
-
-            return View(
-                model
-            );
+            return View(model);
         }
 
-
-        // Oppdater innloggingscookien slik
-        // at Identity umiddelbart kjenner
-        // den nye brukerinformasjonen.
+        // Oppdater innloggingscookien.
         await _signInManager.RefreshSignInAsync(
             user
         );
 
-
-        // =========================
-        // SESSION COMPATIBILITY
-        // =========================
-        //
-        // Session beholdes midlertidig fordi
-        // eldre dashboardkode fortsatt bruker den.
-        //
-        // Identity er sannhetskilden.
-        //
-
+        // Session beholdes for eldre kode.
         HttpContext.Session.SetString(
             "UserName",
             user.Name
         );
-
 
         HttpContext.Session.SetString(
             "UserEmail",
             newEmail
         );
 
-
         HttpContext.Session.SetString(
             "ContactEmail",
             newEmail
         );
 
-
         HttpContext.Session.SetString(
             "PhoneCountryCode",
             model.PhoneCountryCode
         );
-
 
         if (
             string.IsNullOrWhiteSpace(
@@ -694,10 +568,8 @@ public class AccountController : Controller
             );
         }
 
-
         TempData["ProfileSuccess"] =
             "Profilen ble oppdatert.";
-
 
         return RedirectToAction(
             nameof(Profile)
@@ -705,28 +577,21 @@ public class AccountController : Controller
     }
 
 
-    // =========================
+    // ========================================
     // PHONE HELPERS
-    // =========================
+    // ========================================
 
     private static string? BuildPhoneNumber(
         string countryCode,
-        string? phoneNumber
-    )
+        string? phoneNumber)
     {
-        if (
-            string.IsNullOrWhiteSpace(
-                phoneNumber
-            )
-        )
+        if (string.IsNullOrWhiteSpace(phoneNumber))
         {
             return null;
         }
 
-
         string normalizedCountryCode =
             countryCode.Trim();
-
 
         string normalizedPhoneNumber =
             phoneNumber
@@ -739,9 +604,7 @@ public class AccountController : Controller
                     string.Empty
                 );
 
-
-        return
-            normalizedCountryCode
+        return normalizedCountryCode
             + normalizedPhoneNumber;
     }
 
@@ -750,21 +613,15 @@ public class AccountController : Controller
         string CountryCode,
         string? Number
     ) SplitPhoneNumber(
-        string? phoneNumber
-    )
+        string? phoneNumber)
     {
-        if (
-            string.IsNullOrWhiteSpace(
-                phoneNumber
-            )
-        )
+        if (string.IsNullOrWhiteSpace(phoneNumber))
         {
             return (
                 "+47",
                 null
             );
         }
-
 
         string[] supportedCountryCodes =
         {
@@ -773,11 +630,7 @@ public class AccountController : Controller
             "+46"
         };
 
-
-        foreach (
-            string countryCode
-            in supportedCountryCodes
-        )
+        foreach (string countryCode in supportedCountryCodes)
         {
             if (
                 phoneNumber.StartsWith(
@@ -788,13 +641,10 @@ public class AccountController : Controller
             {
                 return (
                     countryCode,
-                    phoneNumber[
-                        countryCode.Length..
-                    ]
+                    phoneNumber[countryCode.Length..]
                 );
             }
         }
-
 
         return (
             "+47",
@@ -803,21 +653,15 @@ public class AccountController : Controller
     }
 
 
-    // =========================
+    // ========================================
     // ROLE HELPER
-    // =========================
+    // ========================================
 
-    private async Task<string>
-        GetPrimaryRoleAsync(
-            ApplicationUser user
-        )
+    private async Task<string> GetPrimaryRoleAsync(
+        ApplicationUser user)
     {
         IList<string> roles =
-            await _userManager
-                .GetRolesAsync(
-                    user
-                );
-
+            await _userManager.GetRolesAsync(user);
 
         if (
             roles.Contains(
@@ -828,7 +672,6 @@ public class AccountController : Controller
             return IdentitySeeder.AdminRole;
         }
 
-
         if (
             roles.Contains(
                 IdentitySeeder.PublicActorRole
@@ -838,78 +681,59 @@ public class AccountController : Controller
             return IdentitySeeder.PublicActorRole;
         }
 
-
         return IdentitySeeder.ResourceProviderRole;
     }
 
 
-    // =========================
+    // ========================================
     // SESSION HELPER
-    // =========================
+    // ========================================
 
     private void CreateSession(
         ApplicationUser user,
-        string role
-    )
+        string role)
     {
         HttpContext.Session.Clear();
-
 
         string email =
             user.Email
             ?? user.UserName
             ?? string.Empty;
 
-
         string name =
-            string.IsNullOrWhiteSpace(
-                user.Name
-            )
+            string.IsNullOrWhiteSpace(user.Name)
                 ? email
                 : user.Name;
-
 
         HttpContext.Session.SetString(
             "UserEmail",
             email
         );
 
-
         HttpContext.Session.SetString(
             "UserName",
             name
         );
-
 
         HttpContext.Session.SetString(
             "UserRole",
             role
         );
 
-
         HttpContext.Session.SetString(
             "ContactEmail",
             email
         );
 
-
         var phone =
-            SplitPhoneNumber(
-                user.PhoneNumber
-            );
-
+            SplitPhoneNumber(user.PhoneNumber);
 
         HttpContext.Session.SetString(
             "PhoneCountryCode",
             phone.CountryCode
         );
 
-
-        if (
-            string.IsNullOrWhiteSpace(
-                phone.Number
-            )
-        )
+        if (string.IsNullOrWhiteSpace(phone.Number))
         {
             HttpContext.Session.Remove(
                 "PhoneNumber"
@@ -925,18 +749,16 @@ public class AccountController : Controller
     }
 
 
-    // =========================
+    // ========================================
     // REGISTRATION HELPER
-    // =========================
+    // ========================================
 
     private void SaveRegistrationValues(
-        RegisterViewModel model
-    )
+        RegisterViewModel model)
     {
         TempData["RegisterName"] =
             model.Name?.Trim()
             ?? string.Empty;
-
 
         TempData["RegisterEmail"] =
             model.Email?.Trim()
