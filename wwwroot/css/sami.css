@@ -92,7 +92,7 @@
     flex: 0 0 auto;
     border-radius: 50%;
     color: var(--sami-navy);
-    background: #e3f1f6;
+    background: var(--surface-soft);
 }
 
 .sami-avatar-small {
@@ -440,7 +440,7 @@
 
 .sami-starter:hover {
     border-color: var(--sami-primary);
-    background: #f1f8fb;
+    background: var(--surface-soft);
 }
 
 

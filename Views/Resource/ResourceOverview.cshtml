@@ -160,6 +160,9 @@
     />
 
     <link rel="stylesheet" href="~/css/top-navigation.css" asp-append-version="true" />
+    <!-- Fargetema: lyst/mørkt tema -->
+    <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
+    <script src="~/js/theme.js" asp-append-version="true"></script>
 </head>
 
 <body>
@@ -169,84 +172,7 @@
      HEADER
 ========================================= -->
 
-<header class="provider-header portal-navigation-header">
-
-    <a
-        asp-controller="Home"
-        asp-action="Dashboard"
-        class="provider-brand">
-
-        <div class="brand-icon">
-
-            <svg
-                viewBox="0 0 24 24"
-                aria-hidden="true">
-
-                <path
-                    d="M12 2L4 5.5V11c0 5.1 3.4 9.8 8 11 4.6-1.2 8-5.9 8-11V5.5L12 2Z"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.7"
-                />
-
-                <path
-                    d="M8.5 12.5L11 15l4.8-6"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                />
-
-            </svg>
-
-        </div>
-
-
-        <div>
-
-            <strong>
-                Beredskapsportal
-            </strong>
-
-            <span>
-                @roleLabel
-            </span>
-
-        </div>
-
-    </a>
-
-<nav class="provider-navigation">
-
-    <a asp-controller="Home"
-       asp-action="Dashboard"
-       class="provider-nav-link">
-        Dashboard
-    </a>
-
-    <a asp-controller="Resource"
-       asp-action="RegisterResource"
-       class="provider-nav-link">
-        Registrer ressurs
-    </a>
-
-    <a asp-controller="Resource"
-       asp-action="ResourceOverview"
-       class="provider-nav-link active">
-        Mine ressurser
-    </a>
-
-</nav>
-
-    @* Uses existing routes and only shows provider links to providers. *@
-    <partial name="_TopNavigation" />
-    <div class="provider-user-text">
-        <strong>@displayName</strong>
-        <span>@roleLabel</span>
-    </div>
-
-</header>
+<partial name="_PortalHeader" />
 
 
 <!-- =========================================
@@ -922,7 +848,7 @@
         border-bottom:
             1px solid var(--border);
 
-        background: white;
+        background: var(--surface);
     }
 
 
@@ -947,7 +873,7 @@
 
         border-radius: 11px;
 
-        color: var(--primary);
+        color: var(--link);
 
         background:
             rgba(
@@ -968,7 +894,7 @@
     .provider-brand strong {
         display: block;
 
-        color: var(--navy);
+        color: var(--heading);
 
         font-size: 0.93rem;
     }
@@ -979,7 +905,7 @@
 
         margin-top: 2px;
 
-        color: #7b8794;
+        color: var(--text-secondary);
 
         font-size: 0.58rem;
         font-weight: 750;
@@ -1034,7 +960,7 @@
 
         border-radius: 8px;
 
-        color: #52606c;
+        color: var(--text-secondary);
 
         font-size: 0.73rem;
         font-weight: 700;
@@ -1042,7 +968,7 @@
 
 
     .dashboard-link:hover {
-        color: var(--primary);
+        color: var(--link);
 
         background:
             rgba(
@@ -1063,9 +989,9 @@
 
         border-radius: 8px;
 
-        color: #344054;
+        color: var(--text);
 
-        background: white;
+        background: var(--surface);
 
         font-size: 0.75rem;
         font-weight: 700;
@@ -1075,7 +1001,7 @@
 
 
     .logout-button:hover {
-        background: #f7f8f9;
+        background: var(--surface-soft);
     }
 
 
@@ -1121,7 +1047,7 @@
 
         margin-bottom: 9px;
 
-        color: var(--primary);
+        color: var(--link);
 
         font-size: 0.66rem;
         font-weight: 850;
@@ -1136,7 +1062,7 @@
         margin:
             0 0 10px;
 
-        color: var(--navy-dark);
+        color: var(--heading);
 
         font-size:
             clamp(
@@ -1229,7 +1155,7 @@
 
         border-radius: 13px;
 
-        background: white;
+        background: var(--surface);
     }
 
 
@@ -1257,12 +1183,12 @@
 
 
     .status-card > strong.green-number {
-        color: var(--green);
+        color: var(--success-text);
     }
 
 
     .status-card small {
-        color: #98a2b3;
+        color: var(--text-secondary);
 
         font-size: 0.64rem;
     }
@@ -1300,7 +1226,7 @@
 
         border-radius: 15px;
 
-        background: white;
+        background: var(--surface);
 
         box-shadow:
             0 8px 25px
@@ -1337,7 +1263,7 @@
     .section-heading h2 {
         margin: 0;
 
-        color: var(--navy);
+        color: var(--heading);
 
         font-size: 1.25rem;
 
@@ -1360,7 +1286,7 @@
 
         border-radius: 999px;
 
-        color: var(--primary);
+        color: var(--link);
 
         background:
             rgba(
@@ -1417,7 +1343,7 @@
 
         border-radius: 12px;
 
-        background: #ffffff;
+        background: var(--surface);
 
         transition:
             border-color 150ms ease,
@@ -1490,7 +1416,7 @@
         margin:
             1px 0 4px;
 
-        color: var(--primary);
+        color: var(--link);
 
         font-size: 0.6rem;
         font-weight: 850;
@@ -1506,7 +1432,7 @@
 
         overflow-wrap: anywhere;
 
-        color: var(--navy);
+        color: var(--heading);
 
         font-size: 0.83rem;
 
@@ -1520,7 +1446,7 @@
 
         border-radius: 999px;
 
-        color: var(--green);
+        color: var(--success-text);
 
         background:
             rgba(
@@ -1557,7 +1483,7 @@
 
         border-radius: 9px;
 
-        background: #f6f8f9;
+        background: var(--surface-soft);
     }
 
 
@@ -1571,7 +1497,7 @@
 
         margin-bottom: 3px;
 
-        color: #98a2b3;
+        color: var(--text-secondary);
 
         font-size: 0.56rem;
         font-weight: 750;
@@ -1587,7 +1513,7 @@
 
         overflow: hidden;
 
-        color: #52606c;
+        color: var(--text-secondary);
 
         font-size: 0.65rem;
 
@@ -1627,7 +1553,7 @@
     .contact-title {
         margin-bottom: 1px;
 
-        color: var(--navy);
+        color: var(--heading);
 
         font-size: 0.61rem;
         font-weight: 800;
@@ -1661,9 +1587,9 @@
 
         border-radius: 8px;
 
-        color: var(--primary);
+        color: var(--link);
 
-        background: white;
+        background: var(--surface);
 
         font-size: 0.67rem;
         font-weight: 750;
@@ -1720,7 +1646,7 @@
         margin:
             0 0 5px;
 
-        color: var(--navy);
+        color: var(--heading);
 
         font-size: 1.25rem;
 
@@ -1756,9 +1682,9 @@
 
         border-radius: 8px;
 
-        color: #52606c;
+        color: var(--text-secondary);
 
-        background: #f5f7f8;
+        background: var(--surface-soft);
 
         font-size: 0.61rem;
     }
@@ -1830,7 +1756,7 @@
 
         border-radius: 50%;
 
-        background: white;
+        background: var(--surface);
     }
 
 
@@ -1855,7 +1781,7 @@
 
         margin-bottom: 5px;
 
-        color: var(--primary);
+        color: var(--link);
 
         font-size: 0.59rem;
         font-weight: 850;
@@ -1869,7 +1795,7 @@
 
         margin-bottom: 5px;
 
-        color: var(--navy);
+        color: var(--heading);
 
         font-size: 0.82rem;
     }
@@ -1879,7 +1805,7 @@
         margin:
             0 0 8px;
 
-        color: #59636e;
+        color: var(--text-secondary);
 
         font-size: 0.7rem;
 
@@ -1894,7 +1820,7 @@
 
         overflow-wrap: anywhere;
 
-        color: #7b8794;
+        color: var(--text-secondary);
 
         font-size: 0.62rem;
     }
@@ -1953,7 +1879,7 @@
 
         border-radius: 8px;
 
-        color: var(--primary);
+        color: var(--link);
 
         background:
             rgba(
@@ -2009,7 +1935,7 @@
 
         text-align: center;
 
-        background: white;
+        background: var(--surface);
     }
 
 
@@ -2025,7 +1951,7 @@
 
         border-radius: 14px;
 
-        color: var(--primary);
+        color: var(--link);
 
         background:
             rgba(
@@ -2043,7 +1969,7 @@
         margin:
             0 0 10px;
 
-        color: var(--navy);
+        color: var(--heading);
 
         font-size: 1.5rem;
     }
@@ -2237,7 +2163,7 @@
     /* Keeps navigation visible and allows buttons to wrap on small screens. */
     .provider-header { flex-wrap: wrap; padding-top: 16px; padding-bottom: 16px; gap: 16px; }
     .overview-navigation { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-    .overview-navigation a { padding: 10px 12px; border-radius: 8px; color: var(--navy); font-size: .8rem; font-weight: 700; }
+    .overview-navigation a { padding: 10px 12px; border-radius: 8px; color: var(--heading); font-size: .8rem; font-weight: 700; }
     .overview-navigation a:hover { background: #eef5f8; }
     .overview-navigation a[aria-current="page"] { background: var(--primary); color: white; }
     .overview-navigation form { margin: 0; }
@@ -2248,7 +2174,7 @@
     .resource-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; padding: 20px; margin-bottom: 20px; background: white; border: 1px solid var(--border); border-radius: 15px; }
     .filter-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; flex: 1 1 200px; }
     .filter-search { flex-grow: 2; }
-    .filter-field label { font-weight: 700; font-size: .85rem; color: var(--navy); }
+    .filter-field label { font-weight: 700; font-size: .85rem; color: var(--heading); }
     .filter-field select, .filter-field input { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: white; color: var(--text); font: inherit; }
     .resource-filters button { min-height: 44px; }
     #filterSummary { flex-basis: 100%; margin: 0; color: var(--secondary); font-size: .85rem; }
@@ -2275,7 +2201,7 @@
         flex: 1 1 100%; min-width: 0; margin: 0; padding: 0; border: 0;
     }
     .resource-category-filter legend {
-        padding: 0; margin-bottom: 10px; color: var(--navy);
+        padding: 0; margin-bottom: 10px; color: var(--heading);
         font-size: .85rem; font-weight: 700;
     }
     .resource-category-options { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -2283,7 +2209,7 @@
         display: inline-flex; align-items: center; gap: 8px;
         min-height: 44px; max-width: 100%; padding: 9px 12px;
         border: 1px solid var(--border); border-radius: 9px;
-        background: #f8fafb; color: var(--navy); font-size: .85rem; cursor: pointer;
+        background: var(--surface-soft); color: var(--heading); font-size: .85rem; cursor: pointer;
     }
     .resource-category-option input {
         flex-shrink: 0; width: 18px; height: 18px; margin: 0;
@@ -2311,7 +2237,7 @@
     .resource-state-unavailable { color: #9d2f2f; background: #fbe9e9; }
     .resource-state-toggle {
         min-height: 32px; padding: 0 11px; border: 1px solid var(--border, #dfe4e8); border-radius: 8px;
-        background: white; color: #344054; font: inherit; font-size: .75rem; font-weight: 700; cursor: pointer;
+        background: var(--surface); color: var(--text); font: inherit; font-size: .75rem; font-weight: 700; cursor: pointer;
     }
     .resource-state-toggle:hover { background: #f6f8f9; }
 

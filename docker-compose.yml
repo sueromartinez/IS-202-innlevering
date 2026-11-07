@@ -1,4 +1,9 @@
+
 services:
+
+  # ========================================
+  # MARIADB DATABASE
+  # ========================================
 
   mariadb:
     image: mariadb:11.4
@@ -12,9 +17,12 @@ services:
       MARIADB_PASSWORD: ${MARIADB_PASSWORD:-beredskap_dev_password}
       MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-beredskap_root_dev_password}
 
+    # Kun tilgjengelig fra egen PC.
     ports:
-      - "3307:3306"
+      - "127.0.0.1:3307:3306"
 
+    # Databaseinnholdet overlever omstart
+    # og gjenoppretting av containeren.
     volumes:
       - beredskap-db:/var/lib/mysql
 
@@ -31,6 +39,10 @@ services:
       retries: 10
 
 
+  # ========================================
+  # ASP.NET CORE MVC APPLICATION
+  # ========================================
+
   app:
     build:
       context: .
@@ -40,6 +52,7 @@ services:
 
     restart: unless-stopped
 
+    # Vent til MariaDB er klar.
     depends_on:
       mariadb:
         condition: service_healthy
@@ -47,6 +60,8 @@ services:
         condition: service_started
 
     environment:
+      # Kun lokal utvikling og demonstrasjon.
+      # Demoinnlogging er aktiv i Development.
       ASPNETCORE_ENVIRONMENT: Development
 
       ConnectionStrings__DefaultConnection: >-
@@ -70,8 +85,15 @@ services:
       Smtp__Host: mailpit
       Smtp__Port: 1025
 
+
+    # Kun tilgjengelig fra egen PC.
     ports:
-      - "8080:5216"
+      - "127.0.0.1:8080:5216"
+
+    # Behold ASP.NET Core Data Protection-nøkler
+    # når app-containeren opprettes på nytt.
+    volumes:
+      - beredskap-dataprotection:/home/app/.aspnet/DataProtection-Keys
 
 
   # =========================================
@@ -86,7 +108,7 @@ services:
     # Port 11434 åpnes også lokalt, så man kan kjøre appen
     # med "dotnet run" utenfor Docker og fortsatt bruke Sami.
     ports:
-      - "11434:11434"
+      - "127.0.0.1:11434:11434"
 
 
   # Laster ned modellen første gang (ca. 4–5 GB). Avslutter når den er ferdig.
@@ -111,9 +133,20 @@ services:
     container_name: beredskap-mailpit
     restart: unless-stopped
     ports:
-      - "8025:8025"
+      - "127.0.0.1:8025:8025"
 
+
+# ========================================
+# PERSISTENT DOCKER VOLUMES
+# ========================================
 
 volumes:
+
+  # Brukere, ressurser, behov og Identity-data.
   beredskap-db:
+
+  # Nøkler til innloggingscookies og Data Protection.
+  beredskap-dataprotection:
+
+  # Språkmodellen til Sami (ca. 5 GB).
   ollama-models:

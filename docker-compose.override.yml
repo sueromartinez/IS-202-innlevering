@@ -1,0 +1,26 @@
+
+# ========================================
+# LOKAL E-POSTTESTING
+# ========================================
+#
+# Mailpit fanger opp e-post fra applikasjonen.
+# Ingen e-post sendes til faktiske mottakere.
+#
+# Webgrensesnitt: http://localhost:8025
+
+services:
+
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+
+    ports:
+      - "127.0.0.1:8025:8025"
+
+  app:
+    environment:
+      Email__Smtp__Host: mailpit
+      Email__Smtp__Port: "1025"
+      Email__Smtp__EnableSsl: "false"
+      Email__Smtp__From: "noreply@beredskapsportalen.test"
+
