@@ -37,3 +37,6 @@
     .pv-header { flex-wrap: wrap; padding-block: 12px; }
     .pv-header .portal-top-navigation { order: 3; flex-basis: 100%; }
 }
+
+/* Logoen i toppmenyen */
+.pv-logo { height: 46px; width: auto; }
