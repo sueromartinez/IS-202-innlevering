@@ -22,6 +22,14 @@
         TempData["RegisterEmail"] as string
         ?? string.Empty;
 
+    string registerPhoneCountryCode =
+        TempData["RegisterPhoneCountryCode"] as string
+        ?? "+47";
+
+    string registerPhoneNumber =
+        TempData["RegisterPhoneNumber"] as string
+        ?? string.Empty;
+
     bool hasRegisterErrors =
         !string.IsNullOrWhiteSpace(registerError);
 }
@@ -37,7 +45,7 @@
         content="width=device-width, initial-scale=1.0"
     />
 
-    <title>Beredskapsportal</title>
+    <title>@ViewData["Title"]</title>
 
     <link
         rel="stylesheet"
@@ -57,6 +65,7 @@
     </script>
 
     <style>
+
         /* ========================================
            PASSORDFELT MED ØYEKON
         ======================================== */
@@ -94,6 +103,7 @@
             color: #526a80;
 
             cursor: pointer;
+
             transition:
                 background 0.2s,
                 color 0.2s;
@@ -175,13 +185,83 @@
             scroll-margin-top: 100px;
         }
 
+        /* ========================================
+           TELEFONNUMMER
+        ======================================== */
+
+        .phone-input-row {
+            display: flex;
+            align-items: stretch;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .phone-country-select {
+            flex: 0 0 140px;
+            width: 140px;
+            min-width: 0;
+
+            padding: 12px;
+
+            border: 1px solid #9cbfe8;
+            border-radius: 9px;
+
+            background: transparent;
+            color: inherit;
+
+            font: inherit;
+            font-size: 14px;
+
+            cursor: pointer;
+
+            transition:
+                border-color 0.2s,
+                box-shadow 0.2s;
+        }
+
+        .phone-country-select:focus {
+            outline: none;
+            border-color: #0284c7;
+
+            box-shadow:
+                0 0 0 3px rgba(2, 132, 199, 0.12);
+        }
+
+        .phone-country-select option {
+            color: #172b3d;
+            background: #ffffff;
+        }
+
+        .phone-input-row input {
+            flex: 1;
+            width: 100%;
+            min-width: 0;
+        }
+
+        .phone-help-text {
+            margin: 7px 0 0;
+            color: #617184;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
         @@media (max-width: 420px) {
+
             .login-options {
                 align-items: flex-start;
                 gap: 14px;
             }
+
+            .phone-country-select {
+                flex-basis: 120px;
+                width: 120px;
+                padding: 10px 6px;
+            }
+
         }
+
     </style>
+
 </head>
 
 <body>
@@ -217,7 +297,9 @@
             href="#login"
             class="header-login"
             data-open-auth="login">
+
             Logg inn
+
         </a>
 
     </nav>
@@ -266,7 +348,9 @@
             <a
                 href="#how"
                 class="secondary-button">
+
                 Slik fungerer det
+
             </a>
 
         </div>
@@ -362,6 +446,8 @@
 
         <div class="topics-grid">
 
+            <!-- TRANSPORT -->
+
             <article class="topic-card">
 
                 <div
@@ -380,6 +466,8 @@
                 </p>
 
             </article>
+
+            <!-- UTSTYR -->
 
             <article class="topic-card">
 
@@ -400,6 +488,8 @@
 
             </article>
 
+            <!-- KOMPETANSE -->
+
             <article class="topic-card">
 
                 <div
@@ -418,6 +508,8 @@
                 </p>
 
             </article>
+
+            <!-- FORSYNINGER -->
 
             <article class="topic-card">
 
@@ -476,6 +568,8 @@
 
         <div class="steps-row">
 
+            <!-- STEG 1 -->
+
             <article class="flow-step">
 
                 <div class="step-number">
@@ -483,6 +577,7 @@
                 </div>
 
                 <div>
+
                     <h3>
                         Registrer ressursen
                     </h3>
@@ -491,6 +586,7 @@
                         Legg inn utstyr, kompetanse
                         eller kapasitet du kan dele.
                     </p>
+
                 </div>
 
             </article>
@@ -500,6 +596,8 @@
                 aria-hidden="true">
                 →
             </span>
+
+            <!-- STEG 2 -->
 
             <article class="flow-step">
 
@@ -508,6 +606,7 @@
                 </div>
 
                 <div>
+
                     <h3>
                         Gjør den tilgjengelig
                     </h3>
@@ -516,6 +615,7 @@
                         Bestem tilgjengelighet,
                         omfang og relevante detaljer.
                     </p>
+
                 </div>
 
             </article>
@@ -526,6 +626,8 @@
                 →
             </span>
 
+            <!-- STEG 3 -->
+
             <article class="flow-step">
 
                 <div class="step-number">
@@ -533,6 +635,7 @@
                 </div>
 
                 <div>
+
                     <h3>
                         Bidra ved behov
                     </h3>
@@ -541,6 +644,7 @@
                         Ressursen kan finne sin plass
                         når det oppstår et reelt behov.
                     </p>
+
                 </div>
 
             </article>
@@ -591,7 +695,9 @@
                 <a
                     href="#how"
                     class="secondary-button">
+
                     Les mer
+
                 </a>
 
             </div>
@@ -618,6 +724,8 @@
 
     <div class="login-layout">
 
+        <!-- VENSTRE SIDE -->
+
         <div class="login-copy">
 
             <span class="section-label">
@@ -639,6 +747,8 @@
             </div>
 
         </div>
+
+        <!-- HØYRE SIDE -->
 
         <div
             class="login-card"
@@ -881,7 +991,7 @@
                     Offentlig demo-knapp vises ikke.
 
                     DemoPublicActorLogin i AccountController
-                    er beholdt og ikke deaktivert.
+                    er beholdt på serveren.
                 -->
 
             </div>
@@ -925,7 +1035,9 @@
                     asp-action="Register"
                     method="post">
 
-                    <!-- NAVN -->
+                    <!-- ==========================================
+                         NAVN
+                    =========================================== -->
 
                     <div class="login-group">
 
@@ -946,7 +1058,9 @@
 
                     </div>
 
-                    <!-- E-POST -->
+                    <!-- ==========================================
+                         E-POST
+                    =========================================== -->
 
                     <div class="login-group">
 
@@ -966,7 +1080,74 @@
 
                     </div>
 
-                    <!-- PASSORD MED ØYEKON -->
+                    <!-- ==========================================
+                         TELEFONNUMMER
+                    =========================================== -->
+
+                    <div class="login-group">
+
+                        <label for="registerPhoneNumber">
+                            Telefonnummer (valgfritt)
+                        </label>
+
+                        <div class="phone-input-row">
+
+                            <!-- LANDSKODE -->
+
+                            <select
+                                id="registerPhoneCountryCode"
+                                name="PhoneCountryCode"
+                                class="phone-country-select"
+                                aria-label="Landskode"
+                                required>
+
+                                <option
+                                    value="+47"
+                                    selected="@(registerPhoneCountryCode == "+47")">
+                                    🇳🇴 +47
+                                </option>
+
+                                <option
+                                    value="+46"
+                                    selected="@(registerPhoneCountryCode == "+46")">
+                                    🇸🇪 +46
+                                </option>
+
+                                <option
+                                    value="+45"
+                                    selected="@(registerPhoneCountryCode == "+45")">
+                                    🇩🇰 +45
+                                </option>
+
+                            </select>
+
+                            <!-- TELEFONNUMMER -->
+
+                            <input
+                                id="registerPhoneNumber"
+                                name="PhoneNumber"
+                                type="tel"
+                                value="@registerPhoneNumber"
+                                autocomplete="tel-national"
+                                inputmode="tel"
+                                maxlength="20"
+                                pattern="[0-9 ]{5,20}"
+                                placeholder="123 45 678"
+                                title="Bruk bare tall og mellomrom, 5–20 tegn."
+                            />
+
+                        </div>
+
+                        <p class="phone-help-text">
+                            Telefonnummeret lagres på brukerkontoen din
+                            og kan endres senere under Min profil.
+                        </p>
+
+                    </div>
+
+                    <!-- ==========================================
+                         PASSORD MED ØYEKON
+                    =========================================== -->
 
                     <div class="login-group">
 
@@ -1050,7 +1231,9 @@
 
                     </div>
 
-                    <!-- BEKREFT PASSORD MED ØYEKON -->
+                    <!-- ==========================================
+                         BEKREFT PASSORD MED ØYEKON
+                    =========================================== -->
 
                     <div class="login-group">
 
@@ -1133,6 +1316,10 @@
                         </div>
 
                     </div>
+
+                    <!-- ==========================================
+                         REGISTRER
+                    =========================================== -->
 
                     <button
                         type="submit"
@@ -1224,60 +1411,64 @@
             showLogin
         );
 
-        authTabs.forEach(
-            tab =>
-            {
-                const isActive =
-                    tab.dataset.authTab === tabName;
+        authTabs.forEach(tab =>
+        {
+            const isActive =
+                tab.dataset.authTab === tabName;
 
-                tab.classList.toggle(
-                    "active",
-                    isActive
-                );
+            tab.classList.toggle(
+                "active",
+                isActive
+            );
 
-                tab.setAttribute(
-                    "aria-selected",
-                    isActive ? "true" : "false"
-                );
-            }
-        );
+            tab.setAttribute(
+                "aria-selected",
+                isActive ? "true" : "false"
+            );
+
+            tab.tabIndex = isActive ? 0 : -1;
+        });
     }
 
 
-    authTabs.forEach(
-        tab =>
-        {
-            tab.addEventListener(
-                "click",
-                function ()
-                {
-                    activateAuthTab(
-                        tab.dataset.authTab
-                    );
-                }
-            );
-        }
-    );
+    // ========================================
+    // BYTTE MELLOM FANER
+    // ========================================
 
+    authTabs.forEach(tab =>
+    {
+        tab.addEventListener(
+            "click",
+            function ()
+            {
+                activateAuthTab(
+                    tab.dataset.authTab
+                );
+            }
+        );
+    });
+
+
+    // ========================================
+    // ÅPNE RIKTIG FANE FRA LENKER
+    // ========================================
 
     document
         .querySelectorAll(
             "[data-open-auth]"
         )
-        .forEach(
-            link =>
-            {
-                link.addEventListener(
-                    "click",
-                    function ()
-                    {
-                        activateAuthTab(
-                            link.dataset.openAuth
-                        );
-                    }
-                );
-            }
-        );
+        .forEach(link =>
+        {
+            link.addEventListener(
+                "click",
+                function ()
+                {
+                    activateAuthTab(
+                        link.dataset.openAuth
+                    );
+                }
+            );
+        });
 
 
     // ========================================
@@ -1285,145 +1476,139 @@
     // ========================================
 
     document
-        .querySelectorAll(
-            'a[href^="#"]'
-        )
-        .forEach(
-            link =>
-            {
-                link.addEventListener(
-                    "click",
-                    function (event)
+        .querySelectorAll('a[href^="#"]')
+        .forEach(link =>
+        {
+            link.addEventListener(
+                "click",
+                function (event)
+                {
+                    const targetId =
+                        link.getAttribute("href");
+
+                    if (
+                        !targetId ||
+                        targetId === "#"
+                    )
                     {
-                        const targetId =
-                            link.getAttribute(
-                                "href"
-                            );
-
-                        if (
-                            !targetId ||
-                            targetId === "#"
-                        )
-                        {
-                            return;
-                        }
-
-                        const target =
-                            document.querySelector(
-                                targetId
-                            );
-
-                        if (!target)
-                        {
-                            return;
-                        }
-
-                        event.preventDefault();
-
-                        target.scrollIntoView({
-                            behavior: "smooth",
-                            block: "center"
-                        });
+                        return;
                     }
-                );
-            }
-        );
+
+                    // KORRIGERT:
+                    // target deklareres bare én gang.
+
+                    const target =
+                        document.querySelector(
+                            targetId
+                        );
+
+                    if (!target)
+                    {
+                        return;
+                    }
+
+                    event.preventDefault();
+
+                    target.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center"
+                    });
+                }
+            );
+        });
 
 
     // ========================================
-    // NYTT: VIS / SKJUL PASSORD
+    // VIS / SKJUL PASSORD
     // ========================================
 
     document
         .querySelectorAll(
             "[data-password-toggle]"
         )
-        .forEach(
-            button =>
-            {
-                button.addEventListener(
-                    "click",
-                    function ()
+        .forEach(button =>
+        {
+            button.addEventListener(
+                "click",
+                function ()
+                {
+                    const targetId =
+                        button.dataset.target;
+
+                    const input =
+                        document.getElementById(
+                            targetId
+                        );
+
+                    if (!input)
                     {
-                        const targetId =
-                            button.dataset.target;
-
-                        const input =
-                            document.getElementById(
-                                targetId
-                            );
-
-                        if (!input)
-                        {
-                            return;
-                        }
-
-                        const currentlyHidden =
-                            input.type === "password";
-
-                        input.type =
-                            currentlyHidden
-                                ? "text"
-                                : "password";
-
-                        // Bytt mellom åpent og
-                        // lukket øye.
-
-                        const eyeOpen =
-                            button.querySelector(
-                                "[data-eye-open]"
-                            );
-
-                        const eyeClosed =
-                            button.querySelector(
-                                "[data-eye-closed]"
-                            );
-
-                        if (eyeOpen)
-                        {
-                            eyeOpen.hidden =
-                                currentlyHidden;
-                        }
-
-                        if (eyeClosed)
-                        {
-                            eyeClosed.hidden =
-                                !currentlyHidden;
-                        }
-
-                        const label =
-                            currentlyHidden
-                                ? "Skjul passord"
-                                : "Vis passord";
-
-                        button.setAttribute(
-                            "aria-label",
-                            label
-                        );
-
-                        button.setAttribute(
-                            "aria-pressed",
-                            currentlyHidden
-                                ? "true"
-                                : "false"
-                        );
-
-                        button.title = label;
+                        return;
                     }
-                );
-            }
-        );
+
+                    const currentlyHidden =
+                        input.type === "password";
+
+                    // Bytt mellom skjult og synlig.
+
+                    input.type =
+                        currentlyHidden
+                            ? "text"
+                            : "password";
+
+                    // Finn ikonene.
+
+                    const eyeOpen =
+                        button.querySelector(
+                            "[data-eye-open]"
+                        );
+
+                    const eyeClosed =
+                        button.querySelector(
+                            "[data-eye-closed]"
+                        );
+
+                    // Oppdater ikonene.
+
+                    if (eyeOpen)
+                    {
+                        eyeOpen.hidden =
+                            currentlyHidden;
+                    }
+
+                    if (eyeClosed)
+                    {
+                        eyeClosed.hidden =
+                            !currentlyHidden;
+                    }
+
+                    // Oppdater tilgjengelighet.
+
+                    const label =
+                        currentlyHidden
+                            ? "Skjul passord"
+                            : "Vis passord";
+
+                    button.setAttribute(
+                        "aria-label",
+                        label
+                    );
+
+                    button.setAttribute(
+                        "aria-pressed",
+                        currentlyHidden
+                            ? "true"
+                            : "false"
+                    );
+
+                    button.title = label;
+                }
+            );
+        });
 
 
     // ========================================
-    // NYTT: AUTOMATISK SCROLL VED FEIL
+    // AUTOMATISK SCROLL VED FEIL
     // ========================================
-
-    // Razor skriver nå ut ekte JavaScript-
-    // booleans: true eller false.
-    //
-    // Dermed unngår vi problemet der
-    // JavaScript kan stoppe med en feil.
 
     const hasLoginErrors =
         @(hasLoginErrors.ToString().ToLowerInvariant());
@@ -1432,9 +1617,11 @@
         @(hasRegisterErrors.ToString().ToLowerInvariant());
 
 
-    // Standardfane.
-    activateAuthTab("login");
+    // ========================================
+    // AKTIVER RIKTIG FANE
+    // ========================================
 
+    activateAuthTab("login");
 
     if (hasRegisterErrors)
     {
@@ -1446,9 +1633,9 @@
     }
 
 
-    // Vent til hele siden er lastet.
-    // Da fungerer plasseringen også
-    // når bilder påvirker sidens høyde.
+    // ========================================
+    // SCROLL TIL SKJEMAET VED FEIL
+    // ========================================
 
     if (hasLoginErrors || hasRegisterErrors)
     {
