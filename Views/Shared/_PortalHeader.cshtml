@@ -18,10 +18,10 @@
     <button type="button" class="pv-burger" aria-label="Meny"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     <partial name="_TopNavigation" />
 
-    <div class="pv-user">
-        <strong>@(Context.Session.GetString("UserName") ?? rolle)</strong>
+    <a asp-controller="Account" asp-action="Profile" class="pv-user">
+        <strong>Profil</strong>
         <small>@rolle</small>
-    </div>
+    </a>
 </header>
 <script>
     // Hamburgermeny: trykk på knappen for å åpne/lukke menyen

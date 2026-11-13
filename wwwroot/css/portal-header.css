@@ -74,3 +74,15 @@
     .pv-header .portal-top-navigation > a:not(.notification-bell) { flex: 0 0 100%; }
     .pv-header .portal-top-navigation a.notification-bell { align-self: auto; }
 }
+
+/* Navn og rolle til høyre er en lenke til profilsiden */
+.pv-user { text-decoration: none; padding: 6px 10px; border-radius: 8px; }
+.pv-user:hover { background: var(--surface-soft); }
+
+/* På stor skjerm ligger Profil helt til høyre, så den fjernes fra midtmenyen */
+@media (min-width: 1101px) {
+    .portal-top-navigation a[href$="/Account/Profile"] { display: none; }
+}
+
+/* Profil-knappen: ramme som de andre knappene, tekst midtstilt */
+.pv-user { border: 1px solid var(--border); text-align: center; padding: 6px 18px; }
