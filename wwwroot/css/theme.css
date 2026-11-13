@@ -411,3 +411,8 @@ html:root:not([data-theme="navy"]) .provider-shell,
 html:root:not([data-theme="navy"]) .public-workspace {
   background: transparent;
 }
+
+/* Forsiden (lyst tema): seksjonene viser samme blå gradient som resten av portalen */
+html:root:not([data-theme="navy"]) :is(.hero, .how-section, .login-section, .community-section, .feature-section, .topics-section, .mission-section) {
+    background: transparent;
+}
