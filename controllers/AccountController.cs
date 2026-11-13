@@ -170,11 +170,7 @@ public class AccountController : Controller
         ApplicationUser? user =
             await _userManager.FindByEmailAsync(email);
 
-        // Vi viser samme svar uansett om
-        // e-postadressen finnes i databasen.
-        //
-        // Dette hindrer at uvedkommende kan
-        // undersøke hvilke kontoer som finnes.
+        // Samme svar uansett om e-postadressen finnes.
 
         if (user is null)
         {
@@ -198,10 +194,6 @@ public class AccountController : Controller
                 nameof(ForgotPasswordConfirmation));
         }
 
-        // ========================================
-        // GENERER SIKKERHETSTOKEN
-        // ========================================
-
         string token =
             await _userManager.GeneratePasswordResetTokenAsync(
                 user);
@@ -209,10 +201,6 @@ public class AccountController : Controller
         string encodedToken =
             WebEncoders.Base64UrlEncode(
                 Encoding.UTF8.GetBytes(token));
-
-        // ========================================
-        // OPPRETT TILBAKESTILLINGSLENKE
-        // ========================================
 
         string? resetUrl = Url.Action(
             action: nameof(ResetPassword),
@@ -234,10 +222,6 @@ public class AccountController : Controller
                 nameof(ForgotPasswordConfirmation));
         }
 
-        // ========================================
-        // SEND E-POST
-        // ========================================
-
         try
         {
             await _emailSender.SendPasswordResetAsync(
@@ -246,11 +230,6 @@ public class AccountController : Controller
         }
         catch (Exception exception)
         {
-            // Ikke vis e-postfeil som kan
-            // avsløre at kontoen eksisterer.
-            //
-            // Logg aldri selve tokenet.
-
             _logger?.LogError(
                 exception,
                 "Kunne ikke sende passordtilbakestilling " +
@@ -337,10 +316,6 @@ public class AccountController : Controller
             return View(model);
         }
 
-        // ========================================
-        // DEKOD SIKKERHETSTOKEN
-        // ========================================
-
         string token;
 
         try
@@ -369,20 +344,6 @@ public class AccountController : Controller
             return View(model);
         }
 
-        // ========================================
-        // TILBAKESTILL PASSORDET
-        // ========================================
-        //
-        // ASP.NET Core Identity kontrollerer:
-        //
-        // - At tokenet er gyldig.
-        // - At tokenet ikke er utløpt.
-        // - At det tilhører riktig bruker.
-        // - At det nye passordet oppfyller
-        //   systemets passordkrav.
-        //
-        // Passordet lagres som en hash.
-
         IdentityResult result =
             await _userManager.ResetPasswordAsync(
                 user,
@@ -410,14 +371,6 @@ public class AccountController : Controller
 
             return View(model);
         }
-
-        // Identity oppdaterer sikkerhetsstempelet,
-        // slik at tidligere autentiseringer
-        // normalt blir ugyldige ved ny validering.
-        //
-        // Vi logger ikke brukeren automatisk inn.
-        // Neste innlogging krever fortsatt
-        // tofaktor dersom dette er aktivert.
 
         return RedirectToAction(
             nameof(ResetPasswordConfirmation));
@@ -473,6 +426,23 @@ public class AccountController : Controller
         }
 
         // ========================================
+        // NYTT: BYGG TELEFONNUMMER
+        // ========================================
+
+        // Eksempel:
+        //
+        // PhoneCountryCode = "+47"
+        // PhoneNumber = "123 45 678"
+        //
+        // Resultat som lagres:
+        // "+4712345678"
+
+        string? fullPhoneNumber =
+            BuildPhoneNumber(
+                model.PhoneCountryCode,
+                model.PhoneNumber);
+
+        // ========================================
         // OPPRETT BRUKER
         // ========================================
 
@@ -481,6 +451,11 @@ public class AccountController : Controller
             UserName = email,
             Email = email,
             Name = model.Name.Trim(),
+
+            // NYTT:
+            // Lagres i Identity sitt PhoneNumber-felt.
+            PhoneNumber = fullPhoneNumber,
+
             CreatedAt = DateTime.UtcNow,
             EmailConfirmed = false
         };
@@ -671,10 +646,9 @@ public class AccountController : Controller
     // ========================================
     // DEMO PUBLIC ACTOR
     // ========================================
-    //
+
     // Beholdes på serveren.
-    // Knappen er bare skjult på forsiden.
-    // ========================================
+    // Knappen vises ikke på forsiden.
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -844,10 +818,6 @@ public class AccountController : Controller
                 newEmail,
                 StringComparison.OrdinalIgnoreCase);
 
-        // ========================================
-        // VALIDER NY E-POSTADRESSE
-        // ========================================
-
         if (emailChanged)
         {
             ApplicationUser? userWithEmail =
@@ -893,9 +863,6 @@ public class AccountController : Controller
         // ========================================
         // OPPDATER NAVN OG TELEFON
         // ========================================
-        //
-        // E-postadressen endres først etter
-        // at den nye adressen er bekreftet.
 
         user.Name = model.Name.Trim();
 
@@ -953,10 +920,6 @@ public class AccountController : Controller
                 model.PhoneNumber.Trim());
         }
 
-        // ========================================
-        // INGEN E-POSTENDRING
-        // ========================================
-
         if (!emailChanged)
         {
             TempData["ProfileSuccess"] =
@@ -990,10 +953,6 @@ public class AccountController : Controller
             WebEncoders.Base64UrlEncode(
                 Encoding.UTF8.GetBytes(
                     changeToken));
-
-        // ========================================
-        // GENERER BEKREFTELSESLENKE
-        // ========================================
 
         string? confirmationUrl = Url.Action(
             action: "ConfirmChange",
@@ -1201,6 +1160,18 @@ public class AccountController : Controller
 
         TempData["RegisterEmail"] =
             model.Email?.Trim()
+            ?? string.Empty;
+
+        // ========================================
+        // NYTT: BEHOLD TELEFON VED FEIL
+        // ========================================
+
+        TempData["RegisterPhoneCountryCode"] =
+            model.PhoneCountryCode?.Trim()
+            ?? "+47";
+
+        TempData["RegisterPhoneNumber"] =
+            model.PhoneNumber?.Trim()
             ?? string.Empty;
     }
 }
