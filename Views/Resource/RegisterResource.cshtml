@@ -1371,21 +1371,47 @@
                             Tilgjengelighet
                         </label>
 
-                        <input
-                            asp-for="Availability"
-                            class="form-control"
-                            maxlength="200"
-                            placeholder="F.eks. tilgjengelig nå, etter avtale eller hverdager 08–16"
-                        />
+                        <seleect asp-for="Availability" class="form-control">
+                            <option value="">Velg tilgjengelighet</option>
+                            <option value="Tilgjengelig">Tilgjengelig</option>
+                            <option value="Ikke tilgjengelig">Ikke tilgjengelig</option>
+                        </seleect>
 
                         <span
                             asp-validation-for="Availability"
                             class="validation-message">
                         </span>
 
+
+                
+
                     </div>
 
+                    <d<!-- TILGJENGELIGHETSPERIODE – PROTOTYPE -->
+
+                <div class="form-group">
+
+                   <label for="availabilityDuration">
+                      Hvor lenge skal ressursen være tilgjengelig?
+                    </label>
+
+                    <select id="availabilityDuration" class="form-control">
+                        <option value="">Velg periode</option>
+                         <option value="1">1 måned</option>
+                         <option value="3">3 måneder</option>
+                         <option value="6">6 måneder</option>
+                         <option value="12">1 år</option>
+                         <option value="24">2 år</option>
+                         <option value="36">3 år</option>
+                    </select>
+
+                    <small class="field-note" id="availabilityExpiryPreview">
+                        Velg en periode for å se når tilgjengeligheten utløper.
+                    </small>
+
                 </div>
+
+            </div>
 
 
                 <!-- ==================================
@@ -1915,6 +1941,55 @@
         }
     );
 
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const durationSelect =
+        document.getElementById("availabilityDuration");
+
+    const expiryPreview =
+        document.getElementById("availabilityExpiryPreview");
+
+    if (!durationSelect || !expiryPreview) return;
+
+    durationSelect.addEventListener("change", function () {
+
+        const months = Number(durationSelect.value);
+
+        if (!months) {
+            expiryPreview.textContent =
+                "Velg en periode for å se når tilgjengeligheten utløper.";
+            return;
+        }
+
+        const today = new Date();
+        const expiry = new Date(today);
+
+        expiry.setDate(1);
+        expiry.setMonth(expiry.getMonth() + months);
+        expiry.setDate(
+            Math.min(
+                today.getDate(),
+                new Date(
+                    expiry.getFullYear(),
+                    expiry.getMonth() + 1,
+                    0
+                ).getDate()
+            )
+        );
+
+        expiryPreview.textContent =
+            "Tilgjengeligheten utløper: " +
+            expiry.toLocaleDateString("nb-NO", {
+                day: "numeric",
+                month: "long",
+                year: "numeric"
+            });
+    });
+
+});
 </script>
 
 
