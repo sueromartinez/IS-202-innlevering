@@ -307,9 +307,7 @@
                     </div>
 
 
-                    <span class="demo-badge">
-                        DEMO-DATA
-                    </span>
+            
 
                 </div>
 
@@ -1008,6 +1006,38 @@ else if (userRole == "ResourceProvider")
                         @Model.UnspecifiedCount ressurser.
                     </p>
                 }
+            @if (Model.Resources.Any())
+            {
+                <div class = "dashboard-resource-filters">
+                    
+                    <div class = "dashboard-filter-item">
+                        <label for = "dashboardResourceSearch">
+                            søk etter ressurs
+                    
+                        </label>
+                        <input 
+                        type = "text"
+                        id = "dashboardResourceSearch"
+                        placeholder = "Søk etter navn, type eller adressse..." />
+                    </div>
+
+                    <div class="dashboard-filter-field">
+                        <label for="dashboardAvailibiltyFilter">
+                            Tilgjengelighet
+                        </label>
+                        <select id="dashboardAvailibiltyFilter">
+                            <option value="">Alle tilgjengeligheter</option>
+                            <option value="available">Tilgjengelig</option>
+                            <option value="unavailable">Ikke tilgjengelig</option>
+                            <option value="unspecified">Ikke oppgitt</option>
+                        </select>
+                    </div>
+                </div>    
+            }
+
+
+
+
 
 
                 <div class="provider-resource-list">
@@ -1064,9 +1094,30 @@ else if (userRole == "ResourceProvider")
                                 StringComparison.OrdinalIgnoreCase
                             );
 
+                        var availabilityFilterValue =
+                            available
+                            ? "available"
+                            : string.Equals(
+                                status,
+                                "Ikke tilgjengelig",
+                                StringComparison.OrdinalIgnoreCase
+                            )
+                                ? "unavailable"
+                                : "unspecified";
+                    
+                
 
-                        <article class="provider-resource-card">
+                        
 
+                     
+
+                        <article class="provider-resource-card"
+
+                            data-search="@(resourceItem.ResourceName + " " + resourceItem.Description + " " + resourceItem.Address + " " + typeName + " " + resourceItem.Capacity + " " + resourceItem.Quantity)"
+                            data-availability="@availabilityFilterValue">
+                    
+                        
+                                
                             <div class="provider-resource-icon">
                                 R
                             </div>
@@ -3475,6 +3526,58 @@ else
 
     }
 
+    .provider-resource-card[hidden] {
+    display: none !important;
+}
+.dashboard-resource-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 20px;
+    margin-top: 24px;
+    margin-bottom: 32px;
+}
+
+.dashboard-filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1 1 240px;
+    max-width: 360px;
+}
+
+.dashboard-filter-field label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #193b60;
+}
+
+.dashboard-filter-field input,
+.dashboard-filter-field select {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 14px;
+    border: 1px solid #b8cde1;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #193b60;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.dashboard-filter-field input:focus,
+.dashboard-filter-field select:focus {
+    outline: 2px solid #0789cb;
+    outline-offset: 1px;
+}
+
+#dashboardFilterSummary {
+    flex-basis: 100%;
+    margin: 0;
+    color: #526d87;
+    font-size: 13px;
+}
+
 </style>
 
 
@@ -3825,6 +3928,82 @@ else
     </script>
 }
 
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+    const searchInput = document.getElementById(
+        "dashboardResourceSearch"
+    );
+
+    const availabilityFilter = document.getElementById(
+        "dashboardAvailabilityFilter"
+    );
+
+    const cards = document.querySelectorAll(
+        ".provider-resource-card"
+    );
+
+    const summary = document.getElementById(
+        "dashboardFilterSummary"
+    );
+
+    if (!searchInput || !availabilityFilter || !summary) {
+        return;
+    }
+
+    function applyDashboardFilters() {
+
+        const search = searchInput.value
+            .trim()
+            .toLocaleLowerCase("nb-NO");
+
+        const availability = availabilityFilter.value;
+
+        let visibleCount = 0;
+
+        cards.forEach(card => {
+
+            const cardText = (
+                card.dataset.search || ""
+            ).toLocaleLowerCase("nb-NO");
+
+            const cardAvailability =
+                card.dataset.availability;
+
+            const matchesSearch =
+                cardText.includes(search);
+
+            const matchesAvailability =
+                availability === "" ||
+                cardAvailability === availability;
+
+            const isVisible =
+                matchesSearch && matchesAvailability;
+
+            card.hidden = !isVisible;
+
+            if (isVisible) {
+                visibleCount++;
+            }
+
+        });
+
+        summary.textContent =
+            `Viser ${visibleCount} av ${cards.length} ressurser`;
+    }
+
+    searchInput.addEventListener(
+        "input",
+        applyDashboardFilters
+    );
+
+    availabilityFilter.addEventListener(
+        "change",
+        applyDashboardFilters
+    );
+
+});
+</script>
 
 <partial name="_Sami" />
 

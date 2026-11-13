@@ -89,7 +89,7 @@
                     resource.Id,
 
                 name = resource.ResourceName,
-                availability = resource.Availability,
+                availability = resource.Status.ToString(),
 
                 typeId = (int)resource.ResourceType,
 
@@ -380,8 +380,8 @@
                 <select id="resourceAvailabilityFilter">
                     <option value="">Alle statuser</option>
                     <option value="Tilgjengelig">Tilgjengelig</option>
-                    <option value="Ikke tilgjengelig">Ikke tilgjengelig</option>
-                    <option value="unspecified">Ikke oppgitt / annen status</option>
+                    <option value="Ikke tilgjengelig">Utilgjengelig</option>
+                    <option value="unspecified">Opptatt</option>
                 </select>
             </div>
             <div class="filter-field filter-search">
@@ -2237,9 +2237,14 @@
 
             // Keeps unknown legacy availability text separate from explicit statuses.
             function availabilityStatus(value) {
-                const status = (value || "").trim().toLocaleLowerCase("nb-NO");
-                return ["tilgjengelig", "ikke tilgjengelig"].includes(status) ? status : "unspecified";
+                const status = (value || "").trim().toLocaleLowerCase();
+                
+                if (["available","unavailable","busy"].includes(status)){
+                return status;
             }
+            return "unspecified";
+        }
+
 
             // Applies all filters to the same resources before updating cards and markers.
             function applyFilters() {
