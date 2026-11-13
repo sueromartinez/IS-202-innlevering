@@ -1,0 +1,885 @@
+
+@model List<FirstWebAppInDocker.Models.Resource>
+
+@using FirstWebAppInDocker.Models
+@using FirstWebAppInDocker.Data
+
+@{
+    Layout = "_PortalLayout";
+    ViewData["Title"] = "Brukerdetaljer";
+
+    string userId =
+        ViewBag.ManagedUserId as string ?? "";
+
+    string userName =
+        ViewBag.ManagedUserName as string ?? "(uten navn)";
+
+    string userEmail =
+        ViewBag.ManagedUserEmail as string ?? "";
+
+    string userPhone =
+        ViewBag.ManagedUserPhone as string ?? "";
+
+    string userRole =
+        ViewBag.ManagedUserRole as string ?? "";
+
+    string createdAt =
+        ViewBag.ManagedUserCreatedAt is DateTime date
+            ? date.ToLocalTime().ToString("dd.MM.yyyy")
+            : "Ukjent";
+
+    string RoleLabel(string role) => role switch
+    {
+        IdentitySeeder.AdminRole => "Administrator",
+        IdentitySeeder.PublicActorRole => "Offentlig aktør",
+        IdentitySeeder.ResourceProviderRole => "Ressursleverandør",
+        _ => role
+    };
+
+    string TypeLabel(ResourceType type) => type switch
+    {
+        ResourceType.Transport => "Transport",
+        ResourceType.Drone => "Drone / droneoperatør",
+        ResourceType.Generator => "Strøm / aggregat",
+        ResourceType.Machinery => "Maskiner",
+        ResourceType.CommunicationEquipment => "Sambandsutstyr",
+        ResourceType.Personnel => "Mannskap / frivillige",
+        ResourceType.Premises => "Lokaler",
+        ResourceType.SandAndGravel => "Sand / grus",
+        ResourceType.Boat => "Båt",
+        ResourceType.Other => "Annet",
+        _ => type.ToString()
+    };
+
+    string StatusLabel(ResourceStatus status) => status switch
+    {
+        ResourceStatus.Available => "Tilgjengelig",
+        ResourceStatus.Busy => "Opptatt",
+        ResourceStatus.Unavailable => "Utilgjengelig",
+        _ => "Ukjent"
+    };
+
+    string StatusClass(ResourceStatus status) => status switch
+    {
+        ResourceStatus.Available => "status-available",
+        ResourceStatus.Busy => "status-requested",
+        ResourceStatus.Unavailable => "status-locked",
+        _ => ""
+    };
+}
+
+<style>
+    /* ========================================
+       TILBAKE-LENKE
+    ======================================== */
+
+    .admin-user-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 24px;
+        color: #245d85;
+        font-size: 14px;
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+    .admin-user-back:hover {
+        text-decoration: underline;
+    }
+
+    /* ========================================
+       BRUKERINFORMASJON
+    ======================================== */
+
+    .admin-user-info {
+        padding: 28px;
+        margin-bottom: 26px;
+    }
+
+    .admin-user-info h2 {
+        margin: 0 0 20px;
+        color: #173954;
+        font-size: 21px;
+    }
+
+    .admin-user-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 22px;
+    }
+
+    .admin-info-label {
+        display: block;
+        margin-bottom: 6px;
+        color: #64809a;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+    }
+
+    .admin-info-value {
+        display: block;
+        color: #173954;
+        font-size: 15px;
+        font-weight: 600;
+        overflow-wrap: anywhere;
+    }
+
+    /* ========================================
+       RESSURSOVERSIKT
+    ======================================== */
+
+    .admin-resource-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin: 32px 0 18px;
+    }
+
+    .admin-resource-heading h2 {
+        margin: 0;
+        color: #173954;
+        font-size: 24px;
+    }
+
+    .admin-resource-count {
+        padding: 8px 14px;
+        border-radius: 20px;
+        background: #dcebf9;
+        color: #245d85;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .admin-resource-list {
+        display: grid;
+        gap: 18px;
+    }
+
+    /* ========================================
+       RESSURSKORT
+    ======================================== */
+
+    .admin-resource-card {
+        padding: 24px 28px;
+    }
+
+    .admin-resource-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 14px;
+    }
+
+    .admin-resource-name {
+        margin: 0 0 6px;
+        color: #173954;
+        font-size: 19px;
+    }
+
+    .admin-resource-type {
+        color: #55738c;
+        font-size: 13px;
+    }
+
+    .admin-resource-description {
+        margin: 18px 0;
+        color: #496579;
+        font-size: 14px;
+        line-height: 1.7;
+        overflow-wrap: anywhere;
+    }
+
+    .admin-resource-meta {
+        display: flex;
+        gap: 12px 24px;
+        flex-wrap: wrap;
+        padding-top: 15px;
+        border-top: 1px solid #cbddeb;
+        color: #55738c;
+        font-size: 13px;
+    }
+
+    .admin-resource-meta strong {
+        color: #173954;
+    }
+
+    /* ========================================
+       RESSURSDETALJER
+    ======================================== */
+
+    .admin-resource-details {
+        margin-top: 18px;
+        border-top: 1px solid #cbddeb;
+        padding-top: 16px;
+    }
+
+    .admin-resource-details summary {
+        width: fit-content;
+        color: #087fbd;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .admin-resource-details summary:hover {
+        text-decoration: underline;
+    }
+
+    .admin-resource-extra {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+        padding: 18px;
+        border-radius: 10px;
+        background: rgba(120, 169, 202, 0.08);
+    }
+
+    /* ========================================
+       NYTT: RESSURSHANDLINGER
+    ======================================== */
+
+    .admin-resource-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 14px;
+
+        margin-top: 22px;
+        padding-top: 20px;
+
+        border-top: 1px solid #cbddeb;
+    }
+
+    .admin-resource-actions form {
+        margin: 0;
+    }
+
+    .admin-resource-actions-text {
+        color: #64809a;
+        font-size: 12px;
+        line-height: 1.6;
+    }
+
+    /* ========================================
+       NYTT: SLETT-KNAPP
+    ======================================== */
+
+    .admin-delete-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+
+        min-height: 40px;
+        padding: 10px 16px;
+
+        border: 1px solid #d74d4d;
+        border-radius: 9px;
+
+        background: transparent;
+        color: #b72f2f;
+
+        font: inherit;
+        font-size: 13px;
+        font-weight: 700;
+
+        cursor: pointer;
+
+        transition:
+            background 0.2s,
+            color 0.2s;
+    }
+
+    .admin-delete-button svg {
+        width: 17px;
+        height: 17px;
+    }
+
+    .admin-delete-button:hover {
+        background: #b72f2f;
+        color: #ffffff;
+    }
+
+    .admin-delete-button:focus-visible,
+    .admin-resource-details summary:focus-visible,
+    .admin-user-back:focus-visible {
+        outline: 3px solid #0284c7;
+        outline-offset: 3px;
+    }
+
+    /* ========================================
+       NYTT: SLETTING BLOKKERT
+    ======================================== */
+
+    .admin-delete-blocked {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+
+        color: #976122;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.5;
+    }
+
+    .admin-delete-blocked svg {
+        width: 17px;
+        height: 17px;
+        flex-shrink: 0;
+    }
+
+    /* ========================================
+       INGEN RESSURSER
+    ======================================== */
+
+    .admin-resource-empty {
+        padding: 48px 24px;
+        text-align: center;
+    }
+
+    .admin-resource-empty svg {
+        width: 46px;
+        height: 46px;
+        margin-bottom: 12px;
+        color: #6388a3;
+    }
+
+    .admin-resource-empty h3 {
+        margin: 0 0 9px;
+        color: #173954;
+    }
+
+    .admin-resource-empty p {
+        color: #64809a;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    /* ========================================
+       RESPONSIVE
+    ======================================== */
+
+    @@media (max-width: 650px) {
+
+        .admin-user-grid,
+        .admin-resource-extra {
+            grid-template-columns: 1fr;
+        }
+
+        .admin-user-info,
+        .admin-resource-card {
+            padding: 20px;
+        }
+
+        .admin-resource-name {
+            font-size: 17px;
+        }
+
+        .admin-resource-actions {
+            align-items: flex-start;
+        }
+    }
+</style>
+
+<!-- ========================================
+     TILBAKE TIL BRUKEROVERSIKT
+======================================== -->
+
+<a
+    asp-controller="Admin"
+    asp-action="Users"
+    class="admin-user-back">
+
+    ← Tilbake til brukere
+
+</a>
+
+<!-- ========================================
+     SIDEOVERSKRIFT
+======================================== -->
+
+<div class="page-top">
+
+    <div>
+        <span class="page-eyebrow">
+            Administrasjon / Brukerdetaljer
+        </span>
+
+        <h1 class="page-heading">
+            @userName
+        </h1>
+
+        <p class="page-description">
+            Se brukeropplysninger og administrer
+            ressursene som tilhører denne brukeren.
+        </p>
+    </div>
+
+</div>
+
+<!-- ========================================
+     NYTT: MELDINGER ETTER SLETTING
+======================================== -->
+
+@if (TempData["AdminMessage"] is string message)
+{
+    <div
+        class="alert alert-success"
+        role="status">
+
+        @message
+
+    </div>
+}
+
+@if (TempData["AdminError"] is string error)
+{
+    <div
+        class="alert alert-error"
+        role="alert">
+
+        @error
+
+    </div>
+}
+
+<!-- ========================================
+     BRUKERINFORMASJON
+======================================== -->
+
+<section class="app-card admin-user-info">
+
+    <h2>Brukerinformasjon</h2>
+
+    <div class="admin-user-grid">
+
+        <div>
+            <span class="admin-info-label">
+                Navn
+            </span>
+
+            <span class="admin-info-value">
+                @userName
+            </span>
+        </div>
+
+        <div>
+            <span class="admin-info-label">
+                E-post
+            </span>
+
+            <span class="admin-info-value">
+                @userEmail
+            </span>
+        </div>
+
+        <div>
+            <span class="admin-info-label">
+                Telefonnummer
+            </span>
+
+            <span class="admin-info-value">
+                @(string.IsNullOrWhiteSpace(userPhone)
+                    ? "Ikke registrert"
+                    : userPhone)
+            </span>
+        </div>
+
+        <div>
+            <span class="admin-info-label">
+                Rolle
+            </span>
+
+            <span class="admin-info-value">
+                @RoleLabel(userRole)
+            </span>
+        </div>
+
+        <div>
+            <span class="admin-info-label">
+                Opprettet
+            </span>
+
+            <span class="admin-info-value">
+                @createdAt
+            </span>
+        </div>
+
+        <div>
+            <span class="admin-info-label">
+                Registrerte ressurser
+            </span>
+
+            <span class="admin-info-value">
+                @Model.Count
+            </span>
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ========================================
+     RESSURSOVERSIKT
+======================================== -->
+
+<div class="admin-resource-heading">
+
+    <h2>
+        Brukerens ressurser
+    </h2>
+
+    <span class="admin-resource-count">
+        @Model.Count ressurser
+    </span>
+
+</div>
+
+@if (Model.Count == 0)
+{
+    <!-- ========================================
+         INGEN RESSURSER
+    ======================================== -->
+
+    <section class="app-card admin-resource-empty">
+
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true">
+
+            <rect
+                x="3"
+                y="7"
+                width="18"
+                height="14"
+                rx="2"
+            />
+
+            <path d="M3 11h18" />
+
+            <path
+                d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"
+            />
+
+        </svg>
+
+        <h3>
+            Ingen registrerte ressurser
+        </h3>
+
+        <p>
+            Denne brukeren har ikke registrert
+            noen ressurser ennå.
+        </p>
+
+    </section>
+}
+else
+{
+    <!-- ========================================
+         RESSURSKORT
+    ======================================== -->
+
+    <div class="admin-resource-list">
+
+        @foreach (Resource resource in Model)
+        {
+            <article
+                class="app-card admin-resource-card"
+                id="resource-@resource.Id">
+
+                <!-- ========================================
+                     RESSURSNAVN OG STATUS
+                ======================================== -->
+
+                <div class="admin-resource-top">
+
+                    <div>
+
+                        <h3 class="admin-resource-name">
+                            @resource.ResourceName
+                        </h3>
+
+                        <span class="admin-resource-type">
+                            @TypeLabel(resource.ResourceType)
+                        </span>
+
+                    </div>
+
+                    <span
+                        class="status-badge @StatusClass(resource.Status)">
+
+                        @StatusLabel(resource.Status)
+
+                    </span>
+
+                </div>
+
+                <!-- ========================================
+                     BESKRIVELSE
+                ======================================== -->
+
+                <p class="admin-resource-description">
+                    @resource.Description
+                </p>
+
+                <!-- ========================================
+                     NØKKELINFORMASJON
+                ======================================== -->
+
+                <div class="admin-resource-meta">
+
+                    <span>
+                        <strong>Antall:</strong>
+                        @resource.Quantity
+                    </span>
+
+                    <span>
+                        <strong>Opprettet:</strong>
+                        @resource.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")
+                    </span>
+
+                    <span>
+                        <strong>Ressurs-ID:</strong>
+                        #@resource.Id
+                    </span>
+
+                </div>
+
+                <!-- ========================================
+                     UTVIDBARE DETALJER
+                ======================================== -->
+
+                <details class="admin-resource-details">
+
+                    <summary>
+                        Se detaljer
+                    </summary>
+
+                    <div class="admin-resource-extra">
+
+                        <div>
+
+                            <span class="admin-info-label">
+                                Adresse
+                            </span>
+
+                            <span class="admin-info-value">
+                                @(string.IsNullOrWhiteSpace(resource.Address)
+                                    ? "Ikke oppgitt"
+                                    : resource.Address)
+                            </span>
+
+                        </div>
+
+                        <div>
+
+                            <span class="admin-info-label">
+                                Kapasitet
+                            </span>
+
+                            <span class="admin-info-value">
+                                @(string.IsNullOrWhiteSpace(resource.Capacity)
+                                    ? "Ikke oppgitt"
+                                    : resource.Capacity)
+                            </span>
+
+                        </div>
+
+                        <div>
+
+                            <span class="admin-info-label">
+                                Tilgjengelighet
+                            </span>
+
+                            <span class="admin-info-value">
+                                @(string.IsNullOrWhiteSpace(resource.Availability)
+                                    ? "Ikke oppgitt"
+                                    : resource.Availability)
+                            </span>
+
+                        </div>
+
+                        <div>
+
+                            <span class="admin-info-label">
+                                Kontakt-e-post
+                            </span>
+
+                            <span class="admin-info-value">
+                                @(string.IsNullOrWhiteSpace(resource.ContactEmail)
+                                    ? "Ikke oppgitt"
+                                    : resource.ContactEmail)
+                            </span>
+
+                        </div>
+
+                        <div>
+
+                            <span class="admin-info-label">
+                                Kontakttelefon
+                            </span>
+
+                            <span class="admin-info-value">
+
+                                @if (string.IsNullOrWhiteSpace(resource.ContactPhoneNumber))
+                                {
+                                    <text>Ikke oppgitt</text>
+                                }
+                                else
+                                {
+                                    <text>@resource.ContactPhoneCountryCode @resource.ContactPhoneNumber</text>
+                                }
+
+                            </span>
+
+                        </div>
+
+                        <div>
+
+                            <span class="admin-info-label">
+                                Ressursstatus
+                            </span>
+
+                            <span class="admin-info-value">
+                                @StatusLabel(resource.Status)
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </details>
+
+                <!-- ========================================
+                     NYTT: ADMINISTRER RESSURS
+                ======================================== -->
+
+                <div class="admin-resource-actions">
+
+                    <span class="admin-resource-actions-text">
+                        Ressurs #@resource.Id
+                    </span>
+
+                    @if (resource.Status == ResourceStatus.Busy)
+                    {
+                        <!-- ========================================
+                             OPPTATT: SLETTING BLOKKERT
+                        ======================================== -->
+
+                        <span
+                            class="admin-delete-blocked"
+                            title="Opptatte ressurser kan ikke slettes.">
+
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                aria-hidden="true">
+
+                                <circle
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                />
+
+                                <path d="M12 7v6" />
+
+                                <path d="M12 17h.01" />
+
+                            </svg>
+
+                            Kan ikke slettes mens den er opptatt
+
+                        </span>
+                    }
+                    else
+                    {
+                        <!-- ========================================
+                             SLETT RESSURS
+                        ======================================== -->
+
+                        <form
+                            asp-controller="Admin"
+                            asp-action="DeleteUserResource"
+                            method="post"
+                            onsubmit="return confirm('Er du sikker på at du vil slette denne ressursen? Handlingen kan ikke angres.');">
+
+                            <input
+                                type="hidden"
+                                name="userId"
+                                value="@userId"
+                            />
+
+                            <input
+                                type="hidden"
+                                name="resourceId"
+                                value="@resource.Id"
+                            />
+
+                            @Html.AntiForgeryToken()
+
+                            <button
+                                type="submit"
+                                class="admin-delete-button"
+                                aria-label="Slett ressursen @resource.ResourceName">
+
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.8"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    aria-hidden="true">
+
+                                    <path d="M3 6h18" />
+
+                                    <path
+                                        d="M8 6V4h8v2"
+                                    />
+
+                                    <path
+                                        d="M5 6l1 14h12l1-14"
+                                    />
+
+                                    <path
+                                        d="M10 10v7"
+                                    />
+
+                                    <path
+                                        d="M14 10v7"
+                                    />
+
+                                </svg>
+
+                                Slett ressurs
+
+                            </button>
+
+                        </form>
+                    }
+
+                </div>
+
+            </article>
+        }
+
+    </div>
+}
