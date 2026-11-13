@@ -1,3 +1,4 @@
+
 using System.Diagnostics;
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
@@ -11,7 +12,7 @@ namespace FirstWebAppInDocker.Controllers;
 
 /// <summary>
 /// Håndterer forsiden, dashboardet
-/// og generell feilhandtering.
+/// og generell feilhåndtering.
 /// </summary>
 public class HomeController : Controller
 {
@@ -20,11 +21,6 @@ public class HomeController : Controller
     private readonly UserManager<ApplicationUser>
         _userManager;
 
-
-    /// <summary>
-    /// Oppretter controlleren med tilgang
-    /// til databasen og ASP.NET Core Identity.
-    /// </summary>
     public HomeController(
         ApplicationDbContext context,
         UserManager<ApplicationUser> userManager
@@ -34,16 +30,36 @@ public class HomeController : Controller
         _userManager = userManager;
     }
 
+    // ========================================
+    // FORSIDE
+    // ========================================
 
     /// <summary>
-    /// Viser den offentlige forsiden.
+    /// Viser forsiden for besøkende.
+    ///
+    /// Brukere som allerede er innlogget
+    /// sendes direkte til Dashboard.
+    ///
+    /// Dette gjør at en gyldig innloggingscookie
+    /// også gjenkjennes når nettleseren åpnes
+    /// på nytt.
     /// </summary>
     [HttpGet]
     public IActionResult Index()
     {
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            return RedirectToAction(
+                nameof(Dashboard)
+            );
+        }
+
         return View();
     }
 
+    // ========================================
+    // DASHBOARD
+    // ========================================
 
     /// <summary>
     /// Viser dashboardet til en innlogget bruker.
@@ -64,15 +80,12 @@ public class HomeController : Controller
                 User
             );
 
-
         if (user is null)
         {
             return Challenge();
         }
 
-
         string userRole;
-
 
         if (
             User.IsInRole(
@@ -98,12 +111,9 @@ public class HomeController : Controller
                 IdentitySeeder.ResourceProviderRole;
         }
 
+        // Identity er sannhetskilden
+        // for innlogging og brukerroller.
 
-        // Session beholdes midlertidig fordi
-        // eksisterende dashboard-view bruker den
-        // enkelte steder.
-        //
-        // Identity er sannhetskilden.
         ViewBag.UserName =
             string.IsNullOrWhiteSpace(
                 user.Name
@@ -111,25 +121,20 @@ public class HomeController : Controller
                 ? user.Email
                 : user.Name;
 
-
         ViewBag.UserRole =
             userRole;
-
 
         var model =
             new DashboardViewModel();
 
-
-        // =====================================================
+        // ========================================
         // PUBLIC ACTOR / ADMIN
-        // =====================================================
+        // ========================================
 
         if (
-            userRole
-                == IdentitySeeder.PublicActorRole
+            userRole == IdentitySeeder.PublicActorRole
             ||
-            userRole
-                == IdentitySeeder.AdminRole
+            userRole == IdentitySeeder.AdminRole
         )
         {
             model =
@@ -139,8 +144,7 @@ public class HomeController : Controller
                         await _context.Needs
                             .AsNoTracking()
                             .OrderByDescending(
-                                need =>
-                                    need.CreatedAt
+                                need => need.CreatedAt
                             )
                             .ToListAsync(),
 
@@ -148,26 +152,22 @@ public class HomeController : Controller
                         await _context.Resources
                             .AsNoTracking()
                             .OrderByDescending(
-                                resource =>
-                                    resource.CreatedAt
+                                resource => resource.CreatedAt
                             )
                             .ToListAsync()
                 };
         }
 
-
-        // =====================================================
+        // ========================================
         // RESOURCE PROVIDER
-        // =====================================================
+        // ========================================
 
         if (
-            userRole
-                == IdentitySeeder.ResourceProviderRole
+            userRole == IdentitySeeder.ResourceProviderRole
         )
         {
             string? userEmail =
                 user.Email;
-
 
             model =
                 new DashboardViewModel
@@ -184,9 +184,8 @@ public class HomeController : Controller
 
                                     ||
 
-                                    // Midlertidig støtte for
-                                    // gamle ressurser som ble
-                                    // opprettet før OwnerUserId.
+                                    // Støtte for eldre ressurser
+                                    // uten OwnerUserId.
                                     (
                                         resource.OwnerUserId
                                             == null
@@ -198,24 +197,19 @@ public class HomeController : Controller
                                     )
                             )
                             .OrderByDescending(
-                                resource =>
-                                    resource.CreatedAt
+                                resource => resource.CreatedAt
                             )
                             .ToListAsync()
                 };
         }
 
-
-        return View(
-            model
-        );
+        return View(model);
     }
 
+    // ========================================
+    // FEILSIDE
+    // ========================================
 
-    /// <summary>
-    /// Viser feilside dersom en
-    /// uventet feil oppstår.
-    /// </summary>
     [ResponseCache(
         Duration = 0,
         Location = ResponseCacheLocation.None,
