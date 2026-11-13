@@ -268,9 +268,18 @@ public class ResourceAuthorizationTests
         var redirect =
             Assert.IsType<RedirectToActionResult>(result);
 
+        // Etter registrering sendes brukeren
+        // til Dashboard, hvor registreringen
+        // bekreftes med feiringsanimasjonen.
+
         Assert.Equal(
-            "ResourceOverview",
+            "Dashboard",
             redirect.ActionName
+        );
+
+        Assert.Equal(
+            "Home",
+            redirect.ControllerName
         );
 
         var resource =

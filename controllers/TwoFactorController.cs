@@ -27,6 +27,10 @@ public class TwoFactorController : Controller
     private const string LastSentTimeKey =
         "TwoFactorEmailLastSentUtc";
 
+    // Husk meg-valget fra AccountController.
+    private const string PendingTwoFactorRememberMeKey =
+        "PendingTwoFactorRememberMe";
+
     public TwoFactorController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
@@ -129,23 +133,43 @@ public class TwoFactorController : Controller
         }
 
         // ========================================
+        // HENT HUSK MEG-VALGET
+        // ========================================
+        //
+        // AccountController lagret dette
+        // etter at passordet ble godkjent.
+        //
+        // Hvis valget mangler, brukes false
+        // som sikker standardverdi.
+
+        bool rememberMe =
+            string.Equals(
+                HttpContext.Session.GetString(
+                    PendingTwoFactorRememberMeKey),
+                "true",
+                StringComparison.Ordinal
+            );
+
+        // ========================================
         // VERIFISER E-POSTKODEN
         // ========================================
         //
         // Identity kontrollerer koden mot
-        // den innebygde Email-tokenleverandøren.
+        // den registrerte Email-tokenleverandøren.
         //
-        // Dette er IKKE autentiseringsapp.
+        // Dette er IKKE en autentiseringsapp.
+        //
+        // isPersistent bruker nå rememberMe.
         //
         // rememberClient: false betyr at
-        // enheten ikke huskes for senere
-        // innlogginger.
+        // brukeren fortsatt må gjennom tofaktor
+        // neste gang ved ny innlogging.
 
         var result =
             await _signInManager.TwoFactorSignInAsync(
                 TokenOptions.DefaultEmailProvider,
                 model.Code.Trim(),
-                isPersistent: false,
+                isPersistent: rememberMe,
                 rememberClient: false
             );
 
@@ -173,9 +197,15 @@ public class TwoFactorController : Controller
         // VELLYKKET TOFAKTORINNLOGGING
         // ========================================
         //
-        // Først nå oppretter vi den vanlige
-        // Session som resten av prosjektet
-        // bruker.
+        // Identity har nå opprettet en
+        // innloggingscookie med riktig
+        // Husk meg-innstilling.
+        //
+        // Først nå oppretter vi Session
+        // som resten av prosjektet bruker.
+        //
+        // Denne metoden rydder også bort
+        // midlertidige tofaktoropplysninger.
 
         await CreateLegacySessionAsync(user);
 
@@ -401,7 +431,8 @@ public class TwoFactorController : Controller
                 : user.Name;
 
         // Fjerner blant annet metadata om
-        // tidligere utsendte e-postkoder.
+        // tidligere utsendte e-postkoder
+        // og midlertidig Husk meg-valg.
 
         HttpContext.Session.Clear();
 
