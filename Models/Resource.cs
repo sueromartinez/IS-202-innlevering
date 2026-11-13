@@ -20,28 +20,27 @@ public class Resource
     // RESOURCE INFORMATION
     // =========================
 
-    [Required]
-    public ResourceType ResourceType { get; set; }
+    [EnumDataType(typeof(ResourceType),
+    ErrorMessage = "Velg en gyldig ressurskategori.")]
+public ResourceType ResourceType { get; set; }
 
 
-    [Required]
-    [StringLength(100)]
-    public string ResourceName { get; set; }
-        = string.Empty;
+    [Required(ErrorMessage = "Du må oppgi et ressursnavn.")]
+[StringLength(100, MinimumLength = 3,
+    ErrorMessage = "Ressursnavnet må være mellom 3 og 100 tegn.")]
+public string ResourceName { get; set; }
+    = string.Empty;
 
 
-    [Required]
-    [StringLength(500)]
-    public string Description { get; set; }
-        = string.Empty;
+    [Required(ErrorMessage = "Du må skrive en beskrivelse.")]
+[StringLength(500, MinimumLength = 10,
+    ErrorMessage = "Beskrivelsen må være mellom 10 og 500 tegn.")]
+public string Description { get; set; }
+    = string.Empty;
 
-
-    [Range(
-        1,
-        int.MaxValue
-    )]
-    public int Quantity { get; set; }
-        = 1;
+    [Range(1, int.MaxValue,
+    ErrorMessage = "Antallet må være minst 1.")]
+public int Quantity { get; set; } = 1;
 
 
     [StringLength(200)]

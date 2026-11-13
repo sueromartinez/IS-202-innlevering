@@ -13,18 +13,21 @@ public class RegisterResourceViewModel : IValidatableObject
     // RESOURCE INFORMATION
 
     [Required(ErrorMessage = "Velg type ressurs.")]
-    [Display(Name = "Ressurstype")]
-    public ResourceType? ResourceType { get; set; }
+[EnumDataType(typeof(ResourceType), ErrorMessage = "Velg en gyldig ressurstype.")]
+[Display(Name = "Ressurstype")]
+public ResourceType? ResourceType { get; set; }
 
     [Required(ErrorMessage = "Ressursnavn er påkrevd.")]
-    [StringLength(100, ErrorMessage = "Ressursnavnet kan maksimalt være 100 tegn.")]
-    [Display(Name = "Ressursnavn")]
-    public string ResourceName { get; set; } = string.Empty;
+[StringLength(100, MinimumLength = 3,
+    ErrorMessage = "Ressursnavnet må være mellom 3 og 100 tegn.")]
+[Display(Name = "Ressursnavn")]
+public string ResourceName { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Beskrivelse er påkrevd.")]
-    [StringLength(500, ErrorMessage = "Beskrivelsen kan maksimalt være 500 tegn.")]
-    [Display(Name = "Beskrivelse")]
-    public string Description { get; set; } = string.Empty;
+[StringLength(500, MinimumLength = 10,
+    ErrorMessage = "Beskrivelsen må være mellom 10 og 500 tegn.")]
+[Display(Name = "Beskrivelse")]
+public string Description { get; set; } = string.Empty;
 
     [Range(1, 100000, ErrorMessage = "Antall må være minst 1.")]
     [Display(Name = "Antall")]
@@ -68,9 +71,27 @@ public class RegisterResourceViewModel : IValidatableObject
 
     // CUSTOM VALIDATION
 
-    public IEnumerable<ValidationResult> Validate(
-        ValidationContext validationContext)
+public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+{
+    // Sjekk at ressursnavnet har minst 3 tegn etter trimming
+    if (!string.IsNullOrWhiteSpace(ResourceName) &&
+        ResourceName.Trim().Length < 3)
     {
+        yield return new ValidationResult(
+            "Ressursnavnet må inneholde minst 3 tegn.",
+            new[] { nameof(ResourceName) }
+        );
+    }
+
+    // Sjekk at beskrivelsen har minst 10 tegn etter trimming
+    if (!string.IsNullOrWhiteSpace(Description) &&
+        Description.Trim().Length < 10)
+    {
+        yield return new ValidationResult(
+            "Beskrivelsen må inneholde minst 10 tegn.",
+            new[] { nameof(Description) }
+        );
+    }
         if (
             !double.IsFinite(Latitude) ||
             !double.IsFinite(Longitude) ||
