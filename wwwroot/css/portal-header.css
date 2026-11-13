@@ -86,3 +86,6 @@
 
 /* Profil-knappen: ramme som de andre knappene, tekst midtstilt */
 .pv-user { border: 1px solid var(--border); text-align: center; padding: 6px 18px; }
+
+/* Ingen sidelengs scrolling på mobil. "clip" gjør at den faste toppmenyen fortsatt virker */
+html, body { overflow-x: clip; max-width: 100%; }

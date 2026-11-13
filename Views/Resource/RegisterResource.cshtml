@@ -1914,3 +1914,13 @@ document.addEventListener("DOMContentLoaded", function () {
 </body>
 
 </html>
+
+<style>
+    /* Skjema og kart scroller sammen med siden, kartet står ikke fast */
+    @@media (min-width: 951px) {
+        .resource-grid { min-height: 0; }
+        .resource-grid > .form-card { height: auto; }
+        .resource-grid > .form-card > form { overflow: visible; flex: none; }
+        .resource-grid > .map-card { position: static; }
+    }
+</style>
