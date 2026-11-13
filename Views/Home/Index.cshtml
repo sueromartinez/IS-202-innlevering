@@ -130,6 +130,21 @@
         }
 
         /* ========================================
+           PASSORDKRAV VED REGISTRERING
+        ======================================== */
+
+        .password-requirements {
+            margin: 9px 0 0;
+            color: #526b80;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .password-requirements strong {
+            color: #294a66;
+        }
+
+        /* ========================================
            HUSK MEG / GLEMT PASSORD
         ======================================== */
 
@@ -877,8 +892,6 @@
                                 aria-pressed="false"
                                 title="Vis passord">
 
-                                <!-- ØYE ÅPENT -->
-
                                 <svg
                                     data-eye-open
                                     viewBox="0 0 24 24"
@@ -901,8 +914,6 @@
 
                                 </svg>
 
-                                <!-- ØYE LUKKET -->
-
                                 <svg
                                     data-eye-closed
                                     hidden
@@ -914,9 +925,7 @@
                                     stroke-linejoin="round"
                                     aria-hidden="true">
 
-                                    <path
-                                        d="M3 3 21 21"
-                                    />
+                                    <path d="M3 3 21 21" />
 
                                     <path
                                         d="M10.6 5.1A11 11 0 0 1 12 5c6.4 0 10 7 10 7a15 15 0 0 1-3.1 3.9"
@@ -988,10 +997,10 @@
                 </form>
 
                 <!--
-                    Offentlig demo-knapp vises ikke.
+                    Offentlig demo-knapp er skjult.
 
                     DemoPublicActorLogin i AccountController
-                    er beholdt på serveren.
+                    er fortsatt beholdt.
                 -->
 
             </div>
@@ -1092,8 +1101,6 @@
 
                         <div class="phone-input-row">
 
-                            <!-- LANDSKODE -->
-
                             <select
                                 id="registerPhoneCountryCode"
                                 name="PhoneCountryCode"
@@ -1120,8 +1127,6 @@
                                 </option>
 
                             </select>
-
-                            <!-- TELEFONNUMMER -->
 
                             <input
                                 id="registerPhoneNumber"
@@ -1165,6 +1170,7 @@
                                 minlength="8"
                                 required
                                 placeholder="Minst 8 tegn"
+                                aria-describedby="registerPasswordRequirements"
                             />
 
                             <button
@@ -1228,6 +1234,20 @@
                             </button>
 
                         </div>
+
+                        <!-- ========================================
+                             PASSORDKRAV - RIKTIG PLASSERT
+                        ========================================= -->
+
+                        <p
+                            id="registerPasswordRequirements"
+                            class="password-requirements">
+
+                            <strong>Passordkrav:</strong>
+                            Minst 8 tegn, én stor bokstav
+                            og ett tall.
+
+                        </p>
 
                     </div>
 
@@ -1298,11 +1318,7 @@
                                     <path d="M3 3 21 21" />
 
                                     <path
-                                        d="M10.6 5.1A11 11 0 0 1 12 5c6.4 0 10 7 10 7a15 15 0 0 1-3.1 3.9"
-                                    />
-
-                                    <path
-                                        d="M6.2 6.2C3.5 8.2 2 12 2 12s3.6 7 10 7a9.8 9.8 0 0 0 4.2-.9"
+                                        d="M10.6 5.1A11 11 0 0 1 12 5c6.4 0 10 7 10 7a9.8 9.8 0 0 0 4.2-.9"
                                     />
 
                                     <path
@@ -1494,9 +1510,6 @@
                         return;
                     }
 
-                    // KORRIGERT:
-                    // target deklareres bare én gang.
-
                     const target =
                         document.querySelector(
                             targetId
@@ -1548,14 +1561,10 @@
                     const currentlyHidden =
                         input.type === "password";
 
-                    // Bytt mellom skjult og synlig.
-
                     input.type =
                         currentlyHidden
                             ? "text"
                             : "password";
-
-                    // Finn ikonene.
 
                     const eyeOpen =
                         button.querySelector(
@@ -1566,8 +1575,6 @@
                         button.querySelector(
                             "[data-eye-closed]"
                         );
-
-                    // Oppdater ikonene.
 
                     if (eyeOpen)
                     {
@@ -1580,8 +1587,6 @@
                         eyeClosed.hidden =
                             !currentlyHidden;
                     }
-
-                    // Oppdater tilgjengelighet.
 
                     const label =
                         currentlyHidden
