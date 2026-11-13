@@ -40,3 +40,37 @@
 
 /* Logoen i toppmenyen */
 .pv-logo { height: 46px; width: auto; }
+
+/* Fast toppmeny */
+.pv-header { position: sticky; top: 0; z-index: 100; }
+.pv-burger { display: none; }
+
+/* Mobil: bare logo og hamburger, menyen åpnes som liste under */
+@media (max-width: 1100px) {
+    .pv-header { flex-wrap: nowrap; padding: 8px 16px; }
+    .pv-brand { flex: 1; min-width: 0; }
+    .pv-user { display: none; }
+    .pv-burger {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 44px; height: 44px; cursor: pointer;
+        border: 1px solid var(--border); border-radius: 10px;
+        background: var(--surface); color: var(--heading);
+    }
+    .pv-header .portal-top-navigation {
+        display: none; position: absolute; top: 100%; left: 0; right: 0;
+        flex-direction: column; align-items: stretch; flex-wrap: nowrap;
+        padding: 12px 16px 16px; background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        max-height: calc(100vh - 64px); overflow-y: auto;
+    }
+    .pv-header.pv-open .portal-top-navigation { display: flex; }
+    .pv-header .portal-top-navigation a { justify-content: flex-start; }
+    .pv-header .portal-top-navigation a.notification-bell { align-self: flex-start; }
+}
+
+/* Varsel, mørk modus og logg ut ved siden av hverandre nederst i menyen */
+@media (max-width: 1100px) {
+    .pv-header .portal-top-navigation { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px; }
+    .pv-header .portal-top-navigation > a:not(.notification-bell) { flex: 0 0 100%; }
+    .pv-header .portal-top-navigation a.notification-bell { align-self: auto; }
+}
