@@ -1,6 +1,4 @@
 
-@using Microsoft.Extensions.Hosting
-@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment HostingEnvironment
 @model FirstWebAppInDocker.ViewModels.LoginViewModel
 
 @{
@@ -29,11 +27,9 @@
 }
 
 <!DOCTYPE html>
-
 <html lang="no">
 
 <head>
-
     <meta charset="utf-8" />
 
     <meta
@@ -41,9 +37,7 @@
         content="width=device-width, initial-scale=1.0"
     />
 
-    <title>
-        Beredskapsportal
-    </title>
+    <title>Beredskapsportal</title>
 
     <link
         rel="stylesheet"
@@ -51,13 +45,146 @@
         asp-append-version="true"
     />
 
-    <!-- Fargetema: lyst/mørkt tema -->
-    <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
-    <script src="~/js/theme.js" asp-append-version="true"></script>
+    <link
+        rel="stylesheet"
+        href="~/css/theme.css"
+        asp-append-version="true"
+    />
+
+    <script
+        src="~/js/theme.js"
+        asp-append-version="true">
+    </script>
+
+    <style>
+        /* ========================================
+           PASSORDFELT MED ØYEKON
+        ======================================== */
+
+        .password-input-wrap {
+            position: relative;
+            width: 100%;
+        }
+
+        .password-input-wrap input {
+            width: 100%;
+            padding-right: 55px;
+        }
+
+        .password-toggle {
+            position: absolute;
+            top: 50%;
+            right: 9px;
+            transform: translateY(-50%);
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            width: 38px;
+            height: 38px;
+
+            padding: 0;
+            margin: 0;
+
+            border: none;
+            border-radius: 8px;
+
+            background: transparent;
+            color: #526a80;
+
+            cursor: pointer;
+            transition:
+                background 0.2s,
+                color 0.2s;
+        }
+
+        .password-toggle:hover {
+            background: rgba(30, 91, 139, 0.09);
+            color: #086d9c;
+        }
+
+        .password-toggle:focus-visible {
+            outline: 2px solid #0284c7;
+            outline-offset: 2px;
+        }
+
+        .password-toggle svg {
+            width: 21px;
+            height: 21px;
+            pointer-events: none;
+        }
+
+        .password-toggle svg[hidden] {
+            display: none;
+        }
+
+        /* ========================================
+           HUSK MEG / GLEMT PASSORD
+        ======================================== */
+
+        .login-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+
+            margin: 6px 0 22px;
+        }
+
+        .remember-me-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .remember-me-label input {
+            width: 17px;
+            height: 17px;
+            margin: 0;
+            accent-color: #0284c7;
+            cursor: pointer;
+        }
+
+        .forgot-password-link {
+            color: #0284c7;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .forgot-password-link:hover {
+            text-decoration: underline;
+        }
+
+        .forgot-password-link:focus-visible {
+            outline: 2px solid #0284c7;
+            outline-offset: 3px;
+        }
+
+        /* ========================================
+           FEILMELDINGER
+        ======================================== */
+
+        .auth-error {
+            scroll-margin-top: 100px;
+        }
+
+        @@media (max-width: 420px) {
+            .login-options {
+                align-items: flex-start;
+                gap: 14px;
+            }
+        }
+    </style>
 </head>
 
 <body>
-
 
 <!-- ==========================================
      HEADER
@@ -65,22 +192,17 @@
 
 <header class="site-header">
 
-    <a
-        href="#top"
-        class="brand">
+    <a href="#top" class="brand">
 
-        <img src="/images/logo.png" alt="Logo" style="height: 46px; width: auto;" />
+        <img
+            src="/images/logo.png"
+            alt="Logo"
+            style="height: 46px; width: auto;"
+        />
 
         <div>
-
-            <strong>
-                Beredskapsportal
-            </strong>
-
-            <span>
-                Totalforsvaret
-            </span>
-
+            <strong>Beredskapsportal</strong>
+            <span>Totalforsvaret</span>
         </div>
 
     </a>
@@ -95,21 +217,17 @@
             href="#login"
             class="header-login"
             data-open-auth="login">
-
             Logg inn
-
         </a>
 
     </nav>
 
 </header>
 
-
 <main id="top">
 
-
 <!-- ==========================================
-     HERO (bakgrunnsbilde: wwwroot/images/forside/hero.jpg)
+     HERO
 =========================================== -->
 
 <section class="hero-banner">
@@ -125,8 +243,9 @@
         </h1>
 
         <p class="hero-description">
-            Del utstyr, kompetanse og ressurser med andre, og styrk
-            beredskapen i lokalsamfunnet, regionen og hele Norge.
+            Del utstyr, kompetanse og ressurser med andre,
+            og styrk beredskapen i lokalsamfunnet,
+            regionen og hele Norge.
         </p>
 
         <div class="hero-actions">
@@ -147,9 +266,7 @@
             <a
                 href="#how"
                 class="secondary-button">
-
                 Slik fungerer det
-
             </a>
 
         </div>
@@ -158,9 +275,8 @@
 
 </section>
 
-
 <!-- ==========================================
-     STYRK BEREDSKAPEN (bilde: sivilt.jpg)
+     STYRK BEREDSKAPEN
 =========================================== -->
 
 <section class="feature-section">
@@ -184,9 +300,10 @@
             </h2>
 
             <p>
-                Din ressurs kan være avgjørende. Gjør den synlig for
-                andre, og bidra til et mer robust og forberedt
-                lokalsamfunn.
+                Din ressurs kan være avgjørende.
+                Gjør den synlig for andre,
+                og bidra til et mer robust og
+                forberedt lokalsamfunn.
             </p>
 
             <a
@@ -208,9 +325,8 @@
 
 </section>
 
-
 <!-- ==========================================
-     DEL, FINN OG BIDRA (fire kort med bilder)
+     DEL, FINN OG BIDRA
 =========================================== -->
 
 <section class="topics-section">
@@ -228,23 +344,17 @@
             </h2>
 
             <p>
-                En felles plattform for utstyr, kompetanse og kapasitet
-                som kan være avgjørende når det virkelig gjelder.
+                En felles plattform for utstyr,
+                kompetanse og kapasitet
+                som kan være avgjørende
+                når det virkelig gjelder.
             </p>
 
             <div class="hero-audience">
 
-                <span>
-                    Privatpersoner
-                </span>
-
-                <span>
-                    Virksomheter
-                </span>
-
-                <span>
-                    Frivillige organisasjoner
-                </span>
+                <span>Privatpersoner</span>
+                <span>Virksomheter</span>
+                <span>Frivillige organisasjoner</span>
 
             </div>
 
@@ -265,7 +375,8 @@
                 </h3>
 
                 <p>
-                    Kjøretøy, henger, båt, traktor og tunge maskiner.
+                    Kjøretøy, henger, båt,
+                    traktor og tunge maskiner.
                 </p>
 
             </article>
@@ -283,7 +394,8 @@
                 </h3>
 
                 <p>
-                    Droner, samband, aggregat, strøm og støttefunksjoner.
+                    Droner, samband, aggregat,
+                    strøm og støttefunksjoner.
                 </p>
 
             </article>
@@ -301,7 +413,8 @@
                 </h3>
 
                 <p>
-                    Fagkunnskap, erfaring og ressurspersoner.
+                    Fagkunnskap, erfaring
+                    og ressurspersoner.
                 </p>
 
             </article>
@@ -319,7 +432,8 @@
                 </h3>
 
                 <p>
-                    Drivstoff, mat, varme, telt og annet utstyr.
+                    Drivstoff, mat, varme,
+                    telt og annet utstyr.
                 </p>
 
             </article>
@@ -329,7 +443,6 @@
     </div>
 
 </section>
-
 
 <!-- ==========================================
      SLIK FUNGERER DET
@@ -352,8 +465,10 @@
             </h2>
 
             <p>
-                Kom i gang på få minutter. Registrer en ressurs,
-                gjør den tilgjengelig og bidra til økt beredskap
+                Kom i gang på få minutter.
+                Registrer en ressurs,
+                gjør den tilgjengelig
+                og bidra til økt beredskap
                 i ditt område.
             </p>
 
@@ -371,15 +486,18 @@
                     <h3>
                         Registrer ressursen
                     </h3>
+
                     <p>
-                        Legg inn utstyr, kompetanse eller kapasitet
-                        du kan dele.
+                        Legg inn utstyr, kompetanse
+                        eller kapasitet du kan dele.
                     </p>
                 </div>
 
             </article>
 
-            <span class="flow-arrow" aria-hidden="true">
+            <span
+                class="flow-arrow"
+                aria-hidden="true">
                 →
             </span>
 
@@ -393,15 +511,18 @@
                     <h3>
                         Gjør den tilgjengelig
                     </h3>
+
                     <p>
-                        Bestem tilgjengelighet, omfang og relevante
-                        detaljer.
+                        Bestem tilgjengelighet,
+                        omfang og relevante detaljer.
                     </p>
                 </div>
 
             </article>
 
-            <span class="flow-arrow" aria-hidden="true">
+            <span
+                class="flow-arrow"
+                aria-hidden="true">
                 →
             </span>
 
@@ -415,9 +536,10 @@
                     <h3>
                         Bidra ved behov
                     </h3>
+
                     <p>
-                        Ressursen kan finne sin plass når det oppstår
-                        et reelt behov.
+                        Ressursen kan finne sin plass
+                        når det oppstår et reelt behov.
                     </p>
                 </div>
 
@@ -429,9 +551,8 @@
 
 </section>
 
-
 <!-- ==========================================
-     DIN RESSURS KAN VÆRE AVGJØRENDE (bilde: katastrofe.jpg)
+     DIN RESSURS KAN VÆRE AVGJØRENDE
 =========================================== -->
 
 <section class="mission-section">
@@ -445,9 +566,11 @@
             </h2>
 
             <p>
-                Alt fra en drone og en henger til fagkunnskap og
-                mannskap kan gjøre en stor forskjell når samfunnet
-                utfordres. Bli en del av Beredskapsportal i dag.
+                Alt fra en drone og en henger
+                til fagkunnskap og mannskap
+                kan gjøre en stor forskjell
+                når samfunnet utfordres.
+                Bli en del av Beredskapsportal i dag.
             </p>
 
             <div class="mission-actions">
@@ -468,9 +591,7 @@
                 <a
                     href="#how"
                     class="secondary-button">
-
                     Les mer
-
                 </a>
 
             </div>
@@ -486,7 +607,6 @@
     </div>
 
 </section>
-
 
 <!-- ==========================================
      LOGIN / REGISTER
@@ -520,10 +640,13 @@
 
         </div>
 
-
         <div
             class="login-card"
             id="authCard">
+
+            <!-- ==========================================
+                 FANER
+            =========================================== -->
 
             <div
                 class="auth-tabs"
@@ -558,7 +681,6 @@
 
             </div>
 
-
             <!-- ==========================================
                  LOGG INN
             =========================================== -->
@@ -579,8 +701,12 @@
 
                 @if (hasLoginErrors)
                 {
-                    <div class="auth-error">
+                    <div
+                        class="auth-error"
+                        role="alert">
+
                         @loginError
+
                     </div>
                 }
 
@@ -593,6 +719,8 @@
                         asp-validation-summary="ModelOnly"
                         class="validation-summary">
                     </div>
+
+                    <!-- E-POST -->
 
                     <div class="login-group">
 
@@ -613,22 +741,129 @@
 
                     </div>
 
+                    <!-- PASSORD MED ØYEKON -->
+
                     <div class="login-group">
 
                         <label asp-for="Password">
                             Passord
                         </label>
 
-                        <input
-                            asp-for="Password"
-                            autocomplete="current-password"
-                            placeholder="Skriv inn passord"
-                        />
+                        <div class="password-input-wrap">
+
+                            <input
+                                asp-for="Password"
+                                type="password"
+                                autocomplete="current-password"
+                                placeholder="Skriv inn passord"
+                            />
+
+                            <button
+                                type="button"
+                                class="password-toggle"
+                                data-password-toggle
+                                data-target="Password"
+                                aria-label="Vis passord"
+                                aria-pressed="false"
+                                title="Vis passord">
+
+                                <!-- ØYE ÅPENT -->
+
+                                <svg
+                                    data-eye-open
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.8"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    aria-hidden="true">
+
+                                    <path
+                                        d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"
+                                    />
+
+                                    <circle
+                                        cx="12"
+                                        cy="12"
+                                        r="3"
+                                    />
+
+                                </svg>
+
+                                <!-- ØYE LUKKET -->
+
+                                <svg
+                                    data-eye-closed
+                                    hidden
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.8"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    aria-hidden="true">
+
+                                    <path
+                                        d="M3 3 21 21"
+                                    />
+
+                                    <path
+                                        d="M10.6 5.1A11 11 0 0 1 12 5c6.4 0 10 7 10 7a15 15 0 0 1-3.1 3.9"
+                                    />
+
+                                    <path
+                                        d="M6.2 6.2C3.5 8.2 2 12 2 12s3.6 7 10 7a9.8 9.8 0 0 0 4.2-.9"
+                                    />
+
+                                    <path
+                                        d="M10 10a3 3 0 0 0 4 4"
+                                    />
+
+                                </svg>
+
+                            </button>
+
+                        </div>
 
                         <span
                             asp-validation-for="Password"
                             class="validation-message">
                         </span>
+
+                    </div>
+
+                    <!-- ==========================================
+                         HUSK MEG / GLEMT PASSORD
+                    =========================================== -->
+
+                    <div class="login-options">
+
+                        <label
+                            for="rememberMe"
+                            class="remember-me-label">
+
+                            <input
+                                id="rememberMe"
+                                name="RememberMe"
+                                type="checkbox"
+                                value="true"
+                            />
+
+                            <span>
+                                Husk meg
+                            </span>
+
+                        </label>
+
+                        <a
+                            asp-controller="Account"
+                            asp-action="ForgotPassword"
+                            class="forgot-password-link">
+
+                            Glemt passord?
+
+                        </a>
 
                     </div>
 
@@ -642,41 +877,14 @@
 
                 </form>
 
+                <!--
+                    Offentlig demo-knapp vises ikke.
 
-                <!-- ==========================================
-                     DEMOINNLOGGING
-                     KUN I DEVELOPMENT
-                =========================================== -->
-
-                @if (HostingEnvironment.IsDevelopment())
-                {
-                    <div class="login-divider">
-                        eller
-                    </div>
-
-                    <form
-                        asp-controller="Account"
-                        asp-action="DemoPublicActorLogin"
-                        method="post"
-                        class="demo-login-form">
-
-                        <button
-                            type="submit"
-                            class="demo-button">
-
-                            Fortsett som offentlig testbruker
-
-                        </button>
-
-                    </form>
-
-                    <p class="demo-note">
-                        Midlertidig testinnlogging for prosjektet.
-                    </p>
-                }
+                    DemoPublicActorLogin i AccountController
+                    er beholdt og ikke deaktivert.
+                -->
 
             </div>
-
 
             <!-- ==========================================
                  REGISTRER BRUKER
@@ -703,8 +911,12 @@
 
                 @if (hasRegisterErrors)
                 {
-                    <div class="auth-error">
+                    <div
+                        class="auth-error"
+                        role="alert">
+
                         @registerError
+
                     </div>
                 }
 
@@ -712,6 +924,8 @@
                     asp-controller="Account"
                     asp-action="Register"
                     method="post">
+
+                    <!-- NAVN -->
 
                     <div class="login-group">
 
@@ -732,6 +946,8 @@
 
                     </div>
 
+                    <!-- E-POST -->
+
                     <div class="login-group">
 
                         <label for="registerEmail">
@@ -750,23 +966,91 @@
 
                     </div>
 
+                    <!-- PASSORD MED ØYEKON -->
+
                     <div class="login-group">
 
                         <label for="registerPassword">
                             Passord
                         </label>
 
-                        <input
-                            id="registerPassword"
-                            name="Password"
-                            type="password"
-                            autocomplete="new-password"
-                            minlength="8"
-                            required
-                            placeholder="Minst 8 tegn"
-                        />
+                        <div class="password-input-wrap">
+
+                            <input
+                                id="registerPassword"
+                                name="Password"
+                                type="password"
+                                autocomplete="new-password"
+                                minlength="8"
+                                required
+                                placeholder="Minst 8 tegn"
+                            />
+
+                            <button
+                                type="button"
+                                class="password-toggle"
+                                data-password-toggle
+                                data-target="registerPassword"
+                                aria-label="Vis passord"
+                                aria-pressed="false"
+                                title="Vis passord">
+
+                                <svg
+                                    data-eye-open
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.8"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    aria-hidden="true">
+
+                                    <path
+                                        d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"
+                                    />
+
+                                    <circle
+                                        cx="12"
+                                        cy="12"
+                                        r="3"
+                                    />
+
+                                </svg>
+
+                                <svg
+                                    data-eye-closed
+                                    hidden
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.8"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    aria-hidden="true">
+
+                                    <path d="M3 3 21 21" />
+
+                                    <path
+                                        d="M10.6 5.1A11 11 0 0 1 12 5c6.4 0 10 7 10 7a15 15 0 0 1-3.1 3.9"
+                                    />
+
+                                    <path
+                                        d="M6.2 6.2C3.5 8.2 2 12 2 12s3.6 7 10 7a9.8 9.8 0 0 0 4.2-.9"
+                                    />
+
+                                    <path
+                                        d="M10 10a3 3 0 0 0 4 4"
+                                    />
+
+                                </svg>
+
+                            </button>
+
+                        </div>
 
                     </div>
+
+                    <!-- BEKREFT PASSORD MED ØYEKON -->
 
                     <div class="login-group">
 
@@ -774,15 +1058,79 @@
                             Bekreft passord
                         </label>
 
-                        <input
-                            id="registerConfirmPassword"
-                            name="ConfirmPassword"
-                            type="password"
-                            autocomplete="new-password"
-                            minlength="8"
-                            required
-                            placeholder="Skriv passordet på nytt"
-                        />
+                        <div class="password-input-wrap">
+
+                            <input
+                                id="registerConfirmPassword"
+                                name="ConfirmPassword"
+                                type="password"
+                                autocomplete="new-password"
+                                minlength="8"
+                                required
+                                placeholder="Skriv passordet på nytt"
+                            />
+
+                            <button
+                                type="button"
+                                class="password-toggle"
+                                data-password-toggle
+                                data-target="registerConfirmPassword"
+                                aria-label="Vis passord"
+                                aria-pressed="false"
+                                title="Vis passord">
+
+                                <svg
+                                    data-eye-open
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.8"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    aria-hidden="true">
+
+                                    <path
+                                        d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"
+                                    />
+
+                                    <circle
+                                        cx="12"
+                                        cy="12"
+                                        r="3"
+                                    />
+
+                                </svg>
+
+                                <svg
+                                    data-eye-closed
+                                    hidden
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.8"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    aria-hidden="true">
+
+                                    <path d="M3 3 21 21" />
+
+                                    <path
+                                        d="M10.6 5.1A11 11 0 0 1 12 5c6.4 0 10 7 10 7a15 15 0 0 1-3.1 3.9"
+                                    />
+
+                                    <path
+                                        d="M6.2 6.2C3.5 8.2 2 12 2 12s3.6 7 10 7a9.8 9.8 0 0 0 4.2-.9"
+                                    />
+
+                                    <path
+                                        d="M10 10a3 3 0 0 0 4 4"
+                                    />
+
+                                </svg>
+
+                            </button>
+
+                        </div>
 
                     </div>
 
@@ -808,9 +1156,11 @@
 
 </section>
 
-
 </main>
 
+<!-- ==========================================
+     FOOTER
+=========================================== -->
 
 <footer class="footer">
 
@@ -828,8 +1178,15 @@
 
 </footer>
 
+<!-- ==========================================
+     JAVASCRIPT
+=========================================== -->
 
 <script>
+
+    // ========================================
+    // INNLOGGING / REGISTRERING
+    // ========================================
 
     const authTabs =
         document.querySelectorAll(
@@ -871,8 +1228,7 @@
             tab =>
             {
                 const isActive =
-                    tab.dataset.authTab ===
-                    tabName;
+                    tab.dataset.authTab === tabName;
 
                 tab.classList.toggle(
                     "active",
@@ -881,9 +1237,7 @@
 
                 tab.setAttribute(
                     "aria-selected",
-                    isActive
-                        ? "true"
-                        : "false"
+                    isActive ? "true" : "false"
                 );
             }
         );
@@ -926,6 +1280,10 @@
         );
 
 
+    // ========================================
+    // NAVIGERING TIL SEKSJONER
+    // ========================================
+
     document
         .querySelectorAll(
             'a[href^="#"]'
@@ -943,8 +1301,7 @@
                             );
 
                         if (
-                            !targetId
-                            ||
+                            !targetId ||
                             targetId === "#"
                         )
                         {
@@ -973,58 +1330,141 @@
         );
 
 
-    activateAuthTab("login");
+    // ========================================
+    // NYTT: VIS / SKJUL PASSORD
+    // ========================================
 
+    document
+        .querySelectorAll(
+            "[data-password-toggle]"
+        )
+        .forEach(
+            button =>
+            {
+                button.addEventListener(
+                    "click",
+                    function ()
+                    {
+                        const targetId =
+                            button.dataset.target;
+
+                        const input =
+                            document.getElementById(
+                                targetId
+                            );
+
+                        if (!input)
+                        {
+                            return;
+                        }
+
+                        const currentlyHidden =
+                            input.type === "password";
+
+                        input.type =
+                            currentlyHidden
+                                ? "text"
+                                : "password";
+
+                        // Bytt mellom åpent og
+                        // lukket øye.
+
+                        const eyeOpen =
+                            button.querySelector(
+                                "[data-eye-open]"
+                            );
+
+                        const eyeClosed =
+                            button.querySelector(
+                                "[data-eye-closed]"
+                            );
+
+                        if (eyeOpen)
+                        {
+                            eyeOpen.hidden =
+                                currentlyHidden;
+                        }
+
+                        if (eyeClosed)
+                        {
+                            eyeClosed.hidden =
+                                !currentlyHidden;
+                        }
+
+                        const label =
+                            currentlyHidden
+                                ? "Skjul passord"
+                                : "Vis passord";
+
+                        button.setAttribute(
+                            "aria-label",
+                            label
+                        );
+
+                        button.setAttribute(
+                            "aria-pressed",
+                            currentlyHidden
+                                ? "true"
+                                : "false"
+                        );
+
+                        button.title = label;
+                    }
+                );
+            }
+        );
+
+
+    // ========================================
+    // NYTT: AUTOMATISK SCROLL VED FEIL
+    // ========================================
+
+    // Razor skriver nå ut ekte JavaScript-
+    // booleans: true eller false.
+    //
+    // Dermed unngår vi problemet der
+    // JavaScript kan stoppe med en feil.
 
     const hasLoginErrors =
-        @hasLoginErrors
-            .ToString()
-            .ToLowerInvariant();
+        @(hasLoginErrors.ToString().ToLowerInvariant());
 
     const hasRegisterErrors =
-        @hasRegisterErrors
-            .ToString()
-            .ToLowerInvariant();
+        @(hasRegisterErrors.ToString().ToLowerInvariant());
+
+
+    // Standardfane.
+    activateAuthTab("login");
 
 
     if (hasRegisterErrors)
     {
-        activateAuthTab(
-            "register"
-        );
-
-        window.setTimeout(
-            function ()
-            {
-                authCard.scrollIntoView({
-                    behavior: "smooth",
-                    block: "center"
-                });
-            },
-            50
-        );
+        activateAuthTab("register");
     }
     else if (hasLoginErrors)
     {
-        activateAuthTab(
-            "login"
-        );
+        activateAuthTab("login");
+    }
 
-        window.setTimeout(
+
+    // Vent til hele siden er lastet.
+    // Da fungerer plasseringen også
+    // når bilder påvirker sidens høyde.
+
+    if (hasLoginErrors || hasRegisterErrors)
+    {
+        window.addEventListener(
+            "load",
             function ()
             {
                 authCard.scrollIntoView({
-                    behavior: "smooth",
+                    behavior: "auto",
                     block: "center"
                 });
-            },
-            50
+            }
         );
     }
 
 </script>
 
-
 </body>
-
 </html>
