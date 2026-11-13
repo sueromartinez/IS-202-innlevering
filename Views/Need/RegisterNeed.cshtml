@@ -17,9 +17,11 @@
     <!-- Fargetema: lyst/mørkt tema -->
     <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
     <script src="~/js/theme.js" asp-append-version="true"></script>
+    @* Ny mobiltilpasning gjelder bare denne registreringssiden; PC-stilen beholdes. *@
+    <link rel="stylesheet" href="~/css/register-need.css" asp-append-version="true" />
 </head>
 
-<body>
+<body class="need-registration-page">
 
 <partial name="_PortalHeader" />
 
@@ -123,6 +125,8 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="~/js/kartverket.js" asp-append-version="true"></script>
+@* Fullskjermkontrollen bruker det samme kartet og de samme behovsmarkørene. *@
+<script src="~/js/register-need-map.js" asp-append-version="true"></script>
 
 <script>
 
@@ -134,6 +138,9 @@
     const map = L.map("map").setView([58.1467, 7.9956], 11);
 
     addKartverketLayers(map);
+
+    // Ny kontroll: Åpner samme behovskart i fullskjerm uten å miste plasseringene.
+    addNeedFullscreenControl(map);
 
     const markers = new Map(); // behovskort -> markør
     let activeNeed = null;
