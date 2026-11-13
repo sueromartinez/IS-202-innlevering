@@ -21,6 +21,10 @@ public class ResourceOverviewViewModel
 
     public string? Availability { get; init; }
 
+    // Bruker lagret status og periodens faktiske sluttdato i oversikten.
+    public ResourceStatus EffectiveStatus => FirstWebAppInDocker.Services.ResourceAvailability
+        .EffectiveStatus(Status, Availability, DateTime.UtcNow);
+
     public string? Address { get; init; }
 
 

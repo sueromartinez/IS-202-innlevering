@@ -181,16 +181,6 @@
                     <input asp-for="Address" type="text" class="form-control" />
                     <span asp-validation-for="Address" class="validation-message"></span>
                 </div>
-                @* Fixed status values keep dashboard counts and overview filters consistent. *@
-                <div class="form-group">
-                    <label asp-for="Availability"></label>
-                    <select asp-for="Availability" class="form-control">
-                        <option value="">Ikke oppgitt</option>
-                        <option value="Tilgjengelig">Tilgjengelig</option>
-                        <option value="Ikke tilgjengelig">Ikke tilgjengelig</option>
-                    </select>
-                    <span asp-validation-for="Availability" class="validation-message"></span>
-                </div>
 
                 <!-- BESKRIVELSE -->
                 <div class="form-group">
@@ -1140,6 +1130,24 @@
         }
         .resource-fullscreen-dialog::backdrop { background: #17212b; }
 
+
+        /* Adresse: bred gateadresse over to like brede felt; mobil stabler dem ved behov. */
+        .address-detail-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+        .address-detail-row .form-group, .address-detail-row input { min-width: 0; }
+        /* Felles rader holder feltene på linje selv når én etikett brytes over flere linjer. */
+        .address-detail-row { row-gap: 0; margin-bottom: 18px; }
+        .address-detail-row .form-group {
+            display: grid;
+            grid-template-rows: subgrid;
+            grid-row: span 3;
+            margin-bottom: 0;
+        }
+        .resource-address-suggestions { max-height: 250px; overflow-y: auto; border: 1px solid #dfe5e9; border-radius: 8px; margin-top: 6px; }
+        .resource-address-option { display: block; width: 100%; padding: 12px; text-align: left; border: 0; border-bottom: 1px solid #dfe5e9; background: var(--surface, white); color: var(--text, #17212b); font: inherit; cursor: pointer; overflow-wrap: anywhere; }
+        .resource-address-option:hover, .resource-address-option:focus-visible { background: var(--surface-soft, #eef5f8); outline: 2px solid #176b87; outline-offset: -2px; }
+        [hidden] { display: none !important; }
+        @@media (max-width: 600px) { .address-detail-row { grid-template-columns: minmax(0, 1fr); } }
+
     </style>
 
     <!-- Fargetema: lyst/mørkt tema -->
@@ -1365,54 +1373,22 @@
                     </div>
 
 
+                    @* Perioden sendes nå til serveren og er obligatorisk både her og i modellen. *@
                     <div class="form-group">
-
-                        <label asp-for="Availability">
-                            Tilgjengelighet
+                        <label asp-for="AvailabilityMonths">
+                            Hvor lenge skal ressursen være tilgjengelig? <span class="required-mark">*</span>
                         </label>
-
-                        <seleect asp-for="Availability" class="form-control">
-                            <option value="">Velg tilgjengelighet</option>
-                            <option value="Tilgjengelig">Tilgjengelig</option>
-                            <option value="Ikke tilgjengelig">Ikke tilgjengelig</option>
-                        </seleect>
-
-                        <span
-                            asp-validation-for="Availability"
-                            class="validation-message">
-                        </span>
-
-
-                
-
+                        <select asp-for="AvailabilityMonths" id="availabilityDuration" class="form-control" required aria-describedby="availabilityExpiryPreview">
+                            <option value="">Velg periode</option>
+                            @foreach (var period in FirstWebAppInDocker.Services.ResourceAvailability.Periods)
+                            {
+                                <option value="@period.Key">@period.Value</option>
+                            }
+                        </select>
+                        <span asp-validation-for="AvailabilityMonths" class="validation-message"></span>
+                        <small class="field-note" id="availabilityExpiryPreview">Velg en periode for å se når tilgjengeligheten utløper.</small>
                     </div>
-
-                    <d<!-- TILGJENGELIGHETSPERIODE – PROTOTYPE -->
-
-                <div class="form-group">
-
-                   <label for="availabilityDuration">
-                      Hvor lenge skal ressursen være tilgjengelig?
-                    </label>
-
-                    <select id="availabilityDuration" class="form-control">
-                        <option value="">Velg periode</option>
-                         <option value="1">1 måned</option>
-                         <option value="3">3 måneder</option>
-                         <option value="6">6 måneder</option>
-                         <option value="12">1 år</option>
-                         <option value="24">2 år</option>
-                         <option value="36">3 år</option>
-                    </select>
-
-                    <small class="field-note" id="availabilityExpiryPreview">
-                        Velg en periode for å se når tilgjengeligheten utløper.
-                    </small>
-
                 </div>
-
-            </div>
-
 
                 <!-- ==================================
                      PLASSERING
@@ -1425,33 +1401,31 @@
                     </h3>
 
 
-                    <div class="form-group">
-
-                        <label asp-for="Address">
-                            Adresse / område
-                        </label>
-
-                        <input
-                            asp-for="Address"
-                            class="form-control"
-                            maxlength="200"
-                            placeholder="F.eks. Kristiansand, Vennesla eller gateadresse"
-                            aria-describedby="addressLookupStatus addressLocationNote"
-                        />
-
-                        <span
-                            asp-validation-for="Address"
-                            class="validation-message">
-                        </span>
-
-                        @* Announces optional address suggestions without blocking manual entry or submission. *@
-                        <small id="addressLookupStatus" class="field-note" role="status" aria-live="polite"></small>
-                        <small id="addressLocationNote" class="field-note">
-                            Velg også nøyaktig plassering i kartet.
-                        </small>
-
+                    @* Adressekomponentene vises hver for seg, men lagres samlet uten databaseendring. *@
+                    <input asp-for="Address" type="hidden" />
+                    <div class="form-group resource-address-search">
+                        <label asp-for="StreetAddress">Adresse</label>
+                        <input asp-for="StreetAddress" class="form-control" maxlength="200" autocomplete="off"
+                               placeholder="Gatenavn og husnummer" role="combobox" aria-autocomplete="list"
+                               aria-controls="addressSuggestions" aria-expanded="false" aria-describedby="addressLookupStatus" />
+                        <span asp-validation-for="StreetAddress" class="validation-message"></span>
+                        <div id="addressSuggestions" class="resource-address-suggestions" role="listbox" aria-label="Adresseforslag" hidden></div>
                     </div>
-
+                    <div class="address-detail-row">
+                        <div class="form-group">
+                            <label asp-for="PostalLocation">Postnummer og poststed</label>
+                            <input asp-for="PostalLocation" class="form-control" maxlength="100" placeholder="4629, Kristiansand S" />
+                            <span asp-validation-for="PostalLocation" class="validation-message"></span>
+                        </div>
+                        <div class="form-group">
+                            <label asp-for="Municipality">Kommune</label>
+                            <input asp-for="Municipality" class="form-control" maxlength="100" placeholder="Kristiansand" />
+                            <span asp-validation-for="Municipality" class="validation-message"></span>
+                        </div>
+                    </div>
+                    <span asp-validation-for="Address" class="validation-message"></span>
+                    <small id="addressLookupStatus" class="field-note" role="status" aria-live="polite"></small>
+                    <small class="field-note">Velg et adresseforslag eller plasser markøren selv. Adressen kan korrigeres manuelt.</small>
 
                     <input
                         asp-for="Latitude"
@@ -1594,6 +1568,7 @@
 </script>
 
 <script src="~/js/kartverket.js" asp-append-version="true"></script>
+<script src="~/js/resource-address.js" asp-append-version="true"></script>
 
 <script>
 
@@ -1735,71 +1710,11 @@
 
             addKartverketLayers(map);
 
-            const addressInput = document.querySelector('.form-card form [name="Address"]');
-            const addressStatus = document.getElementById("addressLookupStatus");
-            let addressRequestId = 0;
-            let addressController;
-            let lastSuggestedAddress = null;
-
-            // Cancels pending suggestions when the user corrects the address manually.
-            addressInput.addEventListener("input", function () {
-                addressRequestId++;
-                addressController?.abort();
-                lastSuggestedAddress = null;
-                addressStatus.textContent = "Adressen er endret manuelt. Kartpunktet beholdes.";
+            // Samme markør brukes begge veier; valgt adresse skal ikke utløse et nytt omvendt oppslag.
+            const addressLookup = setupResourceAddress(map, function (latitude, longitude) {
+                updateResourcePosition(latitude, longitude, false);
+                map.setView([latitude, longitude], 16, { animate: false });
             });
-
-            // Uses a conservative radius so distant addresses are never silently assigned.
-            async function lookupAddress(latitude, longitude) {
-                const requestId = ++addressRequestId;
-                addressController?.abort();
-                const controller = new AbortController();
-                addressController = controller;
-                const radius = 100;
-                if (lastSuggestedAddress !== null && addressInput.value === lastSuggestedAddress) {
-                    addressInput.value = "";
-                }
-                lastSuggestedAddress = null;
-                addressStatus.textContent = "Henter adresse ...";
-                const timeout = window.setTimeout(() => controller.abort(), 10000);
-                try {
-                    const url = new URL("https://api.kartverket.no/adresser/v1/punktsok");
-                    url.search = new URLSearchParams({
-                        lat: String(latitude), lon: String(longitude), radius: String(radius),
-                        koordsys: "4326", treffPerSide: "10"
-                    }).toString();
-                    const response = await fetch(url, { signal: controller.signal });
-                    if (!response.ok) throw new Error("Address lookup failed");
-                    const data = await response.json();
-                    // Ignores responses for older marker positions or manually edited addresses.
-                    if (requestId !== addressRequestId) return;
-                    const nearest = (Array.isArray(data.adresser) ? data.adresser : [])
-                        .filter(address => address.adressetekst && /^\d{4}$/.test(address.postnummer)
-                            && address.poststed && address.kommunenavn
-                            && typeof address.meterDistanseTilPunkt === "number"
-                            && Number.isFinite(address.meterDistanseTilPunkt)
-                            && address.meterDistanseTilPunkt >= 0 && address.meterDistanseTilPunkt <= radius)
-                        .sort((a, b) => a.meterDistanseTilPunkt - b.meterDistanseTilPunkt)[0];
-                    if (!nearest) {
-                        addressStatus.textContent = "Ingen registrert adresse funnet. Du kan skrive adresse eller område selv.";
-                        return;
-                    }
-                    const formatted = `${nearest.adressetekst}, ${nearest.postnummer} ${nearest.poststed} – ${nearest.kommunenavn} kommune`;
-                    const distance = Math.round(nearest.meterDistanseTilPunkt);
-                    if (formatted.length > addressInput.maxLength) {
-                        addressStatus.textContent = `Nærmeste adresseforslag (${distance} m): ${formatted}. Forkort adressen manuelt til 200 tegn.`;
-                        return;
-                    }
-                    addressInput.value = formatted;
-                    lastSuggestedAddress = formatted;
-                    addressStatus.textContent = `Adresseforslag fra Kartverket, ca. ${distance} m fra kartpunktet. Kontroller og korriger ved behov. Kartpunktet er uendret.`;
-                } catch {
-                    if (requestId !== addressRequestId) return;
-                    addressStatus.textContent = "Kunne ikke hente adresse. Skriv adresse eller område selv, eller behold bare kartpunktet.";
-                } finally {
-                    window.clearTimeout(timeout);
-                }
-            }
 
             // Makes both new and restored markers draggable using the same coordinate handler.
             function createResourceMarker(latitude, longitude) {
@@ -1864,13 +1779,13 @@
 
 
             // Saves the clicked or dragged point immediately, independently of address lookup.
-            function updateResourcePosition(latitude, longitude) {
+            function updateResourcePosition(latitude, longitude, resolveAddress = true) {
                 latitudeInput.value = latitude;
                 longitudeInput.value = longitude;
                 if (marker === null) marker = createResourceMarker(latitude, longitude);
                 else marker.setLatLng([latitude, longitude]);
                 updatePositionText(latitude, longitude);
-                lookupAddress(latitude, longitude);
+                if (resolveAddress) addressLookup.lookup(latitude, longitude);
             }
 
             map.on("click", function (event) {
@@ -1954,7 +1869,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (!durationSelect || !expiryPreview) return;
 
-    durationSelect.addEventListener("change", function () {
+    // Viser samme kalenderperiode som lagres på serveren, også etter valideringsfeil.
+    function updateExpiryPreview() {
 
         const months = Number(durationSelect.value);
 
@@ -1987,8 +1903,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 month: "long",
                 year: "numeric"
             });
-    });
-
+    }
+    durationSelect.addEventListener("change", updateExpiryPreview);
+    updateExpiryPreview();
 });
 </script>
 

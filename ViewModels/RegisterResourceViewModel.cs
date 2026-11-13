@@ -91,6 +91,11 @@ public class RegisterResourceViewModel
     )]
     public string? Availability { get; set; }
 
+    // Perioden må være ett av de eksisterende valgene og valideres også på serveren.
+    [Required(ErrorMessage = "Velg hvor lenge ressursen skal være tilgjengelig.")]
+    [Display(Name = "Hvor lenge skal ressursen være tilgjengelig?")]
+    public int? AvailabilityMonths { get; set; }
+
 
     // =========================
     // LOCATION
@@ -105,6 +110,29 @@ public class RegisterResourceViewModel
         Name = "Adresse / område"
     )]
     public string? Address { get; set; }
+
+    // Tre skjemafelt samles i det eksisterende adressefeltet ved lagring.
+    [StringLength(200)]
+    [Display(Name = "Adresse")]
+    public string? StreetAddress { get; set; }
+
+    [StringLength(100)]
+    [Display(Name = "Postnummer og poststed")]
+    public string? PostalLocation { get; set; }
+
+    [StringLength(100)]
+    [Display(Name = "Kommune")]
+    public string? Municipality { get; set; }
+
+    public string? CombinedAddress()
+    {
+        if (StreetAddress is null && PostalLocation is null && Municipality is null) return Address?.Trim();
+        var streetAndPost = string.Join(", ", new[] { StreetAddress?.Trim(), PostalLocation?.Trim() }
+            .Where(value => !string.IsNullOrWhiteSpace(value)));
+        return string.Join(" – ", new[] { streetAndPost,
+            string.IsNullOrWhiteSpace(Municipality) ? null : $"{Municipality.Trim()} kommune" }
+            .Where(value => !string.IsNullOrWhiteSpace(value)));
+    }
 
 
     /// <summary>
@@ -189,6 +217,16 @@ public class RegisterResourceViewModel
         ValidationContext validationContext
     )
     {
+        // Avviser ugyldige perioder og adresser som er for lange etter sammenslåing.
+        if (AvailabilityMonths.HasValue
+            && !FirstWebAppInDocker.Services.ResourceAvailability.Periods.ContainsKey(AvailabilityMonths.Value))
+        {
+            yield return new ValidationResult("Velg en gyldig periode.", new[] { nameof(AvailabilityMonths) });
+        }
+        if (CombinedAddress()?.Length > 200)
+        {
+            yield return new ValidationResult("Samlet adresse kan maksimalt være 200 tegn.", new[] { nameof(StreetAddress) });
+        }
         // =========================
         // MAP POSITION
         // =========================

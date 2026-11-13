@@ -89,7 +89,7 @@
                     resource.Id,
 
                 name = resource.ResourceName,
-                availability = resource.Status.ToString(),
+                availability = resource.EffectiveStatus.ToString(),
 
                 typeId = (int)resource.ResourceType,
 
@@ -379,9 +379,11 @@
                 <label for="resourceAvailabilityFilter">Tilgjengelighet</label>
                 <select id="resourceAvailabilityFilter">
                     <option value="">Alle statuser</option>
-                    <option value="Tilgjengelig">Tilgjengelig</option>
-                    <option value="Ikke tilgjengelig">Utilgjengelig</option>
-                    <option value="unspecified">Opptatt</option>
+                    @* Bruker de faktiske statusverdiene, inkludert utløpt lagret periode. *@
+                    @foreach (var status in Html.GetEnumSelectList<ResourceStatus>())
+                    {
+                        <option value="@((ResourceStatus)int.Parse(status.Value))">@status.Text</option>
+                    }
                 </select>
             </div>
             <div class="filter-field filter-search">
@@ -465,12 +467,20 @@
                                     <p>
                                         @resource.Description
                                     </p>
+                                    @if (!string.IsNullOrWhiteSpace(resource.Availability))
+                                    {
+                                        <p>Periode: @resource.Availability</p>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(resource.Address))
+                                    {
+                                        <p>@resource.Address</p>
+                                    }
 
                                 </div>
 
 
                                 <span class="resource-status">
-                                    @(string.IsNullOrWhiteSpace(resource.Availability) ? "Ikke oppgitt" : resource.Availability)
+                                    @(Html.GetEnumSelectList<ResourceStatus>().First(item => item.Value == ((int)resource.EffectiveStatus).ToString()).Text)
                                 </span>
 
                             </div>
@@ -572,8 +582,8 @@
 
                             <!-- TILGJENGELIGHET (STATUS) -->
                             <div class="resource-availability-status">
-                                <span class="resource-state resource-state-@resource.Status.ToString().ToLowerInvariant()">
-                                    @(resource.Status switch
+                                <span class="resource-state resource-state-@resource.EffectiveStatus.ToString().ToLowerInvariant()">
+                                    @(resource.EffectiveStatus switch
                                     {
                                         ResourceStatus.Busy => "Opptatt",
                                         ResourceStatus.Unavailable => "Utilgjengelig",
@@ -2246,7 +2256,7 @@
         }
 
 
-            // Applies all filters to the same resources before updating cards and markers.
+            // Filtrerer faktiske ressursnavn, beskrivelser, kategorier og status før kort og kart oppdateres.
             function applyFilters() {
                 const search = searchInput.value.trim().toLocaleLowerCase("nb-NO");
                 // Matches any selected category, then combines it with status and search.

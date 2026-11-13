@@ -1,3 +1,4 @@
+using FirstWebAppInDocker.Services;
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
 using FirstWebAppInDocker.ViewModels;
@@ -70,6 +71,13 @@ public class ResourceController : Controller
         RegisterResourceViewModel model
     )
     {
+        // Krever en gyldig periode selv om klientvalidering er slått av.
+        if (!model.AvailabilityMonths.HasValue
+            || !ResourceAvailability.Periods.ContainsKey(model.AvailabilityMonths.Value))
+        {
+            ModelState.AddModelError(nameof(model.AvailabilityMonths), "Velg en gyldig tilgjengelighetsperiode.");
+        }
+
         if (!ModelState.IsValid)
         {
             return View(
@@ -133,10 +141,8 @@ public class ResourceController : Controller
                         model.Capacity
                     ),
 
-                Availability =
-                    NormalizeOptionalText(
-                        model.Availability
-                    ),
+                // Lagrer valgt periode og sluttdato i eksisterende felt.
+                Availability = ResourceAvailability.CreatePeriod(model.AvailabilityMonths!.Value, DateTime.UtcNow),
 
 
                 // =============================================
@@ -145,7 +151,7 @@ public class ResourceController : Controller
 
                 Address =
                     NormalizeOptionalText(
-                        model.Address
+                        model.CombinedAddress()
                     ),
 
                 Latitude =
@@ -350,6 +356,13 @@ public class ResourceController : Controller
 
                             ResourceType =
                                 resource.ResourceType,
+
+                            // Sender faktiske navn, perioder og adresser til søk og ressurskort.
+                            ResourceName = resource.ResourceName,
+                            Quantity = resource.Quantity,
+                            Capacity = resource.Capacity,
+                            Availability = resource.Availability,
+                            Address = resource.Address,
 
                             Description =
                                 resource.Description,
