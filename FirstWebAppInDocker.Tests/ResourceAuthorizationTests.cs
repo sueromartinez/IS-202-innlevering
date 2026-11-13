@@ -18,6 +18,69 @@ namespace FirstWebAppInDocker.Tests;
 
 public class ResourceAuthorizationTests
 {
+    // Kontrollerer lagring av adressefeltene, perioden og de opprinnelige koordinatene samlet.
+    [Fact]
+    public async Task RegisterResource_SavesAddressAndPeriod_WithOriginalCoordinates()
+    {
+        using var database = CreateDatabase();
+        var controller = CreateController(database, CreateUser());
+        var model = CreateResource();
+        model.StreetAddress = "Stålveien 9";
+        model.PostalLocation = "4629, Kristiansand S";
+        model.Municipality = "Kristiansand";
+        Assert.IsType<RedirectToActionResult>(await controller.RegisterResource(model));
+        var saved = Assert.Single(await database.Resources.ToListAsync());
+        Assert.Equal("Stålveien 9, 4629, Kristiansand S – Kristiansand kommune", saved.Address);
+        Assert.Equal(model.Latitude, saved.Latitude);
+        Assert.Equal(model.Longitude, saved.Longitude);
+        Assert.Equal(DateOnly.FromDateTime(saved.CreatedAt.AddMonths(3)),
+            FirstWebAppInDocker.Services.ResourceAvailability.GetEndDate(saved.Availability));
+        var overview = Assert.IsType<ViewResult>(await controller.ResourceOverview());
+        var visible = Assert.Single(Assert.IsType<List<ResourceOverviewViewModel>>(overview.Model));
+        Assert.Equal(saved.ResourceName, visible.ResourceName);
+        Assert.Equal(saved.Address, visible.Address);
+        Assert.Equal(saved.Availability, visible.Availability);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(0)]
+    [InlineData(5)]
+    public async Task RegisterResource_RejectsMissingOrUnsupportedPeriod(int? months)
+    {
+        using var database = CreateDatabase();
+        var controller = CreateController(database, CreateUser());
+        var model = CreateResource();
+        model.AvailabilityMonths = months;
+        Assert.IsType<ViewResult>(await controller.RegisterResource(model));
+        Assert.False(controller.ModelState.IsValid);
+        Assert.Empty(await database.Resources.ToListAsync());
+    }
+
+    [Theory]
+    [InlineData(ResourceStatus.Available, "3 måneder; til 2020-01-01", ResourceStatus.Unavailable)]
+    [InlineData(ResourceStatus.Busy, "3 måneder; til 2099-01-01", ResourceStatus.Busy)]
+    [InlineData(ResourceStatus.Available, "Tilgjengelig", ResourceStatus.Available)]
+    public void Availability_UsesStoredStatusAndExpiry(ResourceStatus status, string period, ResourceStatus expected)
+    {
+        Assert.Equal(expected, FirstWebAppInDocker.Services.ResourceAvailability.EffectiveStatus(
+            status, period, new DateTime(2026, 11, 13)));
+    }
+
+    [Fact]
+    public void Dashboard_CountsNewPeriodsAlongsideLegacyAvailability()
+    {
+        var model = new DashboardViewModel { Resources = new()
+        {
+            new() { Availability = "3 måneder; til 2099-01-01", Status = ResourceStatus.Available },
+            new() { Availability = "3 måneder; til 2020-01-01", Status = ResourceStatus.Available },
+            new() { Availability = "Tilgjengelig" }
+        }};
+        Assert.Equal(2, model.AvailableCount);
+        Assert.Equal(1, model.UnavailableCount);
+        Assert.Equal(0, model.UnspecifiedCount);
+    }
+
     // ========================================
     // HJELPER - TESTDATABASE
     // ========================================
@@ -66,6 +129,7 @@ public class ResourceAuthorizationTests
             Quantity = 2,
             Capacity = "25 kVA",
             Availability = "Tilgjengelig",
+            AvailabilityMonths = 3,
             Address = "Kristiansand",
             Latitude = 58.1467,
             Longitude = 7.9956,

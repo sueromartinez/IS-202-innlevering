@@ -1080,12 +1080,9 @@ else if (userRole == "ResourceProvider")
                             ??
                             resourceItem.ResourceType.ToString();
 
-                        var status =
-                            string.IsNullOrWhiteSpace(
-                                resourceItem.Availability
-                            )
-                                ? "Ikke oppgitt"
-                                : resourceItem.Availability;
+                        // Beholder samme merking og filter også for ressurser registrert med periode.
+                        var status = FirstWebAppInDocker.Services.ResourceAvailability.DashboardStatus(resourceItem);
+                        if (string.IsNullOrWhiteSpace(status)) status = "Ikke oppgitt";
 
                         bool available =
                             string.Equals(
