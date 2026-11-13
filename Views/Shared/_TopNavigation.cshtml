@@ -1,20 +1,29 @@
+
 @using FirstWebAppInDocker.Data
+
 @{
-    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
-    var action = ViewContext.RouteData.Values["action"]?.ToString();
+    var controller =
+        ViewContext.RouteData.Values["controller"]?.ToString();
+
+    var action =
+        ViewContext.RouteData.Values["action"]?.ToString();
+
     var links = new List<(string Text, string Controller, string Action)>();
 
-    // Rollen hentes fra ASP.NET Core Identity, ikke Session,
-    // slik at Admin også får riktig meny.
     bool isAdmin = User.IsInRole(IdentitySeeder.AdminRole);
     bool isPublicActor = User.IsInRole(IdentitySeeder.PublicActorRole);
     bool isProvider = User.IsInRole(IdentitySeeder.ResourceProviderRole);
 
+    // OFFENTLIG AKTØR OG ADMINISTRATOR
+
     if (isPublicActor || isAdmin)
     {
-        links.AddRange(new[] {
-            ("Oversikt", "Home", "Dashboard"), ("Behov", "Need", "NeedOverview"),
-            ("Registrer behov", "Need", "RegisterNeed"), ("Ressurser", "Resource", "ResourceOverview")
+        links.AddRange(new[]
+        {
+            ("Oversikt", "Home", "Dashboard"),
+            ("Behov", "Need", "NeedOverview"),
+            ("Registrer behov", "Need", "RegisterNeed"),
+            ("Ressurser", "Resource", "ResourceOverview")
         });
 
         if (isAdmin)
@@ -22,37 +31,94 @@
             links.Add(("Brukere", "Admin", "Users"));
         }
 
+        // Matching og Tildelinger samles her.
+        links.Add(("Koordinering", "Match", "Index"));
+
+        // Profil skal være siste vanlige menyvalg.
         links.Add(("Profil", "Account", "Profile"));
     }
+
+    // RESSURSLEVERANDØR – UENDRET
+
     else if (isProvider)
     {
-        links.AddRange(new[] {
-            ("Oversikt", "Home", "Dashboard"), ("Mine ressurser", "Resource", "ResourceOverview"),
-            ("Registrer ressurs", "Resource", "RegisterResource"), ("Forespørsler", "Request", "Index"),
-            ("Behov jeg kan hjelpe med", "Request", "MatchingNeeds"), ("Profil", "Account", "Profile")
+        links.AddRange(new[]
+        {
+            ("Oversikt", "Home", "Dashboard"),
+            ("Mine ressurser", "Resource", "ResourceOverview"),
+            ("Registrer ressurs", "Resource", "RegisterResource"),
+            ("Forespørsler", "Request", "Index"),
+            ("Behov jeg kan hjelpe med", "Request", "MatchingNeeds"),
+            ("Profil", "Account", "Profile")
         });
     }
 }
+
 @if (links.Count > 0)
 {
-    @* Shares route links and active styling across pages without changing their content. *@
     <nav class="portal-top-navigation" aria-label="Brukermeny">
+
         @foreach (var link in links)
         {
-            // Keeps editing a need and matching under the "Behov" menu item.
-            bool active = string.Equals(controller, link.Controller, StringComparison.OrdinalIgnoreCase)
-                && (string.Equals(action, link.Action, StringComparison.OrdinalIgnoreCase)
-                    || (link.Action == "NeedOverview" && action == "EditNeed")
-                    || (link.Controller == "Admin" && controller == "Admin"));
-            <a asp-controller="@link.Controller" asp-action="@link.Action" aria-current="@(active ? "page" : null)">@link.Text</a>
+            bool sameController = string.Equals(
+                controller,
+                link.Controller,
+                StringComparison.OrdinalIgnoreCase
+            );
+
+            bool sameAction = string.Equals(
+                action,
+                link.Action,
+                StringComparison.OrdinalIgnoreCase
+            );
+
+            bool active =
+                (sameController && sameAction)
+
+                || (
+                    link.Controller == "Need"
+                    && link.Action == "NeedOverview"
+                    && controller == "Need"
+                    && action == "EditNeed"
+                )
+
+                || (
+                    link.Controller == "Admin"
+                    && controller == "Admin"
+                )
+
+                || (
+                    link.Controller == "Match"
+                    && link.Action == "Index"
+                    && controller == "Match"
+                    && (
+                        action == "Need"
+                        || action == "Assignments"
+                    )
+                );
+
+            <a
+                asp-controller="@link.Controller"
+                asp-action="@link.Action"
+                aria-current="@(active ? "page" : null)">
+
+                @link.Text
+
+            </a>
         }
 
-        @* Varselklokke med antall uleste varsler. *@
         @await Component.InvokeAsync("NotificationBell")
 
-        @* Keeps logout as a POST with the existing antiforgery protection. *@
-        <form asp-controller="Account" asp-action="Logout" method="post">
-            <button type="submit">Logg ut</button>
+        <form
+            asp-controller="Account"
+            asp-action="Logout"
+            method="post">
+
+            <button type="submit">
+                Logg ut
+            </button>
+
         </form>
+
     </nav>
 }
