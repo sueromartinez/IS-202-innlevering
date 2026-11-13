@@ -545,3 +545,53 @@
         display: none;
     }
 }
+
+/* =========================================================
+   MØRK MODUS for Sami-chatten
+   Bruker fargevariablene fra theme.css, så Sami følger resten av siden
+   ========================================================= */
+html:root[data-theme="navy"] {
+
+  /* Samis svar-bobler: mørk bakgrunn og lys tekst */
+  .sami-message.from-sami {
+    background: var(--surface-soft);
+    color: var(--text);
+    border-color: var(--border);
+  }
+
+  /* Forslagsknappene ("Hvordan registrerer jeg en ressurs?") */
+  .sami-starter {
+    background: var(--surface-soft);
+    color: var(--link);
+    border-color: var(--border);
+  }
+
+  /* Stripen nederst med skrivefeltet */
+  .sami-composer {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+  }
+
+  .sami-composer textarea {
+    background: var(--surface-soft);
+    color: var(--text);
+    border-color: var(--border);
+  }
+
+  /* Den lille teksten under ("Sami foreslår, du bestemmer ...") */
+  .sami-footnote {
+    background: var(--surface);
+    color: var(--text-secondary);
+  }
+
+  /* Kortene Sami viser med ressurser og behov */
+  .sami-card {
+    background: var(--surface-soft);
+    color: var(--text);
+    border-color: var(--border);
+  }
+
+  .sami-card h3 {
+    color: var(--heading);
+  }
+}

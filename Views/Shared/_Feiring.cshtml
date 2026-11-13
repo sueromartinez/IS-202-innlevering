@@ -1,0 +1,42 @@
+@* Popup etter ny ressurs: takk-melding, så fylles nivåbaren. Vises bare når controlleren har satt flagget. *@
+@if (TempData["ResourceCelebrate"] is true)
+{
+<div id="feiring" class="feiring">
+    <div class="feiring-boks">
+        <strong>Takk, ressursen er registrert ✓</strong>
+        <span>Du får 100 poeng</span>
+    </div>
+</div>
+
+<style>
+    .feiring { position: fixed; inset: 0; z-index: 90; display: flex;
+        align-items: center; justify-content: center; background: rgba(0, 0, 0, .35); }
+    .feiring-boks { display: flex; flex-direction: column; align-items: center; gap: 6px;
+        padding: 24px 36px; border-radius: 14px; text-align: center;
+        background: var(--surface, #fff); color: var(--text, #123047);
+        border: 1px solid var(--border, #d6dde6); box-shadow: 0 10px 30px rgba(0, 0, 0, .25); }
+    .feiring-boks strong { font-size: 1.2rem; color: var(--heading, #123047); }
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const boks = document.getElementById("feiring");
+    const bar = document.querySelector(".rank-bar-fill");
+
+    // Husk hvor full stolpen skal bli, og tøm den først
+    const maal = bar ? bar.style.width : "0%";
+    if (bar) { bar.style.transition = "none"; bar.style.width = "0%"; }
+
+    // Etter 2 sekunder: lukk popupen og la stolpen fylle seg opp
+    setTimeout(function () {
+        boks.remove();
+        if (!bar) return;
+        bar.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(function () {
+            bar.style.transition = "width 1.6s ease-out";
+            bar.style.width = maal;
+        }, 600);
+    }, 2000);
+});
+</script>
+}

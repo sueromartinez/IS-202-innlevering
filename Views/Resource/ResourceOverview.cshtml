@@ -186,6 +186,12 @@
         <div class="resource-flash" role="status">@resourceMessage</div>
     }
 
+    @* Vis feiringen kun rett etter at en ny ressurs er registrert *@
+    @if (TempData["ResourceCelebrate"] is true)
+    {
+        <partial name="_Feiring" />
+    }
+
 
 
     <!-- =====================================

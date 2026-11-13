@@ -393,3 +393,21 @@ html:root[data-theme="navy"] {
         color: #cfe3ff;
     }
 }
+
+/* TEST: lyseblå fargetema i lys modus (kan fjernes igjen) */
+html:root:not([data-theme="navy"]) {
+  --background: #d4eefb;   /* bakgrunn: myk himmelblå */
+  --primary: #0284c7;      /* knapper og aksentfarge */
+  --link: #0369a1;         /* lenker */
+}
+
+/* Myk lyseblå gradient bak innholdet, som på bildet */
+html:root:not([data-theme="navy"]) body {
+  background: radial-gradient(ellipse at 50% 30%, #eaf7fd 0%, #c7e9f9 45%, #8fd3f4 100%) fixed;
+}
+
+/* Dashboardet: la gradienten fra body vises i lys modus */
+html:root:not([data-theme="navy"]) .provider-shell,
+html:root:not([data-theme="navy"]) .public-workspace {
+  background: transparent;
+}

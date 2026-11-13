@@ -215,9 +215,12 @@ public class ResourceController : Controller
         TempData["ResourceSuccess"] =
             "Ressursen ble registrert.";
 
+        // Fortell oversikten at den skal vise feiring (gif, konfetti, sang)
+        TempData["ResourceCelebrate"] = true;
+
 
         return RedirectToAction(
-            nameof(ResourceOverview)
+            "Dashboard", "Home"
         );
     }
 
