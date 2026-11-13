@@ -1,0 +1,694 @@
+
+@model List<FirstWebAppInDocker.ViewModels.MatchNeedViewModel>
+
+@using FirstWebAppInDocker.Models
+@using FirstWebAppInDocker.ViewModels
+
+@{
+    Layout = "_PortalLayout";
+    ViewData["Title"] = "Tildelinger";
+
+    int totalNeeds = Model.Count;
+
+    int totalAssignments = Model.Sum(
+        item => item.Assignments?.Count ?? 0
+    );
+
+    int answeredAssignments = Model.Sum(
+        item => item.Assignments?.Count(
+            a => a.RespondedAt.HasValue
+        ) ?? 0
+    );
+
+    string TypeLabel(ResourceType type) => type switch
+    {
+        ResourceType.Transport => "Transport",
+        ResourceType.Drone => "Drone / droneoperatør",
+        ResourceType.Generator => "Strøm / aggregat",
+        ResourceType.Machinery => "Maskiner",
+        ResourceType.CommunicationEquipment => "Sambandsutstyr",
+        ResourceType.Personnel => "Mannskap / frivillige",
+        ResourceType.Premises => "Lokaler",
+        ResourceType.SandAndGravel => "Sand / grus",
+        ResourceType.Boat => "Båt",
+        ResourceType.Other => "Annet",
+        _ => type.ToString()
+    };
+
+    string AssignmentStatusLabel(string status) => status switch
+    {
+        "Pending" or "Requested" => "Venter på svar",
+        "Accepted" or "Confirmed" or "Approved" => "Bekreftet",
+        "Rejected" or "Declined" => "Avslått",
+        "Cancelled" or "Canceled" => "Avbrutt",
+        "Completed" => "Fullført",
+        _ => status
+    };
+
+    string AssignmentStatusClass(string status) => status switch
+    {
+        "Pending" or "Requested" => "assignment-waiting",
+        "Accepted" or "Confirmed" or "Approved" => "assignment-confirmed",
+        "Rejected" or "Declined" => "assignment-rejected",
+        "Cancelled" or "Canceled" => "assignment-cancelled",
+        "Completed" => "assignment-confirmed",
+        _ => "assignment-other"
+    };
+
+    string NeedStatusLabel(string status) => status switch
+    {
+        "Resolved" => "Løst",
+        "Open" or "Active" => "Aktivt",
+        "Closed" => "Lukket",
+        "Cancelled" or "Canceled" => "Avbrutt",
+        _ => status
+    };
+}
+
+<style>
+    /* ========================================
+       STATISTIKK
+    ======================================== */
+
+    .assignment-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+        margin-bottom: 30px;
+    }
+
+    .assignment-stat {
+        padding: 23px 26px;
+    }
+
+    .assignment-stat-label {
+        display: block;
+        margin-bottom: 12px;
+        color: #64809a;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .assignment-stat-number {
+        display: block;
+        color: #173954;
+        font-size: 32px;
+        font-weight: 800;
+        line-height: 1.1;
+    }
+
+    /* ========================================
+       OVERSKRIFT FOR LISTEN
+    ======================================== */
+
+    .assignment-section-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .assignment-section-heading h2 {
+        margin: 0;
+        color: #173954;
+        font-size: 23px;
+    }
+
+    .assignment-section-count {
+        color: #64809a;
+        font-size: 13px;
+    }
+
+    /* ========================================
+       BEHOVSKORT
+    ======================================== */
+
+    .assignment-need-list {
+        display: grid;
+        gap: 22px;
+    }
+
+    .assignment-need-card {
+        padding: 25px 28px;
+    }
+
+    .assignment-need-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+
+    .assignment-need-eyebrow {
+        display: block;
+        margin-bottom: 7px;
+        color: #64809a;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .assignment-need-title {
+        margin: 0;
+        color: #173954;
+        font-size: 20px;
+        font-weight: 750;
+    }
+
+    .assignment-need-subtitle {
+        margin-top: 7px;
+        color: #64809a;
+        font-size: 13px;
+    }
+
+    .assignment-need-status {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 20px;
+        padding: 7px 12px;
+        background: #e4eef7;
+        color: #245d85;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .assignment-need-status.resolved {
+        background: #dcefe4;
+        color: #267447;
+    }
+
+    /* ========================================
+       TILDELINGER INNE I HVERT BEHOV
+    ======================================== */
+
+    .assignment-items {
+        display: grid;
+        gap: 12px;
+        margin-top: 24px;
+    }
+
+    .assignment-item {
+        padding: 18px 20px;
+        border: 1px solid #d1dfeb;
+        border-radius: 12px;
+        background: rgba(120, 169, 202, 0.06);
+    }
+
+    .assignment-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .assignment-resource-name {
+        margin: 0 0 5px;
+        color: #173954;
+        font-size: 16px;
+        font-weight: 750;
+    }
+
+    .assignment-resource-type {
+        color: #64809a;
+        font-size: 12px;
+    }
+
+    /* ========================================
+       STATUSMERKER
+    ======================================== */
+
+    .assignment-status {
+        display: inline-flex;
+        align-items: center;
+        padding: 7px 11px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .assignment-waiting {
+        background: #fff0d6;
+        color: #93631a;
+    }
+
+    .assignment-confirmed {
+        background: #dcefe4;
+        color: #267447;
+    }
+
+    .assignment-rejected {
+        background: #f8e0e0;
+        color: #a33131;
+    }
+
+    .assignment-cancelled {
+        background: #e8edf2;
+        color: #657586;
+    }
+
+    .assignment-other {
+        background: #e1edf8;
+        color: #245d85;
+    }
+
+    /* ========================================
+       KONTAKT OG DATOER
+    ======================================== */
+
+    .assignment-info {
+        display: flex;
+        gap: 12px 24px;
+        flex-wrap: wrap;
+        margin-top: 16px;
+        color: #55738c;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+
+    .assignment-info strong {
+        color: #173954;
+    }
+
+    .assignment-info a {
+        color: #087fbd;
+        text-decoration: none;
+        overflow-wrap: anywhere;
+    }
+
+    .assignment-info a:hover {
+        text-decoration: underline;
+    }
+
+    .assignment-message {
+        margin-top: 15px;
+        padding: 12px 14px;
+        border-left: 3px solid #94b8d5;
+        border-radius: 0 7px 7px 0;
+        background: rgba(120, 169, 202, 0.09);
+        color: #476579;
+        font-size: 13px;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    .assignment-sami-label {
+        display: inline-block;
+        margin-top: 12px;
+        color: #64748b;
+        font-size: 12px;
+    }
+
+    /* ========================================
+       TOMME LISTER
+    ======================================== */
+
+    .assignment-empty {
+        padding: 20px;
+        margin-top: 20px;
+        border: 1px dashed #b9cfdf;
+        border-radius: 10px;
+        color: #64809a;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+
+    .assignment-empty-page {
+        padding: 45px 25px;
+        text-align: center;
+    }
+
+    .assignment-empty-page h3 {
+        color: #173954;
+        margin-bottom: 10px;
+    }
+
+    .assignment-empty-page p {
+        color: #64809a;
+        line-height: 1.6;
+    }
+
+    /* ========================================
+       KNAPPER OG HANDLINGER
+    ======================================== */
+
+    .assignment-need-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 22px;
+        padding-top: 20px;
+        border-top: 1px solid #d1dfeb;
+    }
+
+    .assignment-open-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        padding: 10px 17px;
+        border-radius: 9px;
+        background: #087fbd;
+        color: white;
+        font-size: 13px;
+        font-weight: 700;
+        text-decoration: none;
+        transition: background 0.2s;
+    }
+
+    .assignment-open-button:hover {
+        background: #075c95;
+        color: white;
+    }
+
+    .assignment-open-button:focus-visible,
+    .assignment-info a:focus-visible {
+        outline: 3px solid #0284c7;
+        outline-offset: 3px;
+    }
+
+    /* ========================================
+       MOBIL
+    ======================================== */
+
+    @@media (max-width: 700px) {
+        .assignment-stats {
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .assignment-stat {
+            padding: 18px 20px;
+        }
+
+        .assignment-need-card {
+            padding: 20px;
+        }
+
+        .assignment-need-title {
+            font-size: 18px;
+        }
+
+        .assignment-item {
+            padding: 16px;
+        }
+
+        .assignment-need-actions {
+            justify-content: stretch;
+        }
+
+        .assignment-open-button {
+            width: 100%;
+        }
+    }
+</style>
+
+<!-- ========================================
+     SIDEOVERSKRIFT
+======================================== -->
+
+<div class="page-top">
+    <div>
+        <span class="page-eyebrow">
+            Ressursmatching
+        </span>
+
+        <h1 class="page-heading">
+            Tildelinger
+        </h1>
+
+        <p class="page-description">
+            Samlet oversikt over forespørsler og
+            tildelinger knyttet til registrerte behov.
+            Se hvem som har svart, og åpne behovene
+            for videre oppfølging.
+        </p>
+    </div>
+</div>
+
+<!-- ========================================
+     STATISTIKK
+======================================== -->
+
+<div class="assignment-stats">
+
+    <section class="app-card assignment-stat">
+        <span class="assignment-stat-label">
+            Registrerte behov
+        </span>
+
+        <span class="assignment-stat-number">
+            @totalNeeds
+        </span>
+    </section>
+
+    <section class="app-card assignment-stat">
+        <span class="assignment-stat-label">
+            Sendte forespørsler
+        </span>
+
+        <span class="assignment-stat-number">
+            @totalAssignments
+        </span>
+    </section>
+
+    <section class="app-card assignment-stat">
+        <span class="assignment-stat-label">
+            Besvarte forespørsler
+        </span>
+
+        <span class="assignment-stat-number">
+            @answeredAssignments
+        </span>
+    </section>
+
+</div>
+
+<!-- ========================================
+     LISTEOVERSKRIFT
+======================================== -->
+
+<div class="assignment-section-heading">
+
+    <h2>
+        Behov og forespørsler
+    </h2>
+
+    <span class="assignment-section-count">
+        @totalNeeds behov totalt
+    </span>
+
+</div>
+
+<!-- ========================================
+     INGEN BEHOV
+======================================== -->
+
+@if (Model.Count == 0)
+{
+    <section class="app-card assignment-empty-page">
+
+        <h3>Ingen registrerte behov</h3>
+
+        <p>
+            Det finnes ingen behov å vise ennå.
+            Når behov og forespørsler opprettes,
+            vil de vises her.
+        </p>
+
+        <a
+            asp-controller="Need"
+            asp-action="NeedOverview"
+            class="assignment-open-button">
+
+            Gå til behov
+
+        </a>
+
+    </section>
+}
+else
+{
+    <!-- ========================================
+         ALLE BEHOV
+    ======================================== -->
+
+    <div class="assignment-need-list">
+
+        @foreach (MatchNeedViewModel item in Model)
+        {
+            var need = item.Need;
+
+            var assignments =
+                item.Assignments?
+                    .OrderByDescending(a => a.CreatedAt)
+                    .ToList()
+                ?? new List<AssignmentRowViewModel>();
+
+            string needStatus = need.Status.ToString();
+
+            <section class="app-card assignment-need-card">
+
+                <!-- ========================================
+                     BEHOVSINFORMASJON
+                ======================================== -->
+
+                <div class="assignment-need-top">
+
+                    <div>
+                        <span class="assignment-need-eyebrow">
+                            Behov #@need.Id
+                        </span>
+
+                        <h3 class="assignment-need-title">
+                            @TypeLabel(need.ResourceType)
+                        </h3>
+
+                        <p class="assignment-need-subtitle">
+                            @assignments.Count
+                            @(assignments.Count == 1
+                                ? "forespørsel"
+                                : "forespørsler")
+                        </p>
+                    </div>
+
+                    <span class="assignment-need-status @(needStatus == "Resolved" ? "resolved" : "")">
+                        @NeedStatusLabel(needStatus)
+                    </span>
+
+                </div>
+
+                <!-- ========================================
+                     FORESPØRSLER FOR DETTE BEHOVET
+                ======================================== -->
+
+                @if (assignments.Count == 0)
+                {
+                    <div class="assignment-empty">
+                        Ingen forespørsler er sendt for dette
+                        behovet ennå. Åpne behovet for å finne
+                        matchende ressurser og sende forespørsler.
+                    </div>
+                }
+                else
+                {
+                    <div class="assignment-items">
+
+                        @foreach (AssignmentRowViewModel assignment in assignments)
+                        {
+                            string assignmentStatus =
+                                assignment.Status.ToString();
+
+                            <article class="assignment-item">
+
+                                <div class="assignment-item-header">
+
+                                    <div>
+                                        <h4 class="assignment-resource-name">
+                                            @assignment.ResourceName
+                                        </h4>
+
+                                        <span class="assignment-resource-type">
+                                            @TypeLabel(assignment.ResourceType)
+                                        </span>
+                                    </div>
+
+                                    <span class="assignment-status @AssignmentStatusClass(assignmentStatus)">
+                                        @AssignmentStatusLabel(assignmentStatus)
+                                    </span>
+
+                                </div>
+
+                                <!-- ========================================
+                                     DATOER OG KONTAKT
+                                ======================================== -->
+
+                                <div class="assignment-info">
+
+                                    <span>
+                                        <strong>Sendt:</strong>
+                                        @assignment.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                                    </span>
+
+                                    @if (assignment.RespondedAt.HasValue)
+                                    {
+                                        <span>
+                                            <strong>Besvart:</strong>
+                                            @assignment.RespondedAt.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                                        </span>
+                                    }
+
+                                    @if (!string.IsNullOrWhiteSpace(assignment.ContactEmail))
+                                    {
+                                        <span>
+                                            <strong>E-post:</strong>
+                                            <a href="mailto:@assignment.ContactEmail">
+                                                @assignment.ContactEmail
+                                            </a>
+                                        </span>
+                                    }
+
+                                    @if (!string.IsNullOrWhiteSpace(assignment.ContactPhone))
+                                    {
+                                        <span>
+                                            <strong>Telefon:</strong>
+                                            @assignment.ContactPhone
+                                        </span>
+                                    }
+
+                                </div>
+
+                                <!-- ========================================
+                                     MELDING
+                                ======================================== -->
+
+                                @if (!string.IsNullOrWhiteSpace(assignment.Message))
+                                {
+                                    <div class="assignment-message">
+                                        @assignment.Message
+                                    </div>
+                                }
+
+                                <!-- ========================================
+                                     SAMI-INDIKATOR
+                                ======================================== -->
+
+                                @if (assignment.SuggestedByAssistant)
+                                {
+                                    <span class="assignment-sami-label">
+                                        Foreslått med hjelp fra Sami
+                                    </span>
+                                }
+
+                            </article>
+                        }
+
+                    </div>
+                }
+
+                <!-- ========================================
+                     ÅPNE MATCHING FOR BEHOVET
+                ======================================== -->
+
+                <div class="assignment-need-actions">
+
+                    <a
+                        asp-controller="Match"
+                        asp-action="Need"
+                        asp-route-id="@need.Id"
+                        class="assignment-open-button">
+
+                        Åpne behov og matching
+
+                    </a>
+
+                </div>
+
+            </section>
+        }
+
+    </div>
+}

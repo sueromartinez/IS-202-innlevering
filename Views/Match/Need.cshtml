@@ -1,11 +1,33 @@
+
 @model FirstWebAppInDocker.ViewModels.MatchNeedViewModel
 @using FirstWebAppInDocker.Services
+
 @{
     Layout = "_PortalLayout";
-    ViewData["Title"] = "Finn ressurser";
+    ViewData["Title"] = "Koordinering – behov";
 
     var need = Model.Need;
     bool isResolved = need.Status == NeedStatus.Resolved;
+
+    int totalRequests = Model.Assignments.Count;
+
+    int pendingRequests = Model.Assignments.Count(a =>
+        a.Status == AssignmentStatus.Requested);
+
+    int confirmedRequests = Model.Assignments.Count(a =>
+        a.Status == AssignmentStatus.Confirmed);
+
+    string defaultTab = isResolved || totalRequests > 0
+        ? "requests"
+        : "resources";
+
+    string requestedTab = Context.Request.Query["tab"].ToString();
+
+    if (!isResolved &&
+        (requestedTab == "requests" || requestedTab == "resources"))
+    {
+        defaultTab = requestedTab;
+    }
 
     string NeedStatusClass(NeedStatus status) => status switch
     {
@@ -23,201 +45,1431 @@
         _ => "status-requested"
     };
 
+    string CoordinationStatus =
+        isResolved ? "Løst"
+        : confirmedRequests > 0 ? "Bekreftet"
+        : pendingRequests > 0 ? "Venter på svar"
+        : "Trenger matching";
+
+    string CoordinationStatusClass =
+        isResolved ? "resolved"
+        : confirmedRequests > 0 ? "confirmed"
+        : pendingRequests > 0 ? "waiting"
+        : "matching";
+
     var radiusOptions = new[] { 10, 25, 50, 100, 200 };
 }
 
-<div class="page-top">
-    <div>
-        <span class="page-eyebrow">Matching</span>
-        <h1 class="page-heading">@EnumDisplay.Name(need.ResourceType)</h1>
-        <p class="page-description">@need.Description</p>
+<style>
+    /* ========================================
+       HOVEDOMRÅDE
+    ======================================== */
+
+    .need-coord {
+        color: #173954;
+    }
+
+    .need-coord-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 20px;
+        color: #286d9c;
+        font-size: 13px;
+        font-weight: 750;
+        text-decoration: none;
+    }
+
+    .need-coord-back:hover {
+        text-decoration: underline;
+    }
+
+    /* ========================================
+       TOPPKORT
+    ======================================== */
+
+    .need-coord-hero {
+        padding: 25px 28px;
+        margin-bottom: 19px;
+        border: 1px solid #a7c8e4;
+        border-radius: 15px;
+        background: rgba(239, 247, 255, .85);
+    }
+
+    .need-coord-hero-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .need-coord-eyebrow {
+        display: block;
+        margin-bottom: 9px;
+        color: #087fbd;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+    }
+
+    .need-coord-title {
+        margin: 0 0 8px;
+        color: #173954;
+        font-size: clamp(27px, 3vw, 36px);
+        font-weight: 800;
+        line-height: 1.2;
+    }
+
+    .need-coord-description {
+        max-width: 850px;
+        margin: 0;
+        color: #55738c;
+        font-size: 14px;
+        line-height: 1.7;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    .need-coord-state {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 13px;
+        border-radius: 25px;
+        font-size: 12px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .need-coord-state::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+    }
+
+    .need-coord-state.matching {
+        background: #dcecf8;
+        color: #276b95;
+    }
+
+    .need-coord-state.waiting {
+        background: #fff0d8;
+        color: #97621b;
+    }
+
+    .need-coord-state.confirmed,
+    .need-coord-state.resolved {
+        background: #dcefe4;
+        color: #247747;
+    }
+
+    .need-coord-info {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 14px 26px;
+        margin-top: 22px;
+        padding-top: 19px;
+        border-top: 1px solid #c5d9ea;
+    }
+
+    .need-coord-info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .need-coord-info-label {
+        color: #6a859b;
+        font-size: 11px;
+        font-weight: 750;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+    }
+
+    .need-coord-info-value {
+        color: #173954;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .need-coord-hero-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 17px;
+    }
+
+    .need-coord-hero-actions form {
+        margin: 0;
+    }
+
+    .need-coord-secondary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-height: 39px;
+        padding: 10px 15px;
+        border: 1px solid #a4c4e0;
+        border-radius: 8px;
+        background: transparent;
+        color: #245d85;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 750;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .need-coord-secondary:hover {
+        background: #e3f0fb;
+    }
+
+    /* ========================================
+       STATISTIKK
+    ======================================== */
+
+    .need-coord-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 21px;
+    }
+
+    .need-coord-stat {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 20px 22px;
+        border: 1px solid #a7c8e4;
+        border-radius: 13px;
+        background: rgba(239, 247, 255, .85);
+    }
+
+    .need-coord-stat-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        width: 43px;
+        height: 43px;
+        border-radius: 11px;
+        background: #dcecf8;
+        color: #087fbd;
+    }
+
+    .need-coord-stat-icon svg {
+        width: 22px;
+        height: 22px;
+    }
+
+    .need-coord-stat-value {
+        display: block;
+        color: #173954;
+        font-size: 28px;
+        font-weight: 800;
+        line-height: 1.1;
+    }
+
+    .need-coord-stat-label {
+        display: block;
+        margin-top: 5px;
+        color: #638097;
+        font-size: 12px;
+    }
+
+    /* ========================================
+       ARBEIDSOMRÅDE OG FANER
+    ======================================== */
+
+    .need-coord-workspace {
+        padding: 22px;
+        border: 1px solid #a7c8e4;
+        border-radius: 15px;
+        background: rgba(239, 247, 255, .75);
+    }
+
+    .need-coord-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 22px;
+        padding-bottom: 18px;
+        border-bottom: 1px solid #c5d9ea;
+    }
+
+    .need-coord-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 42px;
+        padding: 10px 17px;
+        border: 1px solid transparent;
+        border-radius: 9px;
+        background: transparent;
+        color: #54728b;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 750;
+        cursor: pointer;
+    }
+
+    .need-coord-tab:hover {
+        background: rgba(8, 127, 189, .08);
+    }
+
+    .need-coord-tab[aria-selected="true"] {
+        background: #087fbd;
+        color: #ffffff;
+    }
+
+    .need-coord-tab-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 21px;
+        height: 21px;
+        padding: 2px 5px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, .2);
+        font-size: 11px;
+    }
+
+    .need-coord-panel[hidden] {
+        display: none !important;
+    }
+
+    .need-coord-panel-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 21px;
+    }
+
+    .need-coord-panel-top h2 {
+        margin: 0 0 6px;
+        color: #173954;
+        font-size: 19px;
+    }
+
+    .need-coord-hint {
+        max-width: 850px;
+        margin: 0;
+        color: #638097;
+        font-size: 13px;
+        line-height: 1.7;
+    }
+
+    /* ========================================
+       FORESPØRSELSKORT
+    ======================================== */
+
+    .need-coord-list {
+        display: grid;
+        gap: 13px;
+    }
+
+    .need-coord-request {
+        padding: 20px 22px;
+        border: 1px solid #c4d9e9;
+        border-radius: 12px;
+        background: #ffffff;
+    }
+
+    .need-coord-request-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .need-coord-request-name {
+        margin: 0 0 6px;
+        color: #173954;
+        font-size: 17px;
+        font-weight: 800;
+    }
+
+    .need-coord-request-type {
+        color: #6a859b;
+        font-size: 12px;
+    }
+
+    .need-coord-request-meta {
+        display: flex;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 16px 30px;
+        margin-top: 18px;
+        padding-top: 16px;
+        border-top: 1px solid #e1ebf3;
+    }
+
+    .need-coord-meta-item {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        min-width: 0;
+    }
+
+    .need-coord-meta-label {
+        color: #6a859b;
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+    .need-coord-meta-value {
+        color: #173954;
+        font-size: 13px;
+        font-weight: 600;
+        overflow-wrap: anywhere;
+    }
+
+    .need-coord-meta-value a {
+        color: #087fbd;
+        text-decoration: none;
+    }
+
+    .need-coord-meta-value a:hover {
+        text-decoration: underline;
+    }
+
+    .need-coord-request-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 19px;
+    }
+
+    .need-coord-sami {
+        color: #6a859b;
+        font-size: 12px;
+    }
+
+    .need-coord-cancel {
+        min-height: 37px;
+        padding: 9px 15px;
+        border: 1px solid #dea5a5;
+        border-radius: 8px;
+        background: transparent;
+        color: #a53131;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 750;
+        cursor: pointer;
+    }
+
+    .need-coord-cancel:hover {
+        background: #fceaea;
+    }
+
+    /* ========================================
+       MATCHENDE RESSURSER
+    ======================================== */
+
+    .need-coord-radius {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .need-coord-radius label {
+        color: #55738c;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .need-coord-radius select {
+        min-height: 40px;
+        padding: 9px 35px 9px 12px;
+        border: 1px solid #a7c8e4;
+        border-radius: 9px;
+        background: #ffffff;
+        color: #173954;
+        font: inherit;
+        font-size: 13px;
+    }
+
+    .need-coord-resource {
+        padding: 20px 22px;
+        border: 1px solid #c4d9e9;
+        border-radius: 12px;
+        background: #ffffff;
+    }
+
+    .need-coord-resource-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 13px;
+    }
+
+    .need-coord-distance {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 11px;
+        border-radius: 20px;
+        background: #e4f2fb;
+        color: #236b96;
+        font-size: 12px;
+        font-weight: 750;
+    }
+
+    .need-coord-resource-description {
+        margin: 13px 0;
+        color: #55738c;
+        font-size: 13px;
+        line-height: 1.7;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    .need-coord-resource-details {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 22px;
+        margin: 16px 0;
+        color: #55738c;
+        font-size: 12px;
+    }
+
+    .need-coord-resource-details strong {
+        color: #173954;
+    }
+
+    .need-coord-resource-footer {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #e1ebf3;
+    }
+
+    .need-coord-send {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        padding: 10px 17px;
+        border: 0;
+        border-radius: 8px;
+        background: #087fbd;
+        color: #ffffff;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 750;
+        cursor: pointer;
+    }
+
+    .need-coord-send:hover {
+        background: #05699f;
+    }
+
+    /* ========================================
+       TOMME LISTER
+    ======================================== */
+
+    .need-coord-empty {
+        padding: 36px 22px;
+        border: 1px dashed #b3ccdf;
+        border-radius: 11px;
+        background: rgba(255, 255, 255, .35);
+        color: #648097;
+        font-size: 13px;
+        line-height: 1.7;
+        text-align: center;
+    }
+
+    .need-coord-empty h3 {
+        margin: 0 0 9px;
+        color: #173954;
+        font-size: 17px;
+    }
+
+    .need-coord-empty p {
+        margin: 0;
+    }
+
+    .need-coord-empty .need-coord-send {
+        margin-top: 17px;
+        text-decoration: none;
+    }
+
+    .need-coord-tab:focus-visible,
+    .need-coord-back:focus-visible,
+    .need-coord-secondary:focus-visible,
+    .need-coord-send:focus-visible,
+    .need-coord-cancel:focus-visible,
+    .need-coord-radius select:focus-visible {
+        outline: 3px solid #75b9e6;
+        outline-offset: 3px;
+    }
+
+    /* ========================================
+       MOBIL
+    ======================================== */
+
+    @@media (max-width: 700px) {
+        .need-coord-hero {
+            padding: 20px;
+        }
+
+        .need-coord-stats {
+            grid-template-columns: 1fr;
+            gap: 11px;
+        }
+
+        .need-coord-stat {
+            padding: 16px 18px;
+        }
+
+        .need-coord-workspace {
+            padding: 15px;
+        }
+
+        .need-coord-request,
+        .need-coord-resource {
+            padding: 17px;
+        }
+
+        .need-coord-hero-actions {
+            justify-content: flex-start;
+        }
+
+        .need-coord-panel-top {
+            flex-direction: column;
+        }
+
+        .need-coord-radius {
+            width: 100%;
+        }
+
+        .need-coord-request-footer {
+            align-items: stretch;
+        }
+
+        .need-coord-request-footer form,
+        .need-coord-cancel {
+            width: 100%;
+        }
+
+        .need-coord-resource-footer form,
+        .need-coord-send {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="need-coord">
+
+    <!-- ========================================
+         TILBAKE TIL KOORDINERING
+    ======================================== -->
+
+    <a
+        asp-controller="Match"
+        asp-action="Index"
+        class="need-coord-back">
+
+        ← Tilbake til koordinering
+
+    </a>
+
+    <!-- ========================================
+         TOPPKORT
+    ======================================== -->
+
+    <section class="need-coord-hero">
+
+        <div class="need-coord-hero-top">
+
+            <div>
+
+                <span class="need-coord-eyebrow">
+                    Koordinering / Behov #@need.Id
+                </span>
+
+                <h1 class="need-coord-title">
+                    @EnumDisplay.Name(need.ResourceType)
+                </h1>
+
+                <p class="need-coord-description">
+                    @need.Description
+                </p>
+
+            </div>
+
+            <span class="need-coord-state @CoordinationStatusClass">
+                @CoordinationStatus
+            </span>
+
+        </div>
+
+        <!-- ========================================
+             BEHOVSINFORMASJON
+        ======================================== -->
+
+        <div class="need-coord-info">
+
+            <div class="need-coord-info-item">
+                <span class="need-coord-info-label">
+                    Status
+                </span>
+                <span class="need-coord-info-value">
+                    <span class="status-badge @NeedStatusClass(need.Status)">
+                        @EnumDisplay.Name(need.Status)
+                    </span>
+                </span>
+            </div>
+
+            <div class="need-coord-info-item">
+                <span class="need-coord-info-label">
+                    Prioritet
+                </span>
+
+                <span class="need-coord-info-value">
+                    <span class="status-badge @(need.Priority == NeedPriority.Acute ? "priority-acute" : "priority-planned")">
+                        @EnumDisplay.Name(need.Priority)
+                    </span>
+                </span>
+            </div>
+
+            <div class="need-coord-info-item">
+                <span class="need-coord-info-label">
+                    Antall etterspurt
+                </span>
+
+                <span class="need-coord-info-value">
+                    @need.Quantity
+                </span>
+            </div>
+
+            <div class="need-coord-info-item">
+                <span class="need-coord-info-label">
+                    Registrert
+                </span>
+
+                <span class="need-coord-info-value">
+                    @need.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                </span>
+            </div>
+
+        </div>
+
+        @if (!isResolved)
+        {
+            <div class="need-coord-hero-actions">
+
+                <form
+                    asp-controller="Match"
+                    asp-action="Resolve"
+                    method="post"
+                    onsubmit="return confirm('Markere behovet som løst? Bekreftede ressurser blir ledige igjen.');">
+
+                    <input
+                        type="hidden"
+                        name="needId"
+                        value="@need.Id" />
+
+                    <button
+                        type="submit"
+                        class="need-coord-secondary">
+
+                        Marker behovet som løst
+
+                    </button>
+
+                </form>
+
+            </div>
+        }
+
+    </section>
+
+    <!-- ========================================
+         STATISTIKK
+    ======================================== -->
+
+    <div class="need-coord-stats">
+
+        <section class="need-coord-stat">
+            <div class="need-coord-stat-icon">
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true">
+
+                    <rect x="4" y="4" width="16" height="16" rx="2" />
+                    <path d="M8 9h8M8 13h8M8 17h5" />
+                </svg>
+            </div>
+
+            <div>
+                <strong class="need-coord-stat-value">
+                    @totalRequests
+                </strong>
+                <span class="need-coord-stat-label">
+                    Sendte forespørsler
+                </span>
+            </div>
+        </section>
+
+        <section class="need-coord-stat">
+            <div class="need-coord-stat-icon">
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true">
+
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 7v5l3 2" />
+                </svg>
+            </div>
+
+            <div>
+                <strong class="need-coord-stat-value">
+                    @pendingRequests
+                </strong>
+                <span class="need-coord-stat-label">
+                    Venter på svar
+                </span>
+            </div>
+        </section>
+
+        <section class="need-coord-stat">
+            <div class="need-coord-stat-icon">
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true">
+
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="m8 12 3 3 5-6" />
+                </svg>
+            </div>
+
+            <div>
+                <strong class="need-coord-stat-value">
+                    @confirmedRequests
+                </strong>
+                <span class="need-coord-stat-label">
+                    Bekreftede ressurser
+                </span>
+            </div>
+        </section>
+
     </div>
 
-    <a asp-controller="Need" asp-action="NeedOverview" class="secondary-action">← Tilbake til behov</a>
-</div>
+    <!-- ========================================
+         MELDINGER
+    ======================================== -->
 
-@if (TempData["MatchMessage"] is string message)
-{
-    <div class="alert alert-success" role="status">@message</div>
-}
-@if (TempData["MatchError"] is string error)
-{
-    <div class="alert alert-error" role="alert">@error</div>
-}
-
-<section class="app-card portal-section">
-    <dl class="detail-grid">
-        <div>
-            <dt>Status</dt>
-            <dd><span class="status-badge @NeedStatusClass(need.Status)">@EnumDisplay.Name(need.Status)</span></dd>
+    @if (TempData["MatchMessage"] is string message)
+    {
+        <div class="alert alert-success" role="status">
+            @message
         </div>
-        <div>
-            <dt>Prioritet</dt>
-            <dd>
-                <span class="status-badge @(need.Priority == NeedPriority.Acute ? "priority-acute" : "priority-planned")">
-                    @EnumDisplay.Name(need.Priority)
+    }
+
+    @if (TempData["MatchError"] is string error)
+    {
+        <div class="alert alert-error" role="alert">
+            @error
+        </div>
+    }
+
+    <!-- ========================================
+         FANER OG ARBEIDSOMRÅDE
+    ======================================== -->
+
+    <section class="need-coord-workspace">
+
+        <div
+            class="need-coord-tabs"
+            role="tablist"
+            aria-label="Behovshåndtering">
+
+            <button
+                type="button"
+                role="tab"
+                id="need-tab-requests"
+                class="need-coord-tab"
+                data-need-tab="requests"
+                aria-controls="need-panel-requests"
+                aria-selected="@(defaultTab == "requests" ? "true" : "false")"
+                tabindex="@(defaultTab == "requests" ? "0" : "-1")">
+
+                Forespørsler
+
+                <span class="need-coord-tab-count">
+                    @totalRequests
                 </span>
-            </dd>
+
+            </button>
+
+            @if (!isResolved)
+            {
+                <button
+                    type="button"
+                    role="tab"
+                    id="need-tab-resources"
+                    class="need-coord-tab"
+                    data-need-tab="resources"
+                    aria-controls="need-panel-resources"
+                    aria-selected="@(defaultTab == "resources" ? "true" : "false")"
+                    tabindex="@(defaultTab == "resources" ? "0" : "-1")">
+
+                    Finn ressurser
+
+                    <span class="need-coord-tab-count">
+                        @Model.Candidates.Count
+                    </span>
+
+                </button>
+            }
+
         </div>
-        <div>
-            <dt>Antall</dt>
-            <dd>@need.Quantity</dd>
-        </div>
-        <div>
-            <dt>Registrert</dt>
-            <dd>@need.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</dd>
-        </div>
-    </dl>
 
-    @if (!isResolved)
-    {
-        <form asp-action="Resolve" method="post" class="form-actions"
-              onsubmit="return confirm('Markere behovet som løst? Bekreftede ressurser blir ledige igjen.');">
-            <input type="hidden" name="needId" value="@need.Id" />
-            <button type="submit" class="secondary-action">Marker behovet som løst</button>
-        </form>
-    }
-</section>
+        <!-- ====================================
+             FANE 1: FORESPØRSLER
+        ==================================== -->
 
+        <section
+            id="need-panel-requests"
+            class="need-coord-panel"
+            role="tabpanel"
+            aria-labelledby="need-tab-requests"
+            data-need-panel="requests"
+            hidden="@(defaultTab != "requests")">
 
-<section class="app-card portal-section">
-    <h2>Forespørsler</h2>
-    <p class="section-hint">
-        Eieren av ressursen får varsel i portalen og på e-post, og må bekrefte at de kan stille.
-        Behovet blir «Tildelt» når minst én har bekreftet.
-    </p>
+            <div class="need-coord-panel-top">
 
-    @if (Model.Assignments.Count == 0)
-    {
-        <p class="empty-state">Ingen forespørsler sendt ennå.</p>
-    }
-    else
-    {
-        <div class="table-wrap">
-            <table class="portal-table">
-                <thead>
-                    <tr>
-                        <th>Ressurs</th>
-                        <th>Status</th>
-                        <th>Kontakt</th>
-                        <th>Sendt</th>
-                        <th><span class="visually-hidden">Handlinger</span></th>
-                    </tr>
-                </thead>
-                <tbody>
+                <div>
+                    <h2>Sendte forespørsler</h2>
+
+                    <p class="need-coord-hint">
+                        Her følger du opp ressursleverandørene.
+                        De får varsel i portalen og på e-post
+                        og må bekrefte at de kan stille.
+                    </p>
+                </div>
+
+            </div>
+
+            @if (Model.Assignments.Count == 0)
+            {
+                <div class="need-coord-empty">
+
+                    <h3>Ingen forespørsler sendt ennå</h3>
+
+                    <p>
+                        Du har ikke sendt noen forespørsler
+                        for dette behovet.
+                    </p>
+
+                    @if (!isResolved)
+                    {
+                        <button
+                            type="button"
+                            class="need-coord-send"
+                            data-switch-to-resources>
+
+                            Finn tilgjengelige ressurser
+
+                        </button>
+                    }
+
+                </div>
+            }
+            else
+            {
+                <div class="need-coord-list">
+
                     @foreach (var assignment in Model.Assignments)
                     {
-                        <tr>
-                            <td>
-                                <strong>@assignment.ResourceName</strong>
-                                <span class="cell-muted">
-                                    @EnumDisplay.Name(assignment.ResourceType)
-                                    @(assignment.SuggestedByAssistant ? " · foreslått av Sami" : "")
+                        <article class="need-coord-request">
+
+                            <div class="need-coord-request-top">
+
+                                <div>
+
+                                    <h3 class="need-coord-request-name">
+                                        @assignment.ResourceName
+                                    </h3>
+
+                                    <span class="need-coord-request-type">
+                                        @EnumDisplay.Name(assignment.ResourceType)
+                                    </span>
+
+                                </div>
+
+                                <span class="status-badge @AssignmentStatusClass(assignment.Status)">
+                                    @EnumDisplay.Name(assignment.Status)
                                 </span>
-                            </td>
-                            <td><span class="status-badge @AssignmentStatusClass(assignment.Status)">@EnumDisplay.Name(assignment.Status)</span></td>
-                            <td>
-                                @assignment.ContactEmail
-                                @if (assignment.ContactPhone is not null)
+
+                            </div>
+
+                            <!-- ====================================
+                                 KONTAKT OG DATOER
+                            ==================================== -->
+
+                            <div class="need-coord-request-meta">
+
+                                <div class="need-coord-meta-item">
+                                    <span class="need-coord-meta-label">
+                                        Kontakt-e-post
+                                    </span>
+
+                                    <span class="need-coord-meta-value">
+
+                                        @if (!string.IsNullOrWhiteSpace(assignment.ContactEmail))
+                                        {
+                                            <a href="mailto:@assignment.ContactEmail">
+                                                @assignment.ContactEmail
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <text>Ikke oppgitt</text>
+                                        }
+
+                                    </span>
+                                </div>
+
+                                @if (!string.IsNullOrWhiteSpace(assignment.ContactPhone))
                                 {
-                                    <span class="cell-muted">@assignment.ContactPhone</span>
-                                }
-                            </td>
-                            <td>@assignment.CreatedAt.ToLocalTime().ToString("dd.MM HH:mm")</td>
-                            <td>
-                                @if ((assignment.Status is AssignmentStatus.Requested or AssignmentStatus.Confirmed) && !isResolved)
-                                {
-                                    <div class="cell-actions">
-                                        <form asp-action="Cancel" method="post">
-                                            <input type="hidden" name="assignmentId" value="@assignment.Id" />
-                                            <input type="hidden" name="needId" value="@need.Id" />
-                                            <button type="submit" class="small-action">Avbryt</button>
-                                        </form>
+                                    <div class="need-coord-meta-item">
+
+                                        <span class="need-coord-meta-label">
+                                            Telefon
+                                        </span>
+
+                                        <span class="need-coord-meta-value">
+                                            @assignment.ContactPhone
+                                        </span>
+
                                     </div>
                                 }
-                            </td>
-                        </tr>
+
+                                <div class="need-coord-meta-item">
+
+                                    <span class="need-coord-meta-label">
+                                        Forespørsel sendt
+                                    </span>
+
+                                    <span class="need-coord-meta-value">
+                                        @assignment.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                                    </span>
+
+                                </div>
+
+                                @if (assignment.RespondedAt.HasValue)
+                                {
+                                    <div class="need-coord-meta-item">
+
+                                        <span class="need-coord-meta-label">
+                                            Besvart
+                                        </span>
+
+                                        <span class="need-coord-meta-value">
+                                            @assignment.RespondedAt.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                                        </span>
+
+                                    </div>
+                                }
+
+                            </div>
+
+                            <!-- ====================================
+                                 MELDING
+                            ==================================== -->
+
+                            @if (!string.IsNullOrWhiteSpace(assignment.Message))
+                            {
+                                <p class="need-coord-resource-description">
+                                    @assignment.Message
+                                </p>
+                            }
+
+                            <!-- ====================================
+                                 HANDLINGER
+                            ==================================== -->
+
+                            <div class="need-coord-request-footer">
+
+                                <div class="need-coord-sami">
+
+                                    @if (assignment.SuggestedByAssistant)
+                                    {
+                                        <span>Foreslått med hjelp fra Sami</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Ressursforespørsel</span>
+                                    }
+
+                                </div>
+
+                                @if (
+                                    !isResolved &&
+                                    (assignment.Status is AssignmentStatus.Requested
+                                        or AssignmentStatus.Confirmed)
+                                )
+                                {
+                                    <form
+                                        asp-controller="Match"
+                                        asp-action="Cancel"
+                                        method="post"
+                                        onsubmit="return confirm('Er du sikker på at du vil avbryte denne forespørselen?');">
+
+                                        <input
+                                            type="hidden"
+                                            name="assignmentId"
+                                            value="@assignment.Id" />
+
+                                        <input
+                                            type="hidden"
+                                            name="needId"
+                                            value="@need.Id" />
+
+                                        <button
+                                            type="submit"
+                                            class="need-coord-cancel">
+
+                                            Avbryt forespørsel
+
+                                        </button>
+
+                                    </form>
+                                }
+
+                            </div>
+
+                        </article>
                     }
-                </tbody>
-            </table>
-        </div>
-    }
-</section>
 
+                </div>
+            }
 
-@if (!isResolved)
-{
-    <section class="app-card portal-section">
-        <div class="page-top" style="margin-bottom: 8px;">
-            <div>
-                <h2>Tilgjengelige ressurser i nærheten</h2>
-                <p class="section-hint">
-                    Ressurser av typen «@EnumDisplay.Name(need.ResourceType)», sortert etter avstand i luftlinje.
-                    Trenger du hjelp til å vurdere andre typer ressurser, spør Sami nede i hjørnet.
-                </p>
-            </div>
+        </section>
 
-            <form method="get" asp-action="Need" asp-route-id="@need.Id" class="inline-role-form">
-                <label for="radiusKm" class="visually-hidden">Søkeradius</label>
-                <select id="radiusKm" name="radiusKm" onchange="this.form.submit()">
-                    @foreach (int radius in radiusOptions)
-                    {
-                        <option value="@radius" selected="@(Math.Abs(radius - Model.RadiusKm) < 0.1)">Innen @radius km</option>
-                    }
-                </select>
-                <noscript><button type="submit" class="small-action">Søk</button></noscript>
-            </form>
-        </div>
+        <!-- ====================================
+             FANE 2: FINN RESSURSER
+        ==================================== -->
 
-        @if (Model.Candidates.Count == 0)
+        @if (!isResolved)
         {
-            <p class="empty-state">
-                Fant ingen tilgjengelige ressurser av denne typen innen @Model.RadiusKm km.
-                Prøv en større radius.
-            </p>
-        }
-        else
-        {
-            <div class="table-wrap">
-                <table class="portal-table">
-                    <thead>
-                        <tr>
-                            <th>Ressurs</th>
-                            <th>Avstand</th>
-                            <th>Antall / kapasitet</th>
-                            <th>Tilgjengelighet</th>
-                            <th><span class="visually-hidden">Handlinger</span></th>
-                        </tr>
-                    </thead>
-                    <tbody>
+            <section
+                id="need-panel-resources"
+                class="need-coord-panel"
+                role="tabpanel"
+                aria-labelledby="need-tab-resources"
+                data-need-panel="resources"
+                hidden="@(defaultTab != "resources")">
+
+                <div class="need-coord-panel-top">
+
+                    <div>
+
+                        <h2>Tilgjengelige ressurser i nærheten</h2>
+
+                        <p class="need-coord-hint">
+                            Finn ressurser av typen
+                            «@EnumDisplay.Name(need.ResourceType)»,
+                            sortert etter geografisk avstand.
+                            Du kan også spørre Sami om hjelp
+                            til å vurdere andre ressurstyper.
+                        </p>
+
+                    </div>
+
+                    <!-- ====================================
+                         AVSTANDSFILTER
+                    ==================================== -->
+
+                    <form
+                        method="get"
+                        asp-controller="Match"
+                        asp-action="Need"
+                        asp-route-id="@need.Id"
+                        class="need-coord-radius">
+
+                        <input
+                            type="hidden"
+                            name="tab"
+                            value="resources" />
+
+                        <label for="radiusKm">
+                            Søkeradius
+                        </label>
+
+                        <select
+                            id="radiusKm"
+                            name="radiusKm"
+                            onchange="this.form.submit()">
+
+                            @foreach (int radius in radiusOptions)
+                            {
+                                <option
+                                    value="@radius"
+                                    selected="@(Math.Abs(radius - Model.RadiusKm) < 0.1)">
+
+                                    Innen @radius km
+
+                                </option>
+                            }
+
+                        </select>
+
+                        <noscript>
+                            <button
+                                type="submit"
+                                class="need-coord-secondary">
+
+                                Søk
+
+                            </button>
+                        </noscript>
+
+                    </form>
+
+                </div>
+
+                <!-- ====================================
+                     MATCHENDE RESSURSER
+                ==================================== -->
+
+                @if (Model.Candidates.Count == 0)
+                {
+                    <div class="need-coord-empty">
+
+                        <h3>Ingen ressurser funnet</h3>
+
+                        <p>
+                            Fant ingen tilgjengelige ressurser
+                            av denne typen innen
+                            @Model.RadiusKm km.
+                            Prøv en større søkeradius.
+                        </p>
+
+                    </div>
+                }
+                else
+                {
+                    <div class="need-coord-list">
+
                         @foreach (var candidate in Model.Candidates)
                         {
-                            <tr>
-                                <td>
-                                    <strong>@candidate.ResourceName</strong>
-                                    <span class="cell-muted">@candidate.Description</span>
-                                </td>
-                                <td>@candidate.DistanceKm.ToString("0.0") km</td>
-                                <td>
-                                    @candidate.Quantity stk
+                            <article class="need-coord-resource">
+
+                                <div class="need-coord-resource-top">
+
+                                    <div>
+
+                                        <h3 class="need-coord-request-name">
+                                            @candidate.ResourceName
+                                        </h3>
+
+                                        <span class="need-coord-request-type">
+                                            Tilgjengelig ressurs
+                                        </span>
+
+                                    </div>
+
+                                    <span class="need-coord-distance">
+                                        @candidate.DistanceKm.ToString("0.0") km unna
+                                    </span>
+
+                                </div>
+
+                                <p class="need-coord-resource-description">
+                                    @candidate.Description
+                                </p>
+
+                                <div class="need-coord-resource-details">
+
+                                    <span>
+                                        <strong>Antall:</strong>
+                                        @candidate.Quantity stk
+                                    </span>
+
                                     @if (!string.IsNullOrWhiteSpace(candidate.Capacity))
                                     {
-                                        <span class="cell-muted">@candidate.Capacity</span>
+                                        <span>
+                                            <strong>Kapasitet:</strong>
+                                            @candidate.Capacity
+                                        </span>
                                     }
-                                </td>
-                                <td>@(candidate.Availability ?? "Ikke oppgitt")</td>
-                                <td>
-                                    <form asp-action="SendRequest" method="post" class="cell-actions">
-                                        <input type="hidden" name="needId" value="@need.Id" />
-                                        <input type="hidden" name="resourceId" value="@candidate.ResourceId" />
-                                        <button type="submit" class="small-action primary">Send forespørsel</button>
+
+                                    <span>
+                                        <strong>Tilgjengelighet:</strong>
+                                        @(candidate.Availability ?? "Ikke oppgitt")
+                                    </span>
+
+                                </div>
+
+                                <!-- ====================================
+                                     SEND FORESPØRSEL
+                                ==================================== -->
+
+                                <div class="need-coord-resource-footer">
+
+                                    <form
+                                        asp-controller="Match"
+                                        asp-action="SendRequest"
+                                        method="post">
+
+                                        <input
+                                            type="hidden"
+                                            name="needId"
+                                            value="@need.Id" />
+
+                                        <input
+                                            type="hidden"
+                                            name="resourceId"
+                                            value="@candidate.ResourceId" />
+
+                                        <button
+                                            type="submit"
+                                            class="need-coord-send">
+
+                                            Send forespørsel
+
+                                        </button>
+
                                     </form>
-                                </td>
-                            </tr>
+
+                                </div>
+
+                            </article>
                         }
-                    </tbody>
-                </table>
-            </div>
+
+                    </div>
+                }
+
+            </section>
         }
+
     </section>
-}
+
+</div>
+
+<!-- ========================================
+     JAVASCRIPT FOR FANER
+======================================== -->
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const tabs =
+            document.querySelectorAll("[data-need-tab]");
+
+        const panels =
+            document.querySelectorAll("[data-need-panel]");
+
+        function activateTab(name, shouldFocus) {
+
+            tabs.forEach(function (tab) {
+
+                const isSelected =
+                    tab.dataset.needTab === name;
+
+                tab.setAttribute(
+                    "aria-selected",
+                    isSelected ? "true" : "false"
+                );
+
+                tab.tabIndex = isSelected ? 0 : -1;
+
+                if (isSelected && shouldFocus) {
+                    tab.focus();
+                }
+            });
+
+            panels.forEach(function (panel) {
+
+                panel.hidden =
+                    panel.dataset.needPanel !== name;
+
+            });
+        }
+
+        tabs.forEach(function (tab) {
+
+            tab.addEventListener("click", function () {
+
+                activateTab(
+                    tab.dataset.needTab,
+                    false
+                );
+
+            });
+
+            tab.addEventListener("keydown", function (event) {
+
+                if (event.key !== "ArrowLeft"
+                    && event.key !== "ArrowRight") {
+                    return;
+                }
+
+                event.preventDefault();
+
+                const allTabs = Array.from(tabs);
+                const index = allTabs.indexOf(tab);
+
+                const direction =
+                    event.key === "ArrowRight" ? 1 : -1;
+
+                const nextIndex =
+                    (index + direction + allTabs.length)
+                    % allTabs.length;
+
+                activateTab(
+                    allTabs[nextIndex].dataset.needTab,
+                    true
+                );
+            });
+        });
+
+        // Knapp i tom forespørselsliste.
+
+        document.querySelectorAll(
+            "[data-switch-to-resources]"
+        ).forEach(function (button) {
+
+            button.addEventListener("click", function () {
+
+                activateTab("resources", true);
+
+            });
+        });
+
+    });
+</script>
