@@ -243,9 +243,11 @@ E-post fanges av **Mailpit** og kan leses på http://localhost:8025. SMS logges 
 
 Sami er hjelpeboten nede i høyre hjørne på alle sider etter innlogging.
 
-- **Frivillig:** hjelp til navigasjon og registrering, og «hvilke behov kan jeg hjelpe med?»
+- **Frivillig:** fortell Sami hva du vil tilby og hvor det står, så lager Sami et utkast til ressursen. Ressursen lagres først når du trykker **Registrer ressursen** (samme skjema og validering som «Registrer ressurs»). Sami kan også si hvilket nivå du er på og hva som skal til for neste.
 - **Offentlig aktør:** beskriv en hendelse («flom i Grimstad sentrum»), så finner Sami ressurser i nærheten og foreslår matcher. Forslag vises som kort med knappen **Send forespørsel**; Sami lagrer aldri noe selv.
 - **Admin:** det samme, pluss tall for hele portalen.
+
+Alle roller kan spørre Sami om hvordan portalen fungerer (mørk modus, nivå, innlogging, tofaktor, profil, varsler osv.). Svarene hentes fra hjelpeartiklene i `Services/Ai/SamiHelpGuide.cs`. **Endrer dere en funksjon i portalen, oppdater artikkelen der**, så svarer Sami riktig.
 
 Avstand og filtrering beregnes i C# (`ResourceMatchingService`). Språkmodellen får ferdige kandidater, uten kontaktinformasjon, og forklarer og rangerer dem.
 

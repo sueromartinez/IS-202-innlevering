@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -5,6 +6,7 @@ using System.Text.Json.Nodes;
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
 using FirstWebAppInDocker.Services.Matching;
+using FirstWebAppInDocker.ViewModels;
 using Microsoft.EntityFrameworkCore;
 
 namespace FirstWebAppInDocker.Services.Ai;
@@ -55,13 +57,67 @@ public class SamiSuggestion
 
 
 /// <summary>
+/// Et utkast til en ny ressurs som Sami har fylt ut for en frivillig.
+/// Vises som et kort i chatten med knappen "Registrer ressursen".
+/// Knappen sender det vanlige registreringsskjemaet, så ressursen
+/// valideres og lagres akkurat som når brukeren fyller ut skjemaet selv.
+/// Feltnavnene er de samme som i RegisterResourceViewModel.
+/// </summary>
+public class SamiResourceDraft
+{
+    public string ResourceType { get; init; } = string.Empty;
+
+    public string ResourceTypeName { get; init; } = string.Empty;
+
+    public string ResourceName { get; init; } = string.Empty;
+
+    public string Description { get; init; } = string.Empty;
+
+    public int Quantity { get; init; }
+
+    public string? Capacity { get; init; }
+
+    public int AvailabilityMonths { get; init; }
+
+    public string AvailabilityName { get; init; } = string.Empty;
+
+    public string StreetAddress { get; init; } = string.Empty;
+
+    public string? PostalLocation { get; init; }
+
+    public string? Municipality { get; init; }
+
+    public double Latitude { get; init; }
+
+    public double Longitude { get; init; }
+
+    public string? ContactPhoneCountryCode { get; init; }
+
+    public string? ContactPhoneNumber { get; init; }
+}
+
+
+/// <summary>
+/// Det Sami har laget i løpet av ett svar, i tillegg til teksten:
+/// forslag til koblinger og utkast til ressurser. Vises som kort i chatten.
+/// </summary>
+public class SamiTurnOutput
+{
+    public List<SamiSuggestion> Suggestions { get; } = new();
+
+    public List<SamiResourceDraft> ResourceDrafts { get; } = new();
+}
+
+
+/// <summary>
 /// Verktøyene Sami kan bruke. All tilgang til data går gjennom her.
 ///
 /// Sikkerhet:
 /// - Hvert verktøy sjekker rollen på nytt, selv om modellen bare
 ///   får se verktøyene den har lov til (forsvar i dybden).
 /// - Ingen verktøy returnerer kontaktinformasjon (e-post/telefon).
-/// - Ingen verktøy endrer data. suggest_match lager bare et forslag.
+/// - Ingen verktøy endrer data. suggest_match og prepare_resource_registration
+///   lager bare forslag/utkast som brukeren selv må bekrefte.
 /// </summary>
 public class SamiTools
 {
@@ -79,16 +135,20 @@ public class SamiTools
 
     private readonly NominatimGeocoder _geocoder;
 
+    private readonly IAddressLookup _addressLookup;
+
 
     public SamiTools(
         ApplicationDbContext context,
         ResourceMatchingService matching,
-        NominatimGeocoder geocoder
+        NominatimGeocoder geocoder,
+        IAddressLookup addressLookup
     )
     {
         _context = context;
         _matching = matching;
         _geocoder = geocoder;
+        _addressLookup = addressLookup;
     }
 
 
@@ -208,6 +268,46 @@ public class SamiTools
         """{ "type": "object", "properties": {} }""");
 
 
+    private static readonly ChatToolDefinition SearchHelp = Define(
+        "search_help",
+        "Søker i hjelpeartiklene om hvordan portalen fungerer: innlogging, passord, tofaktor, profil, mørk modus/tema, nivå og poeng, varsler, kart, registrering, forespørsler, koordinering, roller og admin. Bruk dette for ALLE spørsmål om hvordan man gjør noe i portalen.",
+        """
+        {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string", "description": "Spørsmålet eller noen stikkord, f.eks. 'mørk modus' eller 'gå opp i nivå'." }
+          },
+          "required": ["query"]
+        }
+        """);
+
+    private static readonly ChatToolDefinition GetMyLevel = Define(
+        "get_my_level",
+        "Gir brukerens nåværende nivå, poeng og hvor mange ressurser som mangler til neste nivå.",
+        """{ "type": "object", "properties": {} }""");
+
+    private static readonly ChatToolDefinition PrepareResourceRegistration = Define(
+        "prepare_resource_registration",
+        "Lager et utkast til en ny ressurs for brukeren. Systemet slår opp adressen og sjekker reglene i skjemaet. Brukeren får et kort med knappen «Registrer ressursen»; ingenting lagres før brukeren trykker. Spør brukeren om opplysninger som mangler i stedet for å finne på dem. Lag et nytt utkast hvis brukeren vil endre noe.",
+        """
+        {
+          "type": "object",
+          "properties": {
+            "resource_type": { "type": "string", "description": "Ressurstype (verdi fra get_resource_types, f.eks. 'Boat')." },
+            "resource_name": { "type": "string", "description": "Kort navn, maks 100 tegn, f.eks. 'Sjark med påhengsmotor'." },
+            "description": { "type": "string", "description": "Hva ressursen kan brukes til, maks 500 tegn. Skriv den ut fra det brukeren har sagt." },
+            "quantity": { "type": "integer", "description": "Antall, minst 1." },
+            "capacity": { "type": "string", "description": "Valgfritt, f.eks. '8 personer' eller '3 kW'." },
+            "availability_months": { "type": "integer", "description": "Hvor lenge ressursen skal være tilgjengelig: 1, 3, 6, 12, 24 eller 36 måneder." },
+            "location": { "type": "string", "description": "Adresse eller sted der ressursen står, f.eks. 'Storgata 5, Grimstad'." },
+            "phone_country_code": { "type": "string", "description": "Valgfritt: +47, +45 eller +46. Standard +47." },
+            "phone_number": { "type": "string", "description": "Valgfritt telefonnummer for ressursen." }
+          },
+          "required": ["resource_type", "resource_name", "description", "quantity", "availability_months", "location"]
+        }
+        """);
+
+
     /// <summary>
     /// Verktøyene hver rolle får tilgang til.
     /// </summary>
@@ -217,20 +317,20 @@ public class SamiTools
         {
             SamiRole.Volunteer => new[]
             {
-                GetPortalPages, GetResourceTypes, GetRegistrationRules,
-                GetMyResources, FindNeedsICanHelpWith
+                SearchHelp, GetPortalPages, GetResourceTypes, GetRegistrationRules,
+                GetMyResources, GetMyLevel, PrepareResourceRegistration, FindNeedsICanHelpWith
             },
 
             SamiRole.PublicActor => new[]
             {
-                GetPortalPages, GetResourceTypes, GetRegistrationRules,
+                SearchHelp, GetPortalPages, GetResourceTypes, GetRegistrationRules,
                 GetOpenNeeds, GetNeedDetails, GeocodePlace,
                 FindNearbyResources, SuggestMatch
             },
 
             _ => new[]
             {
-                GetPortalPages, GetResourceTypes, GetRegistrationRules,
+                SearchHelp, GetPortalPages, GetResourceTypes, GetRegistrationRules,
                 GetOpenNeeds, GetNeedDetails, GeocodePlace,
                 FindNearbyResources, SuggestMatch, GetStatistics
             }
@@ -249,7 +349,7 @@ public class SamiTools
     public async Task<string> ExecuteAsync(
         ChatToolCall call,
         SamiContext context,
-        List<SamiSuggestion> suggestions,
+        SamiTurnOutput output,
         CancellationToken cancellationToken
     )
     {
@@ -265,6 +365,9 @@ public class SamiTools
         {
             return call.Name switch
             {
+                "search_help" => Serialize(Help(call.Arguments, context.Role)),
+                "get_my_level" => await MyLevelAsync(context, cancellationToken),
+                "prepare_resource_registration" => await PrepareResourceAsync(call.Arguments, output, cancellationToken),
                 "get_portal_pages" => Serialize(PortalPages(context.Role)),
                 "get_resource_types" => Serialize(ResourceTypes()),
                 "get_registration_rules" => Serialize(RegistrationRules(context.Role)),
@@ -274,7 +377,7 @@ public class SamiTools
                 "get_need_details" => await NeedDetailsAsync(call.Arguments, cancellationToken),
                 "geocode_place" => await GeocodeAsync(call.Arguments, cancellationToken),
                 "find_nearby_resources" => await NearbyResourcesAsync(call.Arguments, cancellationToken),
-                "suggest_match" => await SuggestMatchAsync(call.Arguments, suggestions, cancellationToken),
+                "suggest_match" => await SuggestMatchAsync(call.Arguments, output.Suggestions, cancellationToken),
                 "get_statistics" => await StatisticsAsync(cancellationToken),
                 _ => Serialize(new { error = "Ukjent verktøy." })
             };
@@ -310,6 +413,7 @@ public class SamiTools
             pages.Add(new { title = "Behov", url = "/Need/NeedOverview", description = "Alle registrerte behov. Trykk «Finn ressurser» på et behov for å matche." });
             pages.Add(new { title = "Registrer behov", url = "/Need/RegisterNeed", description = "Skjema for å registrere ett eller flere behov." });
             pages.Add(new { title = "Ressurser", url = "/Resource/ResourceOverview", description = "Alle registrerte ressurser med kontaktinformasjon." });
+            pages.Add(new { title = "Koordinering", url = "/Match", description = "Oversikt over uløste behov, sendte forespørsler og historikk." });
         }
 
         if (role == SamiRole.Admin)
@@ -319,7 +423,7 @@ public class SamiTools
         }
 
         pages.Add(new { title = "Varsler", url = "/Notification", description = "Varsler om forespørsler og svar (klokken øverst)." });
-        pages.Add(new { title = "Profil", url = "/Account/Profile", description = "Endre navn, e-post og telefonnummer." });
+        pages.Add(new { title = "Profil", url = "/Account/Profile", description = "Endre navn, e-post og telefonnummer, og se status for tofaktor." });
 
         return new { pages };
     }
@@ -350,9 +454,9 @@ public class SamiTools
                     new { field = "Beskrivelse", required = true, rule = "Maks 500 tegn. Beskriv hva ressursen kan brukes til." },
                     new { field = "Antall", required = true, rule = "Minst 1." },
                     new { field = "Kapasitet", required = false, rule = "Maks 200 tegn, f.eks. «8 personer» eller «20 tonn»." },
-                    new { field = "Tilgjengelighet", required = false, rule = "Maks 200 tegn, f.eks. «Hverdager etter kl. 16»." },
-                    new { field = "Adresse / område", required = false, rule = "Maks 200 tegn." },
-                    new { field = "Plassering i kartet", required = true, rule = "Klikk i kartet der ressursen står. Uten plassering kan skjemaet ikke sendes." },
+                    new { field = "Hvor lenge skal ressursen være tilgjengelig?", required = true, rule = "1, 3 eller 6 måneder, eller 1, 2 eller 3 år." },
+                    new { field = "Adresse", required = false, rule = "Skriv adressen og velg et forslag fra Kartverket. Da fylles postnummer, kommune og kartet ut automatisk." },
+                    new { field = "Plassering i kartet", required = true, rule = "Settes av adressen, eller ved å klikke i kartet. Uten plassering kan skjemaet ikke sendes." },
                     new { field = "Kontakt-e-post", required = false, rule = "Gyldig e-post. Står den tom, brukes e-posten på kontoen." },
                     new { field = "Landkode og telefonnummer", required = false, rule = "Landkode +47, +45 eller +46. Norske og danske nummer har 8 sifre, svenske 7–10." }
                 }
@@ -373,6 +477,228 @@ public class SamiTools
                 new { field = "Plassering i kartet", required = true, rule = "Klikk i kartet der behovet er." }
             }
         };
+    }
+
+
+    // =========================================================
+    // HJELPEARTIKLER
+    // =========================================================
+
+    private static object Help(JsonElement arguments, SamiRole role)
+    {
+        string? query = GetString(arguments, "query");
+
+        List<SamiHelpArticle> articles = SamiHelpGuide.Search(query, role);
+
+        if (articles.Count == 0)
+        {
+            return new
+            {
+                found = false,
+                note = "Fant ingen artikkel som passer. Svar at du ikke vet sikkert, og nevn emnene under som brukeren kan spørre om.",
+                topics = SamiHelpGuide.TopicsFor(role)
+            };
+        }
+
+        return new
+        {
+            found = true,
+            note = "Svar bare ut fra disse artiklene. Står ikke svaret her, si det ærlig.",
+            articles = articles.Select(article => new
+            {
+                title = article.Title,
+                text = article.Text
+            })
+        };
+    }
+
+
+    // =========================================================
+    // NIVÅ OG POENG
+    // =========================================================
+
+    private async Task<string> MyLevelAsync(
+        SamiContext context,
+        CancellationToken cancellationToken
+    )
+    {
+        string? email =
+            await _context.Users
+                .Where(user => user.Id == context.UserId)
+                .Select(user => user.Email)
+                .FirstOrDefaultAsync(cancellationToken);
+
+        // Samme utvalg som dashboardet: egne ressurser, også eldre
+        // ressurser som bare er koblet via e-post.
+        List<Resource> resources =
+            await _context.Resources
+                .AsNoTracking()
+                .Where(resource =>
+                    resource.OwnerUserId == context.UserId
+                    || (resource.OwnerUserId == null && resource.OwnerEmail == email))
+                .ToListAsync(cancellationToken);
+
+        // Gjenbruker utregningen fra dashboardet, så tallene alltid er like.
+        var progress = new DashboardViewModel { Resources = resources };
+
+        return Serialize(new
+        {
+            resources_registered = progress.ResourceCount,
+            points = progress.RankPoints,
+            level = progress.RankName,
+            is_top_level = progress.IsTopRank,
+            next = progress.NextRankTitle,
+            hint = progress.NextRankHint,
+            levels = progress.RankLevels.Select(level => new
+            {
+                name = level.Name,
+                title = level.Title,
+                requirement = level.Description,
+                current = level.IsCurrent
+            }),
+            page_url = "/Home/Dashboard"
+        });
+    }
+
+
+    // =========================================================
+    // REGISTRERE RESSURS VIA SAMI
+    // =========================================================
+
+    /// <summary>
+    /// Lager et utkast til en ressurs. Slår opp adressen, og sjekker utkastet
+    /// mot nøyaktig de samme reglene som registreringsskjemaet
+    /// (RegisterResourceViewModel). Ingenting lagres her.
+    /// </summary>
+    private async Task<string> PrepareResourceAsync(
+        JsonElement arguments,
+        SamiTurnOutput output,
+        CancellationToken cancellationToken
+    )
+    {
+        var missing = new List<string>();
+
+        ResourceType? type = ParseResourceType(GetString(arguments, "resource_type"));
+        string name = GetString(arguments, "resource_name")?.Trim() ?? string.Empty;
+        string description = GetString(arguments, "description")?.Trim() ?? string.Empty;
+        int? quantity = GetInt(arguments, "quantity");
+        string? capacity = NullIfEmpty(GetString(arguments, "capacity"));
+        int? months = GetInt(arguments, "availability_months");
+        string? location = NullIfEmpty(GetString(arguments, "location"));
+        string? phoneNumber = NullIfEmpty(GetString(arguments, "phone_number"));
+        string phoneCountryCode = NullIfEmpty(GetString(arguments, "phone_country_code")) ?? "+47";
+
+        if (type is null) missing.Add("ressurstype (gyldig verdi fra get_resource_types)");
+        if (name.Length == 0) missing.Add("navn på ressursen");
+        if (description.Length == 0) missing.Add("beskrivelse");
+        if (quantity is null) missing.Add("antall");
+        if (months is null) missing.Add("hvor lenge ressursen skal være tilgjengelig (1, 3, 6, 12, 24 eller 36 måneder)");
+        if (location is null) missing.Add("adresse eller sted");
+
+        if (missing.Count > 0)
+        {
+            return Serialize(new
+            {
+                ok = false,
+                missing,
+                note = "Spør brukeren om det som mangler. Ikke finn på opplysninger."
+            });
+        }
+
+        AddressResult? address = await _addressLookup.LookupAsync(location!, cancellationToken);
+
+        if (address is null)
+        {
+            return Serialize(new
+            {
+                ok = false,
+                error = $"Fant ikke stedet «{location}». Be brukeren om en mer presis adresse, f.eks. gate, husnummer og sted."
+            });
+        }
+
+        // Bygger samme modell som skjemaet sender, og kjører de samme valideringsreglene.
+        var model = new RegisterResourceViewModel
+        {
+            ResourceType = type,
+            ResourceName = name,
+            Description = description,
+            Quantity = quantity!.Value,
+            Capacity = capacity,
+            AvailabilityMonths = months,
+            StreetAddress = address.StreetAddress,
+            PostalLocation = address.PostalLocation,
+            Municipality = address.Municipality,
+            Latitude = address.Latitude,
+            Longitude = address.Longitude,
+            ContactPhoneCountryCode = phoneCountryCode,
+            ContactPhoneNumber = phoneNumber
+        };
+
+        var errors = new List<ValidationResult>();
+
+        bool valid = Validator.TryValidateObject(
+            model,
+            new ValidationContext(model),
+            errors,
+            validateAllProperties: true);
+
+        if (!valid)
+        {
+            return Serialize(new
+            {
+                ok = false,
+                errors = errors
+                    .Select(error => error.ErrorMessage)
+                    .Where(message => !string.IsNullOrWhiteSpace(message))
+                    .Distinct()
+                    .ToList(),
+                note = "Forklar feilene for brukeren og spør om riktige opplysninger."
+            });
+        }
+
+        string availabilityName = ResourceAvailability.Periods[months!.Value];
+
+        var draft = new SamiResourceDraft
+        {
+            ResourceType = type!.Value.ToString(),
+            ResourceTypeName = EnumDisplay.Name(type.Value),
+            ResourceName = name,
+            Description = description,
+            Quantity = quantity.Value,
+            Capacity = capacity,
+            AvailabilityMonths = months.Value,
+            AvailabilityName = availabilityName,
+            StreetAddress = address.StreetAddress,
+            PostalLocation = address.PostalLocation,
+            Municipality = address.Municipality,
+            Latitude = Math.Round(address.Latitude, 6),
+            Longitude = Math.Round(address.Longitude, 6),
+            ContactPhoneCountryCode = phoneNumber is null ? null : phoneCountryCode,
+            ContactPhoneNumber = phoneNumber
+        };
+
+        // Bare det nyeste utkastet vises, så brukeren ikke trykker på et gammelt.
+        output.ResourceDrafts.Clear();
+        output.ResourceDrafts.Add(draft);
+
+        string place =
+            string.Join(", ", new[] { address.StreetAddress, address.PostalLocation, address.Municipality }
+                .Where(part => !string.IsNullOrWhiteSpace(part)));
+
+        return Serialize(new
+        {
+            ok = true,
+            found_address = place,
+            available_for = availabilityName,
+            note = "Utkastet vises som et kort med knappen «Registrer ressursen». Ressursen er IKKE lagret ennå. "
+                   + "Be brukeren sjekke adressen og trykke på knappen. Kontakt-e-post blir e-posten på kontoen."
+        });
+    }
+
+
+    private static string? NullIfEmpty(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
 
