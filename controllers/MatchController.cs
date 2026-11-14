@@ -10,20 +10,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FirstWebAppInDocker.Controllers;
 
-/// <summary>
-/// Matching og koordinering for offentlige aktører og administratorer.
-///
-/// Koordinering samler:
-/// - Behov som trenger matching
-/// - Forespørsler som venter på svar
-/// - Bekreftede ressurser
-/// - Historikk over løste behov
-///
-/// Eksisterende matching, forespørsler og tildelinger beholdes.
-/// </summary>
 [Authorize(
-    Roles = IdentitySeeder.PublicActorRole + ","
-          + IdentitySeeder.AdminRole
+    Roles = IdentitySeeder.PublicActorRole + "," +
+            IdentitySeeder.AdminRole
 )]
 public class MatchController : Controller
 {
@@ -36,8 +25,7 @@ public class MatchController : Controller
         ApplicationDbContext context,
         ResourceMatchingService matching,
         AssignmentService assignments,
-        UserManager<ApplicationUser> userManager
-    )
+        UserManager<ApplicationUser> userManager)
     {
         _context = context;
         _matching = matching;
@@ -46,239 +34,144 @@ public class MatchController : Controller
     }
 
     // =========================================================
-    // KOORDINERING – KANBAN-OVERSIKT
+    // KOORDINERING – KANBAN-TAVLE
     // =========================================================
 
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        // ========================================
-        // HENT ALLE BEHOV
-        // ========================================
+        List<Need> allNeeds = await _context.Needs
+            .AsNoTracking()
+            .OrderByDescending(n => n.Id)
+            .ToListAsync();
 
-        List<Need> allNeeds =
-            await _context.Needs
-                .AsNoTracking()
-                .OrderByDescending(need => need.Id)
-                .ToListAsync();
+        List<Need> activeNeeds = allNeeds
+            .Where(n => n.Status != NeedStatus.Resolved)
+            .ToList();
 
-        // Aktive behov skal vises på Kanban-tavlen.
-        // Løste behov skal vises under Historikk.
+        List<Need> resolvedNeeds = allNeeds
+            .Where(n => n.Status == NeedStatus.Resolved)
+            .ToList();
 
-        List<Need> activeNeeds =
-            allNeeds
-                .Where(need =>
-                    need.Status != NeedStatus.Resolved)
-                .ToList();
+        // Bare aktive forespørsler skal brukes til
+        // å plassere behov på Kanban-tavlen.
+        //
+        // Cancelled og Declined regnes ikke
+        // som aktive forespørsler.
 
-        List<Need> resolvedNeeds =
-            allNeeds
-                .Where(need =>
-                    need.Status == NeedStatus.Resolved)
-                .ToList();
-
-        // ========================================
-        // HENT STATUS PÅ FORESPØRSLENE
-        // ========================================
-
-        // Vi trenger ikke å hente hele Resource-objektet
-        // her. Vi trenger bare informasjonen som avgjør
-        // hvilken kolonne et behov tilhører.
-
-        var assignmentStates =
+        var activeAssignmentStates =
             await _context.NeedAssignments
                 .AsNoTracking()
-                .Select(assignment => new
+                .Where(a =>
+                    a.Status == AssignmentStatus.Requested ||
+                    a.Status == AssignmentStatus.Confirmed)
+                .Select(a => new
                 {
-                    assignment.NeedId,
-                    assignment.Status,
-                    assignment.RespondedAt
+                    a.NeedId,
+                    a.Status
                 })
                 .ToListAsync();
 
-        // ========================================
-        // GRUPPER ETTER BEHOV
-        // ========================================
+        var groupedAssignments = activeAssignmentStates
+            .GroupBy(a => a.NeedId)
+            .ToDictionary(
+                group => group.Key,
+                group => group.ToList()
+            );
 
-        var groupedAssignments =
-            assignmentStates
-                .GroupBy(assignment =>
-                    assignment.NeedId)
-                .ToDictionary(
-                    group => group.Key,
-                    group => group.ToList()
-                );
-
-        // ========================================
-        // TELLEVERDIER FOR HVER BEHOVS-ID
-        // ========================================
-
-        var pendingByNeed =
-            new Dictionary<int, int>();
-
-        var confirmedByNeed =
-            new Dictionary<int, int>();
-
-        var totalByNeed =
-            new Dictionary<int, int>();
+        var pendingByNeed = new Dictionary<int, int>();
+        var confirmedByNeed = new Dictionary<int, int>();
+        var totalByNeed = new Dictionary<int, int>();
 
         foreach (Need need in allNeeds)
         {
             int pending = 0;
             int confirmed = 0;
-            int total = 0;
 
             if (groupedAssignments.TryGetValue(
                 need.Id,
                 out var relatedAssignments))
             {
-                foreach (var assignment in relatedAssignments)
-                {
-                    total++;
+                pending = relatedAssignments.Count(a =>
+                    a.Status == AssignmentStatus.Requested);
 
-                    string status =
-                        assignment.Status.ToString();
-
-                    // Ressursleverandøren har godtatt
-                    // forespørselen.
-
-                    bool isConfirmed =
-                        status.Equals(
-                            "Accepted",
-                            StringComparison.OrdinalIgnoreCase)
-                        ||
-                        status.Equals(
-                            "Confirmed",
-                            StringComparison.OrdinalIgnoreCase)
-                        ||
-                        status.Equals(
-                            "Approved",
-                            StringComparison.OrdinalIgnoreCase);
-
-                    // Avslåtte og avbrutte forespørsler
-                    // skal ikke telle som ventende.
-
-                    bool isClosedWithoutConfirmation =
-                        status.Equals(
-                            "Rejected",
-                            StringComparison.OrdinalIgnoreCase)
-                        ||
-                        status.Equals(
-                            "Declined",
-                            StringComparison.OrdinalIgnoreCase)
-                        ||
-                        status.Equals(
-                            "Cancelled",
-                            StringComparison.OrdinalIgnoreCase)
-                        ||
-                        status.Equals(
-                            "Canceled",
-                            StringComparison.OrdinalIgnoreCase);
-
-                    if (isConfirmed)
-                    {
-                        confirmed++;
-                    }
-                    else if (
-                        !isClosedWithoutConfirmation
-                        && !assignment.RespondedAt.HasValue)
-                    {
-                        pending++;
-                    }
-                }
+                confirmed = relatedAssignments.Count(a =>
+                    a.Status == AssignmentStatus.Confirmed);
             }
 
             pendingByNeed[need.Id] = pending;
             confirmedByNeed[need.Id] = confirmed;
-            totalByNeed[need.Id] = total;
+            totalByNeed[need.Id] = pending + confirmed;
         }
-
-        // ========================================
-        // DATA TIL KANBAN-VISNINGEN
-        // ========================================
-
-        // Vi beholder List<Need> som modell.
-        //
-        // Da fungerer den eksisterende Index.cshtml
-        // frem til vi erstatter den med Kanban-designet.
 
         ViewBag.PendingByNeed = pendingByNeed;
         ViewBag.ConfirmedByNeed = confirmedByNeed;
         ViewBag.TotalByNeed = totalByNeed;
-
         ViewBag.ResolvedNeeds = resolvedNeeds;
-
-        // ========================================
-        // STATISTIKK FOR AKTIVE BEHOV
-        // ========================================
 
         ViewBag.TotalActiveNeeds = activeNeeds.Count;
 
-        ViewBag.TotalPending =
-            activeNeeds.Sum(need =>
-                pendingByNeed[need.Id]);
+        ViewBag.TotalPending = activeNeeds.Sum(
+            n => pendingByNeed[n.Id]);
 
-        ViewBag.TotalConfirmed =
-            activeNeeds.Sum(need =>
-                confirmedByNeed[need.Id]);
+        ViewBag.TotalConfirmed = activeNeeds.Sum(
+            n => confirmedByNeed[n.Id]);
 
-        ViewBag.TotalResolvedNeeds =
-            resolvedNeeds.Count;
-
-        // ========================================
-        // RETURNER KOORDINERING-SIDEN
-        // ========================================
+        ViewBag.TotalResolvedNeeds = resolvedNeeds.Count;
 
         return View(activeNeeds);
     }
 
     // =========================================================
-    // TILDELINGER – EKSISTERENDE OVERSIKT
+    // TILDELINGER – OVERSIKT
     // =========================================================
 
     [HttpGet]
     public async Task<IActionResult> Assignments()
     {
+        // Avbrutte forespørsler vises ikke
+        // i den aktive tildelingsoversikten.
+        //
+        // De beholdes fortsatt i databasen.
+
         var assignmentRows =
             await _context.NeedAssignments
                 .AsNoTracking()
-                .OrderByDescending(
-                    assignment => assignment.CreatedAt)
-                .Select(assignment => new
+                .Where(a =>
+                    a.Status != AssignmentStatus.Cancelled)
+                .OrderByDescending(a => a.CreatedAt)
+                .Select(a => new
                 {
-                    NeedId = assignment.NeedId,
+                    NeedId = a.NeedId,
 
                     Row = new AssignmentRowViewModel
                     {
-                        Id = assignment.Id,
-
+                        Id = a.Id,
                         ResourceName =
-                            assignment.Resource!.ResourceName,
+                            a.Resource!.ResourceName,
 
                         ResourceType =
-                            assignment.Resource.ResourceType,
+                            a.Resource.ResourceType,
 
-                        Status = assignment.Status,
-
-                        Message = assignment.Message,
+                        Status = a.Status,
+                        Message = a.Message,
 
                         SuggestedByAssistant =
-                            assignment.SuggestedByAssistant,
+                            a.SuggestedByAssistant,
 
                         ContactEmail =
-                            assignment.Resource.ContactEmail
-                            ?? assignment.Resource.OwnerEmail,
+                            a.Resource.ContactEmail
+                            ?? a.Resource.OwnerEmail,
 
                         ContactPhone =
-                            assignment.Resource.ContactPhoneNumber == null
+                            a.Resource.ContactPhoneNumber == null
                                 ? null
-                                : assignment.Resource.ContactPhoneCountryCode
+                                : a.Resource.ContactPhoneCountryCode
                                   + " "
-                                  + assignment.Resource.ContactPhoneNumber,
+                                  + a.Resource.ContactPhoneNumber,
 
-                        CreatedAt = assignment.CreatedAt,
-
-                        RespondedAt = assignment.RespondedAt
+                        CreatedAt = a.CreatedAt,
+                        RespondedAt = a.RespondedAt
                     }
                 })
                 .ToListAsync();
@@ -290,29 +183,25 @@ public class MatchController : Controller
             return View(model);
         }
 
-        List<int> needIds =
-            assignmentRows
-                .Select(item => item.NeedId)
-                .Distinct()
-                .ToList();
+        List<int> needIds = assignmentRows
+            .Select(a => a.NeedId)
+            .Distinct()
+            .ToList();
 
-        List<Need> needs =
-            await _context.Needs
-                .AsNoTracking()
-                .Where(need =>
-                    needIds.Contains(need.Id))
-                .OrderByDescending(need => need.Id)
-                .ToListAsync();
+        List<Need> needs = await _context.Needs
+            .AsNoTracking()
+            .Where(n => needIds.Contains(n.Id))
+            .OrderByDescending(n => n.Id)
+            .ToListAsync();
 
-        var assignmentsByNeed =
-            assignmentRows
-                .GroupBy(item => item.NeedId)
-                .ToDictionary(
-                    group => group.Key,
-                    group => group
-                        .Select(item => item.Row)
-                        .ToList()
-                );
+        var assignmentsByNeed = assignmentRows
+            .GroupBy(a => a.NeedId)
+            .ToDictionary(
+                group => group.Key,
+                group => group
+                    .Select(a => a.Row)
+                    .ToList()
+            );
 
         foreach (Need need in needs)
         {
@@ -326,13 +215,10 @@ public class MatchController : Controller
             model.Add(new MatchNeedViewModel
             {
                 Need = need,
-
                 RadiusKm =
                     ResourceMatchingService.DefaultRadiusKm,
 
-                Candidates =
-                    new List<ResourceCandidate>(),
-
+                Candidates = new List<ResourceCandidate>(),
                 Assignments = rows
             });
         }
@@ -341,7 +227,7 @@ public class MatchController : Controller
     }
 
     // =========================================================
-    // FINN RESSURSER FOR ET KONKRET BEHOV
+    // MATCHING FOR ET KONKRET BEHOV
     // =========================================================
 
     [HttpGet]
@@ -350,15 +236,16 @@ public class MatchController : Controller
         double radiusKm =
             ResourceMatchingService.DefaultRadiusKm)
     {
-        Need? need =
-            await _context.Needs
-                .AsNoTracking()
-                .FirstOrDefaultAsync(n => n.Id == id);
+        Need? need = await _context.Needs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(n => n.Id == id);
 
         if (need is null)
         {
             return NotFound();
         }
+
+        // Eksisterende matching beholdes.
 
         List<ResourceCandidate> candidates =
             need.Status == NeedStatus.Resolved
@@ -372,10 +259,21 @@ public class MatchController : Controller
                     excludeRequestedForNeedId: need.Id
                 );
 
+        // NYTT:
+        // Avbrutte forespørsler fjernes fra
+        // listen som vises på detaljsiden.
+        //
+        // Bekreftede, ventende og avslåtte
+        // forespørsler kan fortsatt vises.
+        //
+        // Ingen historikk slettes fra databasen.
+
         List<AssignmentRowViewModel> assignments =
             await _context.NeedAssignments
                 .AsNoTracking()
-                .Where(a => a.NeedId == id)
+                .Where(a =>
+                    a.NeedId == id &&
+                    a.Status != AssignmentStatus.Cancelled)
                 .OrderByDescending(a => a.CreatedAt)
                 .Select(a => new AssignmentRowViewModel
                 {
@@ -388,7 +286,6 @@ public class MatchController : Controller
                         a.Resource.ResourceType,
 
                     Status = a.Status,
-
                     Message = a.Message,
 
                     SuggestedByAssistant =
@@ -406,7 +303,6 @@ public class MatchController : Controller
                               + a.Resource.ContactPhoneNumber,
 
                     CreatedAt = a.CreatedAt,
-
                     RespondedAt = a.RespondedAt
                 })
                 .ToListAsync();
@@ -414,12 +310,8 @@ public class MatchController : Controller
         return View(new MatchNeedViewModel
         {
             Need = need,
-
-            RadiusKm =
-                Math.Clamp(radiusKm, 1, 500),
-
+            RadiusKm = Math.Clamp(radiusKm, 1, 500),
             Candidates = candidates,
-
             Assignments = assignments
         });
     }
@@ -436,22 +328,20 @@ public class MatchController : Controller
         string? message,
         bool suggestedByAssistant = false)
     {
-        string userId =
-            _userManager.GetUserId(User)!;
+        string userId = _userManager.GetUserId(User)!;
 
         if (message is { Length: > 500 })
         {
             message = message[..500];
         }
 
-        ServiceResult result =
-            await _assignments.RequestAsync(
-                needId,
-                resourceId,
-                userId,
-                message,
-                suggestedByAssistant
-            );
+        ServiceResult result = await _assignments.RequestAsync(
+            needId,
+            resourceId,
+            userId,
+            message,
+            suggestedByAssistant
+        );
 
         if (WantsJson())
         {
@@ -485,9 +375,7 @@ public class MatchController : Controller
         int needId)
     {
         ServiceResult result =
-            await _assignments.CancelAsync(
-                assignmentId
-            );
+            await _assignments.CancelAsync(assignmentId);
 
         TempData[
             result.Success
@@ -511,9 +399,7 @@ public class MatchController : Controller
         int needId)
     {
         ServiceResult result =
-            await _assignments.ResolveNeedAsync(
-                needId
-            );
+            await _assignments.ResolveNeedAsync(needId);
 
         TempData[
             result.Success
