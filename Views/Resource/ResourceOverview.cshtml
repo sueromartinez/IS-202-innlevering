@@ -692,7 +692,33 @@
         }
 
         .resource-state-toggle:hover {
-            background: #f6f8f9;
+            background: var(--surface-soft, #f6f8f9);
+        }
+
+        /* Endre/Slett-knappene på egne ressurser */
+        .resource-owner-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .resource-owner-actions form {
+            margin: 0;
+        }
+
+        a.resource-state-toggle {
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        .resource-delete-button {
+            color: var(--danger-text, #a62f2f);
+        }
+
+        .resource-flash-error {
+            background: #fbe9e9;
+            color: #9d2f2f;
         }
 
         .resource-flash {
@@ -1128,6 +1154,13 @@
 
 <main class="overview-page">
 
+    @if (TempData["ResourceError"] is string resourceError)
+    {
+        <div class="resource-flash resource-flash-error" role="alert">
+            @resourceError
+        </div>
+    }
+
     @if (TempData["ResourceSuccess"] is string resourceMessage)
     {
         <div class="resource-flash" role="status">
@@ -1416,7 +1449,7 @@
 
                                     @if (!string.IsNullOrWhiteSpace(resource.Address))
                                     {
-                                        <p>@resource.Address</p>
+                                        <p>@FirstWebAppInDocker.Services.ResourceDisplay.PrettyAddress(resource.Address)</p>
                                     }
 
                                 </div>
@@ -1542,6 +1575,39 @@
                                 }
 
                             </div>
+
+
+                            <!-- ENDRE / SLETTE (bare egne ressurser) -->
+
+                            @if (isResourceProvider)
+                            {
+                                <div class="resource-owner-actions">
+
+                                    <a asp-controller="Resource"
+                                       asp-action="EditResource"
+                                       asp-route-id="@resource.Id"
+                                       class="resource-state-toggle">
+                                        Endre
+                                    </a>
+
+                                    <form asp-controller="Resource"
+                                          asp-action="DeleteResource"
+                                          method="post"
+                                          onsubmit="return confirm('Slette denne ressursen? Dette kan ikke angres.');">
+
+                                        <input type="hidden"
+                                               name="id"
+                                               value="@resource.Id" />
+
+                                        <button type="submit"
+                                                class="resource-state-toggle resource-delete-button">
+                                            Slett
+                                        </button>
+
+                                    </form>
+
+                                </div>
+                            }
 
                         </article>
                     }

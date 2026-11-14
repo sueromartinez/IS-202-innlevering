@@ -43,10 +43,15 @@ public class OllamaChatClient : IChatModelClient
             ["model"] = _settings.Model,
             ["stream"] = false,
             ["messages"] = BuildMessages(systemPrompt, messages),
-            ["tools"] = BuildTools(tools),
             // Lav temperatur gir mer forutsigbare svar og verktøykall.
             ["options"] = new JsonObject { ["temperature"] = 0.2 }
         };
+
+        // Uten verktøy (f.eks. situasjonsrapporten) sendes feltet ikke med.
+        if (tools.Count > 0)
+        {
+            body["tools"] = BuildTools(tools);
+        }
 
         HttpResponseMessage response;
 

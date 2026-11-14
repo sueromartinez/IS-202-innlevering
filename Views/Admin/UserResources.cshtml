@@ -680,7 +680,7 @@ else
                             <span class="admin-info-value">
                                 @(string.IsNullOrWhiteSpace(resource.Address)
                                     ? "Ikke oppgitt"
-                                    : resource.Address)
+                                    : FirstWebAppInDocker.Services.ResourceDisplay.PrettyAddress(resource.Address))
                             </span>
 
                         </div>

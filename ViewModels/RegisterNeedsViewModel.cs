@@ -40,6 +40,19 @@ public class NeedItemViewModel
     [Display(Name = "Beskrivelse")]
     public string Description { get; init; } = string.Empty;
 
+    [DataType(DataType.Date)]
+    [Display(Name = "Frist")]
+    public DateTime? Deadline { get; init; }
+
+    [StringLength(100, ErrorMessage = "Maks 100 tegn")]
+    [Display(Name = "Kontaktperson")]
+    public string? ContactName { get; init; }
+
+    [StringLength(30, ErrorMessage = "Maks 30 tegn")]
+    [Phone(ErrorMessage = "Skriv inn et gyldig telefonnummer")]
+    [Display(Name = "Telefon")]
+    public string? ContactPhone { get; init; }
+
     // Settes når brukeren klikker i kartet
     public double? Latitude { get; init; }
 

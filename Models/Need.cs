@@ -41,6 +41,25 @@ public class Need
 
 
     // ========================================
+    // FRIST OG KONTAKTPUNKT
+    // ========================================
+
+    /// <summary>
+    /// Når behovet må være dekket (valgfritt). Lagres som dato.
+    /// </summary>
+    public DateTime? Deadline { get; set; }
+
+    /// <summary>
+    /// Hvem ressurseierne skal kontakte om behovet, f.eks. «Vakthavende, Grimstad kommune».
+    /// </summary>
+    [StringLength(100)]
+    public string? ContactName { get; set; }
+
+    [StringLength(30)]
+    public string? ContactPhone { get; set; }
+
+
+    // ========================================
     // PERMANENT EIERSKAP MED IDENTITY
     // ========================================
 

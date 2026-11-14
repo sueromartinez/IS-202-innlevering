@@ -95,6 +95,7 @@ public class RequestController : Controller
                     NeedPriority = a.Need.Priority,
                     NeedDescription = a.Need.Description,
                     NeedQuantity = a.Need.Quantity,
+                    NeedDeadline = a.Need.Deadline,
                     DistanceKm = Math.Round(
                         GeoDistance.HaversineKm(
                             a.Need.Latitude,
@@ -106,7 +107,10 @@ public class RequestController : Controller
                     Message = a.Message,
                     RequesterContact =
                         a.Status == AssignmentStatus.Confirmed
-                            ? requesterContacts.GetValueOrDefault(a.RequestedByUserId)
+                            // Kontaktpunktet på behovet brukes hvis det er fylt ut.
+                            ? (!string.IsNullOrWhiteSpace(a.Need.ContactName) || !string.IsNullOrWhiteSpace(a.Need.ContactPhone)
+                                ? $"{a.Need.ContactName} {a.Need.ContactPhone}".Trim()
+                                : requesterContacts.GetValueOrDefault(a.RequestedByUserId))
                             : null,
                     CreatedAt = a.CreatedAt
                 })
@@ -128,6 +132,13 @@ public class RequestController : Controller
 
         ServiceResult result =
             await _assignments.RespondAsync(id, userId, accept);
+
+        if (result.Success)
+        {
+            await this.AuditAsync(
+                AuditActions.RequestAnswered,
+                $"Forespørsel #{id} ble {(accept ? "bekreftet" : "avslått")}");
+        }
 
         TempData[result.Success ? "RequestMessage" : "RequestError"] = result.Message;
 

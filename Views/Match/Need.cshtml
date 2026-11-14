@@ -769,6 +769,46 @@
                 </span>
             </div>
 
+            @if (need.Deadline.HasValue)
+            {
+                <div class="need-coord-info-item">
+                    <span class="need-coord-info-label">
+                        Frist
+                    </span>
+
+                    <span class="need-coord-info-value">
+                        @need.Deadline.Value.ToString("dd.MM.yyyy")
+                        @(need.Deadline.Value.Date < DateTime.Today && !isResolved ? " (passert)" : "")
+                    </span>
+                </div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(need.ContactName) || !string.IsNullOrWhiteSpace(need.ContactPhone))
+            {
+                <div class="need-coord-info-item">
+                    <span class="need-coord-info-label">
+                        Kontaktpunkt
+                    </span>
+
+                    <span class="need-coord-info-value">
+                        @need.ContactName @need.ContactPhone
+                    </span>
+                </div>
+            }
+
+            @if (ViewData["Urgency"] is FirstWebAppInDocker.Services.Matching.NeedUrgency urgency && !isResolved)
+            {
+                <div class="need-coord-info-item">
+                    <span class="need-coord-info-label">
+                        Hastegrad
+                    </span>
+
+                    <span class="need-coord-info-value" title="@string.Join(" · ", urgency.Reasons)">
+                        <span class="urgency-badge @urgency.CssClass">@urgency.LevelName (@urgency.Score)</span>
+                    </span>
+                </div>
+            }
+
         </div>
 
         @if (!isResolved)

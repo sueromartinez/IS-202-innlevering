@@ -190,7 +190,7 @@ public class SamiTools
 
     private static readonly ChatToolDefinition GetOpenNeeds = Define(
         "get_open_needs",
-        "Lister registrerte behov som ikke er løst (status Ny, Vurderes eller Tildelt), med id, type, prioritet og beskrivelse.",
+        "Lister registrerte behov som ikke er løst (status Ny, Vurderes eller Tildelt), med id, type, prioritet, frist, hastegrad (0–100 med begrunnelse) og beskrivelse. Sortert med mest presserende først.",
         """
         {
           "type": "object",
@@ -414,12 +414,15 @@ public class SamiTools
             pages.Add(new { title = "Registrer behov", url = "/Need/RegisterNeed", description = "Skjema for å registrere ett eller flere behov." });
             pages.Add(new { title = "Ressurser", url = "/Resource/ResourceOverview", description = "Alle registrerte ressurser med kontaktinformasjon." });
             pages.Add(new { title = "Koordinering", url = "/Match", description = "Oversikt over uløste behov, sendte forespørsler og historikk." });
+            pages.Add(new { title = "Rapporter", url = "/Report", description = "Situasjonsrapport med nøkkeltall, hastegrad og mangler, og vurdering fra Sami." });
+            pages.Add(new { title = "Ressursliste per kommune", url = "/Report/Resources", description = "Utskriftsvennlig ressursliste, og eksport som CSV (Excel) eller JSON." });
         }
 
         if (role == SamiRole.Admin)
         {
             pages.Add(new { title = "Brukere", url = "/Admin/Users", description = "Administrer brukere: roller, deaktivering og opplåsing." });
             pages.Add(new { title = "Opprett offentlig aktør", url = "/Admin/CreatePublicActor", description = "Lag konto for en kommune, etat eller annen offentlig aktør." });
+            pages.Add(new { title = "Aktivitetslogg", url = "/Admin/AuditLog", description = "Hvem gjorde hva og når: innlogginger, endringer, forespørsler og eksport." });
         }
 
         pages.Add(new { title = "Varsler", url = "/Notification", description = "Varsler om forespørsler og svar (klokken øverst)." });
@@ -790,21 +793,31 @@ public class SamiTools
                 .Take(30)
                 .ToListAsync(cancellationToken);
 
+        // Samme hastegradsmodell som på sidene, så Sami og portalen er enige.
+        Dictionary<int, NeedUrgency> urgency =
+            await new NeedUrgencyService(_context).CalculateAsync(needs);
+
         return Serialize(new
         {
             count = needs.Count,
-            needs = needs.Select(need => new
-            {
-                id = need.Id,
-                type = need.ResourceType.ToString(),
-                type_name = EnumDisplay.Name(need.ResourceType),
-                priority = EnumDisplay.Name(need.Priority),
-                status = EnumDisplay.Name(need.Status),
-                quantity = need.Quantity,
-                description = need.Description,
-                registered = need.CreatedAt.ToString("dd.MM.yyyy HH:mm", CultureInfo.InvariantCulture),
-                match_page_url = $"/Match/Need/{need.Id}"
-            })
+            needs = needs
+                .OrderByDescending(need => urgency.GetValueOrDefault(need.Id)?.Score ?? 0)
+                .Select(need => new
+                {
+                    id = need.Id,
+                    type = need.ResourceType.ToString(),
+                    type_name = EnumDisplay.Name(need.ResourceType),
+                    priority = EnumDisplay.Name(need.Priority),
+                    status = EnumDisplay.Name(need.Status),
+                    quantity = need.Quantity,
+                    description = need.Description,
+                    deadline = need.Deadline?.ToString("dd.MM.yyyy", CultureInfo.InvariantCulture),
+                    urgency_score = urgency.GetValueOrDefault(need.Id)?.Score,
+                    urgency_level = urgency.GetValueOrDefault(need.Id)?.LevelName,
+                    urgency_reasons = urgency.GetValueOrDefault(need.Id)?.Reasons,
+                    registered = need.CreatedAt.ToString("dd.MM.yyyy HH:mm", CultureInfo.InvariantCulture),
+                    match_page_url = $"/Match/Need/{need.Id}"
+                })
         });
     }
 

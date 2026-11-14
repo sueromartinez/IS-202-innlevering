@@ -562,7 +562,7 @@
                                 <div class="summary-item">
 
                                     <span class="summary-icon resource">
-                                        R
+                                        @Html.Raw(FirstWebAppInDocker.Services.ResourceDisplay.Icon(resourceItem.ResourceType))
                                     </span>
 
                                     <div>
@@ -584,7 +584,7 @@
                                                 resourceItem.Address
                                             )
                                                 ? "Plassering registrert i kart"
-                                                : resourceItem.Address)
+                                                : FirstWebAppInDocker.Services.ResourceDisplay.PrettyAddress(resourceItem.Address))
                                         </small>
 
                                     </div>
@@ -990,7 +990,7 @@ else if (userRole == "ResourceProvider")
 
 
                     <div class="provider-header-actions">
-                        <span>@Model.ResourceCount ressurser</span>
+                        <span>@FirstWebAppInDocker.Services.ResourceDisplay.CountText(Model.ResourceCount, "ressurs", "ressurser")</span>
                         <a asp-controller="Resource" asp-action="RegisterResource" class="provider-add-button">
                             + Registrer ressurs
                         </a>
@@ -1003,36 +1003,57 @@ else if (userRole == "ResourceProvider")
                 {
                     <p class="availability-warning">
                         Tilgjengelighet er ikke avklart for
-                        @Model.UnspecifiedCount ressurser.
+                        @FirstWebAppInDocker.Services.ResourceDisplay.CountText(Model.UnspecifiedCount, "ressurs", "ressurser").
                     </p>
                 }
             @if (Model.Resources.Any())
             {
-                <div class = "dashboard-resource-filters">
-                    
-                    <div class = "dashboard-filter-item">
-                        <label for = "dashboardResourceSearch">
-                            søk etter ressurs
-                    
+                <div class="dashboard-resource-filters" role="search" aria-label="Filtrer mine ressurser">
+
+                    <div class="dashboard-filter-field dashboard-search-field">
+                        <label for="dashboardResourceSearch">
+                            Søk etter ressurs
                         </label>
-                        <input 
-                        type = "text"
-                        id = "dashboardResourceSearch"
-                        placeholder = "Søk etter navn, type eller adressse..." />
+
+                        <div class="dashboard-search-box">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                                 stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                                <circle cx="11" cy="11" r="7" />
+                                <path d="m20 20-3.5-3.5" />
+                            </svg>
+
+                            <input type="search"
+                                   id="dashboardResourceSearch"
+                                   autocomplete="off"
+                                   placeholder="Navn, type eller adresse" />
+
+                            <button type="button"
+                                    class="dashboard-search-clear"
+                                    id="dashboardSearchClear"
+                                    aria-label="Tøm søket"
+                                    hidden>
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+                                     stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                                    <path d="M6 6l12 12M18 6 6 18" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="dashboard-filter-field">
-                        <label for="dashboardAvailibiltyFilter">
+                        <label for="dashboardAvailabilityFilter">
                             Tilgjengelighet
                         </label>
-                        <select id="dashboardAvailibiltyFilter">
+                        <select id="dashboardAvailabilityFilter">
                             <option value="">Alle tilgjengeligheter</option>
                             <option value="available">Tilgjengelig</option>
                             <option value="unavailable">Ikke tilgjengelig</option>
                             <option value="unspecified">Ikke oppgitt</option>
                         </select>
                     </div>
-                </div>    
+
+                    <p id="dashboardFilterSummary" aria-live="polite"></p>
+                </div>
             }
 
 
@@ -1110,13 +1131,13 @@ else if (userRole == "ResourceProvider")
 
                         <article class="provider-resource-card"
 
-                            data-search="@(resourceItem.ResourceName + " " + resourceItem.Description + " " + resourceItem.Address + " " + typeName + " " + resourceItem.Capacity + " " + resourceItem.Quantity)"
+                            data-search="@(resourceItem.ResourceName + " " + resourceItem.Description + " " + resourceItem.Address + " " + typeName + " " + resourceItem.Capacity + " " + resourceItem.Quantity + " " + status)"
                             data-availability="@availabilityFilterValue">
                     
                         
                                 
                             <div class="provider-resource-icon">
-                                R
+                                @Html.Raw(FirstWebAppInDocker.Services.ResourceDisplay.Icon(resourceItem.ResourceType))
                             </div>
 
 
@@ -1170,7 +1191,7 @@ else if (userRole == "ResourceProvider")
                                     )
                                     {
                                         <span>
-                                            @resourceItem.Address
+                                            @FirstWebAppInDocker.Services.ResourceDisplay.PrettyAddress(resourceItem.Address)
                                         </span>
                                     }
 
@@ -1199,6 +1220,12 @@ else if (userRole == "ResourceProvider")
                     }
 
                 </div>
+
+
+                <p class="dashboard-no-results" id="dashboardNoResults" hidden>
+                    Ingen ressurser passer søket.
+                    <button type="button" id="dashboardResetFilters">Nullstill søket</button>
+                </p>
 
 
                 <a
@@ -3526,27 +3553,48 @@ else
     .provider-resource-card[hidden] {
     display: none !important;
 }
+/* =========================================
+   SØK OG FILTER I "MINE REGISTRERTE RESSURSER"
+   Bruker fargene fra theme.css, så de følger mørk modus.
+   ========================================= */
 .dashboard-resource-filters {
     display: flex;
     flex-wrap: wrap;
     align-items: flex-end;
-    gap: 20px;
-    margin-top: 24px;
-    margin-bottom: 32px;
+    gap: 16px 20px;
+    margin: 24px 0 20px;
 }
 
 .dashboard-filter-field {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    flex: 1 1 240px;
-    max-width: 360px;
+    gap: 7px;
+    flex: 1 1 220px;
+    max-width: 320px;
+}
+
+.dashboard-search-field {
+    flex: 2 1 300px;
+    max-width: 460px;
 }
 
 .dashboard-filter-field label {
-    font-size: 14px;
-    font-weight: 600;
-    color: #193b60;
+    color: var(--heading);
+    font-size: 0.82rem;
+    font-weight: 750;
+}
+
+.dashboard-search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.dashboard-search-box > svg {
+    position: absolute;
+    left: 13px;
+    color: var(--text-secondary);
+    pointer-events: none;
 }
 
 .dashboard-filter-field input,
@@ -3554,25 +3602,99 @@ else
     width: 100%;
     min-height: 44px;
     padding: 10px 14px;
-    border: 1px solid #b8cde1;
+    border: 1px solid var(--border);
     border-radius: 10px;
-    background: #ffffff;
-    color: #193b60;
-    font-size: 14px;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-size: 0.9rem;
     box-sizing: border-box;
+}
+
+.dashboard-search-box input {
+    padding-left: 40px;
+    padding-right: 40px;
+}
+
+/* Skjuler nettleserens egen x-knapp, vi har vår egen */
+.dashboard-search-box input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+}
+
+.dashboard-filter-field input::placeholder {
+    color: var(--text-secondary);
+    opacity: 1;
 }
 
 .dashboard-filter-field input:focus,
 .dashboard-filter-field select:focus {
-    outline: 2px solid #0789cb;
+    outline: 3px solid var(--focus);
     outline-offset: 1px;
+    border-color: var(--primary);
+}
+
+.dashboard-search-clear {
+    position: absolute;
+    right: 6px;
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    background: transparent;
+    cursor: pointer;
+}
+
+.dashboard-search-clear:hover {
+    color: var(--text);
+    background: var(--surface-soft);
+}
+
+.dashboard-search-clear:focus-visible {
+    outline: 3px solid var(--focus);
 }
 
 #dashboardFilterSummary {
     flex-basis: 100%;
     margin: 0;
-    color: #526d87;
-    font-size: 13px;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+.dashboard-no-results {
+    margin: 4px 0 16px;
+    padding: 22px;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+.dashboard-no-results button {
+    margin-left: 6px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--link);
+    font: inherit;
+    font-weight: 700;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.provider-resource-icon svg,
+.summary-icon svg {
+    display: block;
+}
+
+@@media (max-width: 640px) {
+    .dashboard-filter-field,
+    .dashboard-search-field {
+        max-width: none;
+        flex-basis: 100%;
+    }
 }
 
 </style>
@@ -3926,80 +4048,93 @@ else
 }
 
 <script>
+    // Søk og filter i "Mine registrerte ressurser".
     document.addEventListener("DOMContentLoaded", function () {
 
-    const searchInput = document.getElementById(
-        "dashboardResourceSearch"
-    );
+        const searchInput = document.getElementById("dashboardResourceSearch");
+        const availabilityFilter = document.getElementById("dashboardAvailabilityFilter");
+        const clearButton = document.getElementById("dashboardSearchClear");
+        const summary = document.getElementById("dashboardFilterSummary");
+        const noResults = document.getElementById("dashboardNoResults");
+        const resetButton = document.getElementById("dashboardResetFilters");
+        const cards = document.querySelectorAll(".provider-resource-card");
 
-    const availabilityFilter = document.getElementById(
-        "dashboardAvailabilityFilter"
-    );
+        if (!searchInput || !availabilityFilter || !summary) {
+            return;
+        }
 
-    const cards = document.querySelectorAll(
-        ".provider-resource-card"
-    );
+        function normalize(text) {
+            return (text || "").toLocaleLowerCase("nb-NO").replace(/\s+/g, " ").trim();
+        }
 
-    const summary = document.getElementById(
-        "dashboardFilterSummary"
-    );
+        function applyDashboardFilters() {
+            // Alle ordene må finnes, i hvilken som helst rekkefølge: "båt grimstad".
+            const words = normalize(searchInput.value).split(" ").filter(Boolean);
+            const availability = availabilityFilter.value;
+            let visibleCount = 0;
 
-    if (!searchInput || !availabilityFilter || !summary) {
-        return;
-    }
+            cards.forEach(function (card) {
+                const cardText = normalize(card.dataset.search);
 
-    function applyDashboardFilters() {
+                const matchesSearch = words.every(function (word) {
+                    return cardText.includes(word);
+                });
 
-        const search = searchInput.value
-            .trim()
-            .toLocaleLowerCase("nb-NO");
+                const matchesAvailability =
+                    availability === "" || card.dataset.availability === availability;
 
-        const availability = availabilityFilter.value;
+                const isVisible = matchesSearch && matchesAvailability;
+                card.hidden = !isVisible;
 
-        let visibleCount = 0;
+                if (isVisible) {
+                    visibleCount++;
+                }
+            });
 
-        cards.forEach(card => {
+            const filtering = words.length > 0 || availability !== "";
 
-            const cardText = (
-                card.dataset.search || ""
-            ).toLocaleLowerCase("nb-NO");
+            summary.textContent = filtering
+                ? "Viser " + visibleCount + " av " + cards.length + (cards.length === 1 ? " ressurs" : " ressurser")
+                : "";
 
-            const cardAvailability =
-                card.dataset.availability;
+            clearButton.hidden = searchInput.value === "";
 
-            const matchesSearch =
-                cardText.includes(search);
-
-            const matchesAvailability =
-                availability === "" ||
-                cardAvailability === availability;
-
-            const isVisible =
-                matchesSearch && matchesAvailability;
-
-            card.hidden = !isVisible;
-
-            if (isVisible) {
-                visibleCount++;
+            if (noResults) {
+                noResults.hidden = visibleCount > 0 || cards.length === 0;
             }
+        }
 
+        function resetFilters() {
+            searchInput.value = "";
+            availabilityFilter.value = "";
+            applyDashboardFilters();
+            searchInput.focus();
+        }
+
+        searchInput.addEventListener("input", applyDashboardFilters);
+        availabilityFilter.addEventListener("change", applyDashboardFilters);
+
+        clearButton.addEventListener("click", function () {
+            searchInput.value = "";
+            applyDashboardFilters();
+            searchInput.focus();
         });
 
-        summary.textContent =
-            `Viser ${visibleCount} av ${cards.length} ressurser`;
-    }
+        // Esc tømmer søket
+        searchInput.addEventListener("keydown", function (event) {
+            if (event.key === "Escape" && searchInput.value !== "") {
+                event.preventDefault();
+                searchInput.value = "";
+                applyDashboardFilters();
+            }
+        });
 
-    searchInput.addEventListener(
-        "input",
-        applyDashboardFilters
-    );
+        if (resetButton) {
+            resetButton.addEventListener("click", resetFilters);
+        }
 
-    availabilityFilter.addEventListener(
-        "change",
-        applyDashboardFilters
-    );
-
-});
+        applyDashboardFilters();
+    });
 </script>
 
 <partial name="_Sami" />

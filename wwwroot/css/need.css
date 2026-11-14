@@ -309,3 +309,37 @@ form select:focus, form input:focus, form textarea:focus {
 .need-status.status-resolved { color: #475467; background: #eef1f4; }
 .small-button.primary { color: white; border-color: var(--primary, #176b87); background: var(--primary, #176b87); text-decoration: none; }
 .small-button.primary:hover { background: var(--primary-dark, #125770); }
+
+/* =========================================================
+   HASTEGRAD, FRIST OG KONTAKTPUNKT
+   Hastegrad regnes ut i NeedUrgencyService (0–100).
+   ========================================================= */
+.urgency-badge {
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 800;
+    white-space: nowrap;
+    cursor: help;
+}
+.urgency-critical { color: #fff; background: #b42318; }
+.urgency-high { color: #7a2e0e; background: #fde3cf; }
+.urgency-medium { color: #8a5a00; background: #fdf3df; }
+.urgency-low { color: #475467; background: #eef1f4; }
+
+.entry-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin: -4px 0 10px;
+    color: var(--text-secondary);
+    font-size: .76rem;
+}
+.deadline-overdue { color: var(--danger-text, #a62f2f); font-weight: 700; }
+
+.urgency-reasons {
+    margin: -4px 0 10px;
+    color: var(--text-secondary);
+    font-size: .72rem;
+    font-style: italic;
+}
