@@ -1,6 +1,7 @@
 
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
+using FirstWebAppInDocker.Services;
 using FirstWebAppInDocker.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -438,6 +439,11 @@ public class AdminController : Controller
         // VIS BEKREFTELSE
         // ========================================
 
+        await this.AuditAsync(
+            AuditActions.ResourceDeleted,
+            $"Administrator slettet ressurs #{deletedResourceId} «{deletedResourceName}» (eier {userId})"
+        );
+
         TempData["AdminMessage"] =
             $"Ressursen «{deletedResourceName}» " +
             "ble slettet.";
@@ -521,6 +527,11 @@ public class AdminController : Controller
             IdentitySeeder.PublicActorRole
         );
 
+        await this.AuditAsync(
+            AuditActions.UserCreated,
+            $"Opprettet offentlig aktør {user.Name} ({user.Email})"
+        );
+
         TempData["AdminMessage"] =
             $"{user.Name} ble opprettet som offentlig aktør.";
 
@@ -577,6 +588,11 @@ public class AdminController : Controller
         // Ny innlogging kreves for å bruke ny rolle.
         await _userManager.UpdateSecurityStampAsync(user);
 
+        await this.AuditAsync(
+            AuditActions.RoleChanged,
+            $"{user.Name} ({user.Email}): {string.Join(", ", currentRoles)} → {role}"
+        );
+
         TempData["AdminMessage"] =
             $"Rollen til {user.Name} ble endret.";
 
@@ -626,6 +642,11 @@ public class AdminController : Controller
 
         await _userManager.UpdateSecurityStampAsync(user);
 
+        await this.AuditAsync(
+            AuditActions.UserDeactivated,
+            $"{user.Name} ({user.Email}) ble deaktivert"
+        );
+
         TempData["AdminMessage"] =
             $"{user.Name} ble deaktivert.";
 
@@ -659,9 +680,95 @@ public class AdminController : Controller
             user
         );
 
+        await this.AuditAsync(
+            AuditActions.UserReactivated,
+            $"{user.Name} ({user.Email}) ble reaktivert"
+        );
+
         TempData["AdminMessage"] =
             $"{user.Name} kan logge inn igjen.";
 
         return RedirectToAction(nameof(Users));
+    }
+
+    // =========================================================
+    // AKTIVITETSLOGG (AUDIT-LOGG)
+    // =========================================================
+
+    private const int AuditPageSize = 50;
+
+    /// <summary>
+    /// Viser hvem som gjorde hva og når: innlogginger, endringer
+    /// på ressurser og behov, forespørsler, rolleendringer og eksport.
+    /// Loggen kan bare leses, ikke endres, fra portalen.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> AuditLog(
+        // Ikke «action»: det navnet er reservert for ruten i MVC.
+        string? handling,
+        string? q,
+        int days = 7,
+        int page = 1
+    )
+    {
+        if (_context is null)
+        {
+            return Problem("Databasen er ikke tilgjengelig.");
+        }
+
+        days = days is 1 or 7 or 30 or 365 ? days : 7;
+        page = Math.Max(1, page);
+
+        DateTime since = DateTime.UtcNow.AddDays(-days);
+
+        IQueryable<AuditLogEntry> query =
+            _context.AuditLog
+                .AsNoTracking()
+                .Where(entry => entry.Timestamp >= since);
+
+        if (!string.IsNullOrWhiteSpace(handling))
+        {
+            query = query.Where(entry => entry.Action == handling);
+        }
+
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            string search = q.Trim();
+
+            query = query.Where(entry =>
+                (entry.UserEmail != null && entry.UserEmail.Contains(search))
+                || entry.Details.Contains(search));
+        }
+
+        int total = await query.CountAsync();
+
+        List<AuditLogEntry> entries =
+            await query
+                .OrderByDescending(entry => entry.Timestamp)
+                .ThenByDescending(entry => entry.Id)
+                .Skip((page - 1) * AuditPageSize)
+                .Take(AuditPageSize)
+                .ToListAsync();
+
+        // Antall per handling i perioden, til oppsummeringen øverst.
+        Dictionary<string, int> counts =
+            await _context.AuditLog
+                .AsNoTracking()
+                .Where(entry => entry.Timestamp >= since)
+                .GroupBy(entry => entry.Action)
+                .Select(group => new { group.Key, Count = group.Count() })
+                .ToDictionaryAsync(item => item.Key, item => item.Count);
+
+        return View(new AuditLogViewModel
+        {
+            Entries = entries,
+            Action = string.IsNullOrWhiteSpace(handling) ? null : handling,
+            Query = string.IsNullOrWhiteSpace(q) ? null : q.Trim(),
+            Days = days,
+            Page = page,
+            TotalCount = total,
+            PageSize = AuditPageSize,
+            ActionCounts = counts
+        });
     }
 }

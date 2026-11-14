@@ -1,0 +1,303 @@
+@model FirstWebAppInDocker.ViewModels.SituationReportViewModel
+@using FirstWebAppInDocker.Data
+@using FirstWebAppInDocker.Services
+@{
+    Layout = "_PortalLayout";
+    ViewData["Title"] = "Situasjonsrapport";
+
+    bool isAdmin = User.IsInRole(IdentitySeeder.AdminRole);
+    string generated = Model.GeneratedAt.ToLocalTime().ToString("dd.MM.yyyy 'kl.' HH:mm");
+    int maxCoverage = Math.Max(1, Model.Coverage.Select(row => Math.Max(row.OpenNeeds, row.AvailableResources)).DefaultIfEmpty(1).Max());
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/report.css" asp-append-version="true" />
+}
+
+<div class="page-top">
+    <div>
+        <span class="page-eyebrow">Rapporter</span>
+        <h1 class="page-heading">Situasjonsrapport</h1>
+        <p class="page-description">
+            Et samlet bilde av behov, ressurser og mangler akkurat nå. Tallene hentes direkte fra databasen.
+            Laget @generated.
+        </p>
+    </div>
+
+    <div class="report-actions no-print">
+        <a asp-action="Resources" class="secondary-action">Ressursliste per kommune</a>
+        @if (isAdmin)
+        {
+            <a asp-controller="Admin" asp-action="AuditLog" class="secondary-action">Aktivitetslogg</a>
+        }
+        <button type="button" class="primary-action" onclick="window.print()">Skriv ut</button>
+    </div>
+</div>
+
+<!-- NØKKELTALL -->
+<section class="report-kpis" aria-label="Nøkkeltall">
+    <div class="report-kpi">
+        <span class="report-kpi-value">@Model.OpenNeeds</span>
+        <span class="report-kpi-label">Åpne behov</span>
+        <span class="report-kpi-sub">@Model.AcuteOpenNeeds akutte · @Model.AssignedNeeds tildelt</span>
+    </div>
+    <div class="report-kpi @(Model.CriticalNeeds > 0 ? "is-alert" : "")">
+        <span class="report-kpi-value">@Model.CriticalNeeds</span>
+        <span class="report-kpi-label">Kritisk hastegrad</span>
+        <span class="report-kpi-sub">@Model.HighNeeds høy · @Model.MediumNeeds middels · @Model.LowNeeds lav</span>
+    </div>
+    <div class="report-kpi @(Model.OverdueNeeds > 0 ? "is-alert" : "")">
+        <span class="report-kpi-value">@Model.OverdueNeeds</span>
+        <span class="report-kpi-label">Passert frist</span>
+        <span class="report-kpi-sub">@Model.ResolvedNeeds behov løst totalt</span>
+    </div>
+    <div class="report-kpi">
+        <span class="report-kpi-value">@Model.AvailableResources<small>/@Model.TotalResources</small></span>
+        <span class="report-kpi-label">Tilgjengelige ressurser</span>
+        <span class="report-kpi-sub">@Model.BusyResources opptatt</span>
+    </div>
+    <div class="report-kpi">
+        <span class="report-kpi-value">@Model.PendingRequests</span>
+        <span class="report-kpi-label">Venter på svar</span>
+        <span class="report-kpi-sub">@Model.ConfirmedLast24h bekreftet siste døgn</span>
+    </div>
+</section>
+
+<!-- OPPSUMMERING -->
+<section class="app-card portal-section report-summary">
+    <div class="report-summary-head">
+        <div>
+            <h2>Oppsummering</h2>
+            <p class="section-hint">Regelbasert oppsummering av tallene. Sami kan i tillegg skrive en kort vurdering med anbefalte tiltak.</p>
+        </div>
+        <button type="button" class="secondary-action no-print" id="reportAiButton">
+            <span aria-hidden="true">✦</span>&nbsp;Be Sami skrive vurdering
+        </button>
+    </div>
+
+    <ul class="report-summary-list">
+        @foreach (string line in Model.AutomaticSummary)
+        {
+            <li>@line</li>
+        }
+    </ul>
+
+    <div class="report-ai" id="reportAi" hidden aria-live="polite">
+        <div class="report-ai-title">
+            <span class="report-ai-badge">Sami</span>
+            <span id="reportAiMeta">Skriver vurdering …</span>
+        </div>
+        <div class="report-ai-text" id="reportAiText"></div>
+        <p class="report-ai-note">Vurderingen er laget av en språkmodell ut fra tallene på denne siden. Kontroller alltid før du tar beslutninger.</p>
+    </div>
+
+    @Html.AntiForgeryToken()
+</section>
+
+<div class="report-grid">
+    <!-- DEKNING PER TYPE -->
+    <section class="app-card portal-section">
+        <h2>Dekning per ressurstype</h2>
+        <p class="section-hint">Åpne behov som ikke er tildelt, mot tilgjengelige ressurser av samme type.</p>
+
+        @if (Model.Coverage.Count == 0)
+        {
+            <p class="empty-state">Ingen behov eller ressurser registrert ennå.</p>
+        }
+        else
+        {
+            <div class="coverage-legend">
+                <span><i class="coverage-swatch need"></i>Åpne behov</span>
+                <span><i class="coverage-swatch resource"></i>Tilgjengelige ressurser</span>
+            </div>
+            <ul class="coverage-list">
+                @foreach (var row in Model.Coverage)
+                {
+                    <li class="coverage-row">
+                        <div class="coverage-name">
+                            <span class="coverage-icon">@Html.Raw(ResourceDisplay.Icon(row.Type))</span>
+                            <span>@row.TypeName</span>
+                            @if (row.IsGap)
+                            {
+                                <span class="urgency-badge urgency-critical">Mangler</span>
+                            }
+                            else if (row.IsTight)
+                            {
+                                <span class="urgency-badge urgency-medium">Knapp</span>
+                            }
+                        </div>
+                        <div class="coverage-bars">
+                            <div class="coverage-bar need" style="width:@((row.OpenNeeds * 100.0 / maxCoverage).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))%"></div>
+                            <span class="coverage-count">@row.OpenNeeds</span>
+                            <div class="coverage-bar resource" style="width:@((row.AvailableResources * 100.0 / maxCoverage).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))%"></div>
+                            <span class="coverage-count">@row.AvailableResources</span>
+                        </div>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+
+    <!-- RESSURSER PER KOMMUNE -->
+    <section class="app-card portal-section">
+        <h2>Ressurser per kommune</h2>
+        <p class="section-hint">Trykk på en kommune for utskriftsvennlig liste.</p>
+
+        @if (Model.Municipalities.Count == 0)
+        {
+            <p class="empty-state">Ingen ressurser registrert ennå.</p>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="portal-table">
+                    <thead>
+                        <tr><th>Kommune</th><th>Tilgjengelige</th><th>Totalt</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Model.Municipalities)
+                        {
+                            <tr>
+                                <td><a asp-action="Resources" asp-route-kommune="@row.Municipality" class="report-link">@row.Municipality</a></td>
+                                <td>@row.Available</td>
+                                <td>@row.Total</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+</div>
+
+<!-- MEST PRESSERENDE -->
+<section class="app-card portal-section">
+    <h2>Mest presserende behov</h2>
+    <p class="section-hint">Sortert etter hastegrad. Hold musen over merket for å se hvorfor.</p>
+
+    @if (Model.MostUrgent.Count == 0)
+    {
+        <p class="empty-state">Ingen åpne behov.</p>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="portal-table">
+                <thead>
+                    <tr><th>Hastegrad</th><th>Behov</th><th>Type</th><th>Status</th><th>Frist</th><th class="no-print"></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.MostUrgent)
+                    {
+                        <tr>
+                            <td>
+                                <span class="urgency-badge @row.Urgency.CssClass" title="@(string.Join(" · ", row.Urgency.Reasons))">
+                                    @row.Urgency.LevelName · @row.Urgency.Score
+                                </span>
+                            </td>
+                            <td>
+                                @row.Description
+                                <span class="cell-muted">@(string.Join(" · ", row.Urgency.Reasons))</span>
+                            </td>
+                            <td>@row.TypeName<span class="cell-muted">@row.Quantity stk · @row.PriorityName</span></td>
+                            <td>@row.StatusName</td>
+                            <td>@(row.Deadline?.ToString("dd.MM.yyyy") ?? "–")</td>
+                            <td class="no-print">
+                                <a asp-controller="Match" asp-action="Need" asp-route-id="@row.Id" class="small-action">Finn ressurser</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@if (Model.Uncovered.Count > 0)
+{
+    <section class="app-card portal-section report-gap">
+        <h2>Behov uten ressurser i nærheten</h2>
+        <p class="section-hint">Ingen tilgjengelige ressurser av riktig type innen 50 km. Her kan det være nødvendig å hente hjelp fra andre regioner.</p>
+        <ul class="report-gap-list">
+            @foreach (var row in Model.Uncovered)
+            {
+                <li>
+                    <span class="urgency-badge @row.Urgency.CssClass">@row.Urgency.LevelName</span>
+                    <strong>@row.TypeName</strong> – @row.Description
+                </li>
+            }
+        </ul>
+    </section>
+}
+
+<p class="report-footer">Beredskapsportalen · situasjonsrapport @generated · Hastegraden regnes ut med en åpen poengmodell (prioritet, frist, ventetid og dekning).</p>
+
+@section Scripts {
+    <script>
+        (function () {
+            const button = document.getElementById("reportAiButton");
+            const box = document.getElementById("reportAi");
+            const text = document.getElementById("reportAiText");
+            const meta = document.getElementById("reportAiMeta");
+            const tokenInput = document.querySelector('.report-summary input[name="__RequestVerificationToken"]');
+
+            if (!button || !box || !tokenInput) return;
+
+            // Overskriftene Sami bruker blir egne titler, linjer med «- » blir punkter.
+            function render(raw) {
+                text.replaceChildren();
+                let list = null;
+
+                raw.split(/\r?\n/).map(line => line.trim()).filter(Boolean).forEach(line => {
+                    if (line.startsWith("- ") || line.startsWith("• ")) {
+                        if (!list) {
+                            list = document.createElement("ul");
+                            text.appendChild(list);
+                        }
+                        const item = document.createElement("li");
+                        item.textContent = line.substring(2);
+                        list.appendChild(item);
+                        return;
+                    }
+
+                    list = null;
+                    const heading = /^(Situasjonsbilde|Viktigste risikoer|Anbefalte tiltak):?$/i.test(line);
+                    const element = document.createElement(heading ? "h3" : "p");
+                    element.textContent = line.replace(/:$/, "");
+                    text.appendChild(element);
+                });
+            }
+
+            button.addEventListener("click", async () => {
+                button.disabled = true;
+                box.hidden = false;
+                box.classList.remove("is-error");
+                meta.textContent = "Sami skriver vurdering …";
+                text.replaceChildren();
+
+                try {
+                    const response = await fetch("@Url.Action("Summary", "Report")", {
+                        method: "POST",
+                        headers: { "RequestVerificationToken": tokenInput.value }
+                    });
+                    const data = await response.json().catch(() => ({}));
+
+                    if (!response.ok || !data.text) {
+                        box.classList.add("is-error");
+                        meta.textContent = data.error || "Sami er ikke tilgjengelig akkurat nå.";
+                        return;
+                    }
+
+                    meta.textContent = "Vurdering laget " + data.generatedAt;
+                    render(data.text);
+                    button.textContent = "Lag ny vurdering";
+                } catch {
+                    box.classList.add("is-error");
+                    meta.textContent = "Kunne ikke kontakte serveren. Prøv igjen.";
+                } finally {
+                    button.disabled = false;
+                }
+            });
+        })();
+    </script>
+}

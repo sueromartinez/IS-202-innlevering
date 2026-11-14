@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using FirstWebAppInDocker.Models;
 
 namespace FirstWebAppInDocker.ViewModels;
 
@@ -50,4 +51,29 @@ public class CreatePublicActorViewModel
     [DataType(DataType.Password)]
     [Display(Name = "Midlertidig passord")]
     public string Password { get; set; } = string.Empty;
+}
+
+
+/// <summary>
+/// Aktivitetsloggen for administrator.
+/// </summary>
+public class AuditLogViewModel
+{
+    public List<AuditLogEntry> Entries { get; init; } = new();
+
+    public string? Action { get; init; }
+
+    public string? Query { get; init; }
+
+    public int Days { get; init; }
+
+    public int Page { get; init; }
+
+    public int PageSize { get; init; }
+
+    public int TotalCount { get; init; }
+
+    public int PageCount => Math.Max(1, (int)Math.Ceiling(TotalCount / (double)Math.Max(1, PageSize)));
+
+    public Dictionary<string, int> ActionCounts { get; init; } = new();
 }

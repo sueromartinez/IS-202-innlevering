@@ -219,6 +219,10 @@ public class ResourceController : Controller
             .SaveChangesAsync();
 
 
+        await this.AuditAsync(
+            AuditActions.ResourceCreated,
+            $"Registrerte ressursen «{resource.ResourceName}» (#{resource.Id}).");
+
         TempData["ResourceSuccess"] =
             "Ressursen ble registrert.";
 
@@ -477,6 +481,10 @@ public class ResourceController : Controller
         await _dbContext
             .SaveChangesAsync();
 
+        await this.AuditAsync(
+            AuditActions.ResourceStatusChanged,
+            $"Markerte ressursen «{resource.ResourceName}» (#{resource.Id}) som {EnumDisplay.Name(status).ToLowerInvariant()}.");
+
         TempData["ResourceSuccess"] =
             status == ResourceStatus.Available
                 ? "Ressursen er markert som tilgjengelig."
@@ -485,6 +493,269 @@ public class ResourceController : Controller
         return RedirectToAction(
             nameof(ResourceOverview)
         );
+    }
+
+
+    // =========================================================
+    // ENDRE RESSURS
+    // =========================================================
+
+    /// <summary>
+    /// Viser registreringsskjemaet fylt ut med en egen ressurs.
+    /// Samme skjema og samme regler som ved registrering.
+    /// </summary>
+    [HttpGet]
+    [Authorize(
+        Roles =
+            IdentitySeeder.ResourceProviderRole
+    )]
+    public async Task<IActionResult> EditResource(int id)
+    {
+        Resource? resource =
+            await FindOwnResourceAsync(id);
+
+        if (resource is null)
+        {
+            return NotFound();
+        }
+
+        ViewData["EditResourceId"] = resource.Id;
+
+        return View(
+            nameof(RegisterResource),
+            ToViewModel(resource)
+        );
+    }
+
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(
+        Roles =
+            IdentitySeeder.ResourceProviderRole
+    )]
+    public async Task<IActionResult> EditResource(
+        int id,
+        RegisterResourceViewModel model
+    )
+    {
+        Resource? resource =
+            await FindOwnResourceAsync(id);
+
+        if (resource is null)
+        {
+            return NotFound();
+        }
+
+        if (!model.AvailabilityMonths.HasValue
+            || !ResourceAvailability.Periods.ContainsKey(model.AvailabilityMonths.Value))
+        {
+            ModelState.AddModelError(nameof(model.AvailabilityMonths), "Velg en gyldig tilgjengelighetsperiode.");
+        }
+
+        if (!model.ResourceType.HasValue)
+        {
+            ModelState.AddModelError(nameof(model.ResourceType), "Velg type ressurs.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            ViewData["EditResourceId"] = resource.Id;
+
+            return View(
+                nameof(RegisterResource),
+                model
+            );
+        }
+
+        ApplicationUser? user =
+            await _userManager.GetUserAsync(User);
+
+        resource.ResourceType = model.ResourceType!.Value;
+        resource.ResourceName = model.ResourceName.Trim();
+        resource.Description = model.Description.Trim();
+        resource.Quantity = model.Quantity;
+        resource.Capacity = NormalizeOptionalText(model.Capacity);
+
+        // Perioden regnes fra i dag når ressursen lagres på nytt.
+        resource.Availability =
+            ResourceAvailability.CreatePeriod(model.AvailabilityMonths!.Value, DateTime.UtcNow);
+
+        resource.Address = NormalizeOptionalText(model.CombinedAddress());
+        resource.Latitude = model.Latitude;
+        resource.Longitude = model.Longitude;
+
+        resource.ContactEmail =
+            string.IsNullOrWhiteSpace(model.ContactEmail)
+                ? user?.Email ?? resource.ContactEmail
+                : model.ContactEmail.Trim();
+
+        resource.ContactPhoneCountryCode = NormalizeOptionalText(model.ContactPhoneCountryCode);
+        resource.ContactPhoneNumber = NormalizeOptionalText(model.ContactPhoneNumber);
+
+        await _dbContext.SaveChangesAsync();
+
+        await this.AuditAsync(
+            AuditActions.ResourceUpdated,
+            $"Endret ressursen «{resource.ResourceName}» (#{resource.Id}).");
+
+        TempData["ResourceSuccess"] =
+            $"Endringene på «{resource.ResourceName}» er lagret.";
+
+        return RedirectToAction(
+            nameof(ResourceOverview)
+        );
+    }
+
+
+    // =========================================================
+    // SLETTE RESSURS
+    // =========================================================
+
+    /// <summary>
+    /// Lar en ressursleverandør slette sin egen ressurs.
+    ///
+    /// Samme regler som når admin sletter: en ressurs som er opptatt,
+    /// eller som har forespørsler/tildelinger knyttet til seg, slettes ikke,
+    /// fordi historikken skal beholdes. Da kan den markeres som utilgjengelig i stedet.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(
+        Roles =
+            IdentitySeeder.ResourceProviderRole
+    )]
+    public async Task<IActionResult> DeleteResource(int id)
+    {
+        Resource? resource =
+            await FindOwnResourceAsync(id);
+
+        if (resource is null)
+        {
+            return NotFound();
+        }
+
+        if (resource.Status == ResourceStatus.Busy)
+        {
+            TempData["ResourceError"] =
+                $"«{resource.ResourceName}» er opptatt med et behov og kan ikke slettes nå.";
+
+            return RedirectToAction(nameof(ResourceOverview));
+        }
+
+        bool hasHistory =
+            await _dbContext.NeedAssignments
+                .AnyAsync(assignment => assignment.ResourceId == resource.Id);
+
+        if (hasHistory)
+        {
+            TempData["ResourceError"] =
+                $"«{resource.ResourceName}» har forespørsler knyttet til seg, og historikken må beholdes. " +
+                "Marker den som utilgjengelig i stedet.";
+
+            return RedirectToAction(nameof(ResourceOverview));
+        }
+
+        string name = resource.ResourceName;
+        int resourceId = resource.Id;
+
+        _dbContext.Resources.Remove(resource);
+
+        await _dbContext.SaveChangesAsync();
+
+        await this.AuditAsync(
+            AuditActions.ResourceDeleted,
+            $"Slettet ressursen «{name}» (#{resourceId}).");
+
+        TempData["ResourceSuccess"] =
+            $"«{name}» er slettet.";
+
+        return RedirectToAction(nameof(ResourceOverview));
+    }
+
+
+    /// <summary>
+    /// Finner en ressurs som tilhører innlogget bruker,
+    /// også eldre ressurser som bare er koblet via e-post.
+    /// </summary>
+    private async Task<Resource?> FindOwnResourceAsync(int id)
+    {
+        ApplicationUser? user =
+            await _userManager.GetUserAsync(User);
+
+        if (user is null)
+        {
+            return null;
+        }
+
+        string? email = user.Email;
+
+        return await _dbContext.Resources
+            .FirstOrDefaultAsync(resource =>
+                resource.Id == id
+                && (resource.OwnerUserId == user.Id
+                    || (resource.OwnerUserId == null && email != null && resource.OwnerEmail == email)));
+    }
+
+
+    /// <summary>
+    /// Gjør en lagret ressurs om til skjemamodellen, slik at skjemaet kan fylles ut.
+    /// Adressen ble lagret som «gate, postnummer poststed – kommune kommune»
+    /// og deles opp igjen i de tre feltene.
+    /// </summary>
+    private static RegisterResourceViewModel ToViewModel(Resource resource)
+    {
+        string? street = resource.Address;
+        string? postal = null;
+        string? municipality = null;
+
+        string[] mainParts =
+            resource.Address?.Split(" – ", 2) ?? Array.Empty<string>();
+
+        // Bare adresser i formatet fra skjemaet deles opp. Alt annet
+        // (f.eks. eldre fritekst) beholdes uendret i adressefeltet.
+        if (mainParts.Length == 2 && mainParts[1].EndsWith(" kommune", StringComparison.Ordinal))
+        {
+            municipality = mainParts[1][..^" kommune".Length].Trim();
+
+            int comma = mainParts[0].IndexOf(", ", StringComparison.Ordinal);
+
+            if (comma > 0)
+            {
+                street = mainParts[0][..comma].Trim();
+                postal = mainParts[0][(comma + 2)..].Trim();
+            }
+            else
+            {
+                street = mainParts[0].Trim();
+            }
+        }
+
+        // Finn perioden som ble valgt sist, f.eks. "6 måneder; til 2027-05-01".
+        int? months =
+            ResourceAvailability.Periods
+                .Where(period => resource.Availability?.StartsWith(period.Value + ";") == true)
+                .Select(period => (int?)period.Key)
+                .FirstOrDefault();
+
+        return new RegisterResourceViewModel
+        {
+            ResourceType = resource.ResourceType,
+            ResourceName = resource.ResourceName,
+            Description = resource.Description,
+            Quantity = resource.Quantity,
+            Capacity = resource.Capacity,
+            AvailabilityMonths = months,
+            Address = resource.Address,
+            StreetAddress = street,
+            PostalLocation = postal,
+            Municipality = municipality,
+            Latitude = resource.Latitude,
+            Longitude = resource.Longitude,
+            ContactEmail = resource.ContactEmail,
+            ContactPhoneCountryCode = resource.ContactPhoneCountryCode ?? "+47",
+            ContactPhoneNumber = resource.ContactPhoneNumber
+        };
     }
 
 

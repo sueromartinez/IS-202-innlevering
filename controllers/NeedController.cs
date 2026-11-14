@@ -1,5 +1,6 @@
 
 using FirstWebAppInDocker.Data;
+using FirstWebAppInDocker.Services;
 using FirstWebAppInDocker.Models;
 using FirstWebAppInDocker.ViewModels;
 using Microsoft.AspNetCore.Authorization;
@@ -77,6 +78,12 @@ public class NeedController : Controller
             .OrderByDescending(need => need.CreatedAt)
             .ToListAsync();
 
+        // Hastegrad (0–100) for hvert behov, vises som merke i listen.
+        // Lages direkte her, så konstruktøren og testene ikke må endres.
+        ViewData["Urgency"] =
+            await new FirstWebAppInDocker.Services.Matching.NeedUrgencyService(_context)
+                .CalculateAsync(needs);
+
         return View(needs);
     }
 
@@ -86,7 +93,7 @@ public class NeedController : Controller
     // ========================================
 
     [HttpGet]
-    public IActionResult RegisterNeed()
+    public async Task<IActionResult> RegisterNeed()
     {
         IActionResult? accessFailure = CheckAccess();
 
@@ -97,8 +104,16 @@ public class NeedController : Controller
 
         var model = new RegisterNeedsViewModel();
 
+        ApplicationUser? currentUser =
+            await _userManager.GetUserAsync(User);
+
         // Skjemaet starter med ett tomt behov.
-        model.Needs.Add(new NeedItemViewModel());
+        // Kontaktpunktet fylles ut med brukerens eget navn og telefon.
+        model.Needs.Add(new NeedItemViewModel
+        {
+            ContactName = currentUser?.Name,
+            ContactPhone = currentUser?.PhoneNumber
+        });
 
         return View(model);
     }
@@ -198,6 +213,12 @@ public class NeedController : Controller
 
                 Longitude = item.Longitude!.Value,
 
+                Deadline = item.Deadline?.Date,
+
+                ContactName = NormalizeText(item.ContactName),
+
+                ContactPhone = NormalizeText(item.ContactPhone),
+
                 // Permanent eierskap.
                 OwnerUserId = user.Id,
 
@@ -209,6 +230,10 @@ public class NeedController : Controller
         }
 
         await _context.SaveChangesAsync();
+
+        await this.AuditAsync(
+            AuditActions.NeedCreated,
+            $"Registrerte {model.Needs.Count} behov.");
 
         TempData["NeedMessage"] =
             $"{model.Needs.Count} behov ble registrert.";
@@ -266,7 +291,13 @@ public class NeedController : Controller
 
             Latitude = need.Latitude,
 
-            Longitude = need.Longitude
+            Longitude = need.Longitude,
+
+            Deadline = need.Deadline,
+
+            ContactName = need.ContactName,
+
+            ContactPhone = need.ContactPhone
         };
 
         return View(model);
@@ -348,8 +379,18 @@ public class NeedController : Controller
 
         need.Longitude = model.Longitude!.Value;
 
+        need.Deadline = model.Deadline?.Date;
+
+        need.ContactName = NormalizeText(model.ContactName);
+
+        need.ContactPhone = NormalizeText(model.ContactPhone);
+
         // OwnerUserId og OwnerEmail endres ikke.
         await _context.SaveChangesAsync();
+
+        await this.AuditAsync(
+            AuditActions.NeedUpdated,
+            $"Endret behov #{need.Id} ({EnumDisplay.Name(need.ResourceType)}).");
 
         TempData["NeedMessage"] =
             "Behovet ble oppdatert.";
@@ -394,9 +435,16 @@ public class NeedController : Controller
             return NotFound();
         }
 
+        string deletedText =
+            $"Slettet behov #{need.Id} ({EnumDisplay.Name(need.ResourceType)}).";
+
         _context.Needs.Remove(need);
 
         await _context.SaveChangesAsync();
+
+        await this.AuditAsync(
+            AuditActions.NeedDeleted,
+            deletedText);
 
         TempData["NeedMessage"] =
             "Behovet ble slettet.";
@@ -404,6 +452,17 @@ public class NeedController : Controller
         return RedirectToAction(
             nameof(NeedOverview)
         );
+    }
+
+
+    /// <summary>
+    /// Tom tekst lagres som null.
+    /// </summary>
+    private static string? NormalizeText(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? null
+            : value.Trim();
     }
 
 

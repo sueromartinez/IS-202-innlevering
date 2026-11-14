@@ -4,7 +4,12 @@
 
 @{
     Layout = null;
-    ViewData["Title"] = "Registrer ressurs";
+
+    // Samme skjema brukes til å endre en ressurs. Da settes EditResourceId av controlleren.
+    int? editResourceId = ViewData["EditResourceId"] as int?;
+    bool isEdit = editResourceId.HasValue;
+
+    ViewData["Title"] = isEdit ? "Endre ressurs" : "Registrer ressurs";
 }
 
 <!DOCTYPE html>
@@ -645,7 +650,7 @@
     <section class="resource-top">
         <div>
             <span class="resource-eyebrow">Mine ressurser</span>
-            <h1>Registrer ny ressurs</h1>
+            <h1>@(isEdit ? "Endre ressurs" : "Registrer ny ressurs")</h1>
             <p>
                 Registrer utstyr, kapasitet eller andre ressurser
                 som kan stilles til disposisjon ved en
@@ -675,7 +680,8 @@
             </div>
 
             <form asp-controller="Resource"
-                  asp-action="RegisterResource"
+                  asp-action="@(isEdit ? "EditResource" : "RegisterResource")"
+                  asp-route-id="@editResourceId"
                   method="post">
 
                 <div asp-validation-summary="ModelOnly"
@@ -891,8 +897,15 @@
                 </div>
 
                 <button type="submit" class="submit-button">
-                    Registrer ressurs
+                    @(isEdit ? "Lagre endringer" : "Registrer ressurs")
                 </button>
+
+                @if (isEdit)
+                {
+                    <small class="field-note">
+                        Tilgjengelighetsperioden regnes fra i dag når du lagrer.
+                    </small>
+                }
 
             </form>
 
