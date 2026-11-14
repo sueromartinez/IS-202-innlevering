@@ -185,6 +185,9 @@ builder.Services.AddHttpClient<OllamaChatClient>();
 builder.Services.AddHttpClient<ClaudeChatClient>();
 builder.Services.AddHttpClient<NominatimGeocoder>();
 
+// Adresseoppslag (Kartverket, med Nominatim som reserve) når Sami registrerer ressurser.
+builder.Services.AddHttpClient<IAddressLookup, KartverketAddressLookup>();
+
 builder.Services.AddScoped<IChatModelClient>(
     services =>
     {

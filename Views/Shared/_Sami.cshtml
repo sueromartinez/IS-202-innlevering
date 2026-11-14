@@ -24,7 +24,8 @@
          data-role="@samiRole"
          data-user="@samiUserKey"
          data-chat-url="@Url.Action("Chat", "Sami")"
-         data-request-url="@Url.Action("SendRequest", "Match")">
+         data-request-url="@Url.Action("SendRequest", "Match")"
+         data-register-resource-url="@(samiRole == "volunteer" ? Url.Action("RegisterResource", "Resource") : "")">
 
         @Html.AntiForgeryToken()
 
