@@ -304,16 +304,23 @@
                             @foreach (
                                 var need
                                 in Model.Needs
-                                    .OrderByDescending(
+                                    // Akutte behov først, deretter de nyeste.
+                                    .OrderBy(
+                                        n => n.Priority == NeedPriority.Acute ? 0 : 1
+                                    )
+                                    .ThenByDescending(
                                         n => n.CreatedAt
                                     )
                                     .Take(2)
                             )
                             {
+                                bool acuteNeed = need.Priority == NeedPriority.Acute;
+
                                 <div class="summary-item">
 
-                                    <span class="summary-icon urgent">
-                                        !
+                                    <span class="summary-icon @(acuteNeed ? "urgent" : "planned")"
+                                          title="@(acuteNeed ? "Akutt" : "Planlagt")">
+                                        @Html.Raw(FirstWebAppInDocker.Services.ResourceDisplay.Icon(need.ResourceType))
                                     </span>
 
                                     <div>
@@ -327,7 +334,7 @@
                                         </p>
 
                                         <small>
-                                            Antall: @need.Quantity
+                                            @(acuteNeed ? "Akutt" : "Planlagt") · Antall: @need.Quantity
                                         </small>
 
                                     </div>
@@ -379,7 +386,7 @@
                                 <div class="summary-item">
 
                                     <span class="summary-icon resource">
-                                        R
+                                        @Html.Raw(FirstWebAppInDocker.Services.ResourceDisplay.Icon(resourceItem.ResourceType))
                                     </span>
 
                                     <div>
@@ -1190,9 +1197,7 @@ else if (userRole == "ResourceProvider")
                                     <span
                                         class="
                                             provider-resource-status
-                                            @(available
-                                                ? "available"
-                                                : "unavailable")
+                                            @availabilityFilterValue
                                         ">
 
                                         @status
@@ -3712,6 +3717,13 @@ else
 .provider-resource-icon svg,
 .summary-icon svg {
     display: block;
+    width: 18px;
+    height: 18px;
+}
+
+/* Gul bakgrunn er lys, så ikonet blir mørkt for å synes. */
+.summary-icon.planned {
+    color: #3d2e00;
 }
 
 @@media (max-width: 640px) {
