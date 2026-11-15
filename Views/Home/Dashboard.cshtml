@@ -1,3 +1,4 @@
+
 @model FirstWebAppInDocker.ViewModels.DashboardViewModel
 
 @using FirstWebAppInDocker.Models
@@ -280,6 +281,157 @@
 
                 </section>
 
+                <!-- Oppsummeringene ligger nå i venstrepanelet.
+                     De er fortsatt tilgjengelige uten å gjøre siden lengre enn kartet. -->
+                <details class="sidebar-updates">
+                    <summary>Siste oppdateringer</summary>
+
+                <section class="public-bottom-grid">
+
+                    <article class="summary-card">
+
+                        <span class="eyebrow">
+                            PRIORITERT
+                        </span>
+
+                        <h3>
+                            Aktive behov
+                        </h3>
+
+
+                        @if (Model.Needs.Any())
+                        {
+                            @foreach (
+                                var need
+                                in Model.Needs
+                                    .OrderByDescending(
+                                        n => n.CreatedAt
+                                    )
+                                    .Take(2)
+                            )
+                            {
+                                <div class="summary-item">
+
+                                    <span class="summary-icon urgent">
+                                        !
+                                    </span>
+
+                                    <div>
+
+                                        <strong>
+                                            @FirstWebAppInDocker.Services.EnumDisplay.Name(need.ResourceType)
+                                        </strong>
+
+                                        <p>
+                                            @need.Description
+                                        </p>
+
+                                        <small>
+                                            Antall: @need.Quantity
+                                        </small>
+
+                                    </div>
+
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <p class="empty-text">
+                                Ingen registrerte behov.
+                            </p>
+                        }
+
+                         <a
+                            asp-controller="Need"
+                            asp-action="NeedOverview"
+                            class="summary-link">
+
+                            Se alle behov →
+
+                        </a>
+
+                    </article>
+
+
+                    <article class="summary-card">
+
+                        <span class="eyebrow">
+                            RESSURSER
+                        </span>
+
+                        <h3>
+                            Tilgjengelig kapasitet
+                        </h3>
+
+
+                        @if (Model.Resources.Any())
+                        {
+                            @foreach (
+                                var resourceItem
+                                in Model.Resources
+                                    .OrderByDescending(
+                                        r => r.CreatedAt
+                                    )
+                                    .Take(2)
+                            )
+                            {
+                                <div class="summary-item">
+
+                                    <span class="summary-icon resource">
+                                        R
+                                    </span>
+
+                                    <div>
+
+                                        <strong>
+                                            @(string.IsNullOrWhiteSpace(
+                                                resourceItem.ResourceName
+                                            )
+                                                ? resourceItem.ResourceType.ToString()
+                                                : resourceItem.ResourceName)
+                                        </strong>
+
+                                        <p>
+                                            @resourceItem.Description
+                                        </p>
+
+                                        <small>
+                                            @(string.IsNullOrWhiteSpace(
+                                                resourceItem.Address
+                                            )
+                                                ? "Plassering registrert i kart"
+                                                : resourceItem.Address)
+                                        </small>
+
+                                    </div>
+
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <p class="empty-text">
+                                Ingen registrerte ressurser.
+                            </p>
+                        }
+
+
+                        <a
+                            asp-controller="Resource"
+                            asp-action="ResourceOverview"
+                            class="summary-link">
+
+                            Se alle ressurser →
+
+                        </a>
+
+                    </article>
+
+                </section>
+
+                </details>
+
             </aside>
 
 
@@ -464,154 +616,27 @@
                     </div>
 
 
-                    <div id="situationMap"></div>
+                    <div id="situationMap" aria-label="Operativt kart over behov og ressurser"></div>
+
+                    <div class="public-map-help">
+                        <div class="public-map-help-item">
+                            <strong>1. Utforsk kartet</strong>
+                            <span>Zoom og flytt kartet for å se området.</span>
+                        </div>
+                        <div class="public-map-help-item">
+                            <strong>2. Filtrer visningen</strong>
+                            <span>Velg ressurser, behov og aktører med avhukingen.</span>
+                        </div>
+                        <div class="public-map-help-item">
+                            <strong>3. Se detaljer</strong>
+                            <span>Klikk på en markør for informasjon.</span>
+                        </div>
+                    </div>
 
                 </section>
 
 
-                <section class="public-bottom-grid">
 
-                    <article class="summary-card">
-
-                        <span class="eyebrow">
-                            PRIORITERT
-                        </span>
-
-                        <h3>
-                            Aktive behov
-                        </h3>
-
-
-                        @if (Model.Needs.Any())
-                        {
-                            @foreach (
-                                var need
-                                in Model.Needs
-                                    .OrderByDescending(
-                                        n => n.CreatedAt
-                                    )
-                                    .Take(2)
-                            )
-                            {
-                                <div class="summary-item">
-
-                                    <span class="summary-icon urgent">
-                                        !
-                                    </span>
-
-                                    <div>
-
-                                        <strong>
-                                            @FirstWebAppInDocker.Services.EnumDisplay.Name(need.ResourceType)
-                                        </strong>
-
-                                        <p>
-                                            @need.Description
-                                        </p>
-
-                                        <small>
-                                            Antall: @need.Quantity
-                                        </small>
-
-                                    </div>
-
-                                </div>
-                            }
-                        }
-                        else
-                        {
-                            <p class="empty-text">
-                                Ingen registrerte behov.
-                            </p>
-                        }
-
-                         <a
-                            asp-controller="Need"
-                            asp-action="NeedOverview"
-                            class="summary-link">
-
-                            Se alle behov →
-
-                        </a>
-
-                    </article>
-
-
-                    <article class="summary-card">
-
-                        <span class="eyebrow">
-                            RESSURSER
-                        </span>
-
-                        <h3>
-                            Tilgjengelig kapasitet
-                        </h3>
-
-
-                        @if (Model.Resources.Any())
-                        {
-                            @foreach (
-                                var resourceItem
-                                in Model.Resources
-                                    .OrderByDescending(
-                                        r => r.CreatedAt
-                                    )
-                                    .Take(2)
-                            )
-                            {
-                                <div class="summary-item">
-
-                                    <span class="summary-icon resource">
-                                        @Html.Raw(FirstWebAppInDocker.Services.ResourceDisplay.Icon(resourceItem.ResourceType))
-                                    </span>
-
-                                    <div>
-
-                                        <strong>
-                                            @(string.IsNullOrWhiteSpace(
-                                                resourceItem.ResourceName
-                                            )
-                                                ? resourceItem.ResourceType.ToString()
-                                                : resourceItem.ResourceName)
-                                        </strong>
-
-                                        <p>
-                                            @resourceItem.Description
-                                        </p>
-
-                                        <small>
-                                            @(string.IsNullOrWhiteSpace(
-                                                resourceItem.Address
-                                            )
-                                                ? "Plassering registrert i kart"
-                                                : FirstWebAppInDocker.Services.ResourceDisplay.PrettyAddress(resourceItem.Address))
-                                        </small>
-
-                                    </div>
-
-                                </div>
-                            }
-                        }
-                        else
-                        {
-                            <p class="empty-text">
-                                Ingen registrerte ressurser.
-                            </p>
-                        }
-
-
-                        <a
-                            asp-controller="Resource"
-                            asp-action="ResourceOverview"
-                            class="summary-link">
-
-                            Se alle ressurser →
-
-                        </a>
-
-                    </article>
-
-                </section>
 
             </main>
 
@@ -3697,9 +3722,345 @@ else
     }
 }
 
+
+    /* =========================================
+       OFFENTLIG DASHBOARD – FELLES KARTSTANDARD
+       Samme karthøyde og kartkort som Registrer ressurs.
+       Påvirker ikke ressursleverandørens dashboard.
+       ========================================= */
+    .public-shell .public-layout {
+        display: grid;
+        grid-template-columns: minmax(0, .33fr) minmax(0, .67fr);
+        gap: 18px;
+        align-items: start;
+        width: min(1500px, calc(100% - 40px));
+        min-height: 0;
+        margin: 0 auto;
+    }
+
+    .public-shell .public-workspace {
+        min-width: 0;
+        min-height: 0;
+        padding: 18px 0 12px;
+        background: transparent;
+    }
+
+    /* Venstrepanelet er like høyt som høyre innholdsområde.
+       Bare panelet scroller når det har mer innhold. */
+    .public-shell .public-sidebar {
+        min-width: 0;
+        min-height: 0;
+        height: var(--public-sidebar-height, 800px);
+        margin: 18px 0 12px;
+        padding: 28px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior-y: contain;
+        scrollbar-gutter: stable;
+        border: 1px solid var(--border, #dfe5e9);
+        border-radius: 18px;
+        background: var(--surface, white);
+        box-shadow: 0 12px 35px rgba(16, 45, 66, .05);
+    }
+
+    .public-shell .public-sidebar::-webkit-scrollbar {
+        width: 7px;
+    }
+    .public-shell .public-sidebar::-webkit-scrollbar-thumb {
+        background: #bdc8d2;
+        border-radius: 999px;
+    }
+
+    /* Menyvalgene ser tydelig ut som knapper. */
+    .public-shell .public-navigation {
+        gap: 9px;
+        margin-bottom: 22px;
+    }
+    .public-shell .public-navigation-item {
+        position: relative;
+        display: grid;
+        grid-template-columns: 38px minmax(0, 1fr) 17px;
+        gap: 12px;
+        align-items: center;
+        min-height: 62px;
+        padding: 11px 12px;
+        border: 1px solid var(--border, #dfe5e9);
+        border-radius: 11px;
+        background: var(--surface-soft, #f7f9fa);
+        color: var(--heading, #123047);
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(16,45,66,.025);
+        transition: transform .15s ease, border-color .15s ease,
+                    background .15s ease, box-shadow .15s ease;
+    }
+    .public-shell .public-navigation-item::after {
+        content: "›";
+        color: var(--link, #176b87);
+        font-size: 1.5rem;
+        line-height: 1;
+        justify-self: end;
+        font-weight: 700;
+    }
+    .public-shell .public-navigation-item strong {
+        font-size: .87rem;
+        margin-bottom: 3px;
+    }
+    .public-shell .public-navigation-item small {
+        font-size: .72rem;
+        line-height: 1.35;
+    }
+    .public-shell .public-navigation-item .navigation-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 9px;
+        background: rgba(23,107,135,.10);
+        color: var(--link, #176b87);
+        font-size: 1.05rem;
+    }
+    .public-shell .public-navigation-item:hover {
+        transform: translateX(3px);
+        border-color: var(--primary, #176b87);
+        background: var(--surface, white);
+        box-shadow: 0 6px 15px rgba(16,45,66,.08);
+    }
+    .public-shell .public-navigation-item.active {
+        border-color: var(--primary, #176b87);
+        background: rgba(23,107,135,.10);
+        color: var(--link, #176b87);
+        box-shadow: inset 4px 0 0 var(--primary, #176b87);
+    }
+    .public-shell .public-navigation-item:focus-visible,
+    .public-shell .quick-action:focus-visible,
+    .public-shell .filter-option:focus-within,
+    .public-shell .sidebar-updates summary:focus-visible {
+        outline: 3px solid var(--primary, #176b87);
+        outline-offset: 3px;
+    }
+
+    .public-shell .quick-actions {
+        padding-top: 20px;
+    }
+    .public-shell .quick-action {
+        grid-template-columns: 34px minmax(0, 1fr) 16px;
+        min-height: 60px;
+        padding: 12px 13px;
+        border-radius: 11px;
+        cursor: pointer;
+        transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .public-shell .quick-action::after {
+        content: "›";
+        justify-self: end;
+        font-size: 1.4rem;
+        font-weight: 700;
+    }
+    .public-shell .quick-action strong { font-size: .85rem; }
+    .public-shell .quick-action small { font-size: .7rem; }
+    .public-shell .quick-action:hover {
+        transform: translateX(3px);
+        box-shadow: 0 6px 15px rgba(16,45,66,.1);
+    }
+    .public-shell .quick-action.secondary {
+        border-color: var(--primary, #176b87);
+    }
+
+    /* Sammendragene beholdes i en sammenleggbar del av panelet. */
+    .public-shell .sidebar-updates {
+        margin-top: 20px;
+        padding-top: 18px;
+        border-top: 1px solid var(--border, #dfe5e9);
+    }
+    .public-shell .sidebar-updates summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 11px 13px;
+        border: 1px solid var(--border, #dfe5e9);
+        border-radius: 10px;
+        background: var(--surface-soft, #f7f9fa);
+        color: var(--heading, #123047);
+        cursor: pointer;
+        font-size: .87rem;
+        font-weight: 800;
+        list-style: none;
+    }
+    .public-shell .sidebar-updates summary::-webkit-details-marker { display:none; }
+    .public-shell .sidebar-updates summary::after { content: "⌄"; }
+    .public-shell .sidebar-updates[open] summary::after { content: "⌃"; }
+    .public-shell .sidebar-updates .public-bottom-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+        margin: 12px 0 0;
+    }
+    .public-shell .sidebar-updates .summary-card { padding: 15px; }
+    .public-shell .sidebar-updates .summary-item {
+        grid-template-columns: 30px minmax(0, 1fr);
+        gap: 8px;
+    }
+    .public-shell .sidebar-updates .summary-item p {
+        overflow-wrap: anywhere;
+    }
+
+    /* Det operative kartet får samme størrelse som øvrige kart. */
+    .public-shell .situation-card {
+        min-width: 0;
+        margin-bottom: 0;
+        padding: 14px 18px 18px 14px;
+        border: 1px solid var(--border, #dfe5e9);
+        border-radius: 18px;
+        background: var(--surface, white);
+        overflow: visible;
+        box-shadow: 0 12px 35px rgba(16,45,66,.05);
+    }
+    .public-shell .map-toolbar {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 0;
+        margin: 0 0 10px;
+    }
+    .public-shell .map-toolbar h3 {
+        font-size: 1.35rem;
+        margin-top: 5px;
+    }
+    .public-shell .map-filters {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+    }
+    .public-shell .filter-option {
+        min-height: 39px;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 8px 10px;
+        border: 1px solid var(--border, #dfe5e9);
+        border-radius: 9px;
+        background: var(--surface-soft, #f7f9fa);
+        color: var(--heading, #123047);
+        font-size: .76rem;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    .public-shell .filter-option:has(input:checked) {
+        border-color: rgba(23,107,135,.45);
+        background: rgba(23,107,135,.08);
+    }
+    .public-shell .filter-option input {
+        width: 17px;
+        height: 17px;
+        accent-color: var(--primary, #176b87);
+    }
+    .public-shell #situationMap {
+        width: 100%;
+        height: clamp(470px, 68dvh, 740px);
+        border: 1px solid #d8e0e5;
+        border-radius: 14px;
+        overflow: hidden;
+        background: #dfe9ec;
+    }
+    .public-shell .public-map-help {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 10px;
+    }
+    .public-shell .public-map-help-item {
+        min-width: 0;
+        padding: 12px;
+        border-radius: 10px;
+        background: var(--surface-soft, #f7f9fa);
+    }
+    .public-shell .public-map-help-item strong {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--heading, #123047);
+        font-size: .8rem;
+    }
+    .public-shell .public-map-help-item span {
+        color: var(--text-secondary, #667085);
+        font-size: .75rem;
+        line-height: 1.4;
+    }
+
+    /* Kartlagvelger først, fullskjerm rett under. */
+    .public-map-fullscreen-control button {
+        display: grid;
+        place-items: center;
+        width: 40px;
+        height: 40px;
+        padding: 8px;
+        border: 0;
+        background: white;
+        color: #123047;
+        cursor: pointer;
+    }
+    .public-map-fullscreen-control svg { width: 22px; height: 22px; }
+    .public-map-fullscreen-control button:hover { background: #f4f4f4; }
+    .public-map-fullscreen-control button:focus-visible {
+        outline: 3px solid #176b87;
+        outline-offset: -3px;
+    }
+    #situationMap:fullscreen,
+    .public-map-fullscreen-dialog #situationMap {
+        width: 100% !important;
+        height: 100dvh !important;
+        min-height: 0 !important;
+        border: 0;
+        border-radius: 0;
+    }
+    .public-map-fullscreen-dialog {
+        width: 100vw;
+        max-width: none;
+        height: 100dvh;
+        max-height: none;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        overflow: hidden;
+    }
+    .public-map-fullscreen-dialog::backdrop { background: #17212b; }
+
+    /* Responsiv side, uten fast høyde når panelet ligger over kartet. */
+    @@media (max-width: 950px) {
+        .public-shell .public-layout {
+            display: grid;
+            width: calc(100% - 32px);
+            grid-template-columns: minmax(0, 1fr);
+            gap: 12px;
+        }
+        .public-shell .public-sidebar {
+            height: auto !important;
+            margin: 18px 0 0;
+            overflow: visible;
+            scrollbar-gutter: auto;
+        }
+        .public-shell .public-workspace { padding: 4px 0 18px; }
+        .public-shell .public-navigation {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .public-shell .quick-actions,
+        .public-shell .sidebar-legend { display: block; }
+        .public-shell #situationMap { height: 460px; }
+    }
+    @@media (max-width: 650px) {
+        .public-shell .public-layout { width: calc(100% - 28px); }
+        .public-shell .public-sidebar { padding: 19px; }
+        .public-shell .public-navigation { grid-template-columns: minmax(0, 1fr); }
+        .public-shell .map-toolbar { flex-direction: column; }
+        .public-shell .map-filters { width: 100%; }
+        .public-shell .filter-option { flex: 1 1 calc(50% - 8px); }
+        .public-shell .public-map-help { grid-template-columns: minmax(0, 1fr); }
+        .public-shell #situationMap { height: 420px; }
+    }
+
 </style>
-
-
 
 @if (isOfficial)
 {
@@ -3733,6 +4094,126 @@ else
                     map
                 );
 
+                // Samme fullskjermfunksjon som på de andre kartsidene.
+                // Kartlagvelgeren er lagt til først og vises øverst.
+                const mapElement = document.getElementById("situationMap");
+                const publicWorkspace = document.querySelector(".public-workspace");
+                const publicLayout = document.querySelector(".public-layout");
+                const publicSidebar = document.querySelector(".public-sidebar");
+
+                function syncSidebarHeight() {
+                    if (!publicWorkspace || !publicLayout || !publicSidebar) return;
+                    if (window.matchMedia("(max-width: 950px)").matches) {
+                        publicLayout.style.removeProperty("--public-sidebar-height");
+                        return;
+                    }
+                    const styles = window.getComputedStyle(publicWorkspace);
+                    const top = parseFloat(styles.paddingTop) || 0;
+                    const bottom = parseFloat(styles.paddingBottom) || 0;
+                    const total = publicWorkspace.getBoundingClientRect().height;
+                    publicLayout.style.setProperty(
+                        "--public-sidebar-height",
+                        Math.max(0, total - top - bottom) + "px"
+                    );
+                }
+
+                const fullscreenDialog = document.createElement("dialog");
+                fullscreenDialog.className = "public-map-fullscreen-dialog";
+                fullscreenDialog.setAttribute("aria-label", "Operativt kart i fullskjerm");
+                document.body.appendChild(fullscreenDialog);
+
+                let mapPlaceholder = null;
+                let fullscreenButton = null;
+
+                const expandIcon =
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/></svg>';
+                const collapseIcon =
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 9h6V3m6 0v6h6M9 21v-6H3m18 0h-6v6"/></svg>';
+
+                function isMapFullscreen() {
+                    return document.fullscreenElement === mapElement || fullscreenDialog.open;
+                }
+
+                function refreshMapSize() {
+                    map.invalidateSize({ pan: false });
+                }
+
+                function updateFullscreenControl() {
+                    if (!fullscreenButton) return;
+                    const expanded = isMapFullscreen();
+                    const label = expanded ? "Avslutt fullskjerm" : "Vis i fullskjerm";
+                    fullscreenButton.title = label;
+                    fullscreenButton.setAttribute("aria-label", label);
+                    fullscreenButton.setAttribute("aria-pressed", String(expanded));
+                    fullscreenButton.innerHTML = expanded ? collapseIcon : expandIcon;
+                    requestAnimationFrame(refreshMapSize);
+                }
+
+                function openFullscreenDialog() {
+                    mapPlaceholder = document.createComment("Kartets vanlige plassering");
+                    mapElement.before(mapPlaceholder);
+                    fullscreenDialog.appendChild(mapElement);
+                    fullscreenDialog.showModal();
+                    updateFullscreenControl();
+                    fullscreenButton.focus();
+                }
+
+                fullscreenDialog.addEventListener("close", function () {
+                    if (mapPlaceholder) {
+                        mapPlaceholder.replaceWith(mapElement);
+                        mapPlaceholder = null;
+                    }
+                    updateFullscreenControl();
+                    fullscreenButton.focus({ preventScroll: true });
+                });
+                document.addEventListener("fullscreenchange", updateFullscreenControl);
+
+                const PublicFullscreenControl = L.Control.extend({
+                    options: { position: "topright" },
+                    onAdd: function () {
+                        const control = L.DomUtil.create(
+                            "div", "leaflet-bar public-map-fullscreen-control"
+                        );
+                        fullscreenButton = L.DomUtil.create("button", "", control);
+                        fullscreenButton.type = "button";
+                        L.DomEvent.disableClickPropagation(control);
+                        L.DomEvent.disableScrollPropagation(control);
+                        fullscreenButton.addEventListener("click", async function (event) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            if (fullscreenDialog.open) {
+                                fullscreenDialog.close();
+                            } else if (document.fullscreenElement === mapElement) {
+                                await document.exitFullscreen();
+                            } else if (mapElement.requestFullscreen && document.fullscreenEnabled) {
+                                try {
+                                    await mapElement.requestFullscreen();
+                                } catch {
+                                    openFullscreenDialog();
+                                }
+                            } else {
+                                openFullscreenDialog();
+                            }
+                        });
+                        return control;
+                    }
+                });
+
+                new PublicFullscreenControl().addTo(map);
+                updateFullscreenControl();
+                syncSidebarHeight();
+                window.addEventListener("resize", function () {
+                    syncSidebarHeight();
+                    requestAnimationFrame(refreshMapSize);
+                });
+                if (typeof ResizeObserver !== "undefined") {
+                    new ResizeObserver(syncSidebarHeight).observe(publicWorkspace);
+                    new ResizeObserver(function () {
+                        requestAnimationFrame(refreshMapSize);
+                    }).observe(mapElement);
+                }
+
+
 
                 const resourceLayer =
                     L.layerGroup()
@@ -3763,7 +4244,7 @@ else
                         Generator: "<polygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'/>",
                         Machinery: "<path d='M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z'/>",
                         CommunicationEquipment: "<circle cx='12' cy='12' r='2'/><path d='M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14'/>",
-                        Personnel: "<path d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/><circle cx='9' cy='7' r='4'/><path d='M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'/>",
+                        Personnel: "<path d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/><circle cx='9' cy='7' r='4'/><path d='M23 21v-2a4 4 0 0 1-3-3.87M16 3.13a4 4 0 0 1 0 7.75'/>",
                         Premises: "<path d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/><polyline points='9 22 9 12 15 12 15 22'/>",
                         SandAndGravel: "<polygon points='12 2 2 7 12 12 22 7 12 2'/><polyline points='2 17 12 22 22 17'/><polyline points='2 12 12 17 22 12'/>",
                         Boat: "<circle cx='12' cy='5' r='3'/><line x1='12' y1='22' x2='12' y2='8'/><path d='M5 12H2a10 10 0 0 0 20 0h-3'/>",
@@ -4036,6 +4517,7 @@ else
                     function () {
 
                         map.invalidateSize();
+                        syncSidebarHeight();
 
                     },
                     100
