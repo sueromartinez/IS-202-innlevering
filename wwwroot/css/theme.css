@@ -696,3 +696,57 @@ html:root[data-theme="navy"] .colorblind-toggle[aria-pressed="true"] {
 .theme-toggle.colorblind-toggle.theme-toggle-fixed {
     right: 60px;
 }
+
+
+/* ===== MØRK MODUS: rettelser (Sami, kantlinjer, Koordinering) ===== */
+
+/* Sami-ikonet blir hvitt, så det synes på mørk bakgrunn */
+html:root[data-theme="navy"] .sami-avatar { color: #fff; }
+
+/* Ressurser: egen kantfarge-variabel var nesten hvit */
+html:root[data-theme="navy"] { --overview-border: var(--border); }
+
+/* Alle sider: samme kantfarge overalt (hover, fokus og statusfarger vinner fortsatt) */
+html[data-theme="navy"] :where(div, section, article, aside, form, input, select, textarea, button, table, th, td, li, details) {
+    border-color: var(--border);
+}
+
+html:root[data-theme="navy"] {
+
+    /* Ressurser: tre ting hadde fast lys kantfarge */
+    & .filter-field input,
+    & .filter-reset,
+    & .resource-item { border-color: var(--border); }
+
+    /* Koordinering: tekst og kantlinjer fra temaet */
+    & [class*="coord-"] { color: var(--text); border-color: var(--border); }
+
+    /* Koordinering: mørke flater */
+    & .coord-stat, & .coord-workspace, & .coord-card,
+    & .coord-list-item, & .coord-dialog { background: var(--surface); }
+
+    & .coord-lane, & .coord-lane-count, & .coord-card-status, & .coord-metric,
+    & .coord-stat-icon, & .coord-dialog-note, & .coord-search,
+    & .coord-dialog-close { background: var(--surface-soft); }
+
+    /* Koordinering: blå tekst og knapper */
+    & .coord-eyebrow, & .coord-card-details, & .coord-list-link { color: var(--link); }
+
+    & .coord-primary, & .coord-card-link,
+    & .coord-tab[aria-selected="true"] { color: #fff; background: var(--primary); }
+}
+
+/* Koordinering: overskriftene får samme hvite farge som på de andre sidene */
+html:root[data-theme="navy"] {
+    & .coord-heading h1,
+    & .coord-toolbar h2,
+    & .coord-card h3,
+    & .coord-list-item h3,
+    & .coord-dialog h2 { color: var(--heading); }
+}
+
+/* Koordinering: beskrivelsen under tittelen får samme farge som på de andre sidene */
+html:root[data-theme="navy"] {
+    & .coord-heading p,
+    & .coord-panel-intro { color: var(--text-secondary); }
+}
