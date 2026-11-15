@@ -1,4 +1,3 @@
-
 @model FirstWebAppInDocker.ViewModels.MatchingNeedsViewModel
 @using FirstWebAppInDocker.Services
 @using FirstWebAppInDocker.Models
@@ -18,7 +17,6 @@
     var radiusOptions = new[] { 10, 25, 50, 100, 200 };
 
     // Henter bare ressursene til den innloggede brukeren.
-    // Nøyaktige koordinater for behovene sendes ikke til nettleseren.
     string? currentUserId =
         User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -105,7 +103,8 @@
             name = string.IsNullOrWhiteSpace(resource.ResourceName)
                 ? "Registrert ressurs"
                 : resource.ResourceName,
-            type = resource.ResourceType.ToString(),
+            type = EnumDisplay.Name(resource.ResourceType),
+            typeKey = resource.ResourceType.ToString(),
             latitude = GetCoordinate(resource, true),
             longitude = GetCoordinate(resource, false)
         })
@@ -123,6 +122,7 @@
             point.id,
             point.name,
             point.type,
+            point.typeKey,
             latitude = point.latitude!.Value,
             longitude = point.longitude!.Value
         })
@@ -132,11 +132,64 @@
         .Select(point => point.id)
         .ToHashSet();
 
+    // Vis bare posisjonene til behovene som allerede er matchet for brukeren.
+    var matchingNeedIds = Model.Needs
+        .Select(need => need.NeedId)
+        .ToList();
+
+    var needLocations = await ResourceDb.Needs
+        .AsNoTracking()
+        .Where(need => matchingNeedIds.Contains(need.Id)
+            && need.Latitude >= -90 && need.Latitude <= 90
+            && need.Longitude >= -180 && need.Longitude <= 180
+            && (need.Latitude != 0 || need.Longitude != 0))
+        .Select(need => new
+        {
+            need.Id,
+            need.Latitude,
+            need.Longitude
+        })
+        .ToDictionaryAsync(need => need.Id);
+
+    var needPoints = Model.Needs
+        .Where(need => needLocations.ContainsKey(need.NeedId))
+        .Select(need => new
+        {
+            id = need.NeedId,
+            type = EnumDisplay.Name(need.ResourceType),
+            typeKey = need.ResourceType.ToString(),
+            isAcute = need.Priority == NeedPriority.Acute,
+            priority = EnumDisplay.Name(need.Priority),
+            quantity = need.Quantity,
+            description = need.Description,
+            latitude = needLocations[need.NeedId].Latitude,
+            longitude = needLocations[need.NeedId].Longitude,
+            resourceId = need.MatchingResourceId,
+            resourceName = need.MatchingResourceName,
+            distanceKm = need.DistanceKm
+        })
+        .ToList();
+
     string resourcePointsJson =
         JsonSerializer.Serialize(resourcePoints);
+
+    string needPointsJson =
+        JsonSerializer.Serialize(needPoints);
 }
 
 <style>
+    .matching-distance-label {
+        color: #173b63;
+        background: white;
+        border: 1px solid #173b63;
+        font-weight: 700;
+    }
+
+    .matching-distance-summary {
+        margin: 14px 0 0;
+        line-height: 1.5;
+    }
+
     /* ==========================================
        SIDE
     ========================================== */
@@ -754,7 +807,6 @@
     ========================================== -->
 
     <div class="page-top">
-
         <div>
             <span class="page-eyebrow">
                 Frivillig innsats
@@ -766,11 +818,9 @@
 
             <p class="page-description">
                 Åpne behov som passer ressursene dine.
-                Kartet viser dine registrerte ressurser,
-                mens avstandene til behovene vises omtrentlige.
-                Nøyaktig plassering av behovene og identiteten
-                til den som registrerte dem, skjules av
-                hensyn til sikkerhet.
+                Kartet viser behovene og dine registrerte ressurser.
+                Velg «Vis behov og avstand» for å se forbindelsen
+                mellom et behov og ressursen du kan tilby.
             </p>
         </div>
 
@@ -800,9 +850,7 @@
                     Søk
                 </button>
             </noscript>
-
         </form>
-
     </div>
 
     <!-- ==========================================
@@ -836,13 +884,11 @@
         <section class="matching-list-card">
 
             <div class="matching-list-heading">
-
                 <h2>Behov i nærheten</h2>
 
                 <span class="matching-count">
                     @Model.Needs.Count
                 </span>
-
             </div>
 
             <p class="matching-list-description">
@@ -907,10 +953,9 @@
                                 </span>
 
                                 <span class="matching-need-distance">
-                                    Ca. @need.DistanceKm.ToString("0")
-                                    km fra «@need.MatchingResourceName»
+                                    Ca. @need.DistanceKm.ToString("0.#", CultureInfo.GetCultureInfo("nb-NO"))
+                                    km i luftlinje fra «@need.MatchingResourceName»
                                 </span>
-
                             </div>
 
                             <div class="matching-need-actions">
@@ -930,29 +975,29 @@
                                             class="matching-offer-button">
                                         Jeg kan hjelpe
                                     </button>
-
                                 </form>
 
-                                @if (mappedResourceIds.Contains(
-                                    need.MatchingResourceId))
+                                @if (mappedResourceIds.Contains(need.MatchingResourceId)
+                                    && needLocations.ContainsKey(need.NeedId))
                                 {
                                     <button type="button"
                                             class="matching-focus-button"
-                                            data-resource-id="@need.MatchingResourceId">
-
-                                        Vis min ressurs i kartet
-
+                                            data-need-id="@need.NeedId"
+                                            aria-label="Vis behov @EnumDisplay.Name(need.ResourceType) og avstand fra @need.MatchingResourceName">
+                                        Vis behov og avstand
                                     </button>
                                 }
-
+                                else
+                                {
+                                    <span class="matching-need-distance">
+                                        Kartposisjon mangler for behovet eller ressursen.
+                                    </span>
+                                }
                             </div>
-
                         </article>
                     }
                 }
-
             </div>
-
         </section>
 
         <!-- ==========================================
@@ -962,26 +1007,25 @@
         <section class="matching-map-card">
 
             <div class="matching-map-header">
-
                 <div>
-                    <h2>Ressurser i kartet</h2>
+                    <h2>Behov og ressurser i kartet</h2>
 
                     <p>
-                        Kartet viser plasseringen til dine registrerte
-                        ressurser. Klikk på en markør for detaljer.
+                        Grønne symbolmarkører viser dine ressurser.
+                        Behov er merket med utropstegn for akutt eller klokke for planlagt.
+                        Klikk på et behov for å se avstanden.
                     </p>
                 </div>
 
                 <span class="matching-map-badge">
-                    @resourcePoints.Count ressurser
+                    @resourcePoints.Count ressurser · @needPoints.Count behov
                 </span>
-
             </div>
 
             <div class="matching-map-container">
 
                 <div id="matchingNeedsMap"
-                     aria-label="Kart over egne registrerte ressurser">
+                     aria-label="Kart over behov og egne ressurser med avstand i luftlinje">
                 </div>
 
                 <div class="matching-map-notice"
@@ -992,13 +1036,17 @@
                     <strong>Ingen kartpunkter</strong>
 
                     <span>
-                        Ingen av ressursene dine har en
+                        Ingen behov eller ressurser har en
                         gyldig kartposisjon som kan vises.
                     </span>
-
                 </div>
-
             </div>
+
+            <p id="matchingDistanceSummary"
+               class="matching-distance-summary"
+               role="status">
+                Velg et behov for å se avstanden til ressursen din.
+            </p>
 
             <!-- ==========================================
                  INFORMASJON UNDER KARTET
@@ -1007,41 +1055,31 @@
             <div class="matching-map-help">
 
                 <div class="matching-map-help-item">
-
                     <strong>1. Finn behov</strong>
 
                     <span>
                         Se relevante behov i listen til venstre.
                     </span>
-
                 </div>
 
                 <div class="matching-map-help-item">
-
-                    <strong>2. Se din ressurs</strong>
+                    <strong>2. Se behov og avstand</strong>
 
                     <span>
-                        Se hvor ressursene dine er registrert.
+                        Se begge kartpunktene og avstanden i luftlinje.
                     </span>
-
                 </div>
 
                 <div class="matching-map-help-item">
-
                     <strong>3. Tilby hjelp</strong>
 
                     <span>
                         Velg «Jeg kan hjelpe» for et relevant behov.
                     </span>
-
                 </div>
-
             </div>
-
         </section>
-
     </div>
-
 </div>
 
 <!-- ==========================================
@@ -1060,6 +1098,7 @@
         // Ressursene kommer fra MariaDB.
         // Bare innlogget brukers ressurser er inkludert.
         const resourcePoints = @Html.Raw(resourcePointsJson);
+        const needPoints = @Html.Raw(needPointsJson);
 
         const mapElement =
             document.getElementById("matchingNeedsMap");
@@ -1088,7 +1127,6 @@
         ========================================== */
 
         function removeExtraLayoutSpace() {
-
             if (!matchingPage) {
                 return;
             }
@@ -1100,7 +1138,6 @@
                 parent !== document.body &&
                 parent !== document.documentElement
             ) {
-
                 parent.style.setProperty(
                     "min-height",
                     "0px",
@@ -1130,7 +1167,6 @@
         ========================================== */
 
         function syncCardHeight() {
-
             const height =
                 mapCard.getBoundingClientRect().height;
 
@@ -1151,7 +1187,6 @@
         );
 
         if (typeof ResizeObserver !== "undefined") {
-
             const cardObserver =
                 new ResizeObserver(syncCardHeight);
 
@@ -1163,7 +1198,6 @@
         ========================================== */
 
         if (typeof L === "undefined") {
-
             mapNotice.hidden = false;
 
             mapNotice.querySelector("strong").textContent =
@@ -1184,12 +1218,9 @@
             .setView([64.2, 10.0], 5);
 
         if (typeof addKartverketLayers === "function") {
-
             // Kartlagvelgeren vises øverst.
             addKartverketLayers(map);
-
         } else {
-
             L.tileLayer(
                 "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                 {
@@ -1211,7 +1242,7 @@
 
         fullscreenDialog.setAttribute(
             "aria-label",
-            "Ressurskart i fullskjerm"
+            "Behov og ressurser i fullskjerm"
         );
 
         document.body.appendChild(fullscreenDialog);
@@ -1226,13 +1257,11 @@
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 9h6V3m6 0v6h6M9 21v-6H3m18 0h-6v6"/></svg>';
 
         function isFullscreen() {
-
             return document.fullscreenElement === mapElement ||
                    fullscreenDialog.open;
         }
 
         function refreshMapSize() {
-
             const center = map.getCenter();
             const zoom = map.getZoom();
 
@@ -1247,7 +1276,6 @@
         }
 
         function updateFullscreenControl() {
-
             const expanded = isFullscreen();
 
             const label = expanded
@@ -1273,7 +1301,6 @@
         }
 
         function openFullscreenDialog() {
-
             mapPlaceholder = document.createComment(
                 "Original ressurskartplassering"
             );
@@ -1290,9 +1317,7 @@
         fullscreenDialog.addEventListener(
             "close",
             function () {
-
                 if (mapPlaceholder) {
-
                     mapPlaceholder.replaceWith(mapElement);
                     mapPlaceholder = null;
                 }
@@ -1313,7 +1338,6 @@
         document.addEventListener(
             "keydown",
             function (event) {
-
                 if (event.key !== "Escape" || !isFullscreen()) {
                     return;
                 }
@@ -1321,24 +1345,19 @@
                 event.preventDefault();
 
                 if (fullscreenDialog.open) {
-
                     fullscreenDialog.close();
-
                 } else if (document.fullscreenElement) {
-
                     document.exitFullscreen();
                 }
             }
         );
 
         const FullscreenControl = L.Control.extend({
-
             options: {
                 position: "topright"
             },
 
             onAdd: function () {
-
                 const control = L.DomUtil.create(
                     "div",
                     "leaflet-bar matching-fullscreen-control"
@@ -1358,36 +1377,28 @@
                 fullscreenButton.addEventListener(
                     "click",
                     async function (event) {
-
                         event.preventDefault();
                         event.stopPropagation();
 
                         if (fullscreenDialog.open) {
-
                             fullscreenDialog.close();
 
                         } else if (
                             document.fullscreenElement === mapElement
                         ) {
-
                             await document.exitFullscreen();
 
                         } else if (
                             mapElement.requestFullscreen &&
                             document.fullscreenEnabled
                         ) {
-
                             try {
-
                                 await mapElement.requestFullscreen();
-
                             } catch {
-
                                 openFullscreenDialog();
                             }
 
                         } else {
-
                             openFullscreenDialog();
                         }
                     }
@@ -1402,14 +1413,117 @@
         updateFullscreenControl();
 
         /* ==========================================
+           SYMBOLER FOR RESSURSER OG BEHOV
+
+           Samme symboler som på ressursoversikten.
+        ========================================== */
+
+        function symbolFor(type) {
+            const icons = {
+                Transport:
+                    "<path d='M1 3h15v13H1z'/><path d='M16 8h4l3 3v5h-7z'/><circle cx='5.5' cy='18.5' r='2.5'/><circle cx='18.5' cy='18.5' r='2.5'/>",
+
+                Drone:
+                    "<circle cx='12' cy='12' r='3'/><circle cx='5' cy='5' r='2.5'/><circle cx='19' cy='5' r='2.5'/><circle cx='5' cy='19' r='2.5'/><circle cx='19' cy='19' r='2.5'/><path d='M7 7l3 3M17 7l-3 3M7 17l3-3M17 17l-3-3'/>",
+
+                Generator:
+                    "<polygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'/>",
+
+                Machinery:
+                    "<path d='M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z'/>",
+
+                CommunicationEquipment:
+                    "<circle cx='12' cy='12' r='2'/><path d='M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14'/>",
+
+                Personnel:
+                    "<path d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/><circle cx='9' cy='7' r='4'/><path d='M23 21v-2a4 4 0 0 1-3-3.87M16 3.13a4 4 0 0 1 0 7.75'/>",
+
+                Premises:
+                    "<path d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/><polyline points='9 22 9 12 15 12 15 22'/>",
+
+                SandAndGravel:
+                    "<polygon points='12 2 2 7 12 12 22 7 12 2'/><polyline points='2 17 12 22 22 17'/><polyline points='2 12 12 17 22 12'/>",
+
+                Boat:
+                    "<circle cx='12' cy='5' r='3'/><line x1='12' y1='22' x2='12' y2='8'/><path d='M5 12H2a10 10 0 0 0 20 0h-3'/>",
+
+                Other:
+                    "<circle cx='12' cy='12' r='10'/><line x1='12' y1='8' x2='12' y2='12'/><line x1='12' y1='16' x2='12.01' y2='16'/>"
+            };
+
+            return icons[type] || icons.Other;
+        }
+
+        /* ==========================================
+           LAG SYMBOLMARKØR
+
+           Samme kartpinne som på ressursoversikten.
+        ========================================== */
+
+        function createSymbolMarker(color, type, badge) {
+            const svg =
+                "<svg xmlns='http://www.w3.org/2000/svg' " +
+                "width='24' height='24' viewBox='0 0 24 24' " +
+                "fill='none' stroke='" +
+                color +
+                "' stroke-width='2.2' " +
+                "stroke-linecap='round' stroke-linejoin='round'>" +
+                symbolFor(type) +
+                "</svg>";
+
+            const badgeHtml = badge
+                ? "<div style='position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;padding:0 4px;border-radius:10px;background:#102d43;color:white;border:2px solid white;box-sizing:border-box;font:700 11px/16px sans-serif;text-align:center;'>" +
+                  badge +
+                  "</div>"
+                : "";
+
+            return L.divIcon({
+                className: "",
+
+                html:
+                    "<div style='position:relative;width:50px;height:62px;'>" +
+                    "<div style='position:absolute;left:0;top:0;" +
+                    "width:50px;height:50px;box-sizing:border-box;" +
+                    "border:3px solid white;" +
+                    "border-radius:50% 50% 50% 8px;" +
+                    "transform:rotate(-45deg);" +
+                    "background:" + color + ";" +
+                    "box-shadow:0 5px 14px rgba(0,0,0,.35);" +
+                    "display:flex;align-items:center;" +
+                    "justify-content:center;'>" +
+                    "<div style='transform:rotate(45deg);" +
+                    "width:36px;height:36px;border-radius:50%;" +
+                    "background:white;display:flex;" +
+                    "align-items:center;justify-content:center;'>" +
+                    svg +
+                    "</div></div>" +
+                    badgeHtml +
+                    "</div>",
+
+                iconSize: [50, 62],
+                iconAnchor: [25, 60],
+                popupAnchor: [0, -54]
+            });
+        }
+
+        /* ==========================================
            RESSURSER FRA DATABASEN
         ========================================== */
 
         const markers = new Map();
+        const needMarkers = new Map();
+        const distanceLines = L.layerGroup().addTo(map);
+
+        const distanceSummary =
+            document.getElementById("matchingDistanceSummary");
+
+        const distanceFormat = new Intl.NumberFormat("nb-NO", {
+            maximumFractionDigits: 1
+        });
+
         const markerBounds = [];
 
         resourcePoints.forEach(resource => {
-
             const latitude = Number(resource.latitude);
             const longitude = Number(resource.longitude);
 
@@ -1421,7 +1535,16 @@
             }
 
             const marker = L.marker(
-                [latitude, longitude]
+                [latitude, longitude],
+                {
+                    icon: createSymbolMarker(
+                        "#23855b",
+                        resource.typeKey,
+                        ""
+                    ),
+                    title: "Din ressurs: " + resource.name,
+                    alt: "Din ressurs: " + resource.name
+                }
             ).addTo(map);
 
             const popup = document.createElement("div");
@@ -1434,8 +1557,7 @@
             type.textContent = resource.type;
 
             const details = document.createElement("p");
-            details.textContent =
-                "Din registrerte ressurs";
+            details.textContent = "Din registrerte ressurs";
 
             popup.appendChild(title);
             popup.appendChild(type);
@@ -1444,52 +1566,151 @@
             marker.bindPopup(popup);
 
             markers.set(resource.id, marker);
-
             markerBounds.push([latitude, longitude]);
         });
 
         /* ==========================================
-           ZOOM TIL RESSURSENE
+           BEHOV FRA DATABASEN
         ========================================== */
 
-        if (markerBounds.length === 1) {
+        const plannedBadge =
+            "<svg width='12' height='12' viewBox='0 0 24 24' " +
+            "fill='none' stroke='currentColor' stroke-width='2.5' " +
+            "stroke-linecap='round' stroke-linejoin='round' " +
+            "style='vertical-align:middle' aria-hidden='true'>" +
+            "<circle cx='12' cy='12' r='9'/>" +
+            "<path d='M12 7v5l3 2'/></svg>";
 
-            map.setView(markerBounds[0], 12);
+        needPoints.forEach(need => {
+            const marker = L.marker(
+                [need.latitude, need.longitude],
+                {
+                    icon: createSymbolMarker(
+                        need.isAcute ? "#d34b4b" : "#d99a24",
+                        need.typeKey,
+                        need.isAcute ? "!" : plannedBadge
+                    ),
+                    title: "Behov: " + need.priority + " – " + need.type,
+                    alt: "Behov: " + need.priority + " – " + need.type,
+                    zIndexOffset: 500
+                }
+            ).addTo(map);
 
-        } else if (markerBounds.length > 1) {
+            const popup = document.createElement("div");
+            popup.className = "matching-resource-popup";
 
+            const title = document.createElement("strong");
+            title.textContent =
+                "Behov: " + need.type + " – antall " + need.quantity;
+
+            const description = document.createElement("p");
+            description.textContent = need.description;
+
+            const priority = document.createElement("p");
+            priority.textContent = "Prioritet: " + need.priority;
+
+            const distance = document.createElement("p");
+            distance.textContent =
+                "Ca. " + distanceFormat.format(need.distanceKm) +
+                " km i luftlinje fra «" + need.resourceName + "»";
+
+            popup.append(title, description, priority, distance);
+
+            marker.bindPopup(popup);
+            marker.on("click", () => showConnection(need.id));
+
+            needMarkers.set(need.id, marker);
+            markerBounds.push([need.latitude, need.longitude]);
+        });
+
+        /* ==========================================
+           VIS FORBINDELSE OG AVSTAND
+        ========================================== */
+
+        function showConnection(needId, focus = true) {
+            const need = needPoints.find(
+                point => point.id === needId
+            );
+
+            const needMarker = needMarkers.get(needId);
+            const resourceMarker = markers.get(need?.resourceId);
+
+            distanceLines.clearLayers();
+
+            if (!needMarker || !resourceMarker) {
+                distanceSummary.textContent =
+                    "Kartposisjon mangler for behovet eller ressursen.";
+                return;
+            }
+
+            const endpoints = [
+                resourceMarker.getLatLng(),
+                needMarker.getLatLng()
+            ];
+
+            const distanceText =
+                "Ca. " + distanceFormat.format(need.distanceKm) +
+                " km i luftlinje";
+
+            L.polyline(endpoints, {
+                color: "#173b63",
+                weight: 3,
+                dashArray: "8 8"
+            }).bindTooltip(distanceText, {
+                permanent: true,
+                direction: "center",
+                className: "matching-distance-label"
+            }).addTo(distanceLines);
+
+            distanceSummary.textContent =
+                "«" + need.resourceName + "» til behov for " +
+                need.type.toLocaleLowerCase("nb-NO") +
+                ": " + distanceText + ".";
+
+            if (focus) {
+                map.invalidateSize();
+
+                map.fitBounds(endpoints, {
+                    padding: [60, 60],
+                    maxZoom: 14
+                });
+            }
+        }
+
+        /* ==========================================
+           STARTVISNING
+        ========================================== */
+
+        // Start med både behov og ressurser synlige i kartet.
+        if (markerBounds.length > 0) {
             map.fitBounds(markerBounds, {
                 padding: [45, 45],
                 maxZoom: 12
             });
-
         } else {
-
             mapNotice.hidden = false;
         }
 
+        const firstMappedNeed = needPoints.find(
+            need => markers.has(need.resourceId)
+        );
+
+        if (firstMappedNeed) {
+            showConnection(firstMappedNeed.id, false);
+        } else if (needPoints.length === 0) {
+            distanceSummary.textContent =
+                "Ingen behov med kartposisjon å vise innen valgt radius.";
+        }
+
         /* ==========================================
-           VIS MIN RESSURS I KARTET
+           KNAPPER I BEHOVSLISTEN
         ========================================== */
 
         document.querySelectorAll(
             ".matching-focus-button"
         ).forEach(button => {
-
             button.addEventListener("click", function () {
-
-                const resourceId =
-                    Number(button.dataset.resourceId);
-
-                const marker = markers.get(resourceId);
-
-                if (!marker) {
-                    return;
-                }
-
-                map.setView(marker.getLatLng(), 14);
-
-                marker.openPopup();
+                showConnection(Number(button.dataset.needId));
 
                 mapCard.scrollIntoView({
                     behavior: "smooth",
@@ -1503,10 +1724,8 @@
         ========================================== */
 
         if (typeof ResizeObserver !== "undefined") {
-
             const mapObserver = new ResizeObserver(
                 function () {
-
                     if (!isFullscreen()) {
                         requestAnimationFrame(refreshMapSize);
                     }
@@ -1517,12 +1736,9 @@
         }
 
         window.setTimeout(function () {
-
             map.invalidateSize();
             syncCardHeight();
             removeExtraLayoutSpace();
-
         }, 100);
-
     });
 </script>
