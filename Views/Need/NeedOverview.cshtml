@@ -967,12 +967,6 @@
                                 ((int)need.ResourceType).ToString()
                             ) ?? need.ResourceType.ToString();
 
-                        var urgency =
-                            (ViewData["Urgency"] as Dictionary<
-                                int,
-                                FirstWebAppInDocker.Services.Matching.NeedUrgency
-                            >)?.GetValueOrDefault(need.Id);
-
                         <article
                             class="entry need-overview-entry @(isPlanned ? "planned" : "")"
                             data-type="@need.ResourceType"
@@ -1002,22 +996,6 @@
                                 <span class="entry-quantity">
                                     Antall: @need.Quantity
                                 </span>
-
-                                @if (
-                                    urgency is not null
-                                    && need.Status != NeedStatus.Resolved
-                                )
-                                {
-                                    <span
-                                        class="urgency-badge @urgency.CssClass"
-                                        title="@(string.Join(" · ", urgency.Reasons))">
-
-                                        Hastegrad:
-                                        @urgency.LevelName
-                                        (@urgency.Score)
-
-                                    </span>
-                                }
 
                                 <span class="need-status @statusClass">
                                     @statusName
@@ -1071,19 +1049,6 @@
                                         </span>
                                     }
 
-                                </p>
-                            }
-
-                            <!-- HASTEGRAD -->
-
-                            @if (
-                                urgency is not null
-                                && need.Status != NeedStatus.Resolved
-                                && urgency.Reasons.Count > 0
-                            )
-                            {
-                                <p class="urgency-reasons">
-                                    @(string.Join(" · ", urgency.Reasons))
                                 </p>
                             }
 
