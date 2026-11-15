@@ -58,6 +58,19 @@ public static class SamiHelpGuide
             - Knappen finnes også på forsiden før du logger inn.
             """),
 
+        new("fargeblind",
+            "Fargeblind modus",
+            Everyone,
+            new[] { "fargeblind", "fargeblindhet", "fargesvak", "colorblind", "colourblind", "rødgrønn", "rød-grønn", "rød", "grønn", "skille", "farger", "øye", "øyet", "syn", "tilgjengelighet", "universell", "utforming" },
+            """
+            - Trykk på øye-ikonet øverst i menyen, rett ved siden av sol/måne-knappen, for å slå på fargeblind modus. Trykk igjen for å slå den av.
+            - Når modusen er på, er øye-knappen fylt med farge.
+            - ALT rødt og grønt i portalen byttes ut: rødt blir oransje og grønt blir blått. Akutte behov blir mørk oransje, planlagte gul og ressurser på kartet mørk blå.
+            - Tilgjengelighet på ressurser vises med fylte merker og symbol: ✓ Tilgjengelig (mørkeblå), × Ikke tilgjengelig (gul) og ? Ikke oppgitt (lys grå).
+            - Det gjelder også kartmarkørene, knapper, feilmeldinger og stolpene i situasjonsrapporten.
+            - Modusen virker sammen med både lyst og mørkt tema, og valget huskes i nettleseren.
+            """),
+
         new("innlogging",
             "Logge inn og ut",
             Everyone,
