@@ -135,11 +135,11 @@ public class DashboardViewModel
 
     // ---- Ferdige tekster til visningen (så Razor-filen slipper logikk) ----
 
-    /// <summary>Tekst ved poengstolpen, for eksempel "240 / 500 XP".</summary>
+    /// <summary>Tekst ved poengstolpen, for eksempel "240 / 500 poeng".</summary>
     public string RankXpText =>
         IsTopRank
-            ? RankPoints + " XP"
-            : RankPoints + " / " + NextRankPoints + " XP";
+            ? RankPoints + " poeng"
+            : RankPoints + " / " + NextRankPoints + " poeng";
 
     /// <summary>Overskrift i boksen til høyre, for eksempel "Neste nivå: Gull".</summary>
     public string NextRankTitle =>

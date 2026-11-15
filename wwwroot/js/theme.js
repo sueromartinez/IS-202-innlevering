@@ -141,8 +141,10 @@
             : "rgba(" + c.r + ", " + c.g + ", " + c.b + ", " + Math.round(c.a * 1000) / 1000 + ")";
     }
 
+    // Heksfarger må ikke etterfølges av bokstav eller bindestrek, ellers ville
+    // f.eks. «url(#face-bronse)» (en henvisning i SVG) blitt tolket som fargen #face.
     var FARGE_REGEX = new RegExp(
-        "#[0-9a-fA-F]{8}\\b|#[0-9a-fA-F]{6}\\b|#[0-9a-fA-F]{3,4}\\b" +
+        "#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})(?![\\w-])" +
         "|rgba?\\(\\s*\\d+(?:\\.\\d+)?%?\\s*[, ]\\s*\\d+(?:\\.\\d+)?%?\\s*[, ]\\s*\\d+(?:\\.\\d+)?%?\\s*(?:[,/]\\s*[\\d.]+%?\\s*)?\\)" +
         // Fargenavn, men ikke inne i ord eller filnavn (f.eks. «green-bg.png»).
         "|(?<![\\w/.-])(?:" + Object.keys(NAVNEFARGER).join("|") + ")(?![\\w.-])",
@@ -168,14 +170,23 @@
     function byttVerdi(verdi) {
         if (!verdi) return null;
         var endret = false;
-        var ny = verdi.replace(FARGE_REGEX, function (treff) {
-            var farge = lesFarge(treff);
-            if (!farge || isNaN(farge.r)) return treff;
-            var byttet = byttFarge(farge);
-            if (!byttet) return treff;
-            endret = true;
-            return skrivFarge(byttet);
-        });
+
+        function byttDel(del) {
+            return del.replace(FARGE_REGEX, function (treff) {
+                var farge = lesFarge(treff);
+                if (!farge || isNaN(farge.r)) return treff;
+                var byttet = byttFarge(farge);
+                if (!byttet) return treff;
+                endret = true;
+                return skrivFarge(byttet);
+            });
+        }
+
+        // Alt inne i url(...) er lenker og filnavn, ikke farger, og røres ikke.
+        var ny = verdi.split(/(url\([^)]*\))/i).map(function (del) {
+            return /^url\(/i.test(del) ? del : byttDel(del);
+        }).join("");
+
         return endret ? ny : null;
     }
 

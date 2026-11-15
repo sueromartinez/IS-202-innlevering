@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Hosting;
 
@@ -20,6 +21,7 @@ public class AccountController : Controller
     private readonly IWebHostEnvironment? _environment;
     private readonly IEmailCodeSender? _emailSender;
     private readonly ILogger<AccountController>? _logger;
+    private readonly ApplicationDbContext? _dbContext;
 
     private const string PendingRegistrationUserIdKey =
         "PendingRegistrationUserId";
@@ -32,13 +34,15 @@ public class AccountController : Controller
         SignInManager<ApplicationUser> signInManager,
         IWebHostEnvironment? environment = null,
         IEmailCodeSender? emailSender = null,
-        ILogger<AccountController>? logger = null)
+        ILogger<AccountController>? logger = null,
+        ApplicationDbContext? dbContext = null)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _environment = environment;
         _emailSender = emailSender;
         _logger = logger;
+        _dbContext = dbContext;
     }
 
     // ========================================
@@ -452,14 +456,6 @@ public class AccountController : Controller
         // NYTT: BYGG TELEFONNUMMER
         // ========================================
 
-        // Eksempel:
-        //
-        // PhoneCountryCode = "+47"
-        // PhoneNumber = "123 45 678"
-        //
-        // Resultat som lagres:
-        // "+4712345678"
-
         string? fullPhoneNumber =
             BuildPhoneNumber(
                 model.PhoneCountryCode,
@@ -474,11 +470,7 @@ public class AccountController : Controller
             UserName = email,
             Email = email,
             Name = model.Name.Trim(),
-
-            // NYTT:
-            // Lagres i Identity sitt PhoneNumber-felt.
             PhoneNumber = fullPhoneNumber,
-
             CreatedAt = DateTime.UtcNow,
             EmailConfirmed = false
         };
@@ -560,10 +552,6 @@ public class AccountController : Controller
             WebEncoders.Base64UrlEncode(
                 Encoding.UTF8.GetBytes(
                     confirmationToken));
-
-        // ========================================
-        // GENERER BEKREFTELSESLENKE
-        // ========================================
 
         string? confirmationUrl = Url.Action(
             action: "Confirm",
@@ -666,12 +654,10 @@ public class AccountController : Controller
         return View();
     }
 
+
     // ========================================
     // DEMO PUBLIC ACTOR
     // ========================================
-
-    // Beholdes på serveren.
-    // Knappen vises ikke på forsiden.
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -751,8 +737,9 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
-        // Logges før utlogging, mens brukeren fortsatt er kjent.
-        await this.AuditAsync(AuditActions.Logout, "Logget ut");
+        await this.AuditAsync(
+            AuditActions.Logout,
+            "Logget ut");
 
         await _signInManager.SignOutAsync();
 
@@ -1042,6 +1029,234 @@ public class AccountController : Controller
     }
 
     // ========================================
+    // SLETT KONTO OG TILHØRENDE DATA
+    // ========================================
+
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteAccount(
+        string? currentPassword,
+        bool confirmDeletion)
+    {
+        ApplicationUser? user =
+            await _userManager.GetUserAsync(User);
+
+        if (user is null)
+        {
+            return Challenge();
+        }
+
+        // Krev bekreftelse fra profilsiden.
+        if (!confirmDeletion)
+        {
+            TempData["ProfileError"] =
+                "Du må bekrefte at du vil slette kontoen.";
+
+            return RedirectToAction(nameof(Profile));
+        }
+
+        // Krev riktig passord.
+        if (string.IsNullOrWhiteSpace(currentPassword) ||
+            !await _userManager.CheckPasswordAsync(
+                user,
+                currentPassword))
+        {
+            TempData["ProfileError"] =
+                "Passordet er feil. Kontoen er ikke slettet.";
+
+            return RedirectToAction(nameof(Profile));
+        }
+
+        // Administratorer må fortsatt beskyttes.
+        if (await _userManager.IsInRoleAsync(
+                user,
+                IdentitySeeder.AdminRole))
+        {
+            TempData["ProfileError"] =
+                "Administratorkontoer kan ikke slettes " +
+                "fra profilsiden.";
+
+            return RedirectToAction(nameof(Profile));
+        }
+
+        if (_dbContext is null)
+        {
+            _logger?.LogError(
+                "Databasekontekst mangler ved kontosletting.");
+
+            TempData["ProfileError"] =
+                "Databasen er ikke tilgjengelig. " +
+                "Kontoen er ikke slettet.";
+
+            return RedirectToAction(nameof(Profile));
+        }
+
+        try
+        {
+            // ========================================
+            // START TRANSAKSJON
+            // ========================================
+
+            // Identity og resten av applikasjonen
+            // bruker ApplicationDbContext.
+            //
+            // For atomisk sletting må UserManager
+            // bruke samme scoped DbContext-instans.
+
+            await using var transaction =
+                await _dbContext.Database.BeginTransactionAsync();
+
+            string userId = user.Id;
+            string? email = user.Email;
+
+            // ========================================
+            // HENT BRUKERENS RESSURSER
+            // ========================================
+
+            var ownedResources =
+                await _dbContext.Resources
+                    .Where(resource =>
+                        resource.OwnerUserId == userId)
+                    .ToListAsync();
+
+            // ========================================
+            // HENT BRUKERENS BEHOV
+            // ========================================
+
+            // Behov fra eldre versjoner kan være
+            // knyttet til e-post i stedet for bruker-ID.
+
+            var ownedNeeds =
+                await _dbContext.Needs
+                    .Where(need =>
+                        need.OwnerUserId == userId ||
+                        (
+                            need.OwnerUserId == null &&
+                            email != null &&
+                            need.OwnerEmail == email
+                        ))
+                    .ToListAsync();
+
+            // ========================================
+            // HENT BRUKERENS VARSLER
+            // ========================================
+
+            var notifications =
+                await _dbContext.Notifications
+                    .Where(notification =>
+                        notification.UserId == userId)
+                    .ToListAsync();
+
+            // ========================================
+            // SLETT TILHØRENDE DATA
+            // ========================================
+
+            // NeedAssignment har Cascade for både
+            // ResourceId og NeedId i ApplicationDbContext.
+            //
+            // Dermed slettes tilknyttede forespørsler
+            // og tildelinger når disse oppføringene
+            // slettes, forutsatt at databaseskjemaet
+            // har de samme fremmednøkkelreglene.
+
+            _dbContext.Notifications
+                .RemoveRange(notifications);
+
+            _dbContext.Resources
+                .RemoveRange(ownedResources);
+
+            _dbContext.Needs
+                .RemoveRange(ownedNeeds);
+
+            await _dbContext.SaveChangesAsync();
+
+            // ========================================
+            // SLETT IDENTITY-BRUKEREN
+            // ========================================
+
+            IdentityResult deleteResult =
+                await _userManager.DeleteAsync(user);
+
+            if (!deleteResult.Succeeded)
+            {
+                await transaction.RollbackAsync();
+
+                _logger?.LogWarning(
+                    "Kontosletting feilet for bruker {UserId}: {Errors}",
+                    userId,
+                    string.Join(", ",
+                        deleteResult.Errors.Select(
+                            error => error.Code)));
+
+                TempData["ProfileError"] =
+                    "Kontoen kunne ikke slettes. " +
+                    "Alle databaseendringene ble rullet tilbake.";
+
+                return RedirectToAction(nameof(Profile));
+            }
+
+            // ========================================
+            // BEKREFT SLETTINGEN
+            // ========================================
+
+            await transaction.CommitAsync();
+
+            _logger?.LogInformation(
+                "Bruker {UserId} slettet sin konto, " +
+                "{ResourceCount} ressurser, " +
+                "{NeedCount} behov og " +
+                "{NotificationCount} varsler.",
+                userId,
+                ownedResources.Count,
+                ownedNeeds.Count,
+                notifications.Count);
+        }
+        catch (DbUpdateException exception)
+        {
+            _logger?.LogError(
+                exception,
+                "Databasefeil under kontosletting for {UserId}.",
+                user.Id);
+
+            TempData["ProfileError"] =
+                "Databasen kunne ikke fullføre slettingen. " +
+                "Kontroller databaserelasjonene og prøv igjen.";
+
+            return RedirectToAction(nameof(Profile));
+        }
+        catch (Exception exception)
+        {
+            _logger?.LogError(
+                exception,
+                "Uventet feil under kontosletting for {UserId}.",
+                user.Id);
+
+            TempData["ProfileError"] =
+                "Det oppstod en feil under kontoslettingen. " +
+                "Kontroller kontostatus før du prøver igjen.";
+
+            return RedirectToAction(nameof(Profile));
+        }
+
+        // ========================================
+        // LOGG UT
+        // ========================================
+
+        // Utføres først etter vellykket commit.
+
+        await _signInManager.SignOutAsync();
+
+        HttpContext.Session.Clear();
+
+        TempData["AccountDeleted"] =
+            "Kontoen din og tilhørende ressurser " +
+            "og behov er slettet permanent.";
+
+        return RedirectToAction("Index", "Home");
+    }
+
+    // ========================================
     // PHONE HELPERS
     // ========================================
 
@@ -1193,10 +1408,6 @@ public class AccountController : Controller
         TempData["RegisterEmail"] =
             model.Email?.Trim()
             ?? string.Empty;
-
-        // ========================================
-        // NYTT: BEHOLD TELEFON VED FEIL
-        // ========================================
 
         TempData["RegisterPhoneCountryCode"] =
             model.PhoneCountryCode?.Trim()

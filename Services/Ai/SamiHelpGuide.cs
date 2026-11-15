@@ -183,7 +183,7 @@ public static class SamiHelpGuide
             Volunteers,
             new[] { "nivå", "niva", "level", "poeng", "xp", "rang", "rangering", "bronse", "sølv", "solv", "gull", "platina", "skjold", "opp", "stige", "belønning" },
             """
-            - Du får 100 poeng (XP) for hver ressurs du har registrert. Jo flere ressurser, jo høyere nivå.
+            - Du får 100 poeng for hver ressurs du har registrert. Jo flere ressurser, jo høyere nivå.
             - Nivåene er:
               - Bronse (Ny bidragsyter): 0 poeng, der alle starter
               - Sølv (Beredskapsbidragsyter): 200 poeng = 2 ressurser

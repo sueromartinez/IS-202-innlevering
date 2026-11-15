@@ -1,62 +1,50 @@
 
 @using FirstWebAppInDocker.Models
 @model FirstWebAppInDocker.ViewModels.RegisterResourceViewModel
-
 @{
     Layout = null;
-
     // Samme skjema brukes til å endre en ressurs. Da settes EditResourceId av controlleren.
     int? editResourceId = ViewData["EditResourceId"] as int?;
     bool isEdit = editResourceId.HasValue;
-
     ViewData["Title"] = isEdit ? "Endre ressurs" : "Registrer ressurs";
 }
-
 <!DOCTYPE html>
 <html lang="no">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Registrer ressurs - Beredskapsportal</title>
-
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="~/css/top-navigation.css" asp-append-version="true" />
-
     <style>
         * {
             box-sizing: border-box;
         }
-
         html,
         body {
             margin: 0;
             min-height: 100%;
         }
-
         body {
             background: var(--background);
             color: #17212b;
             font-family: Inter, ui-sans-serif, system-ui, -apple-system,
                          BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
-
         button,
         input,
         select,
         textarea {
             font: inherit;
         }
-
         /* ==========================================
            SIDE OG OVERSKRIFT
         ========================================== */
-
         .resource-page {
             width: min(1500px, calc(100% - 40px));
             margin: 0 auto;
             padding: 18px 0 12px;
         }
-
         .resource-top {
             display: flex;
             align-items: flex-start;
@@ -64,7 +52,6 @@
             gap: 24px;
             margin-bottom: 16px;
         }
-
         .resource-eyebrow {
             display: inline-block;
             margin-bottom: 10px;
@@ -74,14 +61,12 @@
             letter-spacing: .09em;
             text-transform: uppercase;
         }
-
         .resource-top h1 {
             margin: 0 0 8px;
             color: #102d42;
             font-size: clamp(1.8rem, 2.7vw, 2.5rem);
             line-height: 1.02;
         }
-
         .resource-top p {
             max-width: 700px;
             margin: 0;
@@ -89,7 +74,6 @@
             font-size: 1rem;
             line-height: 1.65;
         }
-
         .back-button {
             display: inline-flex;
             align-items: center;
@@ -104,22 +88,18 @@
             font-weight: 750;
             white-space: nowrap;
         }
-
         .back-button:hover {
             background: var(--surface-soft);
         }
-
         /* ==========================================
            KORT OG RUTENETT
         ========================================== */
-
         .resource-grid {
             display: grid;
             grid-template-columns: minmax(420px, .8fr) minmax(600px, 1.35fr);
             gap: 18px;
             align-items: start;
         }
-
         .resource-card {
             min-width: 0;
             border: 1px solid #dfe5e9;
@@ -127,19 +107,15 @@
             background: var(--surface);
             box-shadow: 0 12px 35px rgba(16, 45, 66, .05);
         }
-
         .form-card {
             padding: 28px;
         }
-
         .map-card {
             padding: 14px 18px 18px 14px;
         }
-
         .card-heading {
             margin-bottom: 24px;
         }
-
         .card-heading span {
             display: inline-block;
             margin-bottom: 7px;
@@ -149,54 +125,44 @@
             letter-spacing: .08em;
             text-transform: uppercase;
         }
-
         .card-heading h2 {
             margin: 0 0 6px;
             color: #123047;
             font-size: 1.35rem;
         }
-
         .card-heading p {
             margin: 0;
             color: #667085;
             line-height: 1.55;
         }
-
         /* ==========================================
            SKJEMA
         ========================================== */
-
         .form-section {
             padding-bottom: 24px;
             margin-bottom: 24px;
             border-bottom: 1px solid #edf0f2;
         }
-
         .form-section:last-of-type {
             margin-bottom: 20px;
         }
-
         .form-section-title {
             margin: 0 0 18px;
             color: #123047;
             font-size: .95rem;
             font-weight: 800;
         }
-
         .form-group {
             margin-bottom: 18px;
         }
-
         .form-group:last-child {
             margin-bottom: 0;
         }
-
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 14px;
         }
-
         .form-group label {
             display: block;
             margin-bottom: 7px;
@@ -204,11 +170,9 @@
             font-size: .88rem;
             font-weight: 750;
         }
-
         .required-mark {
             color: #b42318;
         }
-
         .form-control,
         .country-code {
             width: 100%;
@@ -221,22 +185,18 @@
             color: #17212b;
             outline: none;
         }
-
         textarea.form-control {
             min-height: 115px;
             resize: vertical;
         }
-
         .form-control:focus,
         .country-code:focus {
             border-color: #23855b;
             box-shadow: 0 0 0 3px rgba(35, 133, 91, .11);
         }
-
         .form-control::placeholder {
             color: #98a2b3;
         }
-
         .field-note {
             display: block;
             margin-top: 6px;
@@ -244,7 +204,6 @@
             font-size: .78rem;
             line-height: 1.4;
         }
-
         .validation-message {
             display: block;
             margin-top: 6px;
@@ -252,23 +211,19 @@
             font-size: .82rem;
             font-weight: 600;
         }
-
         .validation-summary {
             margin-bottom: 20px;
             color: #b42318;
         }
-
         .validation-summary ul {
             margin: 0;
             padding-left: 20px;
         }
-
         .phone-row {
             display: grid;
             grid-template-columns: 105px 1fr;
             gap: 10px;
         }
-
         .selected-position {
             display: flex;
             flex-direction: column;
@@ -279,16 +234,13 @@
             background: #f4f7f6;
             color: #344054;
         }
-
         .selected-position strong {
             color: #123047;
             font-size: .82rem;
         }
-
         .selected-position span {
             font-size: .88rem;
         }
-
         .submit-button {
             width: 100%;
             min-height: 52px;
@@ -299,15 +251,12 @@
             cursor: pointer;
             font-weight: 800;
         }
-
         .submit-button:hover {
             background: #1d704d;
         }
-
         /* ==========================================
            KART
         ========================================== */
-
         .map-card-header {
             display: flex;
             justify-content: space-between;
@@ -315,19 +264,16 @@
             gap: 14px;
             margin-bottom: 10px;
         }
-
         .map-card-header h2 {
             margin: 0 0 6px;
             color: #123047;
             font-size: 1.35rem;
         }
-
         .map-card-header p {
             margin: 0;
             color: #667085;
             line-height: 1.5;
         }
-
         .map-badge {
             flex: 0 0 auto;
             padding: 7px 10px;
@@ -337,7 +283,6 @@
             font-size: .72rem;
             font-weight: 800;
         }
-
         #resourceMap {
             width: 100%;
             height: 650px;
@@ -345,37 +290,31 @@
             border-radius: 14px;
             overflow: hidden;
         }
-
         .map-help {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 10px;
             margin-top: 10px;
         }
-
         .map-help-item {
             padding: 12px;
             border-radius: 10px;
             background: #f7f9fa;
         }
-
         .map-help-item strong {
             display: block;
             margin-bottom: 4px;
             color: #123047;
             font-size: .8rem;
         }
-
         .map-help-item span {
             color: #667085;
             font-size: .75rem;
             line-height: 1.4;
         }
-
         /* ==========================================
            FULLSKJERM
         ========================================== */
-
         .resource-fullscreen-control button {
             display: grid;
             place-items: center;
@@ -387,21 +326,17 @@
             color: var(--text);
             cursor: pointer;
         }
-
         .resource-fullscreen-control button:hover {
             background: #f4f4f4;
         }
-
         .resource-fullscreen-control button:focus-visible {
             outline: 3px solid #176b87;
             outline-offset: -3px;
         }
-
         .resource-fullscreen-control svg {
             width: 22px;
             height: 22px;
         }
-
         #resourceMap:fullscreen,
         .resource-fullscreen-dialog #resourceMap {
             width: 100% !important;
@@ -410,7 +345,6 @@
             border: 0;
             border-radius: 0;
         }
-
         .resource-fullscreen-dialog {
             width: 100vw;
             max-width: none;
@@ -421,15 +355,12 @@
             border: 0;
             overflow: hidden;
         }
-
         .resource-fullscreen-dialog::backdrop {
             background: #17212b;
         }
-
         /* ==========================================
            ADRESSEFELT OG ADRESSEFORSLAG
         ========================================== */
-
         .address-detail-row {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -437,7 +368,6 @@
             row-gap: 0;
             margin-bottom: 18px;
         }
-
         .address-detail-row .form-group {
             display: grid;
             grid-template-rows: subgrid;
@@ -445,11 +375,9 @@
             margin-bottom: 0;
             min-width: 0;
         }
-
         .address-detail-row input {
             min-width: 0;
         }
-
         .resource-address-suggestions {
             max-height: 250px;
             overflow-y: auto;
@@ -457,7 +385,6 @@
             border-radius: 8px;
             margin-top: 6px;
         }
-
         .resource-address-option {
             display: block;
             width: 100%;
@@ -471,24 +398,19 @@
             cursor: pointer;
             overflow-wrap: anywhere;
         }
-
         .resource-address-option:hover,
         .resource-address-option:focus-visible {
             background: var(--surface-soft, #eef5f8);
             outline: 2px solid #176b87;
             outline-offset: -2px;
         }
-
         [hidden] {
             display: none !important;
         }
-
         /* ==========================================
            PC: INTERN SCROLLING I SKJEMAET
         ========================================== */
-
         @@media (min-width: 951px) {
-
             /*
               Litt større kartområde.
               Kartet begynner lenger til venstre.
@@ -503,11 +425,9 @@
                 height: auto;
                 overflow: visible;
             }
-
             /*
               Venstre boks får nøyaktig samme
               høyde som høyre kartboks.
-
               Høyden beregnes automatisk
               av JavaScript.
             */
@@ -518,7 +438,6 @@
                 min-height: 0;
                 overflow: hidden;
             }
-
             /* Begge panelene følger sidescrollingen under menyen og stopper ved seksjonsbunnen. */
             .resource-grid > .form-card,
             .resource-grid > .map-card {
@@ -527,11 +446,9 @@
                 align-self: start;
                 z-index: 1;
             }
-
             .resource-grid > .map-card {
                 height: auto;
             }
-
             /*
               Overskriften er alltid synlig
               øverst i venstre boks.
@@ -539,7 +456,6 @@
             .form-card > .card-heading {
                 flex: 0 0 auto;
             }
-
             /*
               Kun skjemainnholdet scroller.
               Kartet påvirkes ikke av scrollingen.
@@ -552,21 +468,17 @@
                 scrollbar-gutter: stable;
                 padding-right: 10px;
             }
-
             .form-card .form-row {
                 grid-template-columns: minmax(0, 1fr);
             }
-
             .form-card .phone-row {
                 grid-template-columns: 90px minmax(0, 1fr);
             }
-
             .form-card .form-group,
             .form-card .form-control {
                 min-width: 0;
                 max-width: 100%;
             }
-
             /*
               Kartet er litt høyere enn tidligere.
               Dette gir bedre utnyttelse av plassen.
@@ -575,84 +487,64 @@
                 height: clamp(470px, 68dvh, 740px);
             }
         }
-
         /* ==========================================
            NETTBRETT OG MOBIL
         ========================================== */
-
         @@media (max-width: 950px) {
-
             .resource-grid {
                 grid-template-columns: 1fr;
                 min-height: 0;
             }
-
             .resource-grid > .form-card {
                 height: auto;
                 overflow: visible;
             }
-
             .form-card > form {
                 max-height: none;
                 overflow: visible;
             }
-
             .resource-grid > .map-card {
                 position: static;
             }
-
             #resourceMap {
                 height: 460px;
             }
         }
-
         @@media (max-width: 700px) {
-
             .resource-page {
                 width: calc(100% - 28px);
                 padding-top: 28px;
             }
-
             .resource-top {
                 flex-direction: column;
             }
-
             .form-card,
             .map-card {
                 padding: 19px;
             }
-
             .form-row {
                 grid-template-columns: 1fr;
             }
-
             .map-help {
                 grid-template-columns: 1fr;
             }
-
             #resourceMap {
                 height: 420px;
             }
         }
-
         @@media (max-width: 600px) {
             .address-detail-row {
                 grid-template-columns: minmax(0, 1fr);
             }
         }
-
     </style>
-
     <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
     <script src="~/js/theme.js" asp-append-version="true"></script>
 </head>
-
 <body>
-
 <partial name="_PortalHeader" />
 
 <main class="resource-page">
-
     <section class="resource-top">
         <div>
             <span class="resource-eyebrow">Mine ressurser</span>
@@ -663,158 +555,123 @@
                 beredskapssituasjon.
             </p>
         </div>
-
         <a asp-controller="Home"
            asp-action="Dashboard"
            class="back-button">
             ← Tilbake til oversikt
         </a>
     </section>
-
     <div class="resource-grid">
-
         <!-- ==========================================
              RESSURSSKJEMA
         =========================================== -->
-
         <section class="resource-card form-card">
-
             <div class="card-heading">
                 <span>Ressursinformasjon</span>
                 <h2>Hva kan du bidra med?</h2>
                 <p>Fyll inn informasjonen så presist som mulig.</p>
             </div>
-
             <form asp-controller="Resource"
                   asp-action="@(isEdit ? "EditResource" : "RegisterResource")"
                   asp-route-id="@editResourceId"
                   method="post">
-
                 <div asp-validation-summary="ModelOnly"
                      class="validation-summary"></div>
-
                 <!-- GRUNNINFORMASJON -->
-
                 <div class="form-section">
-
                     <h3 class="form-section-title">Grunninformasjon</h3>
-
                     <div class="form-group">
                         <label asp-for="ResourceType">
                             Ressurstype
                             <span class="required-mark">*</span>
                         </label>
-
                         <select asp-for="ResourceType"
                                 asp-items="Html.GetEnumSelectList<ResourceType>()"
                                 class="form-control">
                             <option value="">Velg type ressurs</option>
                         </select>
-
                         <span asp-validation-for="ResourceType"
                               class="validation-message"></span>
                     </div>
-
                     <div class="form-group">
                         <label asp-for="ResourceName">
                             Navn på ressurs
                             <span class="required-mark">*</span>
                         </label>
-
                         <input asp-for="ResourceName"
                                class="form-control"
                                maxlength="100"
                                placeholder="F.eks. Volvo lastebil, aggregat 15 kW eller møterom" />
-
                         <span asp-validation-for="ResourceName"
                               class="validation-message"></span>
                     </div>
-
                     <div class="form-group">
                         <label asp-for="Description">
                             Beskrivelse
                             <span class="required-mark">*</span>
                         </label>
-
                         <textarea asp-for="Description"
                                   class="form-control"
                                   maxlength="500"
                                   placeholder="Beskriv ressursen, egenskaper og hva den kan brukes til"></textarea>
-
                         <span asp-validation-for="Description"
                               class="validation-message"></span>
                     </div>
-
                     <div class="form-row">
-
                         <div class="form-group">
                             <label asp-for="Quantity">Antall</label>
-
                             <input asp-for="Quantity"
                                    class="form-control"
                                    type="number"
                                    min="1"
                                    max="100000" />
-
                             <span asp-validation-for="Quantity"
                                   class="validation-message"></span>
                         </div>
-
                         <div class="form-group">
-                            <label asp-for="Capacity">Kapasitet</label>
-
+                            <label asp-for="Capacity" id="capacityLabel">Kapasitet</label>
                             <input asp-for="Capacity"
                                    class="form-control"
                                    maxlength="200"
-                                   placeholder="F.eks. 10 tonn / 15 kW" />
-
+                                   placeholder="F.eks. 10 tonn / 15 kW"
+                                   aria-describedby="capacityHelp" />
+                            <small class="field-note" id="capacityHelp" aria-live="polite">
+                                Velg en ressurstype for å se hva du kan oppgi her.
+                            </small>
                             <span asp-validation-for="Capacity"
                                   class="validation-message"></span>
                         </div>
-
                     </div>
-
                     <div class="form-group">
                         <label asp-for="AvailabilityMonths">
                             Hvor lenge skal ressursen være tilgjengelig?
                             <span class="required-mark">*</span>
                         </label>
-
                         <select asp-for="AvailabilityMonths"
                                 id="availabilityDuration"
                                 class="form-control"
                                 required
                                 aria-describedby="availabilityExpiryPreview">
                             <option value="">Velg periode</option>
-
                             @foreach (var period in FirstWebAppInDocker.Services.ResourceAvailability.Periods)
                             {
                                 <option value="@period.Key">@period.Value</option>
                             }
                         </select>
-
                         <span asp-validation-for="AvailabilityMonths"
                               class="validation-message"></span>
-
                         <small class="field-note"
                                id="availabilityExpiryPreview">
                             Velg en periode for å se når tilgjengeligheten utløper.
                         </small>
                     </div>
-
                 </div>
-
                 <!-- PLASSERING -->
-
                 <div class="form-section">
-
                     <h3 class="form-section-title">Plassering</h3>
-
                     <input asp-for="Address" type="hidden" />
-
                     <div class="form-group resource-address-search">
                         <label asp-for="StreetAddress">Adresse</label>
-
                         <input asp-for="StreetAddress"
                                class="form-control"
                                maxlength="200"
@@ -825,159 +682,118 @@
                                aria-controls="addressSuggestions"
                                aria-expanded="false"
                                aria-describedby="addressLookupStatus" />
-
                         <span asp-validation-for="StreetAddress"
                               class="validation-message"></span>
-
                         <div id="addressSuggestions"
                              class="resource-address-suggestions"
                              role="listbox"
                              aria-label="Adresseforslag"
                              hidden></div>
                     </div>
-
                     <div class="address-detail-row">
-
                         <div class="form-group">
                             <label asp-for="PostalLocation">
                                 Postnummer og poststed
                             </label>
-
                             <input asp-for="PostalLocation"
                                    class="form-control"
                                    maxlength="100"
                                    placeholder="4629, Kristiansand S" />
-
                             <span asp-validation-for="PostalLocation"
                                   class="validation-message"></span>
                         </div>
-
                         <div class="form-group">
                             <label asp-for="Municipality">Kommune</label>
-
                             <input asp-for="Municipality"
                                    class="form-control"
                                    maxlength="100"
                                    placeholder="Kristiansand" />
-
                             <span asp-validation-for="Municipality"
                                   class="validation-message"></span>
                         </div>
-
                     </div>
-
                     <span asp-validation-for="Address"
                           class="validation-message"></span>
-
                     <small id="addressLookupStatus"
                            class="field-note"
                            role="status"
                            aria-live="polite"></small>
-
                     <small class="field-note">
                         Velg et adresseforslag eller plasser markøren selv.
                         Adressen kan korrigeres manuelt.
                     </small>
-
                     <input asp-for="Latitude"
                            type="hidden"
                            id="Latitude" />
-
                     <input asp-for="Longitude"
                            type="hidden"
                            id="Longitude" />
-
                     <div class="selected-position">
                         <strong>Valgt kartposisjon</strong>
                         <span id="positionText">
                             Ingen plassering valgt
                         </span>
                     </div>
-
                     <span asp-validation-for="Latitude"
                           class="validation-message"></span>
-
                     <span asp-validation-for="Longitude"
                           class="validation-message"></span>
-
                 </div>
-
                 <button type="submit" class="submit-button">
                     @(isEdit ? "Lagre endringer" : "Registrer ressurs")
                 </button>
-
                 @if (isEdit)
                 {
                     <small class="field-note">
                         Tilgjengelighetsperioden regnes fra i dag når du lagrer.
                     </small>
                 }
-
             </form>
-
         </section>
-
         <!-- ==========================================
              KART
         =========================================== -->
-
         <section class="resource-card map-card">
-
             <div class="map-card-header">
                 <div>
                     <h2>Velg plassering</h2>
                     <p>Klikk i kartet der ressursen befinner seg.</p>
                 </div>
-
                 <span class="map-badge">Leaflet</span>
             </div>
-
             <div id="resourceMap"></div>
-
             <div class="map-help">
-
                 <div class="map-help-item">
                     <strong>1. Finn området</strong>
                     <span>Zoom og flytt kartet til riktig sted.</span>
                 </div>
-
                 <div class="map-help-item">
                     <strong>2. Klikk i kartet</strong>
                     <span>En markør viser den valgte posisjonen.</span>
                 </div>
-
                 <div class="map-help-item">
                     <strong>3. Registrer</strong>
                     <span>Koordinatene lagres sammen med ressursen.</span>
                 </div>
-
             </div>
-
         </section>
-
     </div>
-
 </main>
-
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="~/js/kartverket.js" asp-append-version="true"></script>
 <script src="~/js/resource-address.js" asp-append-version="true"></script>
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-
         const latitudeInput = document.getElementById("Latitude");
         const longitudeInput = document.getElementById("Longitude");
         const positionText = document.getElementById("positionText");
-
         const defaultLatitude = 58.1467;
         const defaultLongitude = 7.9956;
-
         const map = L.map("resourceMap").setView(
             [defaultLatitude, defaultLongitude],
             10
         );
-
         const mapElement = document.getElementById("resourceMap");
 
         /* ==========================================
@@ -990,7 +806,6 @@
             "aria-label",
             "Ressurskart i fullskjerm"
         );
-
         document.body.appendChild(fullscreenDialog);
 
         let mapPlaceholder;
@@ -1012,6 +827,7 @@
             const zoom = map.getZoom();
 
             map.invalidateSize({ pan: false });
+
             map.setView(center, zoom, {
                 animate: false,
                 reset: true
@@ -1050,7 +866,6 @@
             );
 
             mapElement.before(mapPlaceholder);
-
             fullscreenDialog.appendChild(mapElement);
             fullscreenDialog.showModal();
 
@@ -1059,7 +874,6 @@
         }
 
         fullscreenDialog.addEventListener("close", function () {
-
             if (mapPlaceholder) {
                 mapPlaceholder.replaceWith(mapElement);
                 mapPlaceholder = null;
@@ -1078,7 +892,6 @@
         );
 
         document.addEventListener("keydown", function (event) {
-
             if (event.key !== "Escape" || !isMapFullscreen()) {
                 return;
             }
@@ -1093,13 +906,11 @@
         });
 
         const FullscreenControl = L.Control.extend({
-
             options: {
                 position: "topright"
             },
 
             onAdd: function () {
-
                 const control = L.DomUtil.create(
                     "div",
                     "leaflet-bar resource-fullscreen-control"
@@ -1119,35 +930,26 @@
                 fullscreenButton.addEventListener(
                     "click",
                     async function (event) {
-
                         event.preventDefault();
                         event.stopPropagation();
 
                         if (fullscreenDialog.open) {
-
                             fullscreenDialog.close();
-
                         } else if (
                             document.fullscreenElement === mapElement
                         ) {
-
                             await document.exitFullscreen();
-
                         } else if (
                             mapElement.requestFullscreen &&
                             document.fullscreenEnabled
                         ) {
-
                             try {
                                 await mapElement.requestFullscreen();
                             } catch {
                                 openFullscreenDialog();
                             }
-
                         } else {
-
                             openFullscreenDialog();
-
                         }
                     }
                 );
@@ -1157,7 +959,6 @@
         });
 
         addKartverketLayers(map);
-
         new FullscreenControl().addTo(map);
         updateFullscreenControl();
 
@@ -1165,12 +966,9 @@
            KARTLAG OG ADRESSESØK
         ========================================== */
 
-    
-
         const addressLookup = setupResourceAddress(
             map,
             function (latitude, longitude) {
-
                 updateResourcePosition(
                     latitude,
                     longitude,
@@ -1190,14 +988,12 @@
         ========================================== */
 
         function createResourceMarker(latitude, longitude) {
-
             return L.marker(
                 [latitude, longitude],
                 { draggable: true }
             )
             .addTo(map)
             .on("dragend", function (event) {
-
                 const position = event.target.getLatLng();
 
                 updateResourcePosition(
@@ -1217,7 +1013,6 @@
             !Number.isNaN(existingLongitude) &&
             (existingLatitude !== 0 || existingLongitude !== 0)
         ) {
-
             marker = createResourceMarker(
                 existingLatitude,
                 existingLongitude
@@ -1239,21 +1034,16 @@
             longitude,
             resolveAddress = true
         ) {
-
             latitudeInput.value = latitude;
             longitudeInput.value = longitude;
 
             if (marker === null) {
-
                 marker = createResourceMarker(
                     latitude,
                     longitude
                 );
-
             } else {
-
                 marker.setLatLng([latitude, longitude]);
-
             }
 
             updatePositionText(latitude, longitude);
@@ -1264,7 +1054,6 @@
         }
 
         map.on("click", function (event) {
-
             updateResourcePosition(
                 event.latlng.lat,
                 event.latlng.lng
@@ -1272,7 +1061,6 @@
         });
 
         function updatePositionText(latitude, longitude) {
-
             positionText.textContent =
                 latitude.toFixed(5) +
                 ", " +
@@ -1291,12 +1079,15 @@
 
         // Måler faktisk menyhøyde, slik at panelene følger under menyen også når den brytes.
         const registerHeader = document.querySelector(".pv-header");
+
         function syncHeaderOffset() {
             document.documentElement.style.setProperty(
                 "--register-header-height", (registerHeader?.offsetHeight ?? 80) + "px");
         }
+
         syncHeaderOffset();
         window.addEventListener("resize", syncHeaderOffset);
+
         if (registerHeader && typeof ResizeObserver !== "undefined") {
             const headerObserver = new ResizeObserver(syncHeaderOffset);
             headerObserver.observe(registerHeader);
@@ -1314,7 +1105,6 @@
         */
 
         function syncFormHeight() {
-
             if (isMapFullscreen()) {
                 return;
             }
@@ -1336,7 +1126,6 @@
         );
 
         if (typeof ResizeObserver !== "undefined") {
-
             const mapCardObserver =
                 new ResizeObserver(syncFormHeight);
 
@@ -1349,7 +1138,6 @@
         */
 
         if (typeof ResizeObserver !== "undefined") {
-
             const mapSizeObserver =
                 new ResizeObserver(function () {
                     refreshMapSize();
@@ -1359,12 +1147,9 @@
         }
 
         window.setTimeout(function () {
-
             map.invalidateSize();
             syncFormHeight();
-
         }, 100);
-
     });
 </script>
 
@@ -1374,7 +1159,6 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-
         const durationSelect =
             document.getElementById("availabilityDuration");
 
@@ -1386,14 +1170,11 @@
         }
 
         function updateExpiryPreview() {
-
             const months = Number(durationSelect.value);
 
             if (!months) {
-
                 expiryPreview.textContent =
                     "Velg en periode for å se når tilgjengeligheten utløper.";
-
                 return;
             }
 
@@ -1432,7 +1213,136 @@
         );
 
         updateExpiryPreview();
+    });
+</script>
 
+<!-- ==========================================
+     DYNAMISK KAPASITET ETTER RESSURSTYPE
+=========================================== -->
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const resourceTypeSelect = document.getElementById("ResourceType");
+        const capacityLabel = document.getElementById("capacityLabel");
+        const capacityInput = document.getElementById("Capacity");
+        const capacityHelp = document.getElementById("capacityHelp");
+
+        if (!resourceTypeSelect || !capacityLabel || !capacityInput || !capacityHelp) {
+            return;
+        }
+
+        // Matcher synlige ressurstype-navn fra enum-listen.
+        // Dermed trenger vi ikke endre modell, controller eller database.
+        const capacityTypes = [
+            {
+                keywords: ["aggregat", "generator", "stromforsyning", "power supply"],
+                label: "Effekt (kW)",
+                placeholder: "F.eks. 15 kW",
+                help: "Oppgi aggregatets eller strømkildens effekt."
+            },
+            {
+                keywords: ["drone", "uav"],
+                label: "Flytid / rekkevidde",
+                placeholder: "F.eks. 35 minutter / 5 km",
+                help: "Oppgi flytid og eventuelt rekkevidde."
+            },
+            {
+                keywords: ["bat", "fartoy", "boat", "vessel"],
+                label: "Passasjer- / lastekapasitet",
+                placeholder: "F.eks. 8 personer / 500 kg",
+                help: "Oppgi hvor mange personer eller hvor stor last båten kan frakte."
+            },
+            {
+                keywords: ["lokale", "lokal", "rom", "bygning", "overnatting", "building", "shelter"],
+                label: "Personkapasitet",
+                placeholder: "F.eks. 50 personer",
+                help: "Oppgi hvor mange personer lokalene har plass til."
+            },
+            {
+                keywords: ["mannskap", "personell", "frivillig", "personnel", "volunteer"],
+                label: "Kompetanse / innsatskapasitet",
+                placeholder: "F.eks. førstehjelp / 8 timer per dag",
+                help: "Antall personer oppgis i feltet Antall. Beskriv kompetanse eller innsatskapasitet her."
+            },
+            {
+                keywords: ["gravemaskin", "excavator", "hjullaster", "skogsmaskin", "anleggsmaskin", "maskin", "machinery"],
+                label: "Størrelse / løftekapasitet",
+                placeholder: "F.eks. 8 tonn / 2 tonn løftekapasitet",
+                help: "Oppgi en relevant teknisk kapasitet for maskinen."
+            },
+            {
+                keywords: ["traktor", "tractor"],
+                label: "Motoreffekt (hk)",
+                placeholder: "F.eks. 150 hk",
+                help: "Oppgi traktorens motoreffekt eller annen relevant kapasitet."
+            },
+            {
+                keywords: ["snoskuter", "snowmobile", "atv"],
+                label: "Laste- / trekkapasitet",
+                placeholder: "F.eks. 300 kg",
+                help: "Oppgi hvor mye ressursen kan frakte eller trekke."
+            },
+            {
+                keywords: ["sand", "grus", "pukk", "mass", "gravel"],
+                label: "Tilgjengelig mengde",
+                placeholder: "F.eks. 20 tonn eller 15 m³",
+                help: "Oppgi tilgjengelig mengde masse."
+            },
+            {
+                keywords: ["drivstoff", "diesel", "bensin", "fuel"],
+                label: "Mengde (liter)",
+                placeholder: "F.eks. 1000 liter",
+                help: "Oppgi hvor mange liter som kan tilbys."
+            },
+            {
+                keywords: ["samband", "radio", "kommunikasjon", "communication"],
+                label: "Rekkevidde / kapasitet",
+                placeholder: "F.eks. 10 km rekkevidde",
+                help: "Beskriv rekkevidde, dekning eller annen relevant kapasitet."
+            },
+            {
+                keywords: ["lastebil", "truck", "transport", "varebil", "kjoretoy", "vehicle"],
+                label: "Laste- / transportkapasitet",
+                placeholder: "F.eks. 12 tonn eller 8 passasjerer",
+                help: "Oppgi hvor mye eller hvor mange ressursen kan transportere."
+            }
+        ];
+
+        const fallback = {
+            label: "Kapasitet",
+            placeholder: "F.eks. 10 tonn / 15 kW",
+            help: "Oppgi relevant kapasitet eller spesifikasjoner hvis aktuelt."
+        };
+
+        function normalize(value) {
+            return (value || "")
+                .toLocaleLowerCase("nb-NO")
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/[_-]/g, " ");
+        }
+
+        function updateCapacityField() {
+            const selectedOption = resourceTypeSelect.selectedOptions[0];
+            const resourceName = normalize(selectedOption?.textContent);
+
+            const config = resourceTypeSelect.value
+                ? (capacityTypes.find(item =>
+                    item.keywords.some(keyword => resourceName.includes(keyword))) || fallback)
+                : fallback;
+
+            capacityLabel.textContent = config.label;
+            capacityInput.placeholder = config.placeholder;
+
+            capacityHelp.textContent = resourceTypeSelect.value
+                ? config.help
+                : "Velg en ressurstype for å se hva du kan oppgi her.";
+
+            // Ikke overskriv eksisterende kapasitet når en ressurs redigeres.
+        }
+
+        resourceTypeSelect.addEventListener("change", updateCapacityField);
+        updateCapacityField();
     });
 </script>
 
