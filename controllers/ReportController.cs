@@ -11,7 +11,7 @@ namespace FirstWebAppInDocker.Controllers;
 
 /// <summary>
 /// Rapporter for offentlige aktører og administratorer:
-/// - Situasjonsrapport med nøkkeltall, hastegrad og mangler,
+/// - Situasjonsrapport med nøkkeltall og mangler,
 ///   og en kort oppsummering skrevet av Sami.
 /// - Utskriftsvennlig ressursliste per kommune.
 /// - Eksport av ressurslisten som CSV (Excel) eller JSON (andre systemer).

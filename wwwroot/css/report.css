@@ -244,6 +244,19 @@ html:root[data-theme="navy"] .coverage-bar.resource { background: #3fbf86; }
     text-decoration: underline;
 }
 
+/* «Mangler» og «Knapp» i dekningslisten */
+.coverage-badge {
+    display: inline-flex;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.coverage-gap { color: #fff; background: #b42318; }
+.coverage-tight { color: #8a5a00; background: #fdf3df; }
+
 .report-gap {
     border-color: rgba(180, 35, 24, 0.35);
 }
@@ -257,8 +270,13 @@ html:root[data-theme="navy"] .coverage-bar.resource { background: #3fbf86; }
     font-size: 0.88rem;
 }
 
-.report-gap-list .urgency-badge {
+.report-gap-list .status-badge {
     margin-right: 6px;
+}
+
+.report-overdue {
+    color: var(--danger-text, #a62f2f);
+    font-weight: 700;
 }
 
 
@@ -391,7 +409,7 @@ html:root[data-theme="navy"] .coverage-bar.resource { background: #3fbf86; }
         display: none !important;
     }
 
-    .urgency-badge,
+    .coverage-badge,
     .status-badge {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;

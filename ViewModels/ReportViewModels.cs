@@ -1,5 +1,4 @@
 using FirstWebAppInDocker.Models;
-using FirstWebAppInDocker.Services.Matching;
 
 namespace FirstWebAppInDocker.ViewModels;
 
@@ -97,7 +96,10 @@ public class TypeCoverageRow
 }
 
 
-public class UrgentNeedRow
+/// <summary>
+/// Et åpent behov i situasjonsrapporten.
+/// </summary>
+public class OpenNeedRow
 {
     public int Id { get; init; }
 
@@ -109,13 +111,22 @@ public class UrgentNeedRow
 
     public string StatusName { get; init; } = string.Empty;
 
+    public bool IsAcute { get; init; }
+
     public bool IsAssigned { get; init; }
+
+    public bool IsOverdue { get; init; }
 
     public int Quantity { get; init; }
 
     public DateTime? Deadline { get; init; }
 
-    public NeedUrgency Urgency { get; init; } = new(0, UrgencyLevel.Low, Array.Empty<string>(), 0);
+    public DateTime CreatedAt { get; init; }
+
+    /// <summary>
+    /// Tilgjengelige ressurser av riktig type innen 50 km.
+    /// </summary>
+    public int NearbyResources { get; init; }
 }
 
 
@@ -147,13 +158,10 @@ public class SituationReportViewModel
 
     public int ResolvedNeeds { get; init; }
 
-    public int CriticalNeeds { get; init; }
-
-    public int HighNeeds { get; init; }
-
-    public int MediumNeeds { get; init; }
-
-    public int LowNeeds { get; init; }
+    /// <summary>
+    /// Åpne, ikke tildelte behov uten passende ressurs innen 50 km.
+    /// </summary>
+    public int UncoveredNeeds { get; init; }
 
     public int AvailableResources { get; init; }
 
@@ -167,9 +175,12 @@ public class SituationReportViewModel
 
     public List<TypeCoverageRow> Coverage { get; init; } = new();
 
-    public List<UrgentNeedRow> MostUrgent { get; init; } = new();
+    /// <summary>
+    /// Åpne behov sortert: ikke tildelte først, så akutte, så frist, så eldste.
+    /// </summary>
+    public List<OpenNeedRow> PriorityNeeds { get; init; } = new();
 
-    public List<UrgentNeedRow> Uncovered { get; init; } = new();
+    public List<OpenNeedRow> Uncovered { get; init; } = new();
 
     public List<MunicipalityRow> Municipalities { get; init; } = new();
 
