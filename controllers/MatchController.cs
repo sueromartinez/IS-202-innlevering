@@ -308,11 +308,6 @@ public class MatchController : Controller
                 })
                 .ToListAsync();
 
-        // Hastegrad for behovet (samme modell som i behovslisten).
-        ViewData["Urgency"] =
-            (await new NeedUrgencyService(_context).CalculateAsync(new[] { need }))
-                .GetValueOrDefault(need.Id);
-
         return View(new MatchNeedViewModel
         {
             Need = need,

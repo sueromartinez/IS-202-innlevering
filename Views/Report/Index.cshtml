@@ -41,10 +41,10 @@
         <span class="report-kpi-label">Åpne behov</span>
         <span class="report-kpi-sub">@Model.AcuteOpenNeeds akutte · @Model.AssignedNeeds tildelt</span>
     </div>
-    <div class="report-kpi @(Model.CriticalNeeds > 0 ? "is-alert" : "")">
-        <span class="report-kpi-value">@Model.CriticalNeeds</span>
-        <span class="report-kpi-label">Kritisk hastegrad</span>
-        <span class="report-kpi-sub">@Model.HighNeeds høy · @Model.MediumNeeds middels · @Model.LowNeeds lav</span>
+    <div class="report-kpi @(Model.UncoveredNeeds > 0 ? "is-alert" : "")">
+        <span class="report-kpi-value">@Model.UncoveredNeeds</span>
+        <span class="report-kpi-label">Uten ressurser i nærheten</span>
+        <span class="report-kpi-sub">ingen passende ressurs innen 50 km</span>
     </div>
     <div class="report-kpi @(Model.OverdueNeeds > 0 ? "is-alert" : "")">
         <span class="report-kpi-value">@Model.OverdueNeeds</span>
@@ -119,11 +119,11 @@
                             <span>@row.TypeName</span>
                             @if (row.IsGap)
                             {
-                                <span class="urgency-badge urgency-critical">Mangler</span>
+                                <span class="coverage-badge coverage-gap">Mangler</span>
                             }
                             else if (row.IsTight)
                             {
-                                <span class="urgency-badge urgency-medium">Knapp</span>
+                                <span class="coverage-badge coverage-tight">Knapp</span>
                             }
                         </div>
                         <div class="coverage-bars">
@@ -170,12 +170,12 @@
     </section>
 </div>
 
-<!-- MEST PRESSERENDE -->
+<!-- ÅPNE BEHOV -->
 <section class="app-card portal-section">
-    <h2>Mest presserende behov</h2>
-    <p class="section-hint">Sortert etter hastegrad. Hold musen over merket for å se hvorfor.</p>
+    <h2>Åpne behov</h2>
+    <p class="section-hint">Behov som ikke er tildelt vises først, deretter akutte, nærmeste frist og de som har ventet lengst.</p>
 
-    @if (Model.MostUrgent.Count == 0)
+    @if (Model.PriorityNeeds.Count == 0)
     {
         <p class="empty-state">Ingen åpne behov.</p>
     }
@@ -184,24 +184,24 @@
         <div class="table-wrap">
             <table class="portal-table">
                 <thead>
-                    <tr><th>Hastegrad</th><th>Behov</th><th>Type</th><th>Status</th><th>Frist</th><th class="no-print"></th></tr>
+                    <tr><th>Prioritet</th><th>Behov</th><th>Type</th><th>Status</th><th>Frist</th><th class="no-print"></th></tr>
                 </thead>
                 <tbody>
-                    @foreach (var row in Model.MostUrgent)
+                    @foreach (var row in Model.PriorityNeeds)
                     {
                         <tr>
                             <td>
-                                <span class="urgency-badge @row.Urgency.CssClass" title="@(string.Join(" · ", row.Urgency.Reasons))">
-                                    @row.Urgency.LevelName · @row.Urgency.Score
-                                </span>
+                                <span class="status-badge @(row.IsAcute ? "priority-acute" : "priority-planned")">@row.PriorityName</span>
                             </td>
                             <td>
                                 @row.Description
-                                <span class="cell-muted">@(string.Join(" · ", row.Urgency.Reasons))</span>
+                                <span class="cell-muted">@ResourceDisplay.CountText(row.NearbyResources, "passende ressurs", "passende ressurser") innen 50 km</span>
                             </td>
-                            <td>@row.TypeName<span class="cell-muted">@row.Quantity stk · @row.PriorityName</span></td>
+                            <td>@row.TypeName<span class="cell-muted">@row.Quantity stk</span></td>
                             <td>@row.StatusName</td>
-                            <td>@(row.Deadline?.ToString("dd.MM.yyyy") ?? "–")</td>
+                            <td class="@(row.IsOverdue ? "report-overdue" : "")">
+                                @(row.Deadline?.ToString("dd.MM.yyyy") ?? "–")@(row.IsOverdue ? " (passert)" : "")
+                            </td>
                             <td class="no-print">
                                 <a asp-controller="Match" asp-action="Need" asp-route-id="@row.Id" class="small-action">Finn ressurser</a>
                             </td>
@@ -222,7 +222,7 @@
             @foreach (var row in Model.Uncovered)
             {
                 <li>
-                    <span class="urgency-badge @row.Urgency.CssClass">@row.Urgency.LevelName</span>
+                    <span class="status-badge @(row.IsAcute ? "priority-acute" : "priority-planned")">@row.PriorityName</span>
                     <strong>@row.TypeName</strong> – @row.Description
                 </li>
             }
@@ -230,7 +230,7 @@
     </section>
 }
 
-<p class="report-footer">Beredskapsportalen · situasjonsrapport @generated · Hastegraden regnes ut med en åpen poengmodell (prioritet, frist, ventetid og dekning).</p>
+<p class="report-footer">Beredskapsportalen · situasjonsrapport @generated</p>
 
 @section Scripts {
     <script>

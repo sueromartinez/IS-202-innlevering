@@ -265,8 +265,8 @@ public class ReportService
         List<Need> openNeeds =
             needs.Where(need => need.Status != NeedStatus.Resolved).ToList();
 
-        Dictionary<int, NeedUrgency> urgency =
-            await new NeedUrgencyService(_context).CalculateAsync(openNeeds);
+        Dictionary<int, int> nearby =
+            await new NeedCoverageService(_context).CountNearbyResourcesAsync(openNeeds);
 
         List<Resource> resources =
             await _context.Resources
@@ -318,22 +318,33 @@ public class ReportService
                 .ThenByDescending(row => row.OpenNeeds)
                 .ToList();
 
-        List<UrgentNeedRow> urgentRows =
+        // Ikke tildelte først, så akutte, så nærmeste frist, så de som har ventet lengst.
+        List<OpenNeedRow> openRows =
             openNeeds
-                .Select(need => new UrgentNeedRow
+                .Select(need => new OpenNeedRow
                 {
                     Id = need.Id,
                     Description = need.Description,
                     TypeName = EnumDisplay.Name(need.ResourceType),
                     PriorityName = EnumDisplay.Name(need.Priority),
                     StatusName = EnumDisplay.Name(need.Status),
+                    IsAcute = need.Priority == NeedPriority.Acute,
                     IsAssigned = need.Status == NeedStatus.Assigned,
+                    IsOverdue = IsOverdue(need, now),
                     Quantity = need.Quantity,
                     Deadline = need.Deadline,
-                    Urgency = urgency.GetValueOrDefault(need.Id)
-                              ?? NeedUrgencyService.Calculate(need, 0, now)
+                    CreatedAt = need.CreatedAt,
+                    NearbyResources = nearby.GetValueOrDefault(need.Id)
                 })
-                .OrderByDescending(row => row.Urgency.Score)
+                .OrderBy(row => row.IsAssigned)
+                .ThenByDescending(row => row.IsAcute)
+                .ThenBy(row => row.Deadline ?? DateTime.MaxValue)
+                .ThenBy(row => row.CreatedAt)
+                .ToList();
+
+        List<OpenNeedRow> uncovered =
+            openRows
+                .Where(row => row.NearbyResources == 0 && !row.IsAssigned)
                 .ToList();
 
         var model = new SituationReportViewModel
@@ -341,25 +352,18 @@ public class ReportService
             GeneratedAt = now,
             OpenNeeds = openNeeds.Count,
             AcuteOpenNeeds = openNeeds.Count(need => need.Priority == NeedPriority.Acute),
-            OverdueNeeds = openNeeds.Count(need =>
-                need.Deadline.HasValue && need.Deadline.Value.Date.AddDays(1) < now),
+            OverdueNeeds = openNeeds.Count(need => IsOverdue(need, now)),
             AssignedNeeds = openNeeds.Count(need => need.Status == NeedStatus.Assigned),
             ResolvedNeeds = needs.Count(need => need.Status == NeedStatus.Resolved),
-            CriticalNeeds = urgentRows.Count(row => row.Urgency.Level == UrgencyLevel.Critical),
-            HighNeeds = urgentRows.Count(row => row.Urgency.Level == UrgencyLevel.High),
-            MediumNeeds = urgentRows.Count(row => row.Urgency.Level == UrgencyLevel.Medium),
-            LowNeeds = urgentRows.Count(row => row.Urgency.Level == UrgencyLevel.Low),
+            UncoveredNeeds = uncovered.Count,
             AvailableResources = resourceStatuses.Count(resource => resource.Status == ResourceStatus.Available),
             BusyResources = resourceStatuses.Count(resource => resource.Status == ResourceStatus.Busy),
             TotalResources = resourceStatuses.Count,
             PendingRequests = pendingRequests,
             ConfirmedLast24h = confirmedLast24h,
             Coverage = coverage,
-            MostUrgent = urgentRows.Take(8).ToList(),
-            Uncovered = urgentRows
-                .Where(row => row.Urgency.NearbyResources == 0 && !row.IsAssigned)
-                .Take(10)
-                .ToList(),
+            PriorityNeeds = openRows.Take(8).ToList(),
+            Uncovered = uncovered.Take(10).ToList(),
             Municipalities = resourceStatuses
                 .GroupBy(resource => ResourceDisplay.Municipality(resource.Address), StringComparer.OrdinalIgnoreCase)
                 .Select(group => new MunicipalityRow
@@ -399,9 +403,12 @@ public class ReportService
                 + $"og {report.AssignedNeeds} allerede tildelt.");
         }
 
-        if (report.CriticalNeeds > 0)
+        int acuteUnassigned =
+            report.PriorityNeeds.Count(row => row.IsAcute && !row.IsAssigned);
+
+        if (acuteUnassigned > 0)
         {
-            lines.Add($"{ResourceDisplay.CountText(report.CriticalNeeds, "behov har", "behov har")} kritisk hastegrad og bør følges opp først.");
+            lines.Add($"{ResourceDisplay.CountText(acuteUnassigned, "akutt behov er", "akutte behov er")} ikke tildelt ennå og bør følges opp først.");
         }
 
         if (report.OverdueNeeds > 0)
@@ -427,7 +434,7 @@ public class ReportService
 
         if (report.Uncovered.Count > 0)
         {
-            lines.Add($"{ResourceDisplay.CountText(report.Uncovered.Count, "behov har", "behov har")} ingen passende ressurs innen {NeedUrgencyService.CoverageRadiusKm:0} km.");
+            lines.Add($"{ResourceDisplay.CountText(report.UncoveredNeeds, "behov har", "behov har")} ingen passende ressurs innen {NeedCoverageService.CoverageRadiusKm:0} km.");
         }
 
         if (report.PendingRequests > 0)
@@ -440,6 +447,17 @@ public class ReportService
             + (report.BusyResources > 0 ? $", {report.BusyResources} er opptatt." : "."));
 
         return lines;
+    }
+
+
+    /// <summary>
+    /// Fristen gjelder hele dagen, så behovet er passert først dagen etter.
+    /// </summary>
+    public static bool IsOverdue(Need need, DateTime nowUtc)
+    {
+        return need.Deadline.HasValue
+               && need.Status != NeedStatus.Resolved
+               && need.Deadline.Value.Date.AddDays(1) < nowUtc;
     }
 
 
@@ -467,7 +485,7 @@ public class ReportService
 
         builder.AppendLine($"Tidspunkt (UTC): {report.GeneratedAt:yyyy-MM-dd HH:mm}");
         builder.AppendLine($"Åpne behov: {report.OpenNeeds} (akutte: {report.AcuteOpenNeeds}, tildelt: {report.AssignedNeeds}, passert frist: {report.OverdueNeeds})");
-        builder.AppendLine($"Hastegrad: kritisk {report.CriticalNeeds}, høy {report.HighNeeds}, middels {report.MediumNeeds}, lav {report.LowNeeds}");
+        builder.AppendLine($"Behov uten passende ressurs innen {NeedCoverageService.CoverageRadiusKm:0} km: {report.UncoveredNeeds}");
         builder.AppendLine($"Løste behov totalt: {report.ResolvedNeeds}");
         builder.AppendLine($"Ressurser: {report.AvailableResources} tilgjengelige, {report.BusyResources} opptatt, {report.TotalResources} totalt");
         builder.AppendLine($"Forespørsler som venter på svar: {report.PendingRequests}. Bekreftet siste døgn: {report.ConfirmedLast24h}");
@@ -479,14 +497,14 @@ public class ReportService
             builder.AppendLine($"- {row.TypeName}: {row.OpenNeeds} / {row.AvailableResources}{flag}");
         }
 
-        builder.AppendLine("Mest presserende behov:");
-        foreach (UrgentNeedRow row in report.MostUrgent.Take(5))
+        builder.AppendLine("Åpne behov (ikke tildelte og akutte først):");
+        foreach (OpenNeedRow row in report.PriorityNeeds.Take(5))
         {
-            string deadline = row.Deadline.HasValue ? $", frist {row.Deadline.Value:dd.MM}" : "";
+            string deadline = row.Deadline.HasValue ? $", frist {row.Deadline.Value:dd.MM}" + (row.IsOverdue ? " (passert)" : "") : "";
             string description = row.Description.Length > 120 ? row.Description[..120] + "…" : row.Description;
             builder.AppendLine(
-                $"- [{row.Urgency.LevelName}, {row.Urgency.Score} poeng] {row.TypeName}, {row.Quantity} stk, {row.PriorityName}{deadline}: {description} "
-                + $"(grunner: {string.Join("; ", row.Urgency.Reasons)})");
+                $"- {row.TypeName}, {row.Quantity} stk, {row.PriorityName}, {row.StatusName}{deadline}: {description} "
+                + $"({row.NearbyResources} passende ressurser innen {NeedCoverageService.CoverageRadiusKm:0} km)");
         }
 
         builder.AppendLine("Ressurser per kommune (tilgjengelige / totalt):");

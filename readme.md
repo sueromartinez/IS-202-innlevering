@@ -237,20 +237,9 @@ Frivillig- og bedriftsbrukeren, ressursene og behovene er demodata som opprettes
 
 E-post fanges av **Mailpit** og kan leses på http://localhost:8025. SMS logges bare i konsollen.
 
-## Frist, kontaktpunkt og hastegrad
+## Frist og kontaktpunkt
 
 Et behov kan få **frist** og **kontaktpunkt** (kontaktperson og telefon). Kontaktpunktet vises til den frivillige først etter at hen har bekreftet.
-
-Hvert åpent behov får en **hastegrad** fra 0 til 100 (`Services/Matching/NeedUrgencyService.cs`). Modellen er bevisst enkel og forklarbar:
-
-| Faktor | Poeng |
-|---|---|
-| Prioritet | Akutt 50, Planlagt 15 |
-| Frist | passert +35, innen 1 døgn +30, innen 3 døgn +20, innen 7 døgn +10 |
-| Ventetid (ikke tildelt) | over 24 t +15, over 6 t +8, over 1 t +3 |
-| Dekning | ingen ressurser av riktig type innen 50 km +20, bare 1–2 +8 |
-
-Tildelte behov får 30 % av poengene, løste behov 0. Nivå: 70+ Kritisk, 45–69 Høy, 25–44 Middels, ellers Lav. Grunnene vises når man holder musen over merket.
 
 ## Frivillige: endre og slette egne ressurser
 
@@ -262,7 +251,7 @@ Under **Mine ressurser** har hver ressurs knappene **Endre** og **Slett**. En re
 
 **Rapporter** i menyen (offentlig aktør og admin):
 
-- **Situasjonsrapport** – nøkkeltall, dekning per ressurstype (mangler og knapp dekning), ressurser per kommune, de mest presserende behovene og behov uten ressurser innen 50 km. Tallene regnes ut i C# (`Services/Reports/ReportService.cs`), og en regelbasert oppsummering virker uten AI. Knappen **Be Sami skrive vurdering** sender bare tallene (ingen navn, e-post eller telefon) til språkmodellen og får tilbake situasjonsbilde, risikoer og anbefalte tiltak.
+- **Situasjonsrapport** – nøkkeltall, dekning per ressurstype (mangler og knapp dekning), ressurser per kommune, åpne behov (ikke tildelte og akutte først) og behov uten ressurser innen 50 km (`Services/Matching/NeedCoverageService.cs`). Tallene regnes ut i C# (`Services/Reports/ReportService.cs`), og en regelbasert oppsummering virker uten AI. Knappen **Be Sami skrive vurdering** sender bare tallene (ingen navn, e-post eller telefon) til språkmodellen og får tilbake situasjonsbilde, risikoer og anbefalte tiltak.
 - **Ressursliste per kommune** – utskriftsvennlig liste med filter på kommune, type og tilgjengelighet. **Skriv ut** skjuler meny og knapper.
 - **Eksport** – samme liste som **CSV** (semikolon og UTF-8 med BOM, åpnes riktig i norsk Excel, beskyttet mot formel-injeksjon) eller **JSON** for andre systemer: `/Report/Export?format=csv&kommune=Kristiansand`.
 
