@@ -1,3 +1,4 @@
+
 using System.ComponentModel.DataAnnotations;
 
 namespace FirstWebAppInDocker.ViewModels;
@@ -17,4 +18,16 @@ public class LoginViewModel
     [DataType(DataType.Password)]
     [Display(Name = "Passord")]
     public string Password { get; init; } = string.Empty;
+
+
+    // ========================================
+    // HUSK MEG
+    // ========================================
+
+    /// <summary>
+    /// Angir om brukeren ønsker å forbli
+    /// innlogget etter at nettleseren lukkes.
+    /// </summary>
+    [Display(Name = "Husk meg")]
+    public bool RememberMe { get; set; } = false;
 }

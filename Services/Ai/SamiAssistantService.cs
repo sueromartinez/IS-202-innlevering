@@ -11,6 +11,8 @@ public class SamiReply
     public string Text { get; init; } = string.Empty;
 
     public List<SamiSuggestion> Suggestions { get; init; } = new();
+
+    public List<SamiResourceDraft> ResourceDrafts { get; init; } = new();
 }
 
 
@@ -60,7 +62,7 @@ public class SamiAssistantService
         IReadOnlyList<ChatToolDefinition> tools = _tools.GetDefinitions(context.Role);
 
         var messages = new List<ChatMessage>(history);
-        var suggestions = new List<SamiSuggestion>();
+        var output = new SamiTurnOutput();
 
         for (int round = 0; round < _options.MaxToolRounds; round++)
         {
@@ -74,7 +76,8 @@ public class SamiAssistantService
                     Text = string.IsNullOrWhiteSpace(response.Text)
                         ? "Beklager, jeg fikk ikke til å lage et svar. Kan du prøve å spørre på en annen måte?"
                         : response.Text.Trim(),
-                    Suggestions = suggestions
+                    Suggestions = output.Suggestions,
+                    ResourceDrafts = output.ResourceDrafts
                 };
             }
 
@@ -98,7 +101,7 @@ public class SamiAssistantService
 
                 try
                 {
-                    result = await _tools.ExecuteAsync(call, context, suggestions, cancellationToken);
+                    result = await _tools.ExecuteAsync(call, context, output, cancellationToken);
                 }
                 catch (SamiToolException exception)
                 {
@@ -122,7 +125,8 @@ public class SamiAssistantService
         return new SamiReply
         {
             Text = "Beklager, dette ble for mange steg for meg. Prøv å dele spørsmålet opp i mindre deler.",
-            Suggestions = suggestions
+            Suggestions = output.Suggestions,
+            ResourceDrafts = output.ResourceDrafts
         };
     }
 }

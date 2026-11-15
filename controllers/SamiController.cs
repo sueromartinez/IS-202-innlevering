@@ -130,6 +130,41 @@ public class SamiController : Controller
                     needDescription = suggestion.NeedDescription,
                     distanceKm = suggestion.DistanceKm,
                     reason = suggestion.Reason
+                }),
+                // Utkast til ressurs. Feltnavnene er de samme som i registreringsskjemaet,
+                // så widgeten kan sende dem rett til /Resource/RegisterResource.
+                resourceDrafts = reply.ResourceDrafts.Select(draft => new
+                {
+                    fields = new Dictionary<string, string?>
+                    {
+                        ["ResourceType"] = draft.ResourceType,
+                        ["ResourceName"] = draft.ResourceName,
+                        ["Description"] = draft.Description,
+                        ["Quantity"] = draft.Quantity.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        ["Capacity"] = draft.Capacity,
+                        ["AvailabilityMonths"] = draft.AvailabilityMonths.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        ["StreetAddress"] = draft.StreetAddress,
+                        ["PostalLocation"] = draft.PostalLocation,
+                        ["Municipality"] = draft.Municipality,
+                        ["Latitude"] = draft.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        ["Longitude"] = draft.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        ["ContactPhoneCountryCode"] = draft.ContactPhoneCountryCode,
+                        ["ContactPhoneNumber"] = draft.ContactPhoneNumber
+                    },
+                    summary = new
+                    {
+                        typeName = draft.ResourceTypeName,
+                        name = draft.ResourceName,
+                        description = draft.Description,
+                        quantity = draft.Quantity,
+                        capacity = draft.Capacity,
+                        availability = draft.AvailabilityName,
+                        address = string.Join(", ", new[] { draft.StreetAddress, draft.PostalLocation, draft.Municipality }
+                            .Where(part => !string.IsNullOrWhiteSpace(part))),
+                        phone = draft.ContactPhoneNumber is null
+                            ? null
+                            : draft.ContactPhoneCountryCode + " " + draft.ContactPhoneNumber
+                    }
                 })
             });
         }

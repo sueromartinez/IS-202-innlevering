@@ -237,15 +237,50 @@ Frivillig- og bedriftsbrukeren, ressursene og behovene er demodata som opprettes
 
 E-post fanges av **Mailpit** og kan leses på http://localhost:8025. SMS logges bare i konsollen.
 
+## Frist, kontaktpunkt og hastegrad
+
+Et behov kan få **frist** og **kontaktpunkt** (kontaktperson og telefon). Kontaktpunktet vises til den frivillige først etter at hen har bekreftet.
+
+Hvert åpent behov får en **hastegrad** fra 0 til 100 (`Services/Matching/NeedUrgencyService.cs`). Modellen er bevisst enkel og forklarbar:
+
+| Faktor | Poeng |
+|---|---|
+| Prioritet | Akutt 50, Planlagt 15 |
+| Frist | passert +35, innen 1 døgn +30, innen 3 døgn +20, innen 7 døgn +10 |
+| Ventetid (ikke tildelt) | over 24 t +15, over 6 t +8, over 1 t +3 |
+| Dekning | ingen ressurser av riktig type innen 50 km +20, bare 1–2 +8 |
+
+Tildelte behov får 30 % av poengene, løste behov 0. Nivå: 70+ Kritisk, 45–69 Høy, 25–44 Middels, ellers Lav. Grunnene vises når man holder musen over merket.
+
+## Frivillige: endre og slette egne ressurser
+
+Under **Mine ressurser** har hver ressurs knappene **Endre** og **Slett**. En ressurs som er *Opptatt* eller har forespørsler knyttet til seg kan ikke slettes, slik at historikken beholdes (samme regel som for admin).
+
+---
+
+# Rapporter, eksport og sporbarhet
+
+**Rapporter** i menyen (offentlig aktør og admin):
+
+- **Situasjonsrapport** – nøkkeltall, dekning per ressurstype (mangler og knapp dekning), ressurser per kommune, de mest presserende behovene og behov uten ressurser innen 50 km. Tallene regnes ut i C# (`Services/Reports/ReportService.cs`), og en regelbasert oppsummering virker uten AI. Knappen **Be Sami skrive vurdering** sender bare tallene (ingen navn, e-post eller telefon) til språkmodellen og får tilbake situasjonsbilde, risikoer og anbefalte tiltak.
+- **Ressursliste per kommune** – utskriftsvennlig liste med filter på kommune, type og tilgjengelighet. **Skriv ut** skjuler meny og knapper.
+- **Eksport** – samme liste som **CSV** (semikolon og UTF-8 med BOM, åpnes riktig i norsk Excel, beskyttet mot formel-injeksjon) eller **JSON** for andre systemer: `/Report/Export?format=csv&kommune=Kristiansand`.
+
+**Aktivitetslogg** (admin, `/Admin/AuditLog`): innlogginger og mislykkede innlogginger, utlogging, endringer på ressurser og behov, forespørsler og svar, løste behov, rolleendringer, nye/deaktiverte brukere, eksport og situasjonsrapporter. Filtrer på handling, periode og tekst. Loggingen skjer i `Services/AuditLog.cs`; feiler den, stopper den aldri selve handlingen.
+
+**Flybilder:** kartmenyen har også **Flybilder** fra Norge i bilder (Kartverket/Geovekst).
+
 ---
 
 # Sami – AI-assistenten
 
 Sami er hjelpeboten nede i høyre hjørne på alle sider etter innlogging.
 
-- **Frivillig:** hjelp til navigasjon og registrering, og «hvilke behov kan jeg hjelpe med?»
+- **Frivillig:** fortell Sami hva du vil tilby og hvor det står, så lager Sami et utkast til ressursen. Ressursen lagres først når du trykker **Registrer ressursen** (samme skjema og validering som «Registrer ressurs»). Sami kan også si hvilket nivå du er på og hva som skal til for neste.
 - **Offentlig aktør:** beskriv en hendelse («flom i Grimstad sentrum»), så finner Sami ressurser i nærheten og foreslår matcher. Forslag vises som kort med knappen **Send forespørsel**; Sami lagrer aldri noe selv.
 - **Admin:** det samme, pluss tall for hele portalen.
+
+Alle roller kan spørre Sami om hvordan portalen fungerer (mørk modus, nivå, innlogging, tofaktor, profil, varsler osv.). Svarene hentes fra hjelpeartiklene i `Services/Ai/SamiHelpGuide.cs`. **Endrer dere en funksjon i portalen, oppdater artikkelen der**, så svarer Sami riktig.
 
 Avstand og filtrering beregnes i C# (`ResourceMatchingService`). Språkmodellen får ferdige kandidater, uten kontaktinformasjon, og forklarer og rangerer dem.
 
@@ -270,11 +305,11 @@ Legg dette i `.env` (aldri commit nøkkelen):
 
 # Etter at denne endringen er hentet
 
-Datamodellen har fått nye tabeller og felt (status på behov og ressurser, forespørsler og varsler).
+Datamodellen har fått nye tabeller og felt (frist og kontaktpunkt på behov, og tabellen `AuditLog`).
 Lag migrasjonen én gang før appen startes:
 
     dotnet tool install --global dotnet-ef   (hvis du ikke har det)
-    dotnet ef migrations add AddMatchingNotificationsAndSami
+    dotnet ef migrations add JuryForbedringer
     dotnet build
     dotnet test FirstWebAppInDocker.Tests
     docker compose up --build

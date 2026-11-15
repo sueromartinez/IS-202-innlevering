@@ -65,6 +65,8 @@ public class VolunteerRequestViewModel
 
     public int NeedQuantity { get; init; }
 
+    public DateTime? NeedDeadline { get; init; }
+
     public double DistanceKm { get; init; }
 
     public AssignmentStatus Status { get; init; }

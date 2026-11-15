@@ -26,11 +26,12 @@ public class DashboardViewModel
     public int ResourceCount => Resources.Count;
 
     // Counts explicit statuses only; missing or older free text remains unspecified.
+    // Nye perioder bruker status/sluttdato; eldre registreringer beholder eksisterende tolkning.
     public int AvailableCount => Resources.Count(resource =>
-        string.Equals(resource.Availability?.Trim(), "Tilgjengelig", StringComparison.OrdinalIgnoreCase));
+        string.Equals(Services.ResourceAvailability.DashboardStatus(resource)?.Trim(), "Tilgjengelig", StringComparison.OrdinalIgnoreCase));
 
     public int UnavailableCount => Resources.Count(resource =>
-        string.Equals(resource.Availability?.Trim(), "Ikke tilgjengelig", StringComparison.OrdinalIgnoreCase));
+        string.Equals(Services.ResourceAvailability.DashboardStatus(resource)?.Trim(), "Ikke tilgjengelig", StringComparison.OrdinalIgnoreCase));
 
     public int UnspecifiedCount => ResourceCount - AvailableCount - UnavailableCount;
 

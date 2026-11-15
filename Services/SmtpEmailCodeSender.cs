@@ -20,6 +20,12 @@ public interface IEmailCodeSender
         string email,
         string confirmationUrl,
         CancellationToken cancellationToken = default);
+
+    // NYTT: Tilbakestilling av passord.
+    Task SendPasswordResetAsync(
+        string email,
+        string resetUrl,
+        CancellationToken cancellationToken = default);
 }
 
 // ========================================
@@ -83,17 +89,9 @@ public sealed class SmtpEmailCodeSender : IEmailCodeSender
         string confirmationUrl,
         CancellationToken cancellationToken = default)
     {
-        if (!Uri.TryCreate(
+        ValidateWebUrl(
             confirmationUrl,
-            UriKind.Absolute,
-            out var uri) ||
-            (uri.Scheme != Uri.UriSchemeHttps &&
-             uri.Scheme != Uri.UriSchemeHttp))
-        {
-            throw new ArgumentException(
-                "Ugyldig bekreftelseslenke.",
-                nameof(confirmationUrl));
-        }
+            nameof(confirmationUrl));
 
         string subject =
             "Bekreft e-postadressen din - Beredskapsportalen";
@@ -114,6 +112,66 @@ public sealed class SmtpEmailCodeSender : IEmailCodeSender
             subject,
             body,
             cancellationToken);
+    }
+
+    // ========================================
+    // NYTT: SEND LENKE FOR GLEMT PASSORD
+    // ========================================
+
+    public async Task SendPasswordResetAsync(
+        string email,
+        string resetUrl,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateWebUrl(
+            resetUrl,
+            nameof(resetUrl));
+
+        string subject =
+            "Tilbakestill passordet ditt - Beredskapsportalen";
+
+        string body =
+            "Hei!\n\n" +
+            "Vi har mottatt en forespørsel om å " +
+            "tilbakestille passordet til kontoen din " +
+            "på Beredskapsportalen.\n\n" +
+            "For å opprette et nytt passord, " +
+            "åpne følgende lenke:\n\n" +
+            resetUrl + "\n\n" +
+            "Lenken er personlig og kan bare brukes " +
+            "så lenge sikkerhetstokenet er gyldig.\n\n" +
+            "Hvis du ikke har bedt om å tilbakestille " +
+            "passordet ditt, kan du ignorere denne e-posten.\n\n" +
+            "Ikke del denne lenken med andre.\n\n" +
+            "Hilsen Beredskapsportalen";
+
+        await SendEmailAsync(
+            email,
+            subject,
+            body,
+            cancellationToken);
+    }
+
+    // ========================================
+    // VALIDER LENKER
+    // ========================================
+
+    private static void ValidateWebUrl(
+        string url,
+        string parameterName)
+    {
+        if (!Uri.TryCreate(
+                url,
+                UriKind.Absolute,
+                out Uri? uri)
+            ||
+            (uri.Scheme != Uri.UriSchemeHttps
+             && uri.Scheme != Uri.UriSchemeHttp))
+        {
+            throw new ArgumentException(
+                "Ugyldig lenke.",
+                parameterName);
+        }
     }
 
     // ========================================

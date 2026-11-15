@@ -1,3 +1,4 @@
+
 using System.ComponentModel.DataAnnotations;
 
 namespace FirstWebAppInDocker.ViewModels;
@@ -8,6 +9,10 @@ namespace FirstWebAppInDocker.ViewModels;
 /// </summary>
 public class RegisterViewModel
 {
+    // ========================================
+    // NAVN
+    // ========================================
+
     [Required(ErrorMessage = "Navn er påkrevd.")]
     [StringLength(
         100,
@@ -16,12 +21,56 @@ public class RegisterViewModel
     public string Name { get; set; } = string.Empty;
 
 
+    // ========================================
+    // E-POST
+    // ========================================
+
     [Required(ErrorMessage = "E-post er påkrevd.")]
     [EmailAddress(
         ErrorMessage = "Skriv inn en gyldig e-postadresse."
     )]
     public string Email { get; set; } = string.Empty;
 
+
+    // ========================================
+    // LANDSKODE
+    // ========================================
+
+    [Required(ErrorMessage = "Velg landskode.")]
+    [RegularExpression(
+        @"^\+(47|46|45)$",
+        ErrorMessage = "Velg en gyldig landskode."
+    )]
+    [Display(Name = "Landskode")]
+    public string PhoneCountryCode { get; set; } = "+47";
+
+
+    // ========================================
+    // TELEFONNUMMER
+    // ========================================
+
+    // Telefonnummer er valgfritt.
+    // Brukeren kan skrive nummeret
+    // med eller uten mellomrom.
+
+    [Display(Name = "Telefonnummer")]
+    [StringLength(
+        20,
+        ErrorMessage = "Telefonnummeret er for langt."
+    )]
+    [RegularExpression(
+        @"^[0-9 ]{5,20}$",
+        ErrorMessage =
+            "Telefonnummeret må inneholde " +
+            "5–20 tegn og bare tall eller mellomrom."
+    )]
+    [DataType(DataType.PhoneNumber)]
+    public string? PhoneNumber { get; set; }
+
+
+    // ========================================
+    // PASSORD
+    // ========================================
 
     [Required(ErrorMessage = "Passord er påkrevd.")]
     [DataType(DataType.Password)]
@@ -32,6 +81,10 @@ public class RegisterViewModel
     )]
     public string Password { get; set; } = string.Empty;
 
+
+    // ========================================
+    // BEKREFT PASSORD
+    // ========================================
 
     [Required(ErrorMessage = "Bekreft passordet.")]
     [DataType(DataType.Password)]

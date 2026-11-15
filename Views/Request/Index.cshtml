@@ -64,6 +64,10 @@
                                 @EnumDisplay.Name(request.NeedPriority)
                             </span>
                             <span>@EnumDisplay.Name(request.NeedType) · antall @request.NeedQuantity</span>
+                            @if (request.NeedDeadline.HasValue)
+                            {
+                                <span>Frist @request.NeedDeadline.Value.ToString("dd.MM.yyyy")</span>
+                            }
                             <span>ca. @request.DistanceKm.ToString("0.0") km fra ressursen din</span>
                             <span>Sendt @request.CreatedAt.ToLocalTime().ToString("dd.MM HH:mm")</span>
                         </div>

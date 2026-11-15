@@ -20,6 +20,7 @@
     const role = root.dataset.role || "volunteer";
     const chatUrl = root.dataset.chatUrl;
     const requestUrl = root.dataset.requestUrl;
+    const registerResourceUrl = root.dataset.registerResourceUrl;
     const tokenInput = root.querySelector('input[name="__RequestVerificationToken"]');
     const token = tokenInput ? tokenInput.value : "";
 
@@ -45,26 +46,28 @@
 
     const welcome = {
         volunteer:
-            "Hei! Jeg er Sami, hjelpeassistenten i portalen. Jeg kan hjelpe deg å **registrere ressurser**, " +
-            "finne frem, og se **hvilke behov du kan hjelpe med**. Hva lurer du på?",
+            "Hei! Jeg er Sami, hjelpeassistenten i portalen. Fortell meg hva du vil tilby og hvor det står, " +
+            "så **registrerer jeg ressursen** for deg. Du kan også spørre meg om **alt i portalen**, " +
+            "for eksempel nivå, mørk modus eller innlogging.",
         public:
             "Hei! Jeg er Sami. Beskriv en hendelse, f.eks. «flom i Grimstad sentrum», så finner jeg " +
-            "**ressurser i nærheten** som kan passe. Jeg kan også hjelpe deg å matche registrerte behov.",
+            "**ressurser i nærheten** som kan passe. Du kan også spørre meg om **alt i portalen**.",
         admin:
             "Hei! Jeg er Sami. Jeg kan finne **ressurser til behov og hendelser**, gi **tall for portalen** " +
-            "og vise vei til brukeradministrasjonen."
+            "og svare på spørsmål om **alt i portalen**, også brukeradministrasjon."
     };
 
     const starters = {
         volunteer: [
-            "Hvordan registrerer jeg en ressurs?",
+            "Hjelp meg å registrere en ressurs",
+            "Hvordan går jeg opp i nivå?",
             "Hvilke behov kan jeg hjelpe med?",
-            "Hva skjer når noen ønsker ressursen min?"
+            "Hvordan skrur jeg på mørk modus?"
         ],
         public: [
             "Det er flom i Grimstad sentrum. Hva har vi i nærheten?",
             "Hvilke akutte behov mangler ressurser?",
-            "Hvordan registrerer jeg et behov?"
+            "Hvordan skrur jeg på mørk modus?"
         ],
         admin: [
             "Gi meg en oversikt over ressurser og behov",
@@ -248,6 +251,106 @@
         messagesEl.appendChild(card);
     }
 
+    // Utkast til en ny ressurs. Knappen sender det vanlige registreringsskjemaet,
+    // så serveren validerer og lagrer akkurat som når brukeren fyller det ut selv.
+    function addResourceDraftCard(draft) {
+        const summary = draft.summary || {};
+
+        const card = document.createElement("article");
+        card.className = "sami-card sami-draft-card";
+
+        const title = document.createElement("h3");
+        title.textContent = summary.name || "Ny ressurs";
+
+        const meta = document.createElement("p");
+        meta.className = "sami-card-meta";
+        meta.textContent = "Utkast til ny ressurs, ikke lagret ennå";
+
+        const list = document.createElement("dl");
+        list.className = "sami-draft-fields";
+
+        [
+            ["Type", summary.typeName],
+            ["Beskrivelse", summary.description],
+            ["Antall", summary.quantity],
+            ["Kapasitet", summary.capacity],
+            ["Tilgjengelig i", summary.availability],
+            ["Adresse", summary.address],
+            ["Telefon", summary.phone]
+        ].forEach(function (row) {
+            if (row[1] === null || row[1] === undefined || row[1] === "") {
+                return;
+            }
+
+            const term = document.createElement("dt");
+            term.textContent = row[0];
+
+            const value = document.createElement("dd");
+            value.textContent = String(row[1]);
+
+            list.append(term, value);
+        });
+
+        const hint = document.createElement("p");
+        hint.className = "sami-card-need";
+        hint.textContent = "Sjekk at adressen stemmer. Vil du endre noe, si det til meg.";
+
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "sami-card-button";
+        button.textContent = draft.sent ? "Sendt til registrering" : "Registrer ressursen";
+        button.disabled = !!draft.sent || !registerResourceUrl;
+
+        button.addEventListener("click", function () {
+            submitResourceDraft(draft, button);
+        });
+
+        card.append(title, meta, list, hint, button);
+        messagesEl.appendChild(card);
+    }
+
+    function submitResourceDraft(draft, button) {
+        if (!registerResourceUrl || !draft.fields) {
+            return;
+        }
+
+        button.disabled = true;
+        button.textContent = "Registrerer …";
+
+        // Husk at utkastet er sendt, så knappen ikke kan brukes to ganger etter sidebytte.
+        draft.sent = true;
+        save(sessionStorage, historyKey, history);
+
+        // Et vanlig skjema som sendes med POST, akkurat som "Registrer ressurs"-siden.
+        const form = document.createElement("form");
+        form.method = "post";
+        form.action = registerResourceUrl;
+        form.hidden = true;
+
+        Object.keys(draft.fields).forEach(function (name) {
+            const value = draft.fields[name];
+
+            if (value === null || value === undefined) {
+                return;
+            }
+
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = name;
+            input.value = String(value);
+            form.appendChild(input);
+        });
+
+        const tokenField = document.createElement("input");
+        tokenField.type = "hidden";
+        tokenField.name = "__RequestVerificationToken";
+        tokenField.value = token;
+        form.appendChild(tokenField);
+
+        document.body.appendChild(form);
+        form.submit();
+    }
+
     function renderStarters() {
         startersEl.innerHTML = "";
 
@@ -276,6 +379,10 @@
 
             (entry.suggestions || []).forEach(function (suggestion) {
                 addSuggestionCard(suggestion, entry);
+            });
+
+            (entry.resourceDrafts || []).forEach(function (draft) {
+                addResourceDraftCard(draft);
             });
         });
 
@@ -372,7 +479,8 @@
             const entry = {
                 role: "assistant",
                 text: data.reply,
-                suggestions: data.suggestions || []
+                suggestions: data.suggestions || [],
+                resourceDrafts: data.resourceDrafts || []
             };
 
             history.push(entry);
@@ -382,6 +490,9 @@
             addMessageElement("sami", entry.text);
             entry.suggestions.forEach(function (suggestion) {
                 addSuggestionCard(suggestion, entry);
+            });
+            entry.resourceDrafts.forEach(function (draft) {
+                addResourceDraftCard(draft);
             });
         } catch (error) {
             hideTyping();

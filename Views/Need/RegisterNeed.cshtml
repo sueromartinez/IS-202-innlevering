@@ -17,9 +17,11 @@
     <!-- Fargetema: lyst/mørkt tema -->
     <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
     <script src="~/js/theme.js" asp-append-version="true"></script>
+    @* Ny mobiltilpasning gjelder bare denne registreringssiden; PC-stilen beholdes. *@
+    <link rel="stylesheet" href="~/css/register-need.css" asp-append-version="true" />
 </head>
 
-<body>
+<body class="need-registration-page">
 
 <partial name="_PortalHeader" />
 
@@ -88,6 +90,27 @@
                                 <span asp-validation-for="Needs[i].Description" class="error"></span>
                             </label>
 
+                            @* Frist og kontaktpunkt, slik caset krever. Kontaktpunktet er fylt ut med deg selv. *@
+                            <div class="need-row">
+                                <label>
+                                    Frist (valgfritt)
+                                    <input asp-for="Needs[i].Deadline" type="date" data-deadline />
+                                </label>
+
+                                <label>
+                                    Kontaktperson
+                                    <input asp-for="Needs[i].ContactName" maxlength="100"
+                                           placeholder="F.eks. vakthavende" />
+                                    <span asp-validation-for="Needs[i].ContactName" class="error"></span>
+                                </label>
+
+                                <label>
+                                    Telefon
+                                    <input asp-for="Needs[i].ContactPhone" type="tel" maxlength="30" />
+                                    <span asp-validation-for="Needs[i].ContactPhone" class="error"></span>
+                                </label>
+                            </div>
+
                             <input asp-for="Needs[i].Latitude" type="hidden" data-lat />
                             <input asp-for="Needs[i].Longitude" type="hidden" data-lng />
                             <span asp-validation-for="Needs[i].Latitude" class="error"></span>
@@ -123,6 +146,8 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="~/js/kartverket.js" asp-append-version="true"></script>
+@* Fullskjermkontrollen bruker det samme kartet og de samme behovsmarkørene. *@
+<script src="~/js/register-need-map.js" asp-append-version="true"></script>
 
 <script>
 
@@ -134,6 +159,9 @@
     const map = L.map("map").setView([58.1467, 7.9956], 11);
 
     addKartverketLayers(map);
+
+    // Ny kontroll: Åpner samme behovskart i fullskjerm uten å miste plasseringene.
+    addNeedFullscreenControl(map);
 
     const markers = new Map(); // behovskort -> markør
     let activeNeed = null;
@@ -232,6 +260,8 @@
         newNeed.querySelector("textarea").value = "";
         newNeed.querySelector("input[type=number]").value = 1;
         newNeed.querySelector("[data-lat]").value = "";
+        // Fristen gjelder bare ett behov. Kontaktpunktet beholdes.
+        newNeed.querySelector("[data-deadline]").value = "";
         newNeed.querySelector("[data-lng]").value = "";
         newNeed.querySelectorAll(".error").forEach(error => error.textContent = "");
 

@@ -1,3 +1,4 @@
+
 using System.Diagnostics;
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
@@ -11,7 +12,7 @@ namespace FirstWebAppInDocker.Controllers;
 
 /// <summary>
 /// Håndterer forsiden, dashboardet
-/// og generell feilhandtering.
+/// og generell feilhåndtering.
 /// </summary>
 public class HomeController : Controller
 {
@@ -20,11 +21,6 @@ public class HomeController : Controller
     private readonly UserManager<ApplicationUser>
         _userManager;
 
-
-    /// <summary>
-    /// Oppretter controlleren med tilgang
-    /// til databasen og ASP.NET Core Identity.
-    /// </summary>
     public HomeController(
         ApplicationDbContext context,
         UserManager<ApplicationUser> userManager
@@ -34,16 +30,36 @@ public class HomeController : Controller
         _userManager = userManager;
     }
 
+    // ========================================
+    // FORSIDE
+    // ========================================
 
     /// <summary>
-    /// Viser den offentlige forsiden.
+    /// Viser forsiden for besøkende.
+    ///
+    /// Brukere som allerede er innlogget
+    /// sendes direkte til Dashboard.
+    ///
+    /// Dette gjør at en gyldig innloggingscookie
+    /// også gjenkjennes når nettleseren åpnes
+    /// på nytt.
     /// </summary>
     [HttpGet]
     public IActionResult Index()
+    {
+        if (User.Identity?.IsAuthenticated == true)
         {
-        return View();
+            return RedirectToAction(
+                nameof(Dashboard)
+            );
         }
 
+        return View();
+    }
+
+    // ========================================
+    // DASHBOARD
+    // ========================================
 
     /// <summary>
     /// Viser dashboardet til en innlogget bruker.
@@ -64,15 +80,12 @@ public class HomeController : Controller
                 User
             );
 
-
         if (user is null)
         {
             return Challenge();
         }
 
-
         string userRole;
-
 
         if (
             User.IsInRole(
@@ -98,12 +111,9 @@ public class HomeController : Controller
                 IdentitySeeder.ResourceProviderRole;
         }
 
+        // Identity er sannhetskilden
+        // for innlogging og brukerroller.
 
-        // Session beholdes midlertidig fordi
-        // eksisterende dashboard-view bruker den
-        // enkelte steder.
-        //
-        // Identity er sannhetskilden.
         ViewBag.UserName =
             string.IsNullOrWhiteSpace(
                 user.Name
@@ -111,68 +121,95 @@ public class HomeController : Controller
                 ? user.Email
                 : user.Name;
 
+        ViewBag.UserRole =
+            userRole;
 
-        ViewBag.UserRole = userRole;
+        var model =
+            new DashboardViewModel();
 
-        DashboardViewModel model;
+        // ========================================
+        // PUBLIC ACTOR / ADMIN
+        // ========================================
 
-        // Offentlige aktører og administratorer ser
-        // alle behov og ressurser.
         if (
-            userRole == IdentitySeeder.PublicActorRole ||
+            userRole == IdentitySeeder.PublicActorRole
+            ||
             userRole == IdentitySeeder.AdminRole
         )
         {
-            model = new DashboardViewModel
-            {
-                Needs = await _context.Needs
-                    .AsNoTracking()
-                    .OrderByDescending(need => need.CreatedAt)
-                    .ToListAsync(),
+            model =
+                new DashboardViewModel
+                {
+                    Needs =
+                        await _context.Needs
+                            .AsNoTracking()
+                            .OrderByDescending(
+                                need => need.CreatedAt
+                            )
+                            .ToListAsync(),
 
-                Resources = await _context.Resources
-                    .AsNoTracking()
-                    .OrderByDescending(resource => resource.CreatedAt)
-                    .ToListAsync()
-            };
+                    Resources =
+                        await _context.Resources
+                            .AsNoTracking()
+                            .OrderByDescending(
+                                resource => resource.CreatedAt
+                            )
+                            .ToListAsync()
+                };
         }
-        else
+
+        // ========================================
+        // RESOURCE PROVIDER
+        // ========================================
+
+        if (
+            userRole == IdentitySeeder.ResourceProviderRole
+        )
         {
-            // Ressursleverandører ser bare egne ressurser.
-            // Identity-ID brukes primært, e-post er reserve
-            // for eldre ressurser uten OwnerUserId.
-            string? userEmail = user.Email;
+            string? userEmail =
+                user.Email;
 
-            var resources = await _context.Resources
-                .AsNoTracking()
-                .Where(resource =>
-                    resource.OwnerUserId == user.Id ||
-                    (
-                        resource.OwnerUserId == null &&
-                        resource.OwnerEmail == userEmail
-                    )
-                )
-                .OrderByDescending(resource => resource.CreatedAt)
-                .ToListAsync();
+            model =
+                new DashboardViewModel
+                {
+                    Resources =
+                        await _context.Resources
+                            .AsNoTracking()
+                            .Where(
+                                resource =>
 
-            model = new DashboardViewModel
-            {
-                Resources = resources
-            };
+                                    // Permanent eierskapskobling.
+                                    resource.OwnerUserId
+                                        == user.Id
 
-            ViewBag.TotalResources = resources.Count;
-            ViewBag.AvailableResources = resources.Count(r => r.IsAvailable);
-            ViewBag.UnavailableResources = resources.Count(r => !r.IsAvailable);
+                                    ||
+
+                                    // Støtte for eldre ressurser
+                                    // uten OwnerUserId.
+                                    (
+                                        resource.OwnerUserId
+                                            == null
+
+                                        &&
+
+                                        resource.OwnerEmail
+                                            == userEmail
+                                    )
+                            )
+                            .OrderByDescending(
+                                resource => resource.CreatedAt
+                            )
+                            .ToListAsync()
+                };
         }
 
         return View(model);
     }
 
+    // ========================================
+    // FEILSIDE
+    // ========================================
 
-    /// <summary>
-    /// Viser feilside dersom en
-    /// uventet feil oppstår.
-    /// </summary>
     [ResponseCache(
         Duration = 0,
         Location = ResponseCacheLocation.None,

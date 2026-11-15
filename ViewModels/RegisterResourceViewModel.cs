@@ -41,13 +41,52 @@ public string Description { get; set; } = string.Empty;
     [Display(Name = "Tilgjengelighet")]
     public string? Availability { get; set; }
 
+    // Perioden må være ett av de eksisterende valgene og valideres også på serveren.
+    [Required(ErrorMessage = "Velg hvor lenge ressursen skal være tilgjengelig.")]
+    [Display(Name = "Hvor lenge skal ressursen være tilgjengelig?")]
+    public int? AvailabilityMonths { get; set; }
+
+
+    // =========================
     // LOCATION
 
     [StringLength(200)]
     [Display(Name = "Adresse / område")]
     public string? Address { get; set; }
 
-    [Range(-90, 90, ErrorMessage = "Breddegrad må være mellom -90 og 90.")]
+    // Tre skjemafelt samles i det eksisterende adressefeltet ved lagring.
+    [StringLength(200)]
+    [Display(Name = "Adresse")]
+    public string? StreetAddress { get; set; }
+
+    [StringLength(100)]
+    [Display(Name = "Postnummer og poststed")]
+    public string? PostalLocation { get; set; }
+
+    [StringLength(100)]
+    [Display(Name = "Kommune")]
+    public string? Municipality { get; set; }
+
+    public string? CombinedAddress()
+    {
+        if (StreetAddress is null && PostalLocation is null && Municipality is null) return Address?.Trim();
+        var streetAndPost = string.Join(", ", new[] { StreetAddress?.Trim(), PostalLocation?.Trim() }
+            .Where(value => !string.IsNullOrWhiteSpace(value)));
+        return string.Join(" – ", new[] { streetAndPost,
+            string.IsNullOrWhiteSpace(Municipality) ? null : $"{Municipality.Trim()} kommune" }
+            .Where(value => !string.IsNullOrWhiteSpace(value)));
+    }
+
+
+    /// <summary>
+    /// Breddegrad valgt i Leaflet-kartet.
+    /// </summary>
+    [Range(
+        -90,
+        90,
+        ErrorMessage =
+            "Breddegrad må være mellom -90 og 90."
+    )]
     public double Latitude { get; set; }
 
     [Range(-180, 180, ErrorMessage = "Lengdegrad må være mellom -180 og 180.")]
@@ -82,6 +121,20 @@ public IEnumerable<ValidationResult> Validate(ValidationContext validationContex
             new[] { nameof(ResourceName) }
         );
     }
+
+        // Avviser ugyldige perioder og adresser som er for lange etter sammenslåing.
+        if (AvailabilityMonths.HasValue
+            && !FirstWebAppInDocker.Services.ResourceAvailability.Periods.ContainsKey(AvailabilityMonths.Value))
+        {
+            yield return new ValidationResult("Velg en gyldig periode.", new[] { nameof(AvailabilityMonths) });
+        }
+        if (CombinedAddress()?.Length > 200)
+        {
+            yield return new ValidationResult("Samlet adresse kan maksimalt være 200 tegn.", new[] { nameof(StreetAddress) });
+        }
+        // =========================
+        // MAP POSITION
+        // =========================
 
     // Sjekk at beskrivelsen har minst 10 tegn etter trimming
     if (!string.IsNullOrWhiteSpace(Description) &&

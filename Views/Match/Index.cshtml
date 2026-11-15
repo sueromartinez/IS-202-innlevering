@@ -1,0 +1,1525 @@
+
+@model List<FirstWebAppInDocker.Models.Need>
+
+@using FirstWebAppInDocker.Models
+
+@{
+    Layout = "_PortalLayout";
+    ViewData["Title"] = "Koordinering";
+
+    // Data fra MatchController.Index()
+    var pendingByNeed =
+        ViewBag.PendingByNeed as Dictionary<int, int>
+        ?? new Dictionary<int, int>();
+
+    var confirmedByNeed =
+        ViewBag.ConfirmedByNeed as Dictionary<int, int>
+        ?? new Dictionary<int, int>();
+
+    var totalByNeed =
+        ViewBag.TotalByNeed as Dictionary<int, int>
+        ?? new Dictionary<int, int>();
+
+    var resolvedNeeds =
+        ViewBag.ResolvedNeeds as List<Need>
+        ?? new List<Need>();
+
+    int CountFor(
+        Dictionary<int, int> source,
+        int needId)
+    {
+        return source.TryGetValue(needId, out int count)
+            ? count
+            : 0;
+    }
+
+    int Pending(int needId) =>
+        CountFor(pendingByNeed, needId);
+
+    int Confirmed(int needId) =>
+        CountFor(confirmedByNeed, needId);
+
+    int Total(int needId) =>
+        CountFor(totalByNeed, needId);
+
+    string TypeLabel(ResourceType type) => type switch
+    {
+        ResourceType.Transport => "Transport",
+        ResourceType.Drone => "Drone / droneoperatør",
+        ResourceType.Generator => "Strøm / aggregat",
+        ResourceType.Machinery => "Maskiner",
+        ResourceType.CommunicationEquipment => "Sambandsutstyr",
+        ResourceType.Personnel => "Mannskap / frivillige",
+        ResourceType.Premises => "Lokaler",
+        ResourceType.SandAndGravel => "Sand / grus",
+        ResourceType.Boat => "Båt",
+        ResourceType.Other => "Annet",
+        _ => type.ToString()
+    };
+
+    string NeedStatusLabel(Need need) =>
+        need.Status.ToString() switch
+        {
+            "New" => "Nytt",
+            "UnderReview" => "Til vurdering",
+            "Open" => "Åpent",
+            "Active" => "Aktivt",
+            "Assigned" => "Tildelt",
+            "Resolved" => "Løst",
+            "Closed" => "Lukket",
+            _ => need.Status.ToString()
+        };
+
+    // Ett behov plasseres bare i én kolonne.
+    // Bekreftet har høyest prioritet.
+    var matchingNeeds = Model
+        .Where(n => Confirmed(n.Id) == 0 && Pending(n.Id) == 0)
+        .ToList();
+
+    var waitingNeeds = Model
+        .Where(n => Confirmed(n.Id) == 0 && Pending(n.Id) > 0)
+        .ToList();
+
+    var confirmedNeeds = Model
+        .Where(n => Confirmed(n.Id) > 0)
+        .ToList();
+
+    // Viser både aktive og løste behov med forespørsler.
+    var requestNeeds = Model
+        .Concat(resolvedNeeds)
+        .Where(n => Total(n.Id) > 0)
+        .OrderByDescending(n => n.Id)
+        .ToList();
+
+    int pendingTotal = Model.Sum(n => Pending(n.Id));
+    int confirmedTotal = Model.Sum(n => Confirmed(n.Id));
+
+    var lanes = new[]
+    {
+        new
+        {
+            Id = "matching",
+            Title = "Trenger matching",
+            Description = "Finn passende ressurser",
+            Items = matchingNeeds,
+            Action = "Finn ressurser"
+        },
+        new
+        {
+            Id = "waiting",
+            Title = "Venter på svar",
+            Description = "Følg opp leverandører",
+            Items = waitingNeeds,
+            Action = "Følg opp"
+        },
+        new
+        {
+            Id = "confirmed",
+            Title = "Bekreftet",
+            Description = "Se bekreftede ressurser",
+            Items = confirmedNeeds,
+            Action = "Se tildeling"
+        }
+    };
+}
+
+<style>
+    /* ========================================
+       HOVEDDESIGN
+    ======================================== */
+
+    .coord-page {
+        color: #173954;
+    }
+
+    .coord-heading {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin-bottom: 26px;
+    }
+
+    .coord-eyebrow {
+        display: block;
+        margin-bottom: 9px;
+        color: #087fbd;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+    }
+
+    .coord-heading h1 {
+        margin: 0 0 9px;
+        color: #173954;
+        font-size: clamp(30px, 3vw, 42px);
+        font-weight: 800;
+    }
+
+    .coord-heading p {
+        margin: 0;
+        color: #55738c;
+        font-size: 15px;
+        line-height: 1.6;
+    }
+
+    .coord-primary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 41px;
+        padding: 10px 17px;
+        border: 0;
+        border-radius: 9px;
+        background: #087fbd;
+        color: #fff;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 750;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .coord-primary:hover {
+        background: #05699f;
+        color: #fff;
+    }
+
+    /* ========================================
+       STATISTIKK
+    ======================================== */
+
+    .coord-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 15px;
+        margin-bottom: 27px;
+    }
+
+    .coord-stat {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 21px 23px;
+        border: 1px solid #a6c7e5;
+        border-radius: 14px;
+        background: rgba(241, 248, 255, .81);
+    }
+
+    .coord-stat-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 46px;
+        height: 46px;
+        flex-shrink: 0;
+        border-radius: 12px;
+        background: #d8eafa;
+        color: #087fbd;
+    }
+
+    .coord-stat-icon svg {
+        width: 23px;
+        height: 23px;
+    }
+
+    .coord-stat-value {
+        display: block;
+        color: #173954;
+        font-size: 29px;
+        font-weight: 800;
+        line-height: 1.1;
+    }
+
+    .coord-stat-label {
+        display: block;
+        margin-top: 5px;
+        color: #55738c;
+        font-size: 12px;
+    }
+
+    /* ========================================
+       FANER
+    ======================================== */
+
+    .coord-workspace {
+        padding: 22px;
+        border: 1px solid #a6c7e5;
+        border-radius: 17px;
+        background: rgba(239, 247, 255, .72);
+    }
+
+    .coord-tabs {
+        display: flex;
+        gap: 7px;
+        flex-wrap: wrap;
+        padding-bottom: 17px;
+        border-bottom: 1px solid #c0d7ea;
+        margin-bottom: 22px;
+    }
+
+    .coord-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 11px 17px;
+        border: 1px solid transparent;
+        border-radius: 9px;
+        background: transparent;
+        color: #54728b;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .coord-tab:hover {
+        background: rgba(8, 127, 189, .07);
+    }
+
+    .coord-tab[aria-selected="true"] {
+        background: #087fbd;
+        color: #fff;
+    }
+
+    .coord-tab svg {
+        width: 17px;
+        height: 17px;
+    }
+
+    .coord-panel[hidden] {
+        display: none !important;
+    }
+
+    /* ========================================
+       TAVLEVERKTØY
+    ======================================== */
+
+    .coord-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 22px;
+    }
+
+    .coord-toolbar h2 {
+        margin: 0;
+        color: #173954;
+        font-size: 20px;
+    }
+
+    .coord-search {
+        min-width: 250px;
+        min-height: 41px;
+        padding: 10px 13px;
+        border: 1px solid #acc9df;
+        border-radius: 9px;
+        background: #fff;
+        color: #173954;
+        font: inherit;
+        font-size: 13px;
+    }
+
+    .coord-search:focus-visible {
+        outline: 3px solid #72b9e8;
+        outline-offset: 2px;
+    }
+
+    /* ========================================
+       KANBAN
+    ======================================== */
+
+    .coord-board {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        align-items: start;
+    }
+
+    .coord-lane {
+        min-width: 0;
+        min-height: 310px;
+        padding: 15px;
+        border: 1px solid #c1d7e9;
+        border-radius: 13px;
+        background: rgba(219, 235, 248, .57);
+    }
+
+    .coord-lane-header {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin-bottom: 5px;
+    }
+
+    .coord-lane-dot {
+        width: 10px;
+        height: 10px;
+        flex-shrink: 0;
+        border-radius: 50%;
+    }
+
+    .coord-lane.matching .coord-lane-dot {
+        background: #0886c7;
+    }
+
+    .coord-lane.waiting .coord-lane-dot {
+        background: #d99026;
+    }
+
+    .coord-lane.confirmed .coord-lane-dot {
+        background: #27935d;
+    }
+
+    .coord-lane-title {
+        margin: 0;
+        color: #173954;
+        font-size: 15px;
+        font-weight: 800;
+    }
+
+    .coord-lane-count {
+        margin-left: auto;
+        padding: 4px 9px;
+        border-radius: 20px;
+        background: #fff;
+        color: #42657d;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .coord-lane-description {
+        margin: 0 0 18px 19px;
+        color: #678198;
+        font-size: 12px;
+    }
+
+    .coord-lane-cards {
+        display: grid;
+        gap: 12px;
+    }
+
+    /* ========================================
+       BEHOVSKORT
+    ======================================== */
+
+    .coord-card {
+        min-width: 0;
+        padding: 17px;
+        border: 1px solid #c5d8e7;
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 3px 12px rgba(25, 65, 100, .045);
+    }
+
+    .coord-card[hidden] {
+        display: none !important;
+    }
+
+    .coord-card-id {
+        display: block;
+        margin-bottom: 8px;
+        color: #6b8599;
+        font-size: 11px;
+        font-weight: 750;
+        text-transform: uppercase;
+    }
+
+    .coord-card h3 {
+        margin: 0 0 13px;
+        color: #173954;
+        font-size: 17px;
+        font-weight: 800;
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+    }
+
+    .coord-card-status {
+        display: inline-flex;
+        padding: 5px 10px;
+        border-radius: 20px;
+        background: #e7f0f8;
+        color: #416d8d;
+        font-size: 11px;
+        font-weight: 750;
+    }
+
+    .coord-card-metrics {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 13px 0;
+    }
+
+    .coord-metric {
+        padding: 5px 8px;
+        border-radius: 7px;
+        background: #edf4fa;
+        color: #53718a;
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+    .coord-metric.waiting {
+        background: #fff0da;
+        color: #98631e;
+    }
+
+    .coord-metric.confirmed {
+        background: #def2e5;
+        color: #237648;
+    }
+
+    .coord-card-actions {
+        display: grid;
+        gap: 8px;
+        margin-top: 15px;
+    }
+
+    .coord-card-link {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 38px;
+        padding: 9px 12px;
+        border-radius: 8px;
+        background: #087fbd;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 750;
+        text-decoration: none;
+        text-align: center;
+    }
+
+    .coord-card-link:hover {
+        background: #05699f;
+        color: #fff;
+    }
+
+    .coord-card-details {
+        padding: 8px;
+        border: 0;
+        background: transparent;
+        color: #2875a6;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .coord-card-details:hover {
+        text-decoration: underline;
+    }
+
+    .coord-lane-empty {
+        padding: 26px 12px;
+        border: 1px dashed #b1ccdf;
+        border-radius: 9px;
+        color: #71899b;
+        font-size: 12px;
+        line-height: 1.6;
+        text-align: center;
+    }
+
+    .coord-no-results {
+        margin-top: 18px;
+        color: #55738c;
+        font-size: 13px;
+        text-align: center;
+    }
+
+    .coord-no-results[hidden] {
+        display: none;
+    }
+
+    /* ========================================
+       FORESPØRSLER OG HISTORIKK
+    ======================================== */
+
+    .coord-list {
+        display: grid;
+        gap: 12px;
+    }
+
+    .coord-list-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 15px;
+        padding: 17px 19px;
+        border: 1px solid #c5d8e7;
+        border-radius: 11px;
+        background: #fff;
+    }
+
+    .coord-list-item h3 {
+        margin: 4px 0 7px;
+        color: #173954;
+        font-size: 16px;
+    }
+
+    .coord-list-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 9px 16px;
+        color: #688299;
+        font-size: 12px;
+    }
+
+    .coord-list-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 37px;
+        padding: 9px 14px;
+        border: 1px solid #9fc4df;
+        border-radius: 8px;
+        color: #087fbd;
+        font-size: 12px;
+        font-weight: 750;
+        text-decoration: none;
+    }
+
+    .coord-list-link:hover {
+        background: #e9f5fc;
+    }
+
+    .coord-empty-state {
+        padding: 45px 24px;
+        border: 1px dashed #b1ccdf;
+        border-radius: 12px;
+        text-align: center;
+        color: #668197;
+        font-size: 14px;
+        line-height: 1.7;
+    }
+
+    .coord-panel-intro {
+        margin-bottom: 20px;
+        color: #55738c;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+
+    /* ========================================
+       DETALJPANEL
+    ======================================== */
+
+    .coord-dialog {
+        width: min(480px, calc(100% - 30px));
+        max-height: 90vh;
+        overflow-y: auto;
+        padding: 28px;
+        border: 1px solid #b4d0e7;
+        border-radius: 17px;
+        background: #f6faff;
+        color: #173954;
+        box-shadow: 0 20px 65px rgba(10, 40, 70, .25);
+    }
+
+    .coord-dialog::backdrop {
+        background: rgba(12, 37, 61, .48);
+    }
+
+    .coord-dialog-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 14px;
+    }
+
+    .coord-dialog h2 {
+        margin: 8px 0 18px;
+        font-size: 24px;
+        color: #173954;
+    }
+
+    .coord-dialog-close {
+        width: 34px;
+        height: 34px;
+        border: 1px solid #bed5e7;
+        border-radius: 8px;
+        background: #fff;
+        color: #476a84;
+        font-size: 22px;
+        cursor: pointer;
+    }
+
+    .coord-dialog-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        margin: 20px 0;
+    }
+
+    .coord-dialog-label {
+        display: block;
+        margin-bottom: 5px;
+        color: #6b8599;
+        font-size: 11px;
+        font-weight: 750;
+        text-transform: uppercase;
+    }
+
+    .coord-dialog-value {
+        color: #173954;
+        font-size: 15px;
+        font-weight: 750;
+    }
+
+    .coord-dialog-note {
+        padding: 14px;
+        margin-bottom: 20px;
+        border-radius: 9px;
+        background: #e5f1fa;
+        color: #55738c;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+
+    .coord-tab:focus-visible,
+    .coord-card-link:focus-visible,
+    .coord-card-details:focus-visible,
+    .coord-primary:focus-visible,
+    .coord-list-link:focus-visible,
+    .coord-dialog-close:focus-visible {
+        outline: 3px solid #72b9e8;
+        outline-offset: 3px;
+    }
+
+    /* ========================================
+       RESPONSIVE
+    ======================================== */
+
+    @@media (max-width: 1050px) {
+        .coord-board {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 700px) {
+        .coord-board,
+        .coord-stats {
+            grid-template-columns: 1fr;
+        }
+
+        .coord-workspace {
+            padding: 15px;
+        }
+
+        .coord-lane {
+            min-height: 0;
+        }
+
+        .coord-search {
+            min-width: 0;
+            width: 100%;
+        }
+
+        .coord-toolbar {
+            align-items: stretch;
+        }
+
+        .coord-heading h1 {
+            font-size: 30px;
+        }
+
+        .coord-dialog-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .coord-list-link {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="coord-page">
+
+    <!-- ========================================
+         OVERSKRIFT
+    ======================================== -->
+
+    <div class="coord-heading">
+
+        <div>
+            <span class="coord-eyebrow">
+                Beredskapsportal / Ressursstyring
+            </span>
+
+            <h1>Koordinering</h1>
+
+            <p>
+                Finn ressurser, følg opp forespørsler
+                og få oversikt over bekreftede tildelinger.
+            </p>
+        </div>
+
+        <a
+            asp-controller="Need"
+            asp-action="RegisterNeed"
+            class="coord-primary">
+
+            + Registrer behov
+        </a>
+
+    </div>
+
+    <!-- ========================================
+         STATISTIKK
+    ======================================== -->
+
+    <div class="coord-stats">
+
+        <section class="coord-stat">
+
+            <div class="coord-stat-icon">
+                <svg viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     stroke-linecap="round"
+                     stroke-linejoin="round"
+                     aria-hidden="true">
+                    <rect x="4" y="4" width="16" height="16" rx="2"/>
+                    <path d="M8 9h8M8 13h8M8 17h5"/>
+                </svg>
+            </div>
+
+            <div>
+                <strong class="coord-stat-value">
+                    @Model.Count
+                </strong>
+                <span class="coord-stat-label">
+                    Uløste behov
+                </span>
+            </div>
+
+        </section>
+
+        <section class="coord-stat">
+
+            <div class="coord-stat-icon">
+                <svg viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     stroke-linecap="round"
+                     aria-hidden="true">
+                    <circle cx="12" cy="12" r="9"/>
+                    <path d="M12 7v5l3 2"/>
+                </svg>
+            </div>
+
+            <div>
+                <strong class="coord-stat-value">
+                    @pendingTotal
+                </strong>
+                <span class="coord-stat-label">
+                    Venter på svar
+                </span>
+            </div>
+
+        </section>
+
+        <section class="coord-stat">
+
+            <div class="coord-stat-icon">
+                <svg viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     stroke-linecap="round"
+                     stroke-linejoin="round"
+                     aria-hidden="true">
+                    <circle cx="12" cy="12" r="9"/>
+                    <path d="m8 12 3 3 5-6"/>
+                </svg>
+            </div>
+
+            <div>
+                <strong class="coord-stat-value">
+                    @confirmedTotal
+                </strong>
+                <span class="coord-stat-label">
+                    Bekreftede ressurser
+                </span>
+            </div>
+
+        </section>
+
+    </div>
+
+    <!-- ========================================
+         KOORDINERINGSARBEIDSOMRÅDE
+    ======================================== -->
+
+    <section class="coord-workspace">
+
+        <!-- ====================================
+             FANER
+        ==================================== -->
+
+        <div
+            class="coord-tabs"
+            role="tablist"
+            aria-label="Visning av koordinering">
+
+            <button
+                type="button"
+                role="tab"
+                id="coord-tab-board"
+                aria-selected="true"
+                aria-controls="coord-panel-board"
+                class="coord-tab"
+                data-coord-tab="board">
+
+                ▥ Tavle
+            </button>
+
+            <button
+                type="button"
+                role="tab"
+                id="coord-tab-requests"
+                aria-selected="false"
+                aria-controls="coord-panel-requests"
+                class="coord-tab"
+                data-coord-tab="requests">
+
+                Forespørsler
+            </button>
+
+            <button
+                type="button"
+                role="tab"
+                id="coord-tab-history"
+                aria-selected="false"
+                aria-controls="coord-panel-history"
+                class="coord-tab"
+                data-coord-tab="history">
+
+                Historikk
+            </button>
+
+        </div>
+
+        <!-- ====================================
+             FANE 1: KANBAN-TAVLE
+        ==================================== -->
+
+        <section
+            id="coord-panel-board"
+            class="coord-panel"
+            role="tabpanel"
+            aria-labelledby="coord-tab-board"
+            data-coord-panel="board">
+
+            <div class="coord-toolbar">
+
+                <h2>Aktive behov</h2>
+
+                <input
+                    type="search"
+                    id="coord-search"
+                    class="coord-search"
+                    placeholder="Søk etter behov eller ID..."
+                    aria-label="Søk i aktive behov"
+                    autocomplete="off" />
+
+            </div>
+
+            <div class="coord-board">
+
+                @foreach (var lane in lanes)
+                {
+                    <section class="coord-lane @lane.Id">
+
+                        <div class="coord-lane-header">
+
+                            <span
+                                class="coord-lane-dot"
+                                aria-hidden="true">
+                            </span>
+
+                            <h3 class="coord-lane-title">
+                                @lane.Title
+                            </h3>
+
+                            <span class="coord-lane-count">
+                                @lane.Items.Count
+                            </span>
+
+                        </div>
+
+                        <p class="coord-lane-description">
+                            @lane.Description
+                        </p>
+
+                        <div class="coord-lane-cards">
+
+                            @foreach (Need need in lane.Items)
+                            {
+                                int sent = Total(need.Id);
+                                int waiting = Pending(need.Id);
+                                int accepted = Confirmed(need.Id);
+
+                                string typeName =
+                                    TypeLabel(need.ResourceType);
+
+                                string statusName =
+                                    NeedStatusLabel(need);
+
+                                <article
+                                    class="coord-card"
+                                    data-coord-card
+                                    data-search="@($"{need.Id} {typeName} {statusName}")">
+
+                                    <span class="coord-card-id">
+                                        Behov #@need.Id
+                                    </span>
+
+                                    <h3>@typeName</h3>
+
+                                    <span class="coord-card-status">
+                                        @statusName
+                                    </span>
+
+                                    <div class="coord-card-metrics">
+
+                                        <span class="coord-metric">
+                                            @sent sendt
+                                        </span>
+
+                                        @if (waiting > 0)
+                                        {
+                                            <span class="coord-metric waiting">
+                                                @waiting venter
+                                            </span>
+                                        }
+
+                                        @if (accepted > 0)
+                                        {
+                                            <span class="coord-metric confirmed">
+                                                @accepted bekreftet
+                                            </span>
+                                        }
+
+                                        @if (sent == 0)
+                                        {
+                                            <span class="coord-metric">
+                                                Ingen forespørsler
+                                            </span>
+                                        }
+
+                                    </div>
+
+                                    <div class="coord-card-actions">
+
+                                        <a
+                                            asp-controller="Match"
+                                            asp-action="Need"
+                                            asp-route-id="@need.Id"
+                                            class="coord-card-link">
+
+                                            @lane.Action
+                                        </a>
+
+                                        <button
+                                            type="button"
+                                            class="coord-card-details"
+                                            data-open-need
+                                            data-need-id="@need.Id"
+                                            data-need-type="@typeName"
+                                            data-need-status="@statusName"
+                                            data-need-total="@sent"
+                                            data-need-pending="@waiting"
+                                            data-need-confirmed="@accepted"
+                                            data-need-url="@Url.Action("Need", "Match", new { id = need.Id })">
+
+                                            Se behovsdetaljer
+
+                                        </button>
+
+                                    </div>
+
+                                </article>
+                            }
+
+                            @if (lane.Items.Count == 0)
+                            {
+                                <div class="coord-lane-empty">
+                                    Ingen behov i denne kategorien.
+                                </div>
+                            }
+
+                        </div>
+
+                    </section>
+                }
+
+            </div>
+
+            <p
+                id="coord-no-results"
+                class="coord-no-results"
+                hidden>
+
+                Ingen behov samsvarer med søket ditt.
+
+            </p>
+
+        </section>
+
+        <!-- ====================================
+             FANE 2: FORESPØRSLER
+        ==================================== -->
+
+        <section
+            id="coord-panel-requests"
+            class="coord-panel"
+            role="tabpanel"
+            aria-labelledby="coord-tab-requests"
+            data-coord-panel="requests"
+            hidden>
+
+            <div class="coord-toolbar">
+                <h2>Sendte forespørsler</h2>
+            </div>
+
+            <p class="coord-panel-intro">
+                Her ser du alle behov det er sendt
+                forespørsler for. Åpne et behov for å se
+                enkeltforespørsler, kontaktinformasjon
+                og svar fra ressursleverandører.
+            </p>
+
+            @if (requestNeeds.Count == 0)
+            {
+                <div class="coord-empty-state">
+                    Ingen forespørsler er sendt ennå.
+                    Du kan finne ressurser fra tavlen
+                    og sende din første forespørsel.
+                </div>
+            }
+            else
+            {
+                <div class="coord-list">
+
+                    @foreach (Need need in requestNeeds)
+                    {
+                        <article class="coord-list-item">
+
+                            <div>
+
+                                <span class="coord-card-id">
+                                    Behov #@need.Id
+                                </span>
+
+                                <h3>
+                                    @TypeLabel(need.ResourceType)
+                                </h3>
+
+                                <div class="coord-list-meta">
+
+                                    <span>
+                                        @Total(need.Id) sendt
+                                    </span>
+
+                                    <span>
+                                        @Pending(need.Id) venter
+                                    </span>
+
+                                    <span>
+                                        @Confirmed(need.Id) bekreftet
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                            <a
+                                asp-controller="Match"
+                                asp-action="Need"
+                                asp-route-id="@need.Id"
+                                class="coord-list-link">
+
+                                Se forespørsler
+                            </a>
+
+                        </article>
+                    }
+
+                </div>
+
+                <div style="margin-top: 20px; text-align: right;">
+
+                    <a
+                        asp-controller="Match"
+                        asp-action="Assignments"
+                        class="coord-list-link">
+
+                        Åpne detaljert tildelingsoversikt
+                    </a>
+
+                </div>
+            }
+
+        </section>
+
+        <!-- ====================================
+             FANE 3: HISTORIKK
+        ==================================== -->
+
+        <section
+            id="coord-panel-history"
+            class="coord-panel"
+            role="tabpanel"
+            aria-labelledby="coord-tab-history"
+            data-coord-panel="history"
+            hidden>
+
+            <div class="coord-toolbar">
+                <h2>Historikk</h2>
+            </div>
+
+            <p class="coord-panel-intro">
+                Behov som er markert som løst,
+                beholdes her slik at du kan
+                finne tilbake til tidligere arbeid.
+            </p>
+
+            @if (resolvedNeeds.Count == 0)
+            {
+                <div class="coord-empty-state">
+                    Ingen løste behov er registrert ennå.
+                </div>
+            }
+            else
+            {
+                <div class="coord-list">
+
+                    @foreach (Need need in resolvedNeeds)
+                    {
+                        <article class="coord-list-item">
+
+                            <div>
+
+                                <span class="coord-card-id">
+                                    Behov #@need.Id
+                                </span>
+
+                                <h3>
+                                    @TypeLabel(need.ResourceType)
+                                </h3>
+
+                                <div class="coord-list-meta">
+
+                                    <span>Løst</span>
+
+                                    <span>
+                                        @Total(need.Id) forespørsler
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                            <a
+                                asp-controller="Match"
+                                asp-action="Need"
+                                asp-route-id="@need.Id"
+                                class="coord-list-link">
+
+                                Vis historikk
+                            </a>
+
+                        </article>
+                    }
+
+                </div>
+            }
+
+        </section>
+
+    </section>
+
+</div>
+
+<!-- ========================================
+     DETALJPANEL FOR BEHOV
+======================================== -->
+
+<dialog
+    id="coord-need-dialog"
+    class="coord-dialog"
+    aria-labelledby="coord-dialog-title">
+
+    <div class="coord-dialog-top">
+
+        <div>
+            <span
+                id="coord-dialog-id"
+                class="coord-eyebrow">
+                Behov
+            </span>
+
+            <h2 id="coord-dialog-title">
+                Behovsdetaljer
+            </h2>
+        </div>
+
+        <form method="dialog">
+            <button
+                type="submit"
+                class="coord-dialog-close"
+                aria-label="Lukk detaljer">
+
+                ×
+
+            </button>
+        </form>
+
+    </div>
+
+    <div class="coord-dialog-grid">
+
+        <div>
+            <span class="coord-dialog-label">
+                Status
+            </span>
+
+            <span
+                id="coord-dialog-status"
+                class="coord-dialog-value">
+            </span>
+        </div>
+
+        <div>
+            <span class="coord-dialog-label">
+                Sendte forespørsler
+            </span>
+
+            <span
+                id="coord-dialog-total"
+                class="coord-dialog-value">
+            </span>
+        </div>
+
+        <div>
+            <span class="coord-dialog-label">
+                Venter på svar
+            </span>
+
+            <span
+                id="coord-dialog-pending"
+                class="coord-dialog-value">
+            </span>
+        </div>
+
+        <div>
+            <span class="coord-dialog-label">
+                Bekreftede ressurser
+            </span>
+
+            <span
+                id="coord-dialog-confirmed"
+                class="coord-dialog-value">
+            </span>
+        </div>
+
+    </div>
+
+    <div class="coord-dialog-note">
+        Åpne behovet for å se matchende ressurser,
+        sende nye forespørsler eller følge opp
+        eksisterende tildelinger.
+    </div>
+
+    <a
+        id="coord-dialog-open"
+        href="#"
+        class="coord-primary">
+
+        Åpne behov og ressurser
+    </a>
+
+</dialog>
+
+<!-- ========================================
+     JAVASCRIPT
+======================================== -->
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        // ====================================
+        // FANER
+        // ====================================
+
+        const tabs =
+            document.querySelectorAll("[data-coord-tab]");
+
+        const panels =
+            document.querySelectorAll("[data-coord-panel]");
+
+        function activateTab(name) {
+
+            tabs.forEach(function (tab) {
+                const selected =
+                    tab.dataset.coordTab === name;
+
+                tab.setAttribute(
+                    "aria-selected",
+                    selected ? "true" : "false"
+                );
+            });
+
+            panels.forEach(function (panel) {
+                panel.hidden =
+                    panel.dataset.coordPanel !== name;
+            });
+        }
+
+        tabs.forEach(function (tab) {
+            tab.addEventListener("click", function () {
+                activateTab(tab.dataset.coordTab);
+            });
+        });
+
+        // ====================================
+        // SØK I KANBAN-TAVLEN
+        // ====================================
+
+        const search =
+            document.getElementById("coord-search");
+
+        const cards =
+            document.querySelectorAll("[data-coord-card]");
+
+        const noResults =
+            document.getElementById("coord-no-results");
+
+        if (search) {
+
+            search.addEventListener("input", function () {
+
+                const query =
+                    search.value
+                        .toLocaleLowerCase("nb-NO")
+                        .trim();
+
+                let visible = 0;
+
+                cards.forEach(function (card) {
+
+                    const text =
+                        (card.dataset.search || "")
+                            .toLocaleLowerCase("nb-NO");
+
+                    const matches =
+                        text.includes(query);
+
+                    card.hidden = !matches;
+
+                    if (matches) {
+                        visible++;
+                    }
+                });
+
+                if (noResults) {
+                    noResults.hidden =
+                        visible > 0 || query.length === 0;
+                }
+            });
+        }
+
+        // ====================================
+        // DETALJPANEL
+        // ====================================
+
+        const dialog =
+            document.getElementById("coord-need-dialog");
+
+        const openButtons =
+            document.querySelectorAll("[data-open-need]");
+
+        function setText(elementId, value) {
+            const element =
+                document.getElementById(elementId);
+
+            if (element) {
+                element.textContent = value;
+            }
+        }
+
+        openButtons.forEach(function (button) {
+
+            button.addEventListener("click", function () {
+
+                if (!dialog) {
+                    return;
+                }
+
+                setText(
+                    "coord-dialog-id",
+                    "Behov #" + button.dataset.needId
+                );
+
+                setText(
+                    "coord-dialog-title",
+                    button.dataset.needType
+                );
+
+                setText(
+                    "coord-dialog-status",
+                    button.dataset.needStatus
+                );
+
+                setText(
+                    "coord-dialog-total",
+                    button.dataset.needTotal
+                );
+
+                setText(
+                    "coord-dialog-pending",
+                    button.dataset.needPending
+                );
+
+                setText(
+                    "coord-dialog-confirmed",
+                    button.dataset.needConfirmed
+                );
+
+                const openLink =
+                    document.getElementById("coord-dialog-open");
+
+                if (openLink) {
+                    openLink.href =
+                        button.dataset.needUrl || "#";
+                }
+
+                if (typeof dialog.showModal === "function") {
+                    dialog.showModal();
+                }
+            });
+        });
+
+        // Lukk når man klikker utenfor dialogboksen.
+
+        if (dialog) {
+            dialog.addEventListener("click", function (event) {
+
+                if (event.target === dialog) {
+                    dialog.close();
+                }
+            });
+        }
+
+    });
+</script>

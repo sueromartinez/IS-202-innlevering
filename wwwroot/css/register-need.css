@@ -1,0 +1,106 @@
+/* Mobilvisning: Behov og registreringsknapp vises før kartet, uten faste minimumsbredder. */
+@media (max-width: 1024px) {
+    .need-registration-page .page {
+        width: calc(100% - 24px);
+        min-width: 0;
+        padding: 28px 0 40px;
+    }
+
+    .need-registration-page .page-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+    }
+
+    .need-registration-page .grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 16px;
+    }
+
+    .need-registration-page .card {
+        min-width: 0;
+        padding: 16px;
+    }
+
+    .need-registration-page #needList,
+    .need-registration-page .need,
+    .need-registration-page form,
+    .need-registration-page form label {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .need-registration-page .need { padding: 12px; }
+    .need-registration-page .need-row { grid-template-columns: minmax(0, 1fr); }
+    .need-registration-page .need-top { flex-wrap: wrap; }
+    .need-registration-page .need-number { flex-shrink: 0; }
+    .need-registration-page .need-remove { margin-left: auto; }
+    .need-registration-page .page-header p,
+    .need-registration-page .error { overflow-wrap: anywhere; }
+
+    /* Feltene følger skjermbredden; 16px skrift hindrer automatisk innzooming på telefon. */
+    .need-registration-page form input,
+    .need-registration-page form select,
+    .need-registration-page form textarea {
+        min-width: 0;
+        max-width: 100%;
+        font-size: 16px;
+    }
+
+    /* Lite kart under hele skjemaet; vanlig sidescrolling erstatter sticky på mobil. */
+    .need-registration-page .map-card { position: static; }
+    .need-registration-page #map { width: 100%; height: 300px; min-width: 0; }
+    .need-registration-page .legend { flex-wrap: wrap; gap: 12px; }
+}
+
+/* Mobilmeny: Lar logo og lange menyvalg brytes uten å presse siden sidelengs. */
+@media (max-width: 1100px) {
+    .need-registration-page .pv-header { min-width: 0; width: 100%; }
+    .need-registration-page .pv-brand > span { min-width: 0; overflow-wrap: anywhere; }
+    .need-registration-page .pv-logo,
+    .need-registration-page .pv-burger { flex-shrink: 0; }
+    .need-registration-page .pv-header .portal-top-navigation { min-width: 0; }
+    .need-registration-page .pv-header .portal-top-navigation a {
+        min-width: 0;
+        max-width: 100%;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+}
+
+/* Fullskjermkontrollen følger Leaflet-stilen og har en tydelig trykkflate. */
+.need-fullscreen-control button {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    padding: 8px;
+    border: 0;
+    background: white;
+    color: #17212b;
+    cursor: pointer;
+}
+.need-fullscreen-control button:hover { background: #f4f4f4; }
+.need-fullscreen-control button:focus-visible { outline: 3px solid #176b87; outline-offset: -3px; }
+.need-fullscreen-control svg { width: 22px; height: 22px; }
+
+/* Bare fullskjermkartet fyller skjermen; vanlig kartstørrelse gjenopprettes ved lukking. */
+.need-registration-page #map:fullscreen,
+.need-fullscreen-dialog #map {
+    width: 100% !important;
+    height: 100dvh !important;
+    min-height: 0 !important;
+    border: 0;
+    border-radius: 0;
+}
+.need-fullscreen-dialog {
+    width: 100vw;
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+}
+.need-fullscreen-dialog::backdrop { background: #17212b; }

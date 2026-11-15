@@ -409,6 +409,32 @@
 .sami-card-status.is-error { color: #9d2f2f; }
 
 
+/* Utkast til ressurs: samme kort, men med en liste over feltene */
+.sami-draft-card {
+    border-left-color: var(--sami-primary);
+}
+
+.sami-draft-fields {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 12px;
+    margin: 0 0 10px;
+    font-size: 0.8rem;
+    line-height: 1.45;
+}
+
+.sami-draft-fields dt {
+    color: var(--sami-muted);
+    font-weight: 650;
+    white-space: nowrap;
+}
+
+.sami-draft-fields dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+
 /* -----------------------
    FORSLAG TIL SPØRSMÅL
 ----------------------- */
@@ -593,5 +619,11 @@ html:root[data-theme="navy"] {
 
   .sami-card h3 {
     color: var(--heading);
+  }
+
+  .sami-draft-fields dt,
+  .sami-card-meta,
+  .sami-card-need {
+    color: var(--text-secondary);
   }
 }
