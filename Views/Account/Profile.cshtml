@@ -178,13 +178,11 @@
         .dashboard-link {
             padding: 10px 16px;
             border-radius: 8px;
-
             border: 1px solid #d9e0e4;
 
             color: var(--text);
             font-size: 14px;
             font-weight: 700;
-
             transition: 0.2s;
         }
 
@@ -198,7 +196,6 @@
 
         .logout-button {
             padding: 10px 16px;
-
             border: none;
             border-radius: 8px;
 
@@ -207,7 +204,6 @@
 
             font-size: 14px;
             font-weight: 700;
-
             cursor: pointer;
         }
 
@@ -251,7 +247,6 @@
 
         .profile-hero::after {
             content: "";
-
             position: absolute;
 
             width: 320px;
@@ -269,6 +264,7 @@
             margin-bottom: 15px;
 
             color: #7fe0c1;
+
             font-size: 12px;
             font-weight: 800;
             letter-spacing: 2px;
@@ -294,6 +290,7 @@
             max-width: 620px;
 
             color: rgba(255, 255, 255, 0.77);
+
             font-size: 16px;
             line-height: 1.65;
         }
@@ -318,7 +315,6 @@
 
             border: 1px solid #e0e6e9;
             border-radius: 16px;
-
             padding: 30px;
 
             box-shadow:
@@ -330,6 +326,7 @@
             margin-bottom: 8px;
 
             color: #168169;
+
             font-size: 11px;
             font-weight: 800;
             letter-spacing: 1.8px;
@@ -337,14 +334,12 @@
 
         .profile-card h2 {
             margin: 0 0 7px;
-
             color: var(--text);
             font-size: 23px;
         }
 
         .section-description {
             margin: 0 0 28px;
-
             color: #6b7780;
             line-height: 1.55;
         }
@@ -369,7 +364,6 @@
 
         .profile-error-summary {
             margin-bottom: 24px;
-
             color: #a12a1f;
             font-size: 14px;
             font-weight: 600;
@@ -385,7 +379,6 @@
 
             border: 1px solid #efc4bf;
             border-radius: 10px;
-
             background: #fff3f2;
         }
 
@@ -400,7 +393,6 @@
 
         .profile-field {
             display: grid;
-
             grid-template-columns: 180px 1fr;
             gap: 20px;
 
@@ -434,7 +426,6 @@
             color: var(--text);
             font-size: 15px;
             font-weight: 700;
-
             word-break: break-word;
         }
 
@@ -501,8 +492,8 @@
             width: fit-content;
 
             padding: 6px 10px;
-
             border-radius: 999px;
+
             background: #e5f6ef;
             color: #08765c;
 
@@ -630,7 +621,6 @@
             justify-content: center;
 
             padding: 12px 18px;
-
             border: none;
             border-radius: 8px;
 
@@ -654,19 +644,169 @@
             justify-content: center;
 
             padding: 12px 18px;
-
             border: 1px solid #d9e0e4;
             border-radius: 8px;
 
             color: var(--text);
             font-size: 14px;
             font-weight: 800;
-
             transition: 0.2s;
         }
 
         .secondary-action:hover {
             background: var(--surface-soft);
+        }
+
+        /* ========================================
+           SLETT KONTO
+           ======================================== */
+
+        .delete-account-card {
+            margin-top: 24px;
+            padding: 30px;
+
+            border: 1px solid #e5b4b4;
+            border-radius: 16px;
+
+            background: var(--surface, #ffffff);
+
+            box-shadow:
+                0 8px 25px rgba(18, 48, 71, .04);
+        }
+
+        .delete-account-card .section-label {
+            color: #b42318;
+        }
+
+        .delete-account-card h2 {
+            margin: 0 0 10px;
+
+            color: var(--heading, #123047);
+            font-size: 23px;
+        }
+
+        .delete-account-description {
+            max-width: 760px;
+            margin: 0 0 20px;
+
+            color: var(--text-secondary, #667085);
+            font-size: 14px;
+            line-height: 1.65;
+        }
+
+        .delete-account-warning {
+            margin-bottom: 22px;
+            padding: 15px 17px;
+
+            border: 1px solid #efc4bf;
+            border-radius: 10px;
+
+            background: #fff3f2;
+            color: #912b22;
+
+            font-size: 13px;
+            line-height: 1.65;
+        }
+
+        .delete-account-warning strong {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .delete-account-warning ul {
+            margin: 8px 0 0;
+            padding-left: 19px;
+        }
+
+        .delete-account-warning li {
+            margin: 4px 0;
+        }
+
+        .delete-account-form {
+            max-width: 540px;
+        }
+
+        .delete-account-password-label {
+            display: block;
+            margin-bottom: 8px;
+
+            color: var(--text, #17212b);
+            font-size: 14px;
+            font-weight: 750;
+        }
+
+        .delete-account-form .profile-input {
+            max-width: 100%;
+        }
+
+        .delete-account-confirm {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+
+            margin: 18px 0;
+
+            color: var(--text, #17212b);
+            font-size: 14px;
+            line-height: 1.5;
+
+            cursor: pointer;
+        }
+
+        .delete-account-confirm input {
+            flex: 0 0 auto;
+
+            width: 18px;
+            height: 18px;
+
+            margin: 2px 0 0;
+            accent-color: #b42318;
+        }
+
+        .delete-account-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            min-height: 44px;
+            padding: 11px 18px;
+
+            border: 1px solid #b42318;
+            border-radius: 9px;
+
+            background: #b42318;
+            color: #ffffff;
+
+            font-size: 14px;
+            font-weight: 800;
+
+            cursor: pointer;
+        }
+
+        .delete-account-button:hover {
+            background: #931c14;
+            border-color: #931c14;
+        }
+
+        .delete-account-button:focus-visible,
+        .delete-account-confirm input:focus-visible {
+            outline: 3px solid #b42318;
+            outline-offset: 3px;
+        }
+
+        .profile-server-error {
+            margin: 24px 0 0;
+            padding: 14px 16px;
+
+            border: 1px solid #efc4bf;
+            border-radius: 10px;
+
+            background: #fff3f2;
+            color: #a12a1f;
+
+            font-size: 14px;
+            font-weight: 700;
         }
 
         /* ========================================
@@ -708,6 +848,10 @@
                 padding: 23px;
             }
 
+            .delete-account-card {
+                padding: 23px;
+            }
+
             .profile-hero {
                 padding: 30px 24px;
             }
@@ -734,15 +878,19 @@
             }
 
             .primary-action,
-            .secondary-action {
+            .secondary-action,
+            .delete-account-button {
                 width: 100%;
             }
         }
     </style>
 
-    <!-- Fargetema: lyst/mørkt tema -->
-    <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
-    <script src="~/js/theme.js" asp-append-version="true"></script>
+    <link rel="stylesheet"
+          href="~/css/theme.css"
+          asp-append-version="true" />
+
+    <script src="~/js/theme.js"
+            asp-append-version="true"></script>
 </head>
 
 <body>
@@ -782,6 +930,17 @@
     </section>
 
     <!-- ========================================
+         FEILMELDING FRA KONTOSLETTING
+         ======================================== -->
+
+    @if (TempData["ProfileError"] is string deletionError)
+    {
+        <div class="profile-server-error" role="alert">
+            @deletionError
+        </div>
+    }
+
+    <!-- ========================================
          PROFILE CONTENT
          ======================================== -->
 
@@ -806,17 +965,10 @@
                 kontaktinformasjon.
             </p>
 
-            @if (
-                TempData["ProfileSuccess"]
-                is string successMessage
-            )
+            @if (TempData["ProfileSuccess"] is string successMessage)
             {
-                <div
-                    class="profile-success"
-                    role="status">
-
+                <div class="profile-success" role="status">
                     @successMessage
-
                 </div>
             }
 
@@ -829,10 +981,9 @@
                  EDIT PROFILE FORM
                  ======================================== -->
 
-            <form
-                asp-controller="Account"
-                asp-action="Profile"
-                method="post">
+            <form asp-controller="Account"
+                  asp-action="Profile"
+                  method="post">
 
                 @Html.AntiForgeryToken()
 
@@ -842,53 +993,42 @@
 
                     <div class="profile-field">
 
-                        <label
-                            asp-for="Name"
-                            class="field-label">
-
+                        <label asp-for="Name"
+                               class="field-label">
                             Navn
-
                         </label>
 
                         <div>
 
-                            <input
-                                asp-for="Name"
-                                class="profile-input"
-                                autocomplete="name" />
+                            <input asp-for="Name"
+                                   class="profile-input"
+                                   autocomplete="name" />
 
-                            <span
-                                asp-validation-for="Name"
-                                class="validation-message">
+                            <span asp-validation-for="Name"
+                                  class="validation-message">
                             </span>
 
                         </div>
-
                     </div>
 
                     <!-- EMAIL -->
 
                     <div class="profile-field">
 
-                        <label
-                            asp-for="Email"
-                            class="field-label">
-
+                        <label asp-for="Email"
+                               class="field-label">
                             E-postadresse
-
                         </label>
 
                         <div>
 
-                            <input
-                                asp-for="Email"
-                                class="profile-input"
-                                type="email"
-                                autocomplete="email" />
+                            <input asp-for="Email"
+                                   class="profile-input"
+                                   type="email"
+                                   autocomplete="email" />
 
-                            <span
-                                asp-validation-for="Email"
-                                class="validation-message">
+                            <span asp-validation-for="Email"
+                                  class="validation-message">
                             </span>
 
                             <span class="field-help">
@@ -903,7 +1043,6 @@
                             </span>
 
                         </div>
-
                     </div>
 
                     <!-- PHONE -->
@@ -918,9 +1057,8 @@
 
                             <div class="phone-group">
 
-                                <select
-                                    asp-for="PhoneCountryCode"
-                                    class="profile-select">
+                                <select asp-for="PhoneCountryCode"
+                                        class="profile-select">
 
                                     <option value="+47">
                                         +47 Norge
@@ -936,27 +1074,23 @@
 
                                 </select>
 
-                                <input
-                                    asp-for="PhoneNumber"
-                                    class="profile-input"
-                                    autocomplete="tel"
-                                    inputmode="tel"
-                                    placeholder="F.eks. 91234567" />
+                                <input asp-for="PhoneNumber"
+                                       class="profile-input"
+                                       autocomplete="tel"
+                                       inputmode="tel"
+                                       placeholder="F.eks. 91234567" />
 
                             </div>
 
-                            <span
-                                asp-validation-for="PhoneCountryCode"
-                                class="validation-message">
+                            <span asp-validation-for="PhoneCountryCode"
+                                  class="validation-message">
                             </span>
 
-                            <span
-                                asp-validation-for="PhoneNumber"
-                                class="validation-message">
+                            <span asp-validation-for="PhoneNumber"
+                                  class="validation-message">
                             </span>
 
                         </div>
-
                     </div>
 
                     <!-- USER ROLE -->
@@ -974,7 +1108,6 @@
                             </span>
 
                         </span>
-
                     </div>
 
                     <!-- CREATED DATE -->
@@ -999,30 +1132,21 @@
 
                 <div class="profile-actions">
 
-                    <button
-                        type="submit"
-                        class="primary-action">
-
+                    <button type="submit"
+                            class="primary-action">
                         Lagre endringer
-
                     </button>
 
-                    <a
-                        asp-controller="Home"
-                        asp-action="Dashboard"
-                        class="secondary-action">
-
+                    <a asp-controller="Home"
+                       asp-action="Dashboard"
+                       class="secondary-action">
                         Tilbake til dashboard
-
                     </a>
 
-                    <a
-                        asp-controller="Resource"
-                        asp-action="ResourceOverview"
-                        class="secondary-action">
-
+                    <a asp-controller="Resource"
+                       asp-action="ResourceOverview"
+                       class="secondary-action">
                         Mine ressurser
-
                     </a>
 
                 </div>
@@ -1194,8 +1318,134 @@
 
     </div>
 
+    <!-- ========================================
+         SLETT EGEN KONTO
+         ======================================== -->
+
+    @if (!roles.Contains(IdentitySeeder.AdminRole))
+    {
+        <section class="delete-account-card"
+                 aria-labelledby="deleteAccountHeading">
+
+            <span class="section-label">
+                KONTOADMINISTRASJON
+            </span>
+
+            <h2 id="deleteAccountHeading">
+                Slett kontoen min
+            </h2>
+
+            <p class="delete-account-description">
+                Du kan slette brukerkontoen din permanent
+                fra Beredskapsportalen. Når slettingen er
+                fullført, blir du logget ut og mister
+                tilgangen til kontoen.
+            </p>
+
+            <!-- TYDELIG INFORMASJON OM HVA SOM SLETTES -->
+
+            <div class="delete-account-warning"
+                 role="note">
+
+                <strong>
+                    Viktig: Dette sletter også dataene dine
+                </strong>
+
+                Når du sletter kontoen, vil følgende
+                bli slettet permanent:
+
+                <ul>
+                    <li>
+                        Brukerkontoen din.
+                    </li>
+
+                    <li>
+                        Alle ressursene du har registrert.
+                    </li>
+
+                    <li>
+                        Alle behovene du har registrert.
+                    </li>
+
+                    <li>
+                        Forespørsler og tildelinger
+                        knyttet til ressursene og behovene
+                        som blir slettet.
+                    </li>
+
+                    <li>
+                        Varslene som tilhører kontoen din.
+                    </li>
+                </ul>
+
+                <strong style="margin-top:12px;">
+                    Slettingen kan ikke angres.
+                </strong>
+
+                Dette kan også påvirke aktive forespørsler
+                og tildelinger som involverer andre brukere.
+            </div>
+
+            <form asp-controller="Account"
+                  asp-action="DeleteAccount"
+                  method="post"
+                  class="delete-account-form"
+                  onsubmit="return confirm('ADVARSEL: Kontoen din, alle dine ressurser og behov, samt tilknyttede forespørsler og tildelinger, vil bli slettet permanent. Er du helt sikker på at du vil fortsette?');">
+
+                @Html.AntiForgeryToken()
+
+                <!-- PASSORDBEKREFTELSE -->
+
+                <label for="deleteAccountPassword"
+                       class="delete-account-password-label">
+                    Bekreft med ditt nåværende passord
+                </label>
+
+                <input id="deleteAccountPassword"
+                       name="currentPassword"
+                       type="password"
+                       class="profile-input"
+                       autocomplete="current-password"
+                       required />
+
+                <!-- EGEN BEKREFTELSE -->
+
+                <label class="delete-account-confirm"
+                       for="confirmDeletion">
+
+                    <input id="confirmDeletion"
+                           name="confirmDeletion"
+                           type="checkbox"
+                           value="true"
+                           required />
+
+                    <span>
+                        Jeg forstår at brukerkontoen min,
+                        alle ressursene og behovene mine,
+                        samt tilknyttede forespørsler
+                        og tildelinger, blir slettet
+                        permanent og ikke kan gjenopprettes.
+                    </span>
+
+                </label>
+
+                <!-- SLETTEKNAPP -->
+
+                <button type="submit"
+                        class="delete-account-button">
+
+                    Slett kontoen min permanent
+
+                </button>
+
+            </form>
+
+        </section>
+    }
+
 </main>
 
 <partial name="_Sami" />
+
 </body>
 </html>
