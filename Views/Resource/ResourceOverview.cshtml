@@ -2,6 +2,7 @@
 @using FirstWebAppInDocker.Models
 @using System.Text.Json
 @using System.Globalization
+
 @model IEnumerable<FirstWebAppInDocker.ViewModels.ResourceOverviewViewModel>
 
 @{
@@ -87,6 +88,7 @@
 
 <head>
     <meta charset="utf-8" />
+
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0" />
 
@@ -132,9 +134,14 @@
         body {
             background: var(--background, #f4f6f8);
             color: var(--text, #17212b);
-            font-family: Inter, ui-sans-serif, system-ui,
-                -apple-system, BlinkMacSystemFont,
-                "Segoe UI", sans-serif;
+            font-family:
+                Inter,
+                ui-sans-serif,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
             overflow-x: hidden;
         }
 
@@ -154,12 +161,15 @@
         }
 
         /* ==========================================
-           SIDEN
+           SIDE
         ========================================== */
 
         .overview-page {
             width: min(1500px, calc(100% - 40px));
+            max-width: 100%;
             min-width: 0;
+            min-height: 0;
+            height: auto;
             margin: 0 auto;
             padding: 18px 0 12px;
         }
@@ -169,7 +179,7 @@
             justify-content: space-between;
             align-items: flex-start;
             gap: 24px;
-            margin-bottom: 16px;
+            margin-bottom: 18px;
         }
 
         .overview-header > div {
@@ -190,15 +200,15 @@
             margin: 0 0 8px;
             color: var(--heading, #102d42);
             font-size: clamp(1.8rem, 2.7vw, 2.5rem);
-            line-height: 1.02;
+            line-height: 1.1;
         }
 
         .overview-header p {
-            max-width: 700px;
+            max-width: 850px;
             margin: 0;
             color: var(--text-secondary, #667085);
             font-size: 1rem;
-            line-height: 1.65;
+            line-height: 1.6;
         }
 
         .primary-button {
@@ -210,14 +220,15 @@
             min-height: 44px;
             padding: 0 17px;
             border-radius: 10px;
-            background: var(--overview-primary);
+            background: #0789c8;
             color: white;
+            font-size: .85rem;
             font-weight: 750;
             white-space: nowrap;
         }
 
         .primary-button:hover {
-            background: #125770;
+            background: #086d9b;
             color: white;
         }
 
@@ -226,36 +237,112 @@
         }
 
         /* ==========================================
-           STATUSKORT
+           TO KOLONNER – FELLES KARTMAL
+        ========================================== */
+
+        .overview-grid {
+            display: grid;
+            grid-template-columns:
+                minmax(0, .33fr)
+                minmax(0, .67fr);
+            gap: 18px;
+            align-items: start;
+            width: 100%;
+            min-width: 0;
+            min-height: 0;
+            height: auto;
+            margin: 0;
+            padding: 0;
+        }
+
+        .resource-list-card,
+        .map-card {
+            min-width: 0;
+            min-height: 0;
+            margin: 0;
+            border: 1px solid var(--overview-border);
+            border-radius: 18px;
+            background: var(--surface, white);
+            box-shadow: 0 12px 35px rgba(16,45,66,.05);
+        }
+
+        /* ==========================================
+           VENSTRE RESSURSBOKS
+        ========================================== */
+
+        .resource-list-card {
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            overflow: hidden;
+        }
+
+        .section-heading {
+            display: flex;
+            flex: 0 0 auto;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 14px;
+        }
+
+        .section-heading h2 {
+            margin: 0;
+            color: var(--heading, #123047);
+            font-size: 1.35rem;
+        }
+
+        .resource-count {
+            display: inline-flex;
+            flex: 0 0 auto;
+            align-items: center;
+            justify-content: center;
+            min-width: 36px;
+            height: 36px;
+            padding: 0 10px;
+            border-radius: 999px;
+            background: #e4eff9;
+            color: var(--overview-primary);
+            font-size: .8rem;
+            font-weight: 850;
+        }
+
+        /* ==========================================
+           KOMPAKTE STATISTIKKKORT
+           LIGGER NÅ INNI VENSTRE BOKS
         ========================================== */
 
         .overview-status {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 15px;
-            margin-bottom: 18px;
+            flex: 0 0 auto;
+            grid-template-columns:
+                repeat(3, minmax(0, 1fr));
+            gap: 7px;
+            margin: 0 0 13px;
         }
 
         .status-card {
             min-width: 0;
-            padding: 16px 20px;
+            padding: 10px 8px;
             border: 1px solid var(--overview-border);
-            border-radius: 13px;
-            background: var(--surface, white);
+            border-radius: 10px;
+            background: var(--surface-soft, #f7f9fa);
         }
 
         .status-card > span {
             display: block;
             color: var(--text-secondary, #667085);
-            font-size: .75rem;
+            font-size: .63rem;
+            line-height: 1.3;
+            overflow-wrap: anywhere;
         }
 
         .status-card > strong {
             display: block;
-            margin: 7px 0 5px;
+            margin: 5px 0 2px;
             color: var(--heading, #123047);
-            font-size: 1.6rem;
-            line-height: 1;
+            font-size: 1.35rem;
+            line-height: 1.1;
         }
 
         .status-card > strong.green-number {
@@ -263,24 +350,80 @@
         }
 
         .status-card small {
-            color: var(--text-secondary, #667085);
-            font-size: .68rem;
+            display: none;
         }
 
         /* ==========================================
-           FILTRERING
+           UTFELLBARE FILTRE
         ========================================== */
+
+        .resource-filter-drawer {
+            flex: 0 0 auto;
+            min-width: 0;
+            margin: 0 0 13px;
+            border: 1px solid var(--overview-border);
+            border-radius: 11px;
+            background: var(--surface-soft, #f7f9fa);
+        }
+
+        .resource-filter-drawer > summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            min-height: 43px;
+            padding: 10px 13px;
+            color: var(--heading, #123047);
+            font-size: .83rem;
+            font-weight: 800;
+            cursor: pointer;
+            list-style: none;
+            user-select: none;
+        }
+
+        .resource-filter-drawer > summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .resource-filter-drawer > summary:hover {
+            background: rgba(23,107,135,.06);
+            border-radius: 11px;
+        }
+
+        .resource-filter-drawer > summary span {
+            transition: transform .15s ease;
+        }
+
+        .resource-filter-drawer[open] > summary span {
+            transform: rotate(180deg);
+        }
+
+        .resource-filter-content {
+            max-height: min(38dvh, 300px);
+            overflow-x: hidden;
+            overflow-y: auto;
+            padding: 0 12px 12px;
+            overscroll-behavior-y: contain;
+        }
+
+        .resource-filter-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .resource-filter-content::-webkit-scrollbar-thumb {
+            border-radius: 999px;
+            background: #bdc8d2;
+        }
 
         .resource-filters {
             display: flex;
             flex-wrap: wrap;
-            align-items: end;
-            gap: 14px;
-            padding: 16px 18px;
-            margin-bottom: 18px;
-            border: 1px solid var(--overview-border);
-            border-radius: 15px;
-            background: var(--surface, white);
+            align-items: flex-end;
+            gap: 10px;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            background: transparent;
         }
 
         .resource-category-filter {
@@ -295,28 +438,28 @@
             margin-bottom: 9px;
             padding: 0;
             color: var(--heading, #123047);
-            font-size: .85rem;
+            font-size: .82rem;
             font-weight: 750;
         }
 
         .resource-category-options {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 6px;
         }
 
         .resource-category-option {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            min-height: 40px;
+            gap: 7px;
+            min-height: 36px;
             max-width: 100%;
-            padding: 8px 11px;
+            padding: 6px 8px;
             border: 1px solid var(--overview-border);
-            border-radius: 9px;
-            background: var(--surface-soft, #f4f7fa);
+            border-radius: 8px;
+            background: var(--surface, white);
             color: var(--heading, #123047);
-            font-size: .8rem;
+            font-size: .72rem;
             cursor: pointer;
         }
 
@@ -326,6 +469,7 @@
         }
 
         .resource-category-option input {
+            flex: 0 0 auto;
             width: 17px;
             height: 17px;
             margin: 0;
@@ -339,31 +483,28 @@
 
         .filter-field {
             display: flex;
-            flex: 1 1 200px;
+            flex: 1 1 100%;
             flex-direction: column;
             gap: 7px;
             min-width: 0;
         }
 
-        .filter-search {
-            flex-grow: 2;
-        }
-
         .filter-field label {
             color: var(--heading, #123047);
-            font-size: .82rem;
+            font-size: .8rem;
             font-weight: 750;
         }
 
         .filter-field select,
         .filter-field input {
             width: 100%;
-            min-height: 44px;
-            padding: 10px 12px;
+            min-height: 43px;
+            padding: 9px 11px;
             border: 1px solid #ccd5dc;
             border-radius: 9px;
             background: var(--surface, white);
             color: var(--text, #17212b);
+            font-size: .8rem;
         }
 
         .filter-field select:focus,
@@ -373,106 +514,64 @@
         }
 
         .filter-reset {
-            min-height: 44px;
-            padding: 0 14px;
+            width: 100%;
+            min-height: 40px;
+            padding: 0 13px;
             border: 1px solid #ccd5dc;
             border-radius: 9px;
             background: var(--surface, white);
             color: var(--heading, #123047);
-            font-size: .82rem;
+            font-size: .8rem;
             font-weight: 750;
             cursor: pointer;
         }
 
         .filter-reset:hover {
-            background: var(--surface-soft, #f4f7fa);
+            background: #eef5f8;
         }
 
         #filterSummary {
             flex-basis: 100%;
             margin: 0;
             color: var(--text-secondary, #667085);
-            font-size: .78rem;
+            font-size: .76rem;
         }
 
         .filter-empty {
+            flex: 0 0 auto;
+            margin: 0 0 14px;
+            padding: 12px;
+            border: 1px dashed #b8cde1;
+            border-radius: 10px;
+            background: var(--surface-soft, #f7f9fa);
             color: var(--text-secondary, #667085);
+            font-size: .8rem;
             line-height: 1.5;
         }
 
-        #mapUnavailable {
-            padding: 12px 15px;
-            border-radius: 10px;
-            background: #fff3dc;
-            color: #805600;
+        .resource-filter-drawer > summary:focus-visible,
+        .resource-filters :focus-visible {
+            outline: 3px solid var(--overview-primary);
+            outline-offset: 2px;
         }
 
         /* ==========================================
-           FELLES KARTMAL
-
-           Samme dimensjoner som RegisterResource
+           RESSURSLISTE – INTERN SCROLLING
         ========================================== */
-
-        .overview-grid {
-            display: grid;
-            grid-template-columns: minmax(0, .33fr) minmax(0, .67fr);
-            gap: 18px;
-            align-items: start;
-            min-width: 0;
-            min-height: 0;
-        }
-
-        .resource-list-card,
-        .map-card {
-            min-width: 0;
-            border: 1px solid var(--overview-border);
-            border-radius: 18px;
-            background: var(--surface, white);
-            box-shadow: 0 12px 35px rgba(16, 45, 66, .05);
-        }
-
-        /* ==========================================
-           RESSURSLISTE
-        ========================================== */
-
-        .resource-list-card {
-            padding: 28px;
-        }
-
-        .section-heading {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            margin-bottom: 20px;
-        }
-
-        .section-heading h2 {
-            margin: 0;
-            color: var(--heading, #123047);
-            font-size: 1.35rem;
-        }
-
-        .resource-count {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            min-width: 36px;
-            height: 36px;
-            padding: 0 10px;
-            border-radius: 999px;
-            background: #e4eff9;
-            color: var(--overview-primary);
-            font-size: .8rem;
-            font-weight: 850;
-        }
 
         .resource-list {
             display: flex;
+            flex: 1 1 auto;
             flex-direction: column;
             gap: 12px;
             min-width: 0;
+            min-height: 0;
+            max-width: 100%;
+            padding: 2px 9px 2px 2px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            overscroll-behavior-y: contain;
+            scrollbar-gutter: stable;
         }
 
         .resource-list::-webkit-scrollbar {
@@ -490,24 +589,28 @@
 
         .resource-item {
             flex: 0 0 auto;
+            width: 100%;
+            max-width: 100%;
             min-width: 0;
             padding: 16px;
             border: 1px solid #e0e5e8;
             border-radius: 12px;
             background: var(--surface, white);
             overflow-wrap: anywhere;
-            transition: border-color 150ms ease,
-                        box-shadow 150ms ease;
+            transition:
+                border-color 150ms ease,
+                box-shadow 150ms ease;
         }
 
         .resource-item:hover {
-            border-color: rgba(23, 107, 135, .3);
-            box-shadow: 0 8px 20px rgba(18, 48, 71, .045);
+            border-color: rgba(23,107,135,.3);
+            box-shadow: 0 8px 20px rgba(18,48,71,.045);
         }
 
         .resource-item-top {
             display: grid;
-            grid-template-columns: 42px minmax(0, 1fr);
+            grid-template-columns:
+                42px minmax(0, 1fr);
             gap: 12px;
             align-items: start;
             min-width: 0;
@@ -557,6 +660,7 @@
         .resource-status {
             display: inline-flex;
             width: max-content;
+            max-width: 100%;
             margin-top: 12px;
             padding: 5px 9px;
             border-radius: 999px;
@@ -567,12 +671,13 @@
         }
 
         /* ==========================================
-           INFORMASJON OM RESSURS
+           RESSURSINFORMASJON
         ========================================== */
 
         .resource-meta {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
             gap: 12px;
             margin: 16px 0 12px;
             padding: 12px;
@@ -626,7 +731,7 @@
             gap: 7px;
             min-height: 38px;
             padding: 0 12px;
-            border: 1px solid rgba(23, 107, 135, .3);
+            border: 1px solid rgba(23,107,135,.3);
             border-radius: 8px;
             background: var(--surface, white);
             color: var(--link, #176b87);
@@ -695,9 +800,13 @@
             background: var(--surface-soft, #f6f8f9);
         }
 
-        /* Endre/Slett-knappene på egne ressurser */
+        /* ==========================================
+           ENDRE / SLETT
+        ========================================== */
+
         .resource-owner-actions {
             display: flex;
+            flex-wrap: wrap;
             gap: 8px;
             margin-top: 10px;
         }
@@ -716,10 +825,9 @@
             color: var(--danger-text, #a62f2f);
         }
 
-        .resource-flash-error {
-            background: #fbe9e9;
-            color: #9d2f2f;
-        }
+        /* ==========================================
+           MELDINGER
+        ========================================== */
 
         .resource-flash {
             margin-bottom: 18px;
@@ -731,13 +839,26 @@
             font-weight: 650;
         }
 
+        .resource-flash-error {
+            background: #fbe9e9;
+            color: #9d2f2f;
+        }
+
+        #mapUnavailable {
+            padding: 12px 15px;
+            border-radius: 10px;
+            background: #fff3dc;
+            color: #805600;
+        }
+
         /* ==========================================
-           KARTKORT
+           HØYRE KARTBOKS
         ========================================== */
 
         .map-card {
-            padding: 14px 18px 18px 14px;
             position: static;
+            min-width: 0;
+            padding: 14px 18px 18px 14px;
             overflow: visible;
         }
 
@@ -783,24 +904,28 @@
             background: var(--overview-green);
         }
 
+        /* ==========================================
+           KART – SAMME HØYDE SOM MALEN
+        ========================================== */
+
         #resourceOverviewMap {
             width: 100%;
-            height: 650px;
+            height: clamp(470px, 68dvh, 740px);
             border: 1px solid #d8e0e5;
             border-radius: 14px;
             background: #dfe9ec;
             overflow: hidden;
+            z-index: 0;
         }
 
         /* ==========================================
-           HJELP UNDER KARTET
-
-           Samme utforming som RegisterResource
+           TRE INFORMASJONSKORT
         ========================================== */
 
         .map-help {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns:
+                repeat(3, minmax(0, 1fr));
             gap: 10px;
             margin-top: 10px;
         }
@@ -880,13 +1005,17 @@
         }
 
         /* ==========================================
-           POPUP PÅ KARTET
+           KARTPOPUP
         ========================================== */
 
         .resource-popup {
             min-width: 190px;
-            font-family: Inter, -apple-system,
-                BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-family:
+                Inter,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
         }
 
         .resource-popup-type {
@@ -972,7 +1101,7 @@
         }
 
         /* ==========================================
-           PC - SAMME LAYOUT SOM REGISTER RESOURCE
+           PC: LIK HØYDE PÅ BOKSENE
         ========================================== */
 
         @@media (min-width: 951px) {
@@ -981,17 +1110,12 @@
                 grid-template-columns:
                     minmax(0, .33fr)
                     minmax(0, .67fr);
-                gap: 18px;
                 align-items: start;
-                height: auto;
                 min-height: 0;
+                height: auto;
                 overflow: visible;
             }
 
-            /*
-              Venstre ressursboks får nøyaktig
-              samme høyde som kartboksen.
-            */
             .overview-grid > .resource-list-card {
                 display: flex;
                 flex-direction: column;
@@ -1000,45 +1124,25 @@
                 overflow: hidden;
             }
 
-            .resource-list-card > .section-heading {
-                flex: 0 0 auto;
-            }
-
+            .resource-list-card > .section-heading,
+            .resource-list-card > .overview-status,
+            .resource-list-card > .resource-filter-drawer,
             .resource-list-card > .filter-empty {
                 flex: 0 0 auto;
             }
 
-            /*
-              Kun ressurslisten scroller.
-              Hele kartboksen forblir synlig.
-            */
             .resource-list-card > .resource-list {
                 flex: 1 1 auto;
                 min-height: 0;
                 max-height: none;
                 overflow-y: auto;
                 overflow-x: hidden;
-                overscroll-behavior-y: contain;
-                scrollbar-gutter: stable;
-                padding-right: 10px;
             }
 
-            /*
-              Ingen sticky-kart og ingen
-              ekstra plass under kortene.
-            */
             .overview-grid > .map-card {
                 position: static;
-                align-self: start;
                 height: auto;
-            }
-
-            /*
-              Identisk høyde som kartet
-              på Registrer ressurs-siden.
-            */
-            .map-card > #resourceOverviewMap {
-                height: clamp(470px, 68dvh, 740px);
+                align-self: start;
             }
         }
 
@@ -1050,11 +1154,11 @@
 
             .overview-page {
                 width: calc(100% - 32px);
-                padding: 25px 0 20px;
+                padding: 25px 0 12px;
             }
 
             .overview-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: minmax(0, 1fr);
             }
 
             .overview-grid > .resource-list-card {
@@ -1063,9 +1167,9 @@
             }
 
             .resource-list {
-                max-height: 420px;
+                flex: 0 1 auto;
+                max-height: 500px;
                 overflow-y: auto;
-                padding-right: 6px;
             }
 
             .overview-grid > .map-card {
@@ -1096,18 +1200,6 @@
                 width: 100%;
             }
 
-            .overview-status {
-                grid-template-columns: 1fr;
-            }
-
-            .resource-filters {
-                padding: 15px;
-            }
-
-            .filter-field {
-                flex-basis: 100%;
-            }
-
             .resource-list-card {
                 padding: 19px;
             }
@@ -1121,7 +1213,11 @@
             }
 
             .map-help {
-                grid-template-columns: 1fr;
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .resource-list {
+                max-height: 420px;
             }
 
             #resourceOverviewMap {
@@ -1129,7 +1225,7 @@
             }
 
             .resource-meta {
-                grid-template-columns: 1fr;
+                grid-template-columns: minmax(0, 1fr);
             }
         }
 
@@ -1137,14 +1233,12 @@
            FOKUS OG TILGJENGELIGHET
         ========================================== */
 
-        .resource-filters :focus-visible,
         .map-focus-button:focus-visible,
         .resource-state-toggle:focus-visible,
         .primary-button:focus-visible {
             outline: 3px solid var(--overview-primary);
             outline-offset: 3px;
         }
-
     </style>
 </head>
 
@@ -1156,7 +1250,9 @@
 
     @if (TempData["ResourceError"] is string resourceError)
     {
-        <div class="resource-flash resource-flash-error" role="alert">
+        <div class="resource-flash resource-flash-error"
+             role="alert">
+
             @resourceError
         </div>
     }
@@ -1164,6 +1260,7 @@
     @if (TempData["ResourceSuccess"] is string resourceMessage)
     {
         <div class="resource-flash" role="status">
+
             @resourceMessage
         </div>
     }
@@ -1209,6 +1306,7 @@
             <a asp-controller="Resource"
                asp-action="RegisterResource"
                class="primary-button">
+
                 <span>+</span>
                 Registrer ny ressurs
             </a>
@@ -1218,7 +1316,9 @@
 
     @if (!resources.Any())
     {
-        <!-- TOM OVERSIKT -->
+        <!-- ==========================================
+             TOM RESSURSOVERSIKT
+        ========================================== -->
 
         <section class="empty-state">
 
@@ -1240,6 +1340,7 @@
                 <a asp-controller="Resource"
                    asp-action="RegisterResource"
                    class="empty-primary-button">
+
                     + Registrer første ressurs
                 </a>
             }
@@ -1256,126 +1357,19 @@
     else
     {
         <!-- ==========================================
-             STATISTIKK
+             KART OG RESSURSLISTE
         ========================================== -->
-
-        <section class="overview-status">
-
-            <article class="status-card">
-                <span>Registrerte ressurser</span>
-                <strong>@resources.Count</strong>
-                <small>I denne oversikten</small>
-            </article>
-
-            <article class="status-card">
-                <span>Ressurstyper</span>
-                <strong class="green-number">
-                    @resourceTypeCount
-                </strong>
-                <small>Ulike kategorier</small>
-            </article>
-
-            <article class="status-card">
-                <span>Kartpunkter</span>
-                <strong>@resources.Count</strong>
-                <small>Registrerte plasseringer</small>
-            </article>
-
-        </section>
-
-        <!-- ==========================================
-             FILTRE
-        ========================================== -->
-
-        <form id="resourceFilters"
-              class="resource-filters"
-              role="search"
-              aria-label="Filtrer ressurser"
-              hidden>
-
-            <fieldset class="resource-category-filter">
-
-                <legend>Ressurstype</legend>
-
-                <div class="resource-category-options">
-
-                    @foreach (var type in resources
-                        .Select(resource => resource.ResourceType)
-                        .Distinct()
-                        .OrderBy(type => GetResourceTypeName(type)))
-                    {
-                        <label class="resource-category-option">
-
-                            <input type="checkbox"
-                                   name="resourceTypes"
-                                   value="@((int)type)"
-                                   checked />
-
-                            <span>
-                                @GetResourceTypeName(type)
-                            </span>
-
-                        </label>
-                    }
-
-                </div>
-            </fieldset>
-
-            <div class="filter-field">
-
-                <label for="resourceAvailabilityFilter">
-                    Tilgjengelighet
-                </label>
-
-                <select id="resourceAvailabilityFilter">
-                    <option value="">Alle statuser</option>
-
-                    @foreach (var status in Html.GetEnumSelectList<ResourceStatus>())
-                    {
-                        <option value="@((ResourceStatus)int.Parse(status.Value))">
-                            @status.Text
-                        </option>
-                    }
-                </select>
-
-            </div>
-
-            <div class="filter-field filter-search">
-
-                <label for="resourceSearch">
-                    Søk i navn eller beskrivelse
-                </label>
-
-                <input id="resourceSearch"
-                       type="search"
-                       placeholder="Søk etter en ressurs …" />
-
-            </div>
-
-            <button type="reset" class="filter-reset">
-                Nullstill filtre
-            </button>
-
-            <p id="filterSummary"
-               role="status"
-               aria-live="polite"></p>
-
-        </form>
 
         <p id="mapUnavailable" hidden>
             Kartet kunne ikke lastes.
             Du kan fortsatt filtrere ressurslisten.
         </p>
 
-        <!-- ==========================================
-             RESSURSLISTE OG KART
-        ========================================== -->
-
         <div class="overview-grid">
 
-            <!-- ======================================
-                 VENSTRE: RESSURSLISTE
-            ======================================= -->
+            <!-- ==========================================
+                 VENSTRE: RESSURSLISTE OG FILTRE
+            ========================================== -->
 
             <section class="resource-list-card">
 
@@ -1391,17 +1385,159 @@
 
                     <span class="resource-count"
                           id="filteredResourceCount">
+
                         @resources.Count
                     </span>
 
                 </div>
 
+                <!-- ==========================================
+                     STATISTIKK FRA DATABASEN
+                ========================================== -->
+
+                <section class="overview-status"
+                         aria-label="Ressursstatistikk">
+
+                    <article class="status-card">
+                        <span>Registrerte ressurser</span>
+                        <strong>@resources.Count</strong>
+                        <small>I denne oversikten</small>
+                    </article>
+
+                    <article class="status-card">
+                        <span>Ressurstyper</span>
+
+                        <strong class="green-number">
+                            @resourceTypeCount
+                        </strong>
+
+                        <small>Ulike kategorier</small>
+                    </article>
+
+                    <article class="status-card">
+                        <span>Kartpunkter</span>
+                        <strong>@resources.Count</strong>
+                        <small>Registrerte plasseringer</small>
+                    </article>
+
+                </section>
+
+                <!-- ==========================================
+                     FILTRE
+                     SAMME FUNKSJONER SOM FØR
+                ========================================== -->
+
+                <details class="resource-filter-drawer">
+
+                    <summary>
+                        Filtrer ressurser
+                        <span aria-hidden="true">⌄</span>
+                    </summary>
+
+                    <div class="resource-filter-content">
+
+                        <form id="resourceFilters"
+                              class="resource-filters"
+                              role="search"
+                              aria-label="Filtrer ressurser"
+                              hidden>
+
+                            <fieldset class="resource-category-filter">
+
+                                <legend>Ressurstype</legend>
+
+                                <div class="resource-category-options">
+
+                                    @foreach (var type in resources
+                                        .Select(resource => resource.ResourceType)
+                                        .Distinct()
+                                        .OrderBy(type => GetResourceTypeName(type)))
+                                    {
+                                        <label class="resource-category-option">
+
+                                            <input type="checkbox"
+                                                   name="resourceTypes"
+                                                   value="@((int)type)"
+                                                   checked />
+
+                                            <span>
+                                                @GetResourceTypeName(type)
+                                            </span>
+
+                                        </label>
+                                    }
+
+                                </div>
+                            </fieldset>
+
+                            <div class="filter-field">
+
+                                <label for="resourceAvailabilityFilter">
+                                    Tilgjengelighet
+                                </label>
+
+                                <select id="resourceAvailabilityFilter">
+
+                                    <option value="">
+                                        Alle statuser
+                                    </option>
+
+                                    @foreach (var status in Html.GetEnumSelectList<ResourceStatus>())
+                                    {
+                                        <option value="@((ResourceStatus)int.Parse(status.Value))">
+                                            @status.Text
+                                        </option>
+                                    }
+
+                                </select>
+
+                            </div>
+
+                            <div class="filter-field filter-search">
+
+                                <label for="resourceSearch">
+                                    Søk i navn eller beskrivelse
+                                </label>
+
+                                <input id="resourceSearch"
+                                       type="search"
+                                       placeholder="Søk etter en ressurs …" />
+
+                            </div>
+
+                            <button type="reset"
+                                    class="filter-reset">
+
+                                Nullstill filtre
+                            </button>
+
+                            <p id="filterSummary"
+                               role="status"
+                               aria-live="polite">
+                            </p>
+
+                        </form>
+
+                    </div>
+
+                </details>
+
+                <!-- ==========================================
+                     INGEN TREFF
+                ========================================== -->
+
                 <p id="noMatchingResources"
                    class="filter-empty"
                    hidden>
+
                     Ingen ressurser passer til filtrene.
                     Prøv en annen ressurstype eller nullstill filtrene.
                 </p>
+
+                <!-- ==========================================
+                     RESSURSLISTE
+                     SCROLLER INTERNT
+                ========================================== -->
 
                 <div class="resource-list">
 
@@ -1417,6 +1553,8 @@
 
                         <article class="resource-item"
                                  data-resource-id="@resource.Id">
+
+                            <!-- TOPP -->
 
                             <div class="resource-item-top">
 
@@ -1449,20 +1587,28 @@
 
                                     @if (!string.IsNullOrWhiteSpace(resource.Address))
                                     {
-                                        <p>@FirstWebAppInDocker.Services.ResourceDisplay.PrettyAddress(resource.Address)</p>
+                                        <p>
+                                            @FirstWebAppInDocker.Services.ResourceDisplay.PrettyAddress(resource.Address)
+                                        </p>
                                     }
 
                                 </div>
 
                             </div>
 
+                            <!-- TILGJENGELIGHETSSTATUS -->
+
                             <span class="resource-status">
+
                                 @(Html.GetEnumSelectList<ResourceStatus>()
                                     .First(item => item.Value ==
                                         ((int)resource.EffectiveStatus).ToString()).Text)
+
                             </span>
 
-                            <!-- RESSURSINFORMASJON -->
+                            <!-- ==========================================
+                                 RESSURSINFORMASJON
+                            ========================================== -->
 
                             <div class="resource-meta">
 
@@ -1489,7 +1635,9 @@
 
                             </div>
 
-                            <!-- KONTAKT -->
+                            <!-- ==========================================
+                                 KONTAKT
+                            ========================================== -->
 
                             @if (
                                 !string.IsNullOrWhiteSpace(resource.ContactEmail)
@@ -1520,7 +1668,9 @@
                                 </div>
                             }
 
-                            <!-- VIS I KART -->
+                            <!-- ==========================================
+                                 VIS I KART
+                            ========================================== -->
 
                             <button type="button"
                                     class="map-focus-button"
@@ -1532,21 +1682,27 @@
 
                             </button>
 
-                            <!-- STATUS -->
+                            <!-- ==========================================
+                                 STATUS
+                            ========================================== -->
 
                             <div class="resource-availability-status">
 
                                 <span class="resource-state resource-state-@resource.EffectiveStatus.ToString().ToLowerInvariant()">
+
                                     @(resource.EffectiveStatus switch
                                     {
                                         ResourceStatus.Busy => "Opptatt",
                                         ResourceStatus.Unavailable => "Utilgjengelig",
                                         _ => "Tilgjengelig"
                                     })
+
                                 </span>
 
-                                @if (isResourceProvider &&
-                                     resource.Status != ResourceStatus.Busy)
+                                @if (
+                                    isResourceProvider
+                                    && resource.Status != ResourceStatus.Busy
+                                )
                                 {
                                     <form asp-controller="Resource"
                                           asp-action="SetStatus"
@@ -1576,8 +1732,9 @@
 
                             </div>
 
-
-                            <!-- ENDRE / SLETTE (bare egne ressurser) -->
+                            <!-- ==========================================
+                                 ENDRE / SLETTE
+                            ========================================== -->
 
                             @if (isResourceProvider)
                             {
@@ -1587,6 +1744,7 @@
                                        asp-action="EditResource"
                                        asp-route-id="@resource.Id"
                                        class="resource-state-toggle">
+
                                         Endre
                                     </a>
 
@@ -1601,6 +1759,7 @@
 
                                         <button type="submit"
                                                 class="resource-state-toggle resource-delete-button">
+
                                             Slett
                                         </button>
 
@@ -1616,9 +1775,9 @@
 
             </section>
 
-            <!-- ======================================
-                 HØYRE: RESSURSKART
-            ======================================= -->
+            <!-- ==========================================
+                 HØYRE: KART
+            ========================================== -->
 
             <section class="map-card">
 
@@ -1644,14 +1803,21 @@
 
                 </div>
 
-                <div id="resourceOverviewMap"></div>
+                <!-- SELVE KARTET -->
 
-                <!-- INSTRUKSJONER INNE I KARTBOKSEN -->
+                <div id="resourceOverviewMap"
+                     aria-label="Kart over registrerte ressurser">
+                </div>
+
+                <!-- ==========================================
+                     INFORMASJON UNDER KARTET
+                ========================================== -->
 
                 <div class="map-help">
 
                     <div class="map-help-item">
                         <strong>1. Finn ressursen</strong>
+
                         <span>
                             Se registrerte ressurser i listen.
                         </span>
@@ -1659,6 +1825,7 @@
 
                     <div class="map-help-item">
                         <strong>2. Se plassering</strong>
+
                         <span>
                             Velg «Vis i kart» for å zoome til ressursen.
                         </span>
@@ -1666,6 +1833,7 @@
 
                     <div class="map-help-item">
                         <strong>3. Kontakt ved behov</strong>
+
                         <span>
                             Bruk registrert kontaktinformasjon
                             dersom ressursen blir aktuell.
@@ -1683,14 +1851,20 @@
 
 @if (resources.Any())
 {
+    <!-- ==========================================
+         KARTBIBLIOTEK
+    ========================================== -->
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="~/js/kartverket.js" asp-append-version="true"></script>
+
+    <script src="~/js/kartverket.js"
+            asp-append-version="true"></script>
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
 
             /* ==========================================
-               DATA, FILTRE OG RESSURSKORT
+               DATA FRA DATABASEN
             ========================================== */
 
             const resources = @Html.Raw(mapResourcesJson);
@@ -1699,7 +1873,9 @@
                 document.getElementById("resourceFilters");
 
             const categoryCheckboxes = Array.from(
-                filterForm.querySelectorAll('input[name="resourceTypes"]')
+                filterForm.querySelectorAll(
+                    'input[name="resourceTypes"]'
+                )
             );
 
             const availabilityFilter =
@@ -1709,11 +1885,12 @@
                 document.getElementById("resourceSearch");
 
             const cards = new Map(
-                Array.from(document.querySelectorAll(".resource-item"))
-                    .map(card => [
-                        Number(card.dataset.resourceId),
-                        card
-                    ])
+                Array.from(
+                    document.querySelectorAll(".resource-item")
+                ).map(card => [
+                    Number(card.dataset.resourceId),
+                    card
+                ])
             );
 
             const markers = new Map();
@@ -1730,7 +1907,7 @@
             let map = null;
 
             /* ==========================================
-               TILGJENGELIGHET OG FILTRERING
+               NORMALISER TILGJENGELIGHET
             ========================================== */
 
             function availabilityStatus(value) {
@@ -1739,12 +1916,19 @@
                     .trim()
                     .toLocaleLowerCase();
 
-                if (["available", "unavailable", "busy"].includes(status)) {
+                if (
+                    ["available", "unavailable", "busy"]
+                        .includes(status)
+                ) {
                     return status;
                 }
 
                 return "unspecified";
             }
+
+            /* ==========================================
+               FILTRER RESSURSER
+            ========================================== */
 
             function applyFilters() {
 
@@ -1761,20 +1945,22 @@
                 const matching = resources.filter(resource => {
 
                     const matchesType =
-                        selectedTypes.has(String(resource.typeId));
+                        selectedTypes.has(
+                            String(resource.typeId)
+                        );
 
                     const matchesAvailability =
-                        availabilityFilter.value === "" ||
-                        availabilityStatus(resource.availability) ===
-                        availabilityFilter.value.toLocaleLowerCase("nb-NO");
+                        availabilityFilter.value === ""
+                        || availabilityStatus(resource.availability) ===
+                           availabilityFilter.value.toLocaleLowerCase("nb-NO");
 
                     const searchableText =
                         `${resource.name || ""} ${resource.description || ""}`
                             .toLocaleLowerCase("nb-NO");
 
-                    return matchesType &&
-                           matchesAvailability &&
-                           searchableText.includes(search);
+                    return matchesType
+                        && matchesAvailability
+                        && searchableText.includes(search);
                 });
 
                 const matchingIds = new Set(
@@ -1782,6 +1968,7 @@
                 );
 
                 cards.forEach((card, id) => {
+
                     card.hidden = !matchingIds.has(id);
                 });
 
@@ -1803,9 +1990,13 @@
                     map.closePopup();
 
                     markers.forEach((marker, id) => {
+
                         if (matchingIds.has(id)) {
+
                             marker.addTo(map);
+
                         } else {
+
                             marker.remove();
                         }
                     });
@@ -1815,8 +2006,11 @@
                         .filter(Boolean);
 
                     if (visibleMarkers.length > 0) {
+
                         map.fitBounds(
-                            L.featureGroup(visibleMarkers).getBounds(),
+                            L.featureGroup(
+                                visibleMarkers
+                            ).getBounds(),
                             {
                                 padding: [30, 30],
                                 maxZoom: 13
@@ -1838,6 +2032,7 @@
             );
 
             categoryCheckboxes.forEach(checkbox => {
+
                 checkbox.addEventListener(
                     "change",
                     applyFilters
@@ -1854,20 +2049,24 @@
                 applyFilters
             );
 
-            filterForm.addEventListener("reset", function () {
+            filterForm.addEventListener(
+                "reset",
+                function () {
 
-                requestAnimationFrame(function () {
+                    requestAnimationFrame(function () {
 
-                    categoryCheckboxes.forEach(checkbox => {
-                        checkbox.checked = true;
+                        categoryCheckboxes.forEach(checkbox => {
+
+                            checkbox.checked = true;
+                        });
+
+                        availabilityFilter.value = "";
+                        searchInput.value = "";
+
+                        applyFilters();
                     });
-
-                    availabilityFilter.value = "";
-                    searchInput.value = "";
-
-                    applyFilters();
-                });
-            });
+                }
+            );
 
             /* ==========================================
                KONTROLLER LEAFLET
@@ -1882,10 +2081,12 @@
                 document.querySelectorAll(
                     ".map-focus-button"
                 ).forEach(button => {
+
                     button.disabled = true;
                 });
 
                 applyFilters();
+
                 return;
             }
 
@@ -1896,12 +2097,11 @@
             map = L.map("resourceOverviewMap")
                 .setView([58.1467, 7.9956], 10);
 
+            // Kartlagvelgeren opprettes først.
             addKartverketLayers(map);
 
             /* ==========================================
                FULLSKJERM
-
-               Samme funksjon som RegisterResource
             ========================================== */
 
             const fullscreenDialog =
@@ -1928,8 +2128,10 @@
 
             function isMapFullscreen() {
 
-                return document.fullscreenElement === mapElement ||
-                       fullscreenDialog.open;
+                return (
+                    document.fullscreenElement === mapElement
+                    || fullscreenDialog.open
+                );
             }
 
             function refreshMapSize() {
@@ -1949,7 +2151,9 @@
 
             function scheduleMapRefresh() {
 
-                requestAnimationFrame(refreshMapSize);
+                requestAnimationFrame(
+                    refreshMapSize
+                );
             }
 
             function updateFullscreenControl() {
@@ -1972,11 +2176,11 @@
                     String(expanded)
                 );
 
-                fullscreenButton.innerHTML = expanded
-                    ? collapseIcon
-                    : expandIcon;
+                fullscreenButton.innerHTML =
+                    expanded ? collapseIcon : expandIcon;
 
                 scheduleMapRefresh();
+
                 syncCardHeight();
             }
 
@@ -1989,9 +2193,11 @@
                 mapElement.before(mapPlaceholder);
 
                 fullscreenDialog.appendChild(mapElement);
+
                 fullscreenDialog.showModal();
 
                 updateFullscreenControl();
+
                 fullscreenButton.focus();
             }
 
@@ -2000,6 +2206,7 @@
                 function () {
 
                     if (mapPlaceholder) {
+
                         mapPlaceholder.replaceWith(mapElement);
                         mapPlaceholder = null;
                     }
@@ -2022,8 +2229,8 @@
                 function (event) {
 
                     if (
-                        event.key !== "Escape" ||
-                        !isMapFullscreen()
+                        event.key !== "Escape"
+                        || !isMapFullscreen()
                     ) {
                         return;
                     }
@@ -2031,8 +2238,11 @@
                     event.preventDefault();
 
                     if (fullscreenDialog.open) {
+
                         fullscreenDialog.close();
+
                     } else if (document.fullscreenElement) {
+
                         document.exitFullscreen();
                     }
                 }
@@ -2059,13 +2269,8 @@
 
                     fullscreenButton.type = "button";
 
-                    L.DomEvent.disableClickPropagation(
-                        control
-                    );
-
-                    L.DomEvent.disableScrollPropagation(
-                        control
-                    );
+                    L.DomEvent.disableClickPropagation(control);
+                    L.DomEvent.disableScrollPropagation(control);
 
                     fullscreenButton.addEventListener(
                         "click",
@@ -2085,13 +2290,16 @@
                                 await document.exitFullscreen();
 
                             } else if (
-                                mapElement.requestFullscreen &&
-                                document.fullscreenEnabled
+                                mapElement.requestFullscreen
+                                && document.fullscreenEnabled
                             ) {
 
                                 try {
+
                                     await mapElement.requestFullscreen();
+
                                 } catch {
+
                                     openFullscreenDialog();
                                 }
 
@@ -2106,14 +2314,13 @@
                 }
             });
 
+            // Fullskjermknappen kommer under kartlagvelgeren.
             new FullscreenControl().addTo(map);
+
             updateFullscreenControl();
 
             /* ==========================================
-               KARTSYMBOLER
-
-               Beholder eksisterende symboler
-               for hver ressurstype.
+               RESSURSSYMBOLER
             ========================================== */
 
             function symbolFor(type) {
@@ -2136,7 +2343,7 @@
                         "<circle cx='12' cy='12' r='2'/><path d='M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14'/>",
 
                     Personnel:
-                        "<path d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/><circle cx='9' cy='7' r='4'/><path d='M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'/>",
+                        "<path d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/><circle cx='9' cy='7' r='4'/><path d='M23 21v-2a4 4 0 0 1-3-3.87M16 3.13a4 4 0 0 1 0 7.75'/>",
 
                     Premises:
                         "<path d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/><polyline points='9 22 9 12 15 12 15 22'/>",
@@ -2154,12 +2361,19 @@
                 return icons[type] || icons.Other;
             }
 
+            /* ==========================================
+               LAG SYMBOLMARKØR
+            ========================================== */
+
             function createSymbolMarker(color, type, badge) {
 
                 const svg =
-                    "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='" +
+                    "<svg xmlns='http://www.w3.org/2000/svg' " +
+                    "width='24' height='24' viewBox='0 0 24 24' " +
+                    "fill='none' stroke='" +
                     color +
-                    "' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'>" +
+                    "' stroke-width='2.2' " +
+                    "stroke-linecap='round' stroke-linejoin='round'>" +
                     symbolFor(type) +
                     "</svg>";
 
@@ -2175,10 +2389,19 @@
 
                     html:
                         "<div style='position:relative;width:50px;height:62px;'>" +
-                        "<div style='position:absolute;left:0;top:0;width:50px;height:50px;box-sizing:border-box;border:3px solid white;border-radius:50% 50% 50% 8px;transform:rotate(-45deg);background:" +
-                        color +
-                        ";box-shadow:0 5px 14px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;'>" +
-                        "<div style='transform:rotate(45deg);width:36px;height:36px;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center;'>" +
+                        "<div style='position:absolute;left:0;top:0;" +
+                        "width:50px;height:50px;box-sizing:border-box;" +
+                        "border:3px solid white;" +
+                        "border-radius:50% 50% 50% 8px;" +
+                        "transform:rotate(-45deg);" +
+                        "background:" + color + ";" +
+                        "box-shadow:0 5px 14px rgba(0,0,0,.35);" +
+                        "display:flex;align-items:center;" +
+                        "justify-content:center;'>" +
+                        "<div style='transform:rotate(45deg);" +
+                        "width:36px;height:36px;border-radius:50%;" +
+                        "background:white;display:flex;" +
+                        "align-items:center;justify-content:center;'>" +
                         svg +
                         "</div></div>" +
                         badgeHtml +
@@ -2191,13 +2414,16 @@
             }
 
             /* ==========================================
-               OPPRETT KARTMARKØRER
+               OPPRETT MARKØRER FRA DATABASEN
             ========================================== */
 
             resources.forEach(resource => {
 
                 const marker = L.marker(
-                    [resource.latitude, resource.longitude],
+                    [
+                        resource.latitude,
+                        resource.longitude
+                    ],
                     {
                         icon: createSymbolMarker(
                             "#23855b",
@@ -2226,7 +2452,9 @@
                         return;
                     }
 
-                    const element = document.createElement(tag);
+                    const element =
+                        document.createElement(tag);
+
                     element.textContent = text;
 
                     if (className) {
@@ -2237,7 +2465,11 @@
                 });
 
                 marker.bindPopup(popup);
-                markers.set(resource.id, marker);
+
+                markers.set(
+                    resource.id,
+                    marker
+                );
             });
 
             /* ==========================================
@@ -2248,34 +2480,38 @@
                 ".map-focus-button"
             ).forEach(button => {
 
-                button.addEventListener("click", function () {
+                button.addEventListener(
+                    "click",
+                    function () {
 
-                    const id = Number(
-                        button.closest(".resource-item")
-                            .dataset.resourceId
-                    );
+                        const id = Number(
+                            button.closest(".resource-item")
+                                .dataset.resourceId
+                        );
 
-                    const marker = markers.get(id);
+                        const marker = markers.get(id);
 
-                    if (!marker) {
-                        return;
+                        if (!marker) {
+                            return;
+                        }
+
+                        map.setView(
+                            marker.getLatLng(),
+                            14
+                        );
+
+                        marker.openPopup();
+
+                        mapCard.scrollIntoView({
+                            behavior: "smooth",
+                            block: "nearest"
+                        });
                     }
-
-                    map.setView(marker.getLatLng(), 14);
-                    marker.openPopup();
-
-                    mapCard.scrollIntoView({
-                        behavior: "smooth",
-                        block: "nearest"
-                    });
-                });
+                );
             });
 
             /* ==========================================
                SAMME HØYDE PÅ BEGGE BOKSER
-
-               Venstre boks tilpasses høyre.
-               Ingen ekstra tomplass under kartet.
             ========================================== */
 
             function syncCardHeight() {
@@ -2284,12 +2520,16 @@
                     return;
                 }
 
+                if (!mapCard || !overviewGrid) {
+                    return;
+                }
+
                 const mapCardHeight =
                     mapCard.getBoundingClientRect().height;
 
                 overviewGrid.style.setProperty(
                     "--overview-map-card-height",
-                    mapCardHeight + "px"
+                    Math.ceil(mapCardHeight) + "px"
                 );
             }
 
@@ -2298,7 +2538,9 @@
             window.addEventListener(
                 "resize",
                 function () {
+
                     syncCardHeight();
+
                     scheduleMapRefresh();
                 }
             );
@@ -2306,20 +2548,29 @@
             if (typeof ResizeObserver !== "undefined") {
 
                 const cardObserver =
-                    new ResizeObserver(syncCardHeight);
+                    new ResizeObserver(
+                        syncCardHeight
+                    );
 
                 cardObserver.observe(mapCard);
 
                 const mapObserver =
-                    new ResizeObserver(scheduleMapRefresh);
+                    new ResizeObserver(
+                        scheduleMapRefresh
+                    );
 
                 mapObserver.observe(mapElement);
             }
 
-            window.setTimeout(function () {
-                map.invalidateSize();
-                syncCardHeight();
-            }, 100);
+            window.setTimeout(
+                function () {
+
+                    map.invalidateSize();
+
+                    syncCardHeight();
+                },
+                100
+            );
 
             /* ==========================================
                START FILTRERING

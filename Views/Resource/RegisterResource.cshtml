@@ -496,7 +496,10 @@
             .resource-grid {
                 grid-template-columns: minmax(0, .33fr) minmax(0, .67fr);
                 align-items: start;
-                min-height: 0;
+                /* Gir begge sticky-panelene plass til å følge siden uten å endre boksstørrelsene. */
+                min-height: calc(var(--register-map-card-height, 780px) + max(
+                    120px, calc(100dvh - var(--register-header-height, 80px) - 32px)
+                ));
                 height: auto;
                 overflow: visible;
             }
@@ -516,14 +519,17 @@
                 overflow: hidden;
             }
 
-            /*
-              Kartet står normalt på siden.
-              Ingen ekstra plass under kartboksen.
-            */
+            /* Begge panelene følger sidescrollingen under menyen og stopper ved seksjonsbunnen. */
+            .resource-grid > .form-card,
+            .resource-grid > .map-card {
+                position: sticky;
+                top: calc(var(--register-header-height, 80px) + 16px);
+                align-self: start;
+                z-index: 1;
+            }
+
             .resource-grid > .map-card {
                 height: auto;
-                position: static;
-                align-self: start;
             }
 
             /*
@@ -1283,6 +1289,19 @@
         const registerMapCard =
             document.querySelector(".map-card");
 
+        // Måler faktisk menyhøyde, slik at panelene følger under menyen også når den brytes.
+        const registerHeader = document.querySelector(".pv-header");
+        function syncHeaderOffset() {
+            document.documentElement.style.setProperty(
+                "--register-header-height", (registerHeader?.offsetHeight ?? 80) + "px");
+        }
+        syncHeaderOffset();
+        window.addEventListener("resize", syncHeaderOffset);
+        if (registerHeader && typeof ResizeObserver !== "undefined") {
+            const headerObserver = new ResizeObserver(syncHeaderOffset);
+            headerObserver.observe(registerHeader);
+        }
+
         /*
           Venstre kort skal alltid ha samme
           høyde som hele høyre kartkort.
@@ -1290,8 +1309,8 @@
           Hvis kartet endrer høyde, oppdateres
           skjemahøyden automatisk.
 
-          Dokumentet får ikke ekstra høyde
-          for å holde kartet sticky.
+          Seksjonen bruker samme mål for å avgrense
+          sticky-bevegelsen uten å endre kortenes høyde.
         */
 
         function syncFormHeight() {
