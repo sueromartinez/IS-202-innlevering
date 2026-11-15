@@ -103,10 +103,6 @@
                             typeNames.GetValueOrDefault(((int)need.ResourceType).ToString())
                             ?? need.ResourceType.ToString();
 
-                        var urgency =
-                            (ViewData["Urgency"] as Dictionary<int, FirstWebAppInDocker.Services.Matching.NeedUrgency>)
-                                ?.GetValueOrDefault(need.Id);
-
                         <article class="entry @(isPlanned ? "planned" : "")"
                                  data-type="@need.ResourceType" data-lat="@need.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture)"
                                  data-lng="@need.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture)"
@@ -117,13 +113,6 @@
                                 <strong>@typeName</strong>
                                 <span class="badge">@(isPlanned ? "Planlagt" : "Akutt")</span>
                                 <span class="entry-quantity">Antall: @need.Quantity</span>
-                                @if (urgency is not null && need.Status != NeedStatus.Resolved)
-                                {
-                                    <span class="urgency-badge @urgency.CssClass"
-                                          title="@(string.Join(" · ", urgency.Reasons))">
-                                        Hastegrad: @urgency.LevelName (@urgency.Score)
-                                    </span>
-                                }
                                 <span class="need-status @statusClass">@statusName</span>
                             </div>
 
@@ -146,11 +135,6 @@
                                         </span>
                                     }
                                 </p>
-                            }
-
-                            @if (urgency is not null && need.Status != NeedStatus.Resolved && urgency.Reasons.Count > 0)
-                            {
-                                <p class="urgency-reasons">@(string.Join(" · ", urgency.Reasons))</p>
                             }
 
                             <div class="entry-bottom">
