@@ -416,3 +416,283 @@ html:root:not([data-theme="navy"]) .public-workspace {
 html:root:not([data-theme="navy"]) :is(.hero, .how-section, .login-section, .community-section, .feature-section, .topics-section, .mission-section) {
     background: transparent;
 }
+
+
+/* =====================================================================
+   FARGEBLIND MODUS
+   Slås på med øye-knappen ved siden av sol/måne (theme.js), og settes
+   som data-colorblind="on" på <html>. Virker sammen med begge temaene.
+
+   Rød/grønn er den vanligste formen for fargeblindhet, og det er nettopp
+   fargene portalen bruker for akutt behov og tilgjengelig ressurs.
+   Her byttes de ut med farger som skilles godt også ved rød-grønn og
+   blå-gul fargeblindhet (testet med simulering):
+     - Akutt / feil / utilgjengelig  -> mørk oransje  (#c2410c)
+     - Planlagt                       -> lys gul       (#f5c518)
+     - Tilgjengelig / ok / bekreftet  -> mørk blå      (#0b4f8a)
+   De tre fargene har også ulik lyshet (mellom, lys, mørk), så de kan
+   skilles selv uten fargesyn. Testet med samme modell som RGBlind
+   (Machado m.fl. 2009).
+   Tekst og ikoner står fortsatt ved siden av fargene, så fargen er
+   aldri det eneste som forteller hva noe betyr.
+
+   Selektoren «html:root[data-colorblind="on"][data-theme]» er bevisst
+   litt mer spesifikk enn reglene for temaene og for hver side, så den
+   vinner uten at vi må endre de andre filene.
+===================================================================== */
+
+html:root[data-colorblind="on"][data-theme] {
+    --cb-acute: #c2410c;
+    --cb-planned: #f5c518;
+    --cb-planned-ink: #7a5a00;
+    --cb-ok: #0b4f8a;
+
+    --cb-ok-text: #1d5f9e;
+    --cb-ok-bg: #e3eefa;
+    --cb-bad-text: #a3400c;
+    --cb-bad-bg: #fdebd9;
+
+    /* Fargevariablene som sidene allerede bruker */
+    --urgent: var(--cb-acute);
+    --acute: var(--cb-acute);
+    --red: var(--cb-acute);
+    --danger: var(--cb-acute);
+    --planned: var(--cb-planned);
+    --yellow: var(--cb-planned);
+    --resource: var(--cb-ok);
+    --green: var(--cb-ok);
+    --green-dark: #165a96;
+    --overview-green: var(--cb-ok);
+    --success-text: var(--cb-ok-text);
+    --danger-text: var(--cb-bad-text);
+}
+
+html:root[data-colorblind="on"][data-theme="navy"] {
+    --cb-acute: #e8642a;
+    --cb-ok: #4a95dc;
+
+    --cb-ok-text: #8cc4f5;
+    --cb-ok-bg: rgba(140, 196, 245, 0.16);
+    --cb-bad-text: #ffa36b;
+    --cb-bad-bg: rgba(255, 163, 107, 0.16);
+}
+
+
+/* ---------- STATUSMERKER: OK / TILGJENGELIG / BEKREFTET ---------- */
+html:root[data-colorblind="on"][data-theme] :is(
+    .status-available,
+    .status-confirmed,
+    .status-assigned,
+    .need-status.status-assigned,
+    .alert-success,
+    .success,
+    .need-position.set,
+    .resource-flash,
+    .header-status,
+    .map-legend,
+    .need-coord-state.confirmed,
+    .need-coord-state.resolved,
+    .assignment-confirmed,
+    .assignment-need-status.resolved,
+    .coord-metric.confirmed
+) {
+    color: var(--cb-ok-text);
+    background: var(--cb-ok-bg);
+}
+
+/* Små prikker og ikoner som bare er farge */
+html:root[data-colorblind="on"][data-theme] :is(
+    .status-indicator,
+    .map-legend-dot,
+    .coord-lane.confirmed .coord-lane-dot
+) {
+    background: var(--cb-ok);
+}
+
+
+/* ---------- STATUSMERKER: AKUTT / AVSLÅTT / UTILGJENGELIG ---------- */
+html:root[data-colorblind="on"][data-theme] :is(
+    .status-declined,
+    .status-locked,
+    .alert-error,
+    .resource-state-busy,
+    .status-busy,
+    .assignment-rejected
+) {
+    color: var(--cb-bad-text);
+    background: var(--cb-bad-bg);
+}
+
+html:root[data-colorblind="on"][data-theme] :is(.danger-action, .resource-delete-button, .admin-delete-button) {
+    color: var(--cb-bad-text);
+    border-color: color-mix(in srgb, var(--cb-bad-text) 45%, transparent);
+}
+
+
+/* ---------- KARTMARKØRER ----------
+   Markørene lages i JavaScript med fargen skrevet rett inn i HTML-en.
+   Vi finner dem på fargekoden og bytter farge, så kartene endres med
+   en gang knappen trykkes, uten at kartene må tegnes på nytt. */
+html[data-colorblind="on"] :is([style*="background:#d34b4b"], [style*="background:#c63d3d"]) {
+    background: var(--cb-acute, #c2410c) !important;
+}
+
+html[data-colorblind="on"] [style*="background:#d99a24"] {
+    background: var(--cb-planned, #f5c518) !important;
+}
+
+html[data-colorblind="on"] [style*="background:#23855b"] {
+    background: var(--cb-ok, #1d6fb8) !important;
+}
+
+html[data-colorblind="on"] :is(svg[stroke="#d34b4b"], svg[stroke="#c63d3d"]) {
+    stroke: var(--cb-acute, #c2410c);
+}
+
+html[data-colorblind="on"] svg[stroke="#d99a24"] {
+    stroke: var(--cb-planned-ink, #7a5a00);
+}
+
+html[data-colorblind="on"] svg[stroke="#23855b"] {
+    stroke: var(--cb-ok, #1d6fb8);
+}
+
+
+/* ---------- TILGJENGELIGHET PÅ RESSURSER ----------
+   Fylte merker med symbol, så de kan skilles både på farge og form:
+     ✓ Tilgjengelig       mørkeblå  #174EA6, hvit tekst
+     × Ikke tilgjengelig  gul       #F4C430, nesten svart tekst
+     ? Ikke oppgitt       lys grå   #E5E7EB, nesten svart tekst */
+html:root[data-colorblind="on"][data-theme] :is(
+    .status-available,
+    .resource-state:not(.resource-state-busy):not(.resource-state-unavailable),
+    .provider-resource-status.available,
+    .resource-status.available
+) {
+    color: #ffffff;
+    background: #174ea6;
+}
+
+html:root[data-colorblind="on"][data-theme] :is(
+    .status-unavailable,
+    .resource-state-unavailable,
+    .provider-resource-status.unavailable
+) {
+    color: #1f2937;
+    background: #f4c430;
+}
+
+html:root[data-colorblind="on"][data-theme] .provider-resource-status.unspecified {
+    color: #1f2937;
+    background: #e5e7eb;
+}
+
+html:root[data-colorblind="on"][data-theme] :is(
+    .status-available,
+    .resource-state:not(.resource-state-busy):not(.resource-state-unavailable),
+    .provider-resource-status.available,
+    .resource-status.available,
+    .status-unavailable,
+    .resource-state-unavailable,
+    .provider-resource-status.unavailable,
+    .provider-resource-status.unspecified
+)::before {
+    display: inline-block;
+    width: auto;
+    height: auto;
+    margin-right: 5px;
+    border-radius: 0;
+    background: none;
+    font-weight: 900;
+}
+
+html:root[data-colorblind="on"][data-theme] :is(.status-available, .resource-state:not(.resource-state-busy):not(.resource-state-unavailable), .provider-resource-status.available, .resource-status.available)::before {
+    content: "✓";
+}
+
+html:root[data-colorblind="on"][data-theme] :is(.status-unavailable, .resource-state-unavailable, .provider-resource-status.unavailable)::before {
+    content: "×";
+}
+
+html:root[data-colorblind="on"][data-theme] .provider-resource-status.unspecified::before {
+    content: "?";
+}
+
+
+/* ---------- PRIORITET: AKUTT OG PLANLAGT ----------
+   Merkene fylles helt med farge. De lyse, nesten like bakgrunnene
+   i vanlig modus kan ikke skilles på farge alene. */
+html:root[data-colorblind="on"][data-theme] :is(.priority-acute, .entry:not(.planned) .badge, .popup-type.urgent) {
+    color: #ffffff;
+    background: var(--cb-acute);
+}
+
+html:root[data-colorblind="on"][data-theme] :is(.priority-planned, .entry.planned .badge, .popup-type.planned) {
+    color: #3d2e00;
+    background: var(--cb-planned);
+}
+
+/* ---------- BEHOVSKORT (Behov og Registrer behov) ----------
+   Kortene har fargen skrevet rett inn i sidens egen stil, med høy
+   spesifisitet (#needList), så her må vi bruke !important.
+   Kortet som er valgt i oversikten beholder sin blå markering. */
+html[data-colorblind="on"] #needList > :is(.need-overview-entry, .need):not(.need-overview-entry.active) {
+    border-left-color: var(--cb-acute, #c2410c) !important;
+}
+
+html[data-colorblind="on"] #needList > :is(.need-overview-entry, .need).planned:not(.need-overview-entry.active) {
+    border-left-color: var(--cb-planned, #f5c518) !important;
+}
+
+html:root[data-colorblind="on"][data-theme] :is(.entry, .need) .need-number {
+    color: #ffffff;
+    background: var(--cb-acute);
+}
+
+html:root[data-colorblind="on"][data-theme] :is(.entry.planned, .need.planned) .need-number {
+    background: var(--cb-planned);
+}
+
+/* Den gule fargen er lys, så tall og ikoner oppå den blir mørke. */
+html:root[data-colorblind="on"][data-theme] .summary-icon.planned,
+html:root[data-colorblind="on"][data-theme] :is(.entry.planned, .need.planned) .need-number {
+    color: #3d2e00;
+}
+
+
+/* ---------- RAPPORTER: DEKNINGSSTOLPER ---------- */
+html:root[data-colorblind="on"][data-theme] :is(.coverage-swatch.need, .coverage-bar.need) {
+    background: var(--cb-acute);
+}
+
+html:root[data-colorblind="on"][data-theme] :is(.coverage-swatch.resource, .coverage-bar.resource) {
+    background: var(--cb-ok);
+}
+
+html:root[data-colorblind="on"][data-theme] .coverage-gap {
+    color: #ffffff;
+    background: var(--cb-acute);
+}
+
+html:root[data-colorblind="on"][data-theme] .report-kpi.is-alert {
+    border-color: color-mix(in srgb, var(--cb-acute) 50%, transparent);
+    box-shadow: inset 4px 0 0 var(--cb-acute);
+}
+
+
+/* ---------- KNAPPEN ----------
+   Samme runde knapp som sol/måne. Når modusen er på, er knappen fylt,
+   så man ser at den er aktiv. */
+.colorblind-toggle[aria-pressed="true"] {
+    border-color: var(--accent);
+    color: #ffffff;
+    background: var(--accent);
+}
+
+html:root[data-theme="navy"] .colorblind-toggle[aria-pressed="true"] {
+    color: #0f2747;
+}
+
+.theme-toggle.colorblind-toggle.theme-toggle-fixed {
+    right: 60px;
+}

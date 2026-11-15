@@ -241,6 +241,15 @@ E-post fanges av **Mailpit** og kan leses på http://localhost:8025. SMS logges 
 
 Et behov kan få **frist** og **kontaktpunkt** (kontaktperson og telefon). Kontaktpunktet vises til den frivillige først etter at hen har bekreftet.
 
+## Fargeblind modus
+
+Øye-knappen ved siden av sol/måne slår på **fargeblind modus** (lagres i nettleseren, virker i både lyst og mørkt tema).
+
+- **Faste farger** for det viktigste (`wwwroot/css/theme.css`, nederst): akutt = mørk oransje `#c2410c`, planlagt = gul `#f5c518`, ressurs/ok = mørk blå `#0b4f8a`. Tilgjengelighet: ✓ Tilgjengelig `#174EA6`, × Ikke tilgjengelig `#F4C430`, ? Ikke oppgitt `#E5E7EB`.
+- **Alt annet rødt og grønt** byttes automatisk (`wwwroot/js/theme.js`): skriptet går gjennom alle CSS-regler og farger i HTML-en (også kartmarkører), og bytter rødt til oransje og grønt til blått med samme lyshet. Nye sider blir derfor også fargeblindvennlige uten ekstra arbeid.
+
+Fargene er testet med simulering av rød-grønn (protan/deutan), blå-gul (tritan) og total fargeblindhet (samme modell som RGBlind, Machado m.fl. 2009).
+
 ## Frivillige: endre og slette egne ressurser
 
 Under **Mine ressurser** har hver ressurs knappene **Endre** og **Slett**. En ressurs som er *Opptatt* eller har forespørsler knyttet til seg kan ikke slettes, slik at historikken beholdes (samme regel som for admin).
