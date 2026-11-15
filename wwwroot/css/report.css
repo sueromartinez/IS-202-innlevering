@@ -1,0 +1,410 @@
+/* =========================================================
+   RAPPORTER – situasjonsrapport og ressursliste.
+   Bruker fargevariablene fra app.css/theme.css, så siden
+   fungerer i både lyst og mørkt tema og blir pen på papir.
+   ========================================================= */
+
+.report-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.report-actions .primary-action {
+    min-height: 38px;
+}
+
+
+/* -----------------------
+   NØKKELTALL
+----------------------- */
+
+.report-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.report-kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 16px 18px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface);
+}
+
+.report-kpi.is-alert {
+    border-color: rgba(180, 35, 24, 0.45);
+    box-shadow: inset 4px 0 0 #b42318;
+}
+
+.report-kpi-value {
+    font-size: 1.9rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+}
+
+.report-kpi-value small {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.report-kpi-label {
+    font-size: 0.82rem;
+    font-weight: 750;
+}
+
+.report-kpi-sub {
+    color: var(--text-secondary);
+    font-size: 0.76rem;
+}
+
+
+/* -----------------------
+   OPPSUMMERING OG SAMI
+----------------------- */
+
+.report-summary-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.report-summary-list {
+    margin: 0;
+    padding-left: 20px;
+    line-height: 1.65;
+    font-size: 0.92rem;
+}
+
+.report-ai {
+    margin-top: 18px;
+    padding: 16px 18px;
+    border: 1px solid rgba(23, 107, 135, 0.35);
+    border-radius: 12px;
+    background: var(--surface-soft, #f2f7f9);
+}
+
+.report-ai.is-error {
+    border-color: rgba(180, 35, 24, 0.4);
+}
+
+.report-ai-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 650;
+}
+
+.report-ai-badge {
+    padding: 3px 9px;
+    border-radius: 999px;
+    color: #fff;
+    background: var(--primary);
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.report-ai-text h3 {
+    margin: 14px 0 4px;
+    font-size: 0.9rem;
+}
+
+.report-ai-text p,
+.report-ai-text ul {
+    margin: 4px 0;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.report-ai-text ul {
+    padding-left: 20px;
+}
+
+.report-ai-note {
+    margin: 12px 0 0;
+    color: var(--text-secondary);
+    font-size: 0.74rem;
+}
+
+
+/* -----------------------
+   DEKNING
+----------------------- */
+
+.report-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 0 22px;
+}
+
+.coverage-legend {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 10px;
+    color: var(--text-secondary);
+    font-size: 0.76rem;
+}
+
+.coverage-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.coverage-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+}
+
+/* Faste farger, så stolpene syns i begge temaer. */
+.coverage-swatch.need,
+.coverage-bar.need { background: #d64545; }
+
+.coverage-swatch.resource,
+.coverage-bar.resource { background: #23855b; }
+
+html:root[data-theme="navy"] .coverage-swatch.need,
+html:root[data-theme="navy"] .coverage-bar.need { background: #f07070; }
+
+html:root[data-theme="navy"] .coverage-swatch.resource,
+html:root[data-theme="navy"] .coverage-bar.resource { background: #3fbf86; }
+
+.coverage-swatch {
+    display: inline-block;
+}
+
+.coverage-list {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.coverage-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+    font-size: 0.86rem;
+    font-weight: 700;
+}
+
+.coverage-icon {
+    display: inline-flex;
+    color: var(--primary);
+}
+
+.coverage-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.coverage-bars {
+    display: grid;
+    grid-template-columns: 1fr 28px;
+    align-items: center;
+    gap: 3px 8px;
+}
+
+.coverage-bar {
+    min-width: 3px;
+    height: 9px;
+    border-radius: 999px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.coverage-count {
+    color: var(--text-secondary);
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-align: right;
+}
+
+.report-link {
+    color: var(--primary);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.report-link:hover {
+    text-decoration: underline;
+}
+
+.report-gap {
+    border-color: rgba(180, 35, 24, 0.35);
+}
+
+.report-gap-list {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.88rem;
+}
+
+.report-gap-list .urgency-badge {
+    margin-right: 6px;
+}
+
+
+/* -----------------------
+   RESSURSLISTE
+----------------------- */
+
+.report-filter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 14px 18px;
+}
+
+.report-filter .form-field {
+    min-width: 200px;
+    flex: 1 1 200px;
+}
+
+.report-filter .form-field select {
+    color: var(--text);
+}
+
+.report-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    font-size: 0.86rem;
+    font-weight: 650;
+}
+
+.report-check input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary);
+}
+
+.report-group h2 {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.report-group-count {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 650;
+}
+
+.report-resource {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.report-footer {
+    margin: 10px 0 30px;
+    color: var(--text-secondary);
+    font-size: 0.74rem;
+    text-align: center;
+}
+
+
+/* -----------------------
+   UTSKRIFT
+   Skjuler meny, knapper og Sami, og bruker svart på hvitt.
+----------------------- */
+
+@media print {
+    @page {
+        margin: 14mm 12mm;
+    }
+
+    html:root,
+    html:root[data-theme="navy"] {
+        --heading: #000 !important;
+        --surface: #fff !important;
+        --surface-soft: #f4f6f8 !important;
+        --background: #fff !important;
+        --text: #000 !important;
+        --text-secondary: #444 !important;
+        --border: #ccc !important;
+    }
+
+    html,
+    body {
+        color: #000 !important;
+        background: #fff !important;
+    }
+
+    .pv-header,
+    .portal-header,
+    .portal-top-navigation,
+    .sami,
+    .no-print {
+        display: none !important;
+    }
+
+    .app-main {
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .app-card,
+    .report-kpi {
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+
+    .report-group {
+        break-inside: auto;
+    }
+
+    .portal-table tr {
+        break-inside: avoid;
+    }
+
+    .portal-table th {
+        color: #000;
+    }
+
+    .report-link {
+        color: #000;
+    }
+
+    .report-ai[hidden] {
+        display: none !important;
+    }
+
+    .urgency-badge,
+    .status-badge {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+
+
+@media (max-width: 700px) {
+    .report-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .report-kpi-value {
+        font-size: 1.55rem;
+    }
+}

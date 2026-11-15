@@ -61,9 +61,14 @@ public class ClaudeChatClient : IChatModelClient
             ["model"] = _settings.Model,
             ["max_tokens"] = _settings.MaxTokens,
             ["system"] = systemPrompt,
-            ["messages"] = BuildMessages(messages),
-            ["tools"] = BuildTools(tools)
+            ["messages"] = BuildMessages(messages)
         };
+
+        // Uten verktøy (f.eks. situasjonsrapporten) sendes feltet ikke med.
+        if (tools.Count > 0)
+        {
+            body["tools"] = BuildTools(tools);
+        }
 
         using var request = new HttpRequestMessage(HttpMethod.Post, "v1/messages")
         {

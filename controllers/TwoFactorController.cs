@@ -185,6 +185,12 @@ public class TwoFactorController : Controller
 
         if (!result.Succeeded)
         {
+            await this.AuditAsync(
+                AuditActions.LoginFailed,
+                "Feil eller utløpt tofaktorkode",
+                user.Id,
+                user.Email);
+
             ModelState.AddModelError(
                 nameof(model.Code),
                 "Ugyldig eller utløpt sikkerhetskode. " +
@@ -208,6 +214,12 @@ public class TwoFactorController : Controller
         // midlertidige tofaktoropplysninger.
 
         await CreateLegacySessionAsync(user);
+
+        await this.AuditAsync(
+            AuditActions.Login,
+            "Innlogging med tofaktorkode",
+            user.Id,
+            user.Email);
 
         return RedirectToAction(
             "Dashboard",

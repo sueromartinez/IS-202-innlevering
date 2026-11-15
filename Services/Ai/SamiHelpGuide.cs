@@ -130,11 +130,12 @@ public static class SamiHelpGuide
         new("kart",
             "Kartet: zoome og bytte karttype",
             Everyone,
-            new[] { "kart", "karttype", "sjøkart", "topografisk", "zoom", "zoome", "vanlig", "kartverket", "satellitt", "flytte" },
+            new[] { "kart", "karttype", "sjøkart", "topografisk", "zoom", "zoome", "vanlig", "kartverket", "satellitt", "flytte", "flybilder", "flyfoto", "flybilde", "luftfoto", "ortofoto", "norge i bilder" },
             """
-            - Øverst til høyre i kartene er det en meny der du velger «Vanlig kart», «Topografisk kart» eller «Sjøkart».
+            - Øverst til høyre i kartene er det en meny der du velger «Vanlig kart», «Topografisk kart», «Sjøkart» eller «Flybilder».
+            - «Flybilder» viser flyfoto fra Norge i bilder, nyttig for å se terreng, bygninger, veier og vann slik de faktisk ser ut. Flybildene dekker bare Norge.
             - Zoom med + og − i hjørnet, med musehjulet eller med to fingre på mobil. Dra i kartet for å flytte det.
-            - Kartbildene kommer fra Kartverket og OpenStreetMap.
+            - Kartbildene kommer fra Kartverket, Norge i bilder og OpenStreetMap.
             """),
 
         new("roller",
@@ -206,7 +207,9 @@ public static class SamiHelpGuide
             - Trykk «Marker som utilgjengelig» hvis ressursen ikke kan brukes en stund, og «Marker som tilgjengelig» når den kan brukes igjen.
             - «Opptatt» betyr at ressursen er bekreftet til et behov. Den blir ledig igjen når behovet er løst.
             - Når tilgjengelighetsperioden er over, regnes ressursen som utilgjengelig.
-            - Det finnes ikke knapp for å endre eller slette en ressurs selv. Kontakt en administrator, eller registrer den på nytt med riktige opplysninger.
+            - Trykk «Endre» på ressursen for å rette navn, antall, beskrivelse, adresse, kontaktinfo eller periode. Tilgjengelighetsperioden starter på nytt fra dagen du lagrer.
+            - Trykk «Slett» for å fjerne en ressurs du ikke lenger har. Du må bekrefte først.
+            - En ressurs kan ikke slettes mens den er «Opptatt», eller hvis den har vært brukt i en forespørsel (historikken skal tas vare på). Marker den heller som utilgjengelig.
             """),
 
         new("foresporsler",
@@ -238,10 +241,12 @@ public static class SamiHelpGuide
         new("registrer-behov",
             "Registrere et behov",
             Officials,
-            new[] { "registrere", "registrer", "behov", "melde", "nytt", "trenger", "prioritet", "akutt", "planlagt" },
+            new[] { "registrere", "registrer", "behov", "melde", "nytt", "trenger", "prioritet", "akutt", "planlagt", "frist", "kontakt", "kontaktperson", "kontaktpunkt", "telefon" },
             """
             - Trykk «Registrer behov» i menyen.
             - For hvert behov velger du type, prioritet (Akutt eller Planlagt), antall (1–9999), skriver en beskrivelse (maks 500 tegn) og klikker i kartet der behovet er.
+            - Du kan også sette en frist (dato) og et kontaktpunkt (kontaktperson og telefon). Navnet og telefonen fra profilen din fylles inn automatisk, men kan endres.
+            - Kontaktpunktet vises til frivillige først etter at de har bekreftet at de kan stille.
             - Du kan registrere flere behov i samme skjema.
             """),
 
@@ -279,6 +284,30 @@ public static class SamiHelpGuide
             - Løst: behovet er markert som dekket. Bekreftede ressurser blir tilgjengelige igjen.
             """),
 
+        new("hastegrad",
+            "Hva betyr hastegrad (Kritisk, Høy, Middels, Lav)?",
+            Officials,
+            new[] { "hastegrad", "haster", "risiko", "kritisk", "høy", "middels", "lav", "poeng", "prioritere", "viktigst", "først", "risikomodell" },
+            """
+            - Hvert åpent behov får en hastegrad fra 0 til 100 poeng, regnet ut automatisk. Hold musen over merket for å se hvorfor.
+            - Poengene kommer fra fire ting: prioritet (Akutt 50, Planlagt 15), frist (passert +35, innen et døgn +30, innen tre døgn +20, innen en uke +10), hvor lenge behovet har ventet (opptil +15) og dekning (ingen ressurser av riktig type innen 50 km +20, bare 1–2 +8).
+            - Behov som allerede er tildelt får bare 30 % av poengene. Løste behov får 0.
+            - Nivåer: 70+ Kritisk, 45–69 Høy, 25–44 Middels, under 25 Lav.
+            - Hastegraden vises på «Behov», på «Finn ressurser» og i situasjonsrapporten.
+            """),
+
+        new("rapporter",
+            "Situasjonsrapport, utskrift og eksport (CSV/JSON)",
+            Officials,
+            new[] { "rapport", "rapporter", "situasjonsrapport", "situasjon", "oversikt", "skrive ut", "utskrift", "print", "eksport", "eksportere", "csv", "json", "excel", "last ned", "laste ned", "kommune", "region", "liste" },
+            """
+            - «Rapporter» i menyen åpner situasjonsrapporten: nøkkeltall, dekning per ressurstype, ressurser per kommune, de mest presserende behovene og behov uten ressurser i nærheten.
+            - Trykk «Be Sami skrive vurdering» for en kort vurdering med risikoer og anbefalte tiltak. Den automatiske oppsummeringen virker også uten Sami.
+            - «Ressursliste per kommune» viser en utskriftsvennlig liste. Velg kommune, type og om bare tilgjengelige skal vises.
+            - «Skriv ut» skriver ut siden uten meny og knapper. «Last ned CSV (Excel)» og «Last ned JSON» laster ned listen med samme filter.
+            - Listene inneholder kontaktinformasjon og skal behandles fortrolig. Alle eksporter logges.
+            """),
+
         new("ressursoversikt",
             "Se og filtrere alle ressurser",
             Officials,
@@ -299,6 +328,17 @@ public static class SamiHelpGuide
             - «Opprett offentlig aktør» lager konto for en kommune eller etat. Gi personen det midlertidige passordet på en trygg måte.
             - Du kan se ressursene til en bruker og slette ressurser som er feilregistrert.
             - Du kan ikke endre din egen rolle eller deaktivere deg selv.
+            """),
+
+        new("aktivitetslogg",
+            "Aktivitetslogg / audit-logg (admin)",
+            Admins,
+            new[] { "logg", "aktivitetslogg", "audit", "sporbarhet", "hvem", "historikk", "innlogging", "mislykket", "endringer", "eksport", "sikkerhet" },
+            """
+            - Trykk «Aktivitetslogg» på «Brukere»-siden eller i «Rapporter».
+            - Loggen viser hvem som gjorde hva og når: innlogginger og mislykkede innlogginger, utlogging, nye, endrede og slettede ressurser og behov, forespørsler og svar, løste behov, rolleendringer, nye og deaktiverte brukere, eksport og situasjonsrapporter.
+            - Filtrer på handling, periode (døgn, uke, måned, år) og søk etter e-post eller tekst.
+            - Loggen kan bare leses. Den kan ikke endres eller slettes fra portalen.
             """),
     };
 

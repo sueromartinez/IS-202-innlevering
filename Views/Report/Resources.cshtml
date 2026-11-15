@@ -1,0 +1,141 @@
+@model FirstWebAppInDocker.ViewModels.ResourceReportViewModel
+@using FirstWebAppInDocker.Models
+@using FirstWebAppInDocker.Services
+@{
+    Layout = "_PortalLayout";
+    ViewData["Title"] = "Ressursliste";
+
+    string generated = Model.GeneratedAt.ToLocalTime().ToString("dd.MM.yyyy 'kl.' HH:mm");
+    string scope = Model.Municipality ?? "Alle kommuner";
+    string? typeValue = Model.Type?.ToString();
+    string? onlyAvailableValue = Model.OnlyAvailable ? "true" : null;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/report.css" asp-append-version="true" />
+}
+
+<div class="page-top">
+    <div>
+        <span class="page-eyebrow">Rapporter</span>
+        <h1 class="page-heading">Ressursliste – @scope</h1>
+        <p class="page-description">
+            Utskriftsvennlig oversikt over registrerte ressurser, gruppert per kommune.
+            @ResourceDisplay.CountText(Model.TotalCount, "ressurs", "ressurser") · laget @generated.
+        </p>
+    </div>
+
+    <div class="report-actions no-print">
+        <a asp-action="Index" class="secondary-action">Situasjonsrapport</a>
+        <a asp-action="Export" asp-route-format="csv" asp-route-kommune="@Model.Municipality" asp-route-type="@typeValue" asp-route-onlyAvailable="@onlyAvailableValue" class="secondary-action">Last ned CSV (Excel)</a>
+        <a asp-action="Export" asp-route-format="json" asp-route-kommune="@Model.Municipality" asp-route-type="@typeValue" asp-route-onlyAvailable="@onlyAvailableValue" class="secondary-action">Last ned JSON</a>
+        <button type="button" class="primary-action" onclick="window.print()">Skriv ut</button>
+    </div>
+</div>
+
+<form method="get" asp-action="Resources" class="app-card portal-section report-filter no-print">
+    <div class="form-field">
+        <label for="kommune">Kommune</label>
+        <select id="kommune" name="kommune">
+            <option value="">Alle kommuner</option>
+            @foreach (string municipality in Model.Municipalities)
+            {
+                <option value="@municipality" selected="@(string.Equals(municipality, Model.Municipality, StringComparison.OrdinalIgnoreCase))">@municipality</option>
+            }
+        </select>
+    </div>
+
+    <div class="form-field">
+        <label for="type">Ressurstype</label>
+        <select id="type" name="type">
+            <option value="">Alle typer</option>
+            @foreach (ResourceType type in Enum.GetValues<ResourceType>())
+            {
+                <option value="@type" selected="@(Model.Type == type)">@EnumDisplay.Name(type)</option>
+            }
+        </select>
+    </div>
+
+    <label class="report-check">
+        <input type="checkbox" name="onlyAvailable" value="true" checked="@Model.OnlyAvailable" />
+        Bare tilgjengelige
+    </label>
+
+    <button type="submit" class="primary-action">Vis liste</button>
+</form>
+
+@if (Model.TotalCount == 0)
+{
+    <section class="app-card portal-section">
+        <p class="empty-state">Ingen ressurser passer filteret.</p>
+    </section>
+}
+
+@foreach (var group in Model.Groups)
+{
+    <section class="app-card portal-section report-group">
+        <h2>@group.Municipality <span class="report-group-count">@ResourceDisplay.CountText(group.Resources.Count, "ressurs", "ressurser")</span></h2>
+
+        <div class="table-wrap">
+            <table class="portal-table report-table">
+                <thead>
+                    <tr>
+                        <th>Ressurs</th>
+                        <th>Type</th>
+                        <th>Antall</th>
+                        <th>Status</th>
+                        <th>Adresse</th>
+                        <th>Kontakt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in group.Resources)
+                    {
+                        string statusClass = row.Status switch
+                        {
+                            ResourceStatus.Available => "status-available",
+                            ResourceStatus.Busy => "status-busy",
+                            _ => "status-unavailable"
+                        };
+
+                        <tr>
+                            <td>
+                                <span class="report-resource">
+                                    <span class="coverage-icon">@Html.Raw(ResourceDisplay.Icon(row.Type))</span>
+                                    <strong>@row.Name</strong>
+                                </span>
+                                @if (!string.IsNullOrWhiteSpace(row.Capacity))
+                                {
+                                    <span class="cell-muted">Kapasitet: @row.Capacity</span>
+                                }
+                            </td>
+                            <td>@row.TypeName</td>
+                            <td>@row.Quantity</td>
+                            <td>
+                                <span class="status-badge @statusClass">@row.StatusName</span>
+                                @if (row.AvailableUntil.HasValue)
+                                {
+                                    <span class="cell-muted">til @row.AvailableUntil.Value.ToString("dd.MM.yyyy")</span>
+                                }
+                            </td>
+                            <td>@(row.Address ?? "–")</td>
+                            <td>
+                                @(row.OwnerName ?? "–")
+                                @if (!string.IsNullOrWhiteSpace(row.ContactPhone))
+                                {
+                                    <span class="cell-muted">@row.ContactPhone</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(row.ContactEmail))
+                                {
+                                    <span class="cell-muted">@row.ContactEmail</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}
+
+<p class="report-footer">Beredskapsportalen · ressursliste for @scope · @generated · Inneholder kontaktinformasjon – behandles fortrolig.</p>

@@ -1,6 +1,7 @@
 
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
+using FirstWebAppInDocker.Services;
 using FirstWebAppInDocker.Services.Matching;
 using FirstWebAppInDocker.ViewModels;
 using Microsoft.AspNetCore.Authorization;
@@ -307,6 +308,11 @@ public class MatchController : Controller
                 })
                 .ToListAsync();
 
+        // Hastegrad for behovet (samme modell som i behovslisten).
+        ViewData["Urgency"] =
+            (await new NeedUrgencyService(_context).CalculateAsync(new[] { need }))
+                .GetValueOrDefault(need.Id);
+
         return View(new MatchNeedViewModel
         {
             Need = need,
@@ -343,6 +349,14 @@ public class MatchController : Controller
             suggestedByAssistant
         );
 
+        if (result.Success)
+        {
+            await this.AuditAsync(
+                AuditActions.RequestSent,
+                $"Forespørsel om ressurs #{resourceId} til behov #{needId}"
+                + (suggestedByAssistant ? " (foreslått av Sami)" : ""));
+        }
+
         if (WantsJson())
         {
             return Json(new
@@ -377,6 +391,13 @@ public class MatchController : Controller
         ServiceResult result =
             await _assignments.CancelAsync(assignmentId);
 
+        if (result.Success)
+        {
+            await this.AuditAsync(
+                AuditActions.RequestCancelled,
+                $"Forespørsel #{assignmentId} på behov #{needId} ble avbrutt");
+        }
+
         TempData[
             result.Success
                 ? "MatchMessage"
@@ -400,6 +421,13 @@ public class MatchController : Controller
     {
         ServiceResult result =
             await _assignments.ResolveNeedAsync(needId);
+
+        if (result.Success)
+        {
+            await this.AuditAsync(
+                AuditActions.NeedResolved,
+                $"Behov #{needId} markert som løst");
+        }
 
         TempData[
             result.Success

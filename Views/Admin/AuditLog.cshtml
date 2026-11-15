@@ -1,0 +1,160 @@
+@model FirstWebAppInDocker.ViewModels.AuditLogViewModel
+@using FirstWebAppInDocker.Services
+@{
+    Layout = "_PortalLayout";
+    ViewData["Title"] = "Aktivitetslogg";
+
+    var dayOptions = new[] { (1, "Siste døgn"), (7, "Siste 7 dager"), (30, "Siste 30 dager"), (365, "Siste år") };
+
+    string ActionClass(string action) => action switch
+    {
+        AuditActions.LoginFailed or AuditActions.ResourceDeleted or AuditActions.NeedDeleted
+            or AuditActions.UserDeactivated => "status-declined",
+        AuditActions.RoleChanged or AuditActions.UserCreated or AuditActions.UserReactivated
+            or AuditActions.Export or AuditActions.ReportGenerated => "status-review",
+        AuditActions.Login or AuditActions.Logout => "status-resolved",
+        _ => "status-confirmed"
+    };
+
+    int failedLogins = Model.ActionCounts.GetValueOrDefault(AuditActions.LoginFailed);
+    int logins = Model.ActionCounts.GetValueOrDefault(AuditActions.Login);
+    int changes = Model.ActionCounts
+        .Where(pair => pair.Key is not (AuditActions.Login or AuditActions.Logout or AuditActions.LoginFailed))
+        .Sum(pair => pair.Value);
+    int exports = Model.ActionCounts.GetValueOrDefault(AuditActions.Export);
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/report.css" asp-append-version="true" />
+}
+
+<div class="page-top">
+    <div>
+        <span class="page-eyebrow">Administrasjon</span>
+        <h1 class="page-heading">Aktivitetslogg</h1>
+        <p class="page-description">
+            Sporbarhet: hvem gjorde hva, og når. Innlogginger, endringer på ressurser og behov,
+            forespørsler, rolleendringer og eksport logges automatisk og kan ikke endres fra portalen.
+        </p>
+    </div>
+
+    <div class="report-actions no-print">
+        <a asp-action="Users" class="secondary-action">Tilbake til brukere</a>
+        <button type="button" class="primary-action" onclick="window.print()">Skriv ut</button>
+    </div>
+</div>
+
+<section class="report-kpis" aria-label="Oppsummering for perioden">
+    <div class="report-kpi">
+        <span class="report-kpi-value">@logins</span>
+        <span class="report-kpi-label">Innlogginger</span>
+    </div>
+    <div class="report-kpi @(failedLogins > 0 ? "is-alert" : "")">
+        <span class="report-kpi-value">@failedLogins</span>
+        <span class="report-kpi-label">Mislykkede innlogginger</span>
+    </div>
+    <div class="report-kpi">
+        <span class="report-kpi-value">@changes</span>
+        <span class="report-kpi-label">Endringer og handlinger</span>
+    </div>
+    <div class="report-kpi">
+        <span class="report-kpi-value">@exports</span>
+        <span class="report-kpi-label">Eksporter</span>
+    </div>
+</section>
+
+<form method="get" asp-action="AuditLog" class="app-card portal-section report-filter no-print">
+    <div class="form-field">
+        <label for="auditAction">Handling</label>
+        <select id="auditAction" name="handling">
+            <option value="">Alle handlinger</option>
+            @foreach (var pair in AuditActions.Names)
+            {
+                int count = Model.ActionCounts.GetValueOrDefault(pair.Key);
+                <option value="@pair.Key" selected="@(pair.Key == Model.Action)">@pair.Value (@count)</option>
+            }
+        </select>
+    </div>
+
+    <div class="form-field">
+        <label for="auditDays">Periode</label>
+        <select id="auditDays" name="days">
+            @foreach (var (value, text) in dayOptions)
+            {
+                <option value="@value" selected="@(value == Model.Days)">@text</option>
+            }
+        </select>
+    </div>
+
+    <div class="form-field">
+        <label for="auditQuery">Søk i bruker eller detaljer</label>
+        <input id="auditQuery" name="q" value="@Model.Query" placeholder="F.eks. e-post eller ressursnavn" />
+    </div>
+
+    <button type="submit" class="primary-action">Filtrer</button>
+</form>
+
+<section class="app-card portal-section">
+    <h2>@ResourceDisplay.CountText(Model.TotalCount, "hendelse", "hendelser")</h2>
+    <p class="section-hint">Nyeste først. Tidene vises i lokal tid.</p>
+
+    @if (Model.Entries.Count == 0)
+    {
+        <p class="empty-state">Ingen hendelser passer filteret.</p>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="portal-table">
+                <thead>
+                    <tr>
+                        <th>Tidspunkt</th>
+                        <th>Handling</th>
+                        <th>Bruker</th>
+                        <th>Detaljer</th>
+                        <th>IP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var entry in Model.Entries)
+                    {
+                        <tr>
+                            <td style="white-space:nowrap">@entry.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm:ss")</td>
+                            <td><span class="status-badge @ActionClass(entry.Action)">@AuditActions.NameOf(entry.Action)</span></td>
+                            <td>@(entry.UserEmail ?? "–")</td>
+                            <td>@entry.Details</td>
+                            <td class="cell-muted">@(entry.IpAddress ?? "–")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.PageCount > 1)
+        {
+            <nav class="audit-pager no-print" aria-label="Sider">
+                @if (Model.Page > 1)
+                {
+                    <a asp-action="AuditLog" asp-route-handling="@Model.Action" asp-route-q="@Model.Query" asp-route-days="@Model.Days" asp-route-page="@(Model.Page - 1)" class="secondary-action">← Nyere</a>
+                }
+                <span>Side @Model.Page av @Model.PageCount</span>
+                @if (Model.Page < Model.PageCount)
+                {
+                    <a asp-action="AuditLog" asp-route-handling="@Model.Action" asp-route-q="@Model.Query" asp-route-days="@Model.Days" asp-route-page="@(Model.Page + 1)" class="secondary-action">Eldre →</a>
+                }
+            </nav>
+        }
+    }
+</section>
+
+<style>
+    .audit-pager {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        margin-top: 16px;
+        color: var(--text-secondary);
+        font-size: 0.84rem;
+    }
+</style>

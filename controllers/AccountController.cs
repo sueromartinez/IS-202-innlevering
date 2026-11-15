@@ -65,6 +65,11 @@ public class AccountController : Controller
 
         if (user is null)
         {
+            await this.AuditAsync(
+                AuditActions.LoginFailed,
+                "Ukjent e-postadresse",
+                userEmailOverride: email);
+
             TempData["LoginError"] =
                 "Feil e-post eller passord.";
 
@@ -98,6 +103,12 @@ public class AccountController : Controller
 
             CreateSession(user, role);
 
+            await this.AuditAsync(
+                AuditActions.Login,
+                $"Innlogging med passord ({role})",
+                user.Id,
+                user.Email);
+
             return RedirectToAction(
                 "Dashboard",
                 "Home");
@@ -116,6 +127,12 @@ public class AccountController : Controller
 
         if (result.IsLockedOut)
         {
+            await this.AuditAsync(
+                AuditActions.LoginFailed,
+                "Kontoen er låst etter for mange forsøk",
+                user.Id,
+                user.Email);
+
             TempData["LoginError"] =
                 "Brukeren er midlertidig låst " +
                 "etter for mange feilaktige " +
@@ -125,6 +142,12 @@ public class AccountController : Controller
                 "Index",
                 "Home");
         }
+
+        await this.AuditAsync(
+            AuditActions.LoginFailed,
+            "Feil passord",
+            user.Id,
+            user.Email);
 
         TempData["LoginError"] =
             "Feil e-post eller passord.";
@@ -709,6 +732,12 @@ public class AccountController : Controller
             publicActor,
             IdentitySeeder.PublicActorRole);
 
+        await this.AuditAsync(
+            AuditActions.Login,
+            "Demoinnlogging som offentlig aktør",
+            publicActor.Id,
+            publicActor.Email);
+
         return RedirectToAction(
             "Dashboard",
             "Home");
@@ -722,6 +751,9 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
+        // Logges før utlogging, mens brukeren fortsatt er kjent.
+        await this.AuditAsync(AuditActions.Logout, "Logget ut");
+
         await _signInManager.SignOutAsync();
 
         HttpContext.Session.Clear();

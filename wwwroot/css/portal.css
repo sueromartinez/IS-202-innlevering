@@ -386,3 +386,22 @@
     font-size: 0.82rem;
     background: var(--surface);
 }
+
+
+/* -----------------------
+   HASTEGRAD (samme farger som i need.css)
+----------------------- */
+
+.urgency-badge {
+    display: inline-flex;
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.urgency-critical { color: #fff; background: #b42318; }
+.urgency-high { color: #7a2e0e; background: #fde3cf; }
+.urgency-medium { color: #8a5a00; background: #fdf3df; }
+.urgency-low { color: #475467; background: #eef1f4; }

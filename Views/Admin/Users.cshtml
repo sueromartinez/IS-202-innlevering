@@ -134,14 +134,25 @@
         </p>
     </div>
 
-    <a
-        asp-controller="Admin"
-        asp-action="CreatePublicActor"
-        class="primary-action">
+    <div class="report-actions" style="display:flex;flex-wrap:wrap;gap:8px;">
+        <a
+            asp-controller="Admin"
+            asp-action="AuditLog"
+            class="secondary-action">
 
-        Opprett offentlig aktør
+            Aktivitetslogg
 
-    </a>
+        </a>
+
+        <a
+            asp-controller="Admin"
+            asp-action="CreatePublicActor"
+            class="primary-action">
+
+            Opprett offentlig aktør
+
+        </a>
+    </div>
 
 </div>
 

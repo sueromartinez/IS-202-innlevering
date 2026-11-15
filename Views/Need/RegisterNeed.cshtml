@@ -90,6 +90,27 @@
                                 <span asp-validation-for="Needs[i].Description" class="error"></span>
                             </label>
 
+                            @* Frist og kontaktpunkt, slik caset krever. Kontaktpunktet er fylt ut med deg selv. *@
+                            <div class="need-row">
+                                <label>
+                                    Frist (valgfritt)
+                                    <input asp-for="Needs[i].Deadline" type="date" data-deadline />
+                                </label>
+
+                                <label>
+                                    Kontaktperson
+                                    <input asp-for="Needs[i].ContactName" maxlength="100"
+                                           placeholder="F.eks. vakthavende" />
+                                    <span asp-validation-for="Needs[i].ContactName" class="error"></span>
+                                </label>
+
+                                <label>
+                                    Telefon
+                                    <input asp-for="Needs[i].ContactPhone" type="tel" maxlength="30" />
+                                    <span asp-validation-for="Needs[i].ContactPhone" class="error"></span>
+                                </label>
+                            </div>
+
                             <input asp-for="Needs[i].Latitude" type="hidden" data-lat />
                             <input asp-for="Needs[i].Longitude" type="hidden" data-lng />
                             <span asp-validation-for="Needs[i].Latitude" class="error"></span>
@@ -239,6 +260,8 @@
         newNeed.querySelector("textarea").value = "";
         newNeed.querySelector("input[type=number]").value = 1;
         newNeed.querySelector("[data-lat]").value = "";
+        // Fristen gjelder bare ett behov. Kontaktpunktet beholdes.
+        newNeed.querySelector("[data-deadline]").value = "";
         newNeed.querySelector("[data-lng]").value = "";
         newNeed.querySelectorAll(".error").forEach(error => error.textContent = "");
 

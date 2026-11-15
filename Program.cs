@@ -173,6 +173,11 @@ builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<ResourceMatchingService>();
 builder.Services.AddScoped<AssignmentService>();
 
+// Audit-logg og hastegrad for behov.
+builder.Services.AddScoped<AuditService>();
+builder.Services.AddScoped<NeedUrgencyService>();
+builder.Services.AddScoped<FirstWebAppInDocker.Services.Reports.ReportService>();
+
 // ========================================
 // SAMI (AI-ASSISTENT)
 // ========================================

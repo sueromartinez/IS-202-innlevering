@@ -49,6 +49,12 @@ public class ApplicationDbContext
     public DbSet<Notification> Notifications => Set<Notification>();
 
 
+    /// <summary>
+    /// Audit-logg: hvem gjorde hva, og når.
+    /// </summary>
+    public DbSet<AuditLogEntry> AuditLog => Set<AuditLogEntry>();
+
+
     protected override void OnModelCreating(
         ModelBuilder builder
     )
@@ -80,6 +86,14 @@ public class ApplicationDbContext
             // Varselklokken spør ofte etter uleste varsler for én bruker.
             entity.HasIndex(notification =>
                 new { notification.UserId, notification.IsRead });
+        });
+
+
+        builder.Entity<AuditLogEntry>(entity =>
+        {
+            // Loggen vises nyeste først, og kan filtreres på handling.
+            entity.HasIndex(entry => entry.Timestamp);
+            entity.HasIndex(entry => entry.Action);
         });
     }
 }

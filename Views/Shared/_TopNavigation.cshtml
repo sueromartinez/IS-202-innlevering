@@ -34,6 +34,9 @@
         // Matching og Tildelinger samles her.
         links.Add(("Koordinering", "Match", "Index"));
 
+        // Situasjonsrapport, ressursliste per kommune og eksport.
+        links.Add(("Rapporter", "Report", "Index"));
+
         // Profil skal være siste vanlige menyvalg.
         links.Add(("Profil", "Account", "Profile"));
     }
@@ -85,6 +88,11 @@
                 || (
                     link.Controller == "Admin"
                     && controller == "Admin"
+                )
+
+                || (
+                    link.Controller == "Report"
+                    && controller == "Report"
                 )
 
                 || (
