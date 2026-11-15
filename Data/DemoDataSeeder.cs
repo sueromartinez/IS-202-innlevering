@@ -30,6 +30,9 @@ public static class DemoDataSeeder
 
         if (await context.Resources.AnyAsync() || await context.Needs.AnyAsync())
         {
+            // Databasen er allerede fylt. Retter bare gamle demoadresser,
+            // så demoressursene havner i riktig kommune i rapportene.
+            await FixLegacyDemoAddressesAsync(context);
             return;
         }
 
@@ -47,35 +50,35 @@ public static class DemoDataSeeder
         context.Resources.AddRange(
             CreateResource(volunteer, ResourceType.Boat, "Sjark med påhengsmotor",
                 "5,5 m båt, kan frakte personer og utstyr i grunt vann.", 1, "6 personer",
-                "Hele døgnet ved varsel", "Grimstad gjestehavn", 58.3399, 8.5950, "90000001"),
+                "Hele døgnet ved varsel", "Grimstad gjestehavn, 4876, Grimstad – Grimstad kommune", 58.3399, 8.5950, "90000001"),
 
             CreateResource(volunteer, ResourceType.Generator, "Bensinaggregat 3 kW",
                 "Bærbart aggregat, nok til lys, varme og lading.", 2, "3 kW",
-                "Kvelder og helg", "Fevik", 58.3797, 8.6886, "90000001"),
+                "Kvelder og helg", "Fevik, 4870, Fevik – Grimstad kommune", 58.3797, 8.6886, "90000001"),
 
             CreateResource(volunteer, ResourceType.Personnel, "Frivillige fra idrettslaget",
                 "Gruppe som kan bære, fylle sandsekker og hjelpe med evakuering.", 8, "8 personer",
-                "Etter avtale", "Grimstad", 58.3436, 8.5838, "90000001"),
+                "Etter avtale", "Grimstad sentrum, 4876, Grimstad – Grimstad kommune", 58.3436, 8.5838, "90000001"),
 
             CreateResource(company, ResourceType.Machinery, "Hjullaster",
                 "Hjullaster med skuffe, kan flytte masser og rydde veier.", 1, "2,5 m³ skuffe",
-                "Hverdager 07–16, ellers ved behov", "Arendal industriområde", 58.4570, 8.7500, "90000002"),
+                "Hverdager 07–16, ellers ved behov", "Arendal industriområde, 4848, Arendal – Arendal kommune", 58.4570, 8.7500, "90000002"),
 
             CreateResource(company, ResourceType.SandAndGravel, "Sand og sandsekker",
                 "Tørr sand og 500 tomme sandsekker på lager.", 500, "20 tonn sand",
-                "Hele døgnet", "Lillesand", 58.2500, 8.3780, "90000002"),
+                "Hele døgnet", "Lillesand sentrum, 4790, Lillesand – Lillesand kommune", 58.2500, 8.3780, "90000002"),
 
             CreateResource(company, ResourceType.Transport, "Lastebil med kran",
                 "Lastebil som kan frakte aggregat, sand og maskiner.", 1, "12 tonn",
-                "Hverdager", "Kristiansand øst", 58.1530, 8.0400, "90000002"),
+                "Hverdager", "Kristiansand øst, 4630, Kristiansand S – Kristiansand kommune", 58.1530, 8.0400, "90000002"),
 
             CreateResource(company, ResourceType.Drone, "Drone med varmekamera",
                 "Sertifisert operatør med drone for søk og observasjon.", 1, "40 min flytid",
-                "Ved varsel", "Arendal", 58.4615, 8.7725, "90000002"),
+                "Ved varsel", "Arendal sentrum, 4836, Arendal – Arendal kommune", 58.4615, 8.7725, "90000002"),
 
             CreateResource(volunteer, ResourceType.Premises, "Grendehus med kjøkken",
                 "Oppvarmet lokale som kan brukes til evakuerte.", 1, "60 personer",
-                "Hele døgnet", "Landvik", 58.3570, 8.5170, "90000001")
+                "Hele døgnet", "Landvik, 4885, Grimstad – Grimstad kommune", 58.3570, 8.5170, "90000001")
         );
 
 
@@ -92,6 +95,52 @@ public static class DemoDataSeeder
             CreateNeed(publicActor?.Id, ResourceType.Drone, NeedPriority.Planned, 1,
                 "Oversiktsbilder av flomområdet langs Nidelva.", 58.4300, 8.7100)
         );
+
+        await context.SaveChangesAsync();
+    }
+
+
+    /// <summary>
+    /// Eldre versjoner av demodataene hadde adresser i fritekst
+    /// («Arendal», «Lillesand» ...) uten kommune. Rapportene viste dem da
+    /// som «Ukjent kommune». Her byttes de til samme format som skjemaet
+    /// lager: «sted, postnummer poststed – kommune kommune».
+    /// Bare demoressurser endres, og bare hvis adressen er helt lik den gamle.
+    /// </summary>
+    private static readonly Dictionary<string, string> LegacyDemoAddresses = new()
+    {
+        ["Grimstad gjestehavn"] = "Grimstad gjestehavn, 4876, Grimstad – Grimstad kommune",
+        ["Fevik"] = "Fevik, 4870, Fevik – Grimstad kommune",
+        ["Grimstad"] = "Grimstad sentrum, 4876, Grimstad – Grimstad kommune",
+        ["Arendal industriområde"] = "Arendal industriområde, 4848, Arendal – Arendal kommune",
+        ["Lillesand"] = "Lillesand sentrum, 4790, Lillesand – Lillesand kommune",
+        ["Kristiansand øst"] = "Kristiansand øst, 4630, Kristiansand S – Kristiansand kommune",
+        ["Arendal"] = "Arendal sentrum, 4836, Arendal – Arendal kommune",
+        ["Landvik"] = "Landvik, 4885, Grimstad – Grimstad kommune"
+    };
+
+
+    private static async Task FixLegacyDemoAddressesAsync(ApplicationDbContext context)
+    {
+        List<string> oldAddresses = LegacyDemoAddresses.Keys.ToList();
+
+        List<Resource> legacy =
+            await context.Resources
+                .Where(resource =>
+                    (resource.OwnerEmail == VolunteerEmail || resource.OwnerEmail == CompanyEmail)
+                    && resource.Address != null
+                    && oldAddresses.Contains(resource.Address))
+                .ToListAsync();
+
+        if (legacy.Count == 0)
+        {
+            return;
+        }
+
+        foreach (Resource resource in legacy)
+        {
+            resource.Address = LegacyDemoAddresses[resource.Address!];
+        }
 
         await context.SaveChangesAsync();
     }
