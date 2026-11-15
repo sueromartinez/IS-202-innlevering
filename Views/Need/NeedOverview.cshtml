@@ -1,28 +1,35 @@
-
 @using FirstWebAppInDocker.Models
 @using System.Globalization
-
 @model List<Need>
-
 @{
     Layout = null;
+    // Standardvisningen viser kun behov som fortsatt krever oppfølging.
+    // ?showResolved=true åpner historikken uten å endre databasen.
+    bool showResolved = string.Equals(
+        Context.Request.Query["showResolved"].ToString(),
+        "true",
+        StringComparison.OrdinalIgnoreCase);
 
-    ViewData["Title"] = "Registrerte behov";
+    var visibleNeeds = Model
+        .Where(need => showResolved
+            ? need.Status == NeedStatus.Resolved
+            : need.Status != NeedStatus.Resolved)
+        .ToList();
 
+    int resolvedCount = Model.Count(need => need.Status == NeedStatus.Resolved);
+
+    ViewData["Title"] = showResolved ? "Løste behov" : "Aktive behov";
     // Identity-ID brukes for eierskap, e-post for eldre behov.
     string? currentUserId =
         User.FindFirst(
             System.Security.Claims.ClaimTypes.NameIdentifier
         )?.Value;
-
     string? userEmail =
         User.FindFirst(
             System.Security.Claims.ClaimTypes.Email
         )?.Value ?? User.Identity?.Name;
-
     string? message =
         TempData["NeedMessage"] as string;
-
     // Visningsnavn for ressurstypene.
     var typeNames =
         Html.GetEnumSelectList<ResourceType>()
@@ -31,45 +38,34 @@
                 item => item.Text
             );
 }
-
 <!DOCTYPE html>
 <html lang="no">
-
 <head>
     <meta charset="utf-8" />
-
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0" />
-
     <title>Behov - Beredskapsportal</title>
-
     <link rel="stylesheet"
           href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
     <link rel="stylesheet"
           href="~/css/need.css"
           asp-append-version="true" />
-
     <link rel="stylesheet"
           href="~/css/theme.css"
           asp-append-version="true" />
-
     <script src="~/js/theme.js"
             asp-append-version="true"></script>
-
     <style>
         /* ==========================================
            REGISTRERTE BEHOV
            FELLES KARTSTANDARD
         ========================================== */
-
         .need-overview-page,
         .need-overview-page *,
         .need-overview-page *::before,
         .need-overview-page *::after {
             box-sizing: border-box;
         }
-
         .need-overview-page {
             width: min(1500px, calc(100% - 40px));
             max-width: 100%;
@@ -79,11 +75,9 @@
             margin: 0 auto;
             padding: 18px 0 12px;
         }
-
         /* ==========================================
            TOPP
         ========================================== */
-
         .need-overview-top {
             display: flex;
             align-items: flex-end;
@@ -91,11 +85,9 @@
             gap: 22px;
             margin: 0 0 18px;
         }
-
         .need-overview-top > div {
             min-width: 0;
         }
-
         .need-overview-eyebrow {
             display: block;
             margin-bottom: 9px;
@@ -105,7 +97,6 @@
             letter-spacing: .09em;
             text-transform: uppercase;
         }
-
         .need-overview-top h1 {
             margin: 0 0 9px;
             color: var(--heading, #123047);
@@ -113,7 +104,6 @@
             line-height: 1.1;
             letter-spacing: -.035em;
         }
-
         .need-overview-top p {
             max-width: 850px;
             margin: 0;
@@ -121,7 +111,6 @@
             font-size: .94rem;
             line-height: 1.6;
         }
-
         .need-overview-register {
             display: inline-flex;
             flex: 0 0 auto;
@@ -139,16 +128,41 @@
             white-space: nowrap;
             cursor: pointer;
         }
-
         .need-overview-register:hover {
             background: #086d9b;
             border-color: #086d9b;
         }
-
+        /* BYTT MELLOM AKTIVE BEHOV OG ARKIV */
+        .need-overview-top-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .need-overview-archive-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 43px;
+            padding: 11px 16px;
+            border: 1px solid var(--border, #b8cde1);
+            border-radius: 10px;
+            background: var(--surface, white);
+            color: var(--heading, #123047);
+            font-size: .83rem;
+            font-weight: 800;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        .need-overview-archive-link:hover,
+        .need-overview-archive-link:focus-visible {
+            background: var(--surface-soft, #eaf4ff);
+            border-color: #0789c8;
+        }
         /* ==========================================
            MELDING
         ========================================== */
-
         .need-overview-message {
             margin: 0 0 16px;
             padding: 13px 17px;
@@ -159,12 +173,10 @@
             font-size: .85rem;
             font-weight: 700;
         }
-
         /* ==========================================
            TO KOLONNER
            33 % LISTE, 67 % KART
         ========================================== */
-
         .need-overview-layout {
             display: grid;
             grid-template-columns:
@@ -179,7 +191,6 @@
             margin: 0;
             padding: 0;
         }
-
         .need-overview-panel {
             min-width: 0;
             min-height: 0;
@@ -188,18 +199,15 @@
             background: var(--surface, white);
             box-shadow: 0 12px 35px rgba(16, 45, 66, .05);
         }
-
         /* ==========================================
            VENSTRE PANEL
         ========================================== */
-
         .need-overview-list-panel {
             display: flex;
             flex-direction: column;
             min-width: 0;
             padding: 24px;
         }
-
         .need-list-heading {
             display: flex;
             flex: 0 0 auto;
@@ -208,13 +216,11 @@
             gap: 12px;
             margin-bottom: 9px;
         }
-
         .need-list-heading h2 {
             margin: 0;
             color: var(--heading, #123047);
             font-size: 1.35rem;
         }
-
         .need-list-count {
             display: grid;
             flex: 0 0 auto;
@@ -228,7 +234,6 @@
             font-size: .83rem;
             font-weight: 850;
         }
-
         .need-list-description {
             flex: 0 0 auto;
             margin: 0 0 17px;
@@ -236,11 +241,9 @@
             font-size: .84rem;
             line-height: 1.5;
         }
-
         /* ==========================================
            SCROLL KUN INNI LISTEN
         ========================================== */
-
         .need-overview-page #needList {
             display: flex;
             flex-direction: column;
@@ -257,21 +260,17 @@
             overscroll-behavior-y: contain;
             scrollbar-gutter: stable;
         }
-
         .need-overview-page #needList::-webkit-scrollbar {
             width: 7px;
         }
-
         .need-overview-page #needList::-webkit-scrollbar-thumb {
             border-radius: 999px;
             background: #bdc8d2;
         }
-
         /* ==========================================
            BEHOVSKORT
            HINDRER AT KORT STIKKER UT
         ========================================== */
-
         .need-overview-page #needList > .need-overview-entry {
             position: relative;
             display: block;
@@ -297,31 +296,28 @@
                 box-shadow .15s ease,
                 background .15s ease;
         }
-
         .need-overview-page #needList > .need-overview-entry.planned {
             border-left-color: #d99a24;
         }
-
+        .need-overview-page #needList > .need-overview-entry.resolved {
+            border-left-color: #23855b;
+        }
         .need-overview-page #needList > .need-overview-entry:hover {
             box-shadow: 0 5px 15px rgba(16, 45, 66, .07);
             background: var(--surface-soft, #f9fbfc);
         }
-
         .need-overview-page #needList > .need-overview-entry.active {
             border-color: #0789c8;
             border-left-color: #0789c8;
             box-shadow: 0 0 0 2px rgba(7, 137, 200, .12);
         }
-
         .need-overview-entry:focus-visible {
             outline: 3px solid #0789c8;
             outline-offset: -3px;
         }
-
         /* ==========================================
            ØVERSTE RAD I BEHOVSKORT
         ========================================== */
-
         .need-overview-page .need-overview-entry .entry-top {
             display: flex;
             flex-wrap: wrap;
@@ -331,7 +327,6 @@
             min-width: 0;
             margin: 0 0 10px;
         }
-
         .need-overview-page .entry-top > strong {
             flex: 1 1 135px;
             min-width: 0;
@@ -339,7 +334,6 @@
             font-size: .88rem;
             line-height: 1.4;
         }
-
         .need-overview-page .need-number {
             display: grid;
             flex: 0 0 auto;
@@ -352,11 +346,12 @@
             font-size: .8rem;
             font-weight: 850;
         }
-
         .need-overview-page .need-overview-entry.planned .need-number {
             background: #d99a24;
         }
-
+        .need-overview-page .need-overview-entry.resolved .need-number {
+            background: #23855b;
+        }
         .need-overview-page .entry-quantity {
             flex: 0 1 auto;
             color: var(--text-secondary, #667085);
@@ -364,7 +359,6 @@
             font-weight: 750;
             white-space: normal;
         }
-
         .need-overview-page .need-overview-entry .badge,
         .need-overview-page .need-overview-entry .need-status,
         .need-overview-page .need-overview-entry .urgency-badge {
@@ -372,15 +366,12 @@
             white-space: normal;
             overflow-wrap: anywhere;
         }
-
         .need-overview-page .urgency-badge {
             line-height: 1.35;
         }
-
         /* ==========================================
            TEKST OG DETALJER
         ========================================== */
-
         .need-overview-page .entry-description {
             margin: 9px 0 11px;
             color: var(--text, #344054);
@@ -388,7 +379,6 @@
             line-height: 1.55;
             overflow-wrap: anywhere;
         }
-
         .need-overview-page .entry-details {
             display: flex;
             flex-direction: column;
@@ -399,7 +389,6 @@
             line-height: 1.5;
             overflow-wrap: anywhere;
         }
-
         .need-overview-page .urgency-reasons {
             margin: 8px 0 12px;
             color: var(--text-secondary, #667085);
@@ -408,11 +397,9 @@
             line-height: 1.5;
             overflow-wrap: anywhere;
         }
-
         /* ==========================================
            KNAPPER OG REGISTRERINGSDATO
         ========================================== */
-
         .need-overview-page .entry-bottom {
             display: flex;
             flex-direction: column;
@@ -422,7 +409,6 @@
             min-width: 0;
             margin-top: 15px;
         }
-
         .need-overview-page .entry-meta {
             display: block;
             max-width: 100%;
@@ -431,7 +417,6 @@
             line-height: 1.5;
             overflow-wrap: anywhere;
         }
-
         .need-overview-page .entry-actions {
             display: flex;
             flex-wrap: wrap;
@@ -441,14 +426,12 @@
             min-width: 0;
             margin: 0;
         }
-
         .need-overview-page .entry-actions form {
             display: inline-flex;
             min-width: 0;
             margin: 0;
             padding: 0;
         }
-
         .need-overview-page .entry-actions .small-button {
             display: inline-flex;
             align-items: center;
@@ -471,35 +454,28 @@
             overflow-wrap: anywhere;
             cursor: pointer;
         }
-
         .need-overview-page .entry-actions .small-button:hover {
             background: #d8ebfc;
         }
-
         .need-overview-page .entry-actions .small-button.primary {
             border-color: #0789c8;
             background: #0789c8;
             color: white;
         }
-
         .need-overview-page .entry-actions .small-button.primary:hover {
             background: #086d9b;
         }
-
         .need-overview-page .entry-actions .small-button.danger {
             border-color: #e9aaaa;
             background: #fff1f1;
             color: #b42e2e;
         }
-
         .need-overview-page .entry-actions .small-button.danger:hover {
             background: #ffe1e1;
         }
-
         /* ==========================================
            TOM LISTE
         ========================================== */
-
         .need-overview-empty {
             min-width: 0;
             padding: 20px;
@@ -507,30 +483,25 @@
             border-radius: 12px;
             background: var(--surface-soft, #f7f9fa);
         }
-
         .need-overview-empty strong {
             display: block;
             color: var(--heading, #123047);
             font-size: .9rem;
         }
-
         .need-overview-empty p {
             margin: 10px 0 0;
             color: var(--text-secondary, #667085);
             font-size: .82rem;
             line-height: 1.5;
         }
-
         /* ==========================================
            HØYRE KARTPANEL
         ========================================== */
-
         .need-overview-map-panel {
             min-width: 0;
             padding: 14px 18px 18px 14px;
             margin: 0;
         }
-
         .need-map-heading {
             display: flex;
             flex-wrap: wrap;
@@ -539,27 +510,23 @@
             gap: 12px;
             margin-bottom: 10px;
         }
-
         .need-map-heading h2 {
             margin: 0 0 5px;
             color: var(--heading, #123047);
             font-size: 1.35rem;
         }
-
         .need-map-heading p {
             margin: 0;
             color: var(--text-secondary, #667085);
             font-size: .84rem;
             line-height: 1.5;
         }
-
         .need-map-legend {
             display: flex;
             flex-wrap: wrap;
             align-items: center;
             gap: 11px;
         }
-
         .need-map-legend span {
             display: inline-flex;
             align-items: center;
@@ -568,19 +535,16 @@
             font-size: .74rem;
             font-weight: 700;
         }
-
         .need-map-legend i {
             display: inline-block;
             width: 9px;
             height: 9px;
             border-radius: 50%;
         }
-
         .need-map-frame {
             position: relative;
             min-width: 0;
         }
-
         .need-overview-page #map {
             display: block;
             width: 100% !important;
@@ -594,7 +558,6 @@
             overflow: hidden;
             z-index: 0;
         }
-
         .need-map-notice {
             position: absolute;
             left: 14px;
@@ -609,28 +572,23 @@
             color: #344054;
             pointer-events: none;
         }
-
         .need-map-notice strong {
             display: block;
             margin-bottom: 5px;
             color: #123047;
             font-size: .82rem;
         }
-
         .need-map-notice span {
             display: block;
             font-size: .76rem;
             line-height: 1.5;
         }
-
         .need-map-notice[hidden] {
             display: none !important;
         }
-
         /* ==========================================
            TRE INFORMASJONSKORT UNDER KART
         ========================================== */
-
         .need-map-help-grid {
             display: grid;
             grid-template-columns:
@@ -638,32 +596,27 @@
             gap: 10px;
             margin: 10px 0 0;
         }
-
         .need-map-help-item {
             min-width: 0;
             padding: 12px;
             border-radius: 10px;
             background: var(--surface-soft, #f7f9fa);
         }
-
         .need-map-help-item strong {
             display: block;
             margin-bottom: 4px;
             color: var(--heading, #123047);
             font-size: .8rem;
         }
-
         .need-map-help-item span {
             display: block;
             color: var(--text-secondary, #667085);
             font-size: .75rem;
             line-height: 1.4;
         }
-
         /* ==========================================
            FULLSKJERMKNAPP
         ========================================== */
-
         .need-map-fullscreen-control button {
             display: grid;
             place-items: center;
@@ -675,24 +628,19 @@
             color: #123047;
             cursor: pointer;
         }
-
         .need-map-fullscreen-control button:hover {
             background: #f4f4f4;
         }
-
         .need-map-fullscreen-control button:focus-visible {
             outline: 3px solid #176b87;
             outline-offset: -3px;
         }
-
         .need-map-fullscreen-control svg {
             width: 22px;
             height: 22px;
         }
-
         /* Fullskjerm for både native API
            og dialog-reserveløsning. */
-
         .need-overview-page #map:fullscreen,
         .need-map-fullscreen-dialog #map {
             display: block;
@@ -702,7 +650,6 @@
             border: 0 !important;
             border-radius: 0 !important;
         }
-
         .need-map-fullscreen-dialog {
             width: 100vw;
             max-width: none;
@@ -713,24 +660,73 @@
             border: 0;
             overflow: hidden;
         }
-
         .need-map-fullscreen-dialog::backdrop {
             background: #17212b;
         }
-
+        /* ==========================================
+           INFORMASJONSVINDU FOR BEHOV I KARTET
+        ========================================== */
+        .need-map-popup {
+            min-width: 215px;
+            max-width: 310px;
+            color: #263448;
+            font-size: .86rem;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+        }
+        .need-map-popup-title {
+            display: block;
+            margin-bottom: 7px;
+            color: #123047;
+            font-size: 1rem;
+            font-weight: 800;
+        }
+        .need-map-popup-meta {
+            margin: 0 0 8px;
+            color: #4d6075;
+            font-size: .78rem;
+            font-weight: 700;
+        }
+        .need-map-popup-description {
+            margin: 0 0 10px;
+            color: #344054;
+            white-space: pre-wrap;
+        }
+        .need-map-popup-detail {
+            margin: 5px 0;
+            color: #566679;
+            font-size: .78rem;
+        }
+        .need-map-popup-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 11px;
+            padding: 8px 12px;
+            border-radius: 7px;
+            background: #0789c8;
+            color: #fff !important;
+            font-size: .78rem;
+            font-weight: 800;
+            text-decoration: none;
+        }
+        .need-map-popup-action:hover,
+        .need-map-popup-action:focus-visible {
+            background: #086d9b;
+        }
+        .need-overview-page .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+        }
         /* ==========================================
            PC: BOKSENE LIKE HØYE
            VENSTRE LISTE SCROLLER INTERNT
         ========================================== */
-
         @@media (min-width: 951px) {
-
             .need-overview-layout > .need-overview-list-panel {
                 height: var(--need-map-panel-height, 800px);
                 min-height: 0;
                 overflow: hidden;
             }
-
             .need-overview-list-panel > #needList {
                 flex: 1 1 auto;
                 min-height: 0;
@@ -738,88 +734,73 @@
                 overflow-y: auto;
                 overflow-x: hidden;
             }
-
             .need-overview-layout > .need-overview-map-panel {
                 height: auto;
                 align-self: start;
             }
         }
-
         /* ==========================================
            NETTBRETT
         ========================================== */
-
         @@media (max-width: 950px) {
-
             .need-overview-layout {
                 grid-template-columns: minmax(0, 1fr);
                 gap: 14px;
             }
-
             .need-overview-list-panel {
                 height: auto;
                 overflow: visible;
             }
-
             .need-overview-page #needList {
                 flex: none;
                 max-height: 500px;
                 overflow-y: auto;
             }
-
             .need-overview-page #map {
                 height: 460px !important;
             }
         }
-
         /* ==========================================
            MOBIL
         ========================================== */
-
         @@media (max-width: 700px) {
-
             .need-overview-page {
                 width: calc(100% - 28px);
                 padding: 20px 0 12px;
             }
-
             .need-overview-top {
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 15px;
             }
-
+            .need-overview-top-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
             .need-overview-list-panel,
             .need-overview-map-panel {
                 padding: 18px;
             }
-
             .need-map-heading {
                 flex-direction: column;
             }
-
             .need-map-help-grid {
                 grid-template-columns: 1fr;
             }
-
             .need-overview-page #needList {
                 max-height: 420px;
             }
-
             .need-overview-page #map {
                 height: 420px !important;
             }
         }
-
         /* ==========================================
            SØRG FOR AT SIDEN SLUTTER ETTER KARTET
         ========================================== */
-
         body:has(.need-overview-page) {
             height: auto;
             overflow-x: hidden;
         }
-
         body:has(.need-overview-page) .need-overview-page {
             min-height: 0 !important;
             height: auto !important;
@@ -827,7 +808,6 @@
             margin-bottom: 0 !important;
             padding-bottom: 12px !important;
         }
-
         body:has(.need-overview-page) .need-overview-layout {
             min-height: 0 !important;
             height: auto !important;
@@ -836,116 +816,97 @@
         }
     </style>
 </head>
-
 <body>
-
 <partial name="_PortalHeader" />
-
 <main class="need-overview-page">
-
     <!-- ==========================================
          TOPP
     ========================================== -->
-
     <div class="need-overview-top">
-
         <div>
             <span class="need-overview-eyebrow">
                 BEHOV
             </span>
-
-            <h1>Registrerte behov</h1>
-
+            <h1>@(showResolved ? "Løste behov" : "Aktive behov")</h1>
             <p>
-                Alle behov som er registrert.
-                Du kan endre og slette behov du selv
-                har registrert.
+                @(showResolved
+                    ? "Her finner du løste behov som fortsatt er lagret i databasen."
+                    : "Her vises behov som fortsatt krever oppfølging. Løste behov skjules automatisk.")
+                Du kan endre og slette behov du selv har registrert.
             </p>
         </div>
-
-        <a asp-controller="Need"
-           asp-action="RegisterNeed"
-           class="need-overview-register">
-
-            + Registrer behov
-        </a>
-
+        <div class="need-overview-top-actions">
+            <a asp-controller="Need"
+               asp-action="NeedOverview"
+               asp-route-showResolved="@(showResolved ? "false" : "true")"
+               class="need-overview-archive-link">
+                @(showResolved ? "← Til aktive behov" : $"Vis løste behov ({resolvedCount})")
+            </a>
+            <a asp-controller="Need"
+               asp-action="RegisterNeed"
+               class="need-overview-register">
+                + Registrer behov
+            </a>
+        </div>
     </div>
-
     <!-- ==========================================
          MELDINGER
     ========================================== -->
-
     @if (message != null)
     {
         <div class="need-overview-message" role="status">
             ✓ @message
         </div>
     }
-
     <!-- ==========================================
          BEHOVSLISTE OG KART
     ========================================== -->
-
     <div class="need-overview-layout">
-
         <!-- ==========================================
              VENSTRE: BEHOVSLISTE
         ========================================== -->
-
         <section class="need-overview-panel need-overview-list-panel">
-
             <div class="need-list-heading">
-
-                <h2>Behovsliste</h2>
-
+                <h2>@(showResolved ? "Løste behov" : "Aktive behov")</h2>
                 <span class="need-list-count">
-                    @Model.Count
+                    @visibleNeeds.Count
                 </span>
-
             </div>
-
             <p class="need-list-description">
-                Velg et behov for å se det i kartet.
+                @(showResolved
+                    ? "Velg et løst behov for å se plasseringen og historikken."
+                    : "Velg et aktivt behov for å se det i kartet.")
                 Du kan også administrere behovene her.
             </p>
-
             <div id="needList" class="need-list-scroll">
-
-                @if (Model.Count == 0)
+                @if (visibleNeeds.Count == 0)
                 {
                     <div class="need-overview-empty">
-
                         <strong>
-                            Ingen behov er registrert ennå.
+                            @(showResolved ? "Ingen løste behov." : "Ingen aktive behov.")
                         </strong>
-
                         <p>
-                            Registrerte behov vil vises her
-                            og i kartet.
+                            @(showResolved
+                                ? "Løste behov vises her når behov blir markert som løst."
+                                : "Registrer et behov, eller velg arkivet for å se løste behov.")
                         </p>
-
                     </div>
                 }
                 else
                 {
-                    @for (int i = 0; i < Model.Count; i++)
+                    @for (int i = 0; i < visibleNeeds.Count; i++)
                     {
-                        Need need = Model[i];
-
+                        Need need = visibleNeeds[i];
                         bool isPlanned =
                             need.Priority == NeedPriority.Planned;
-
                         bool isOwn =
                             need.OwnerUserId == currentUserId
                             || (
                                 need.OwnerUserId == null
                                 && need.OwnerEmail == userEmail
                             );
-
                         // NeedController kontrollerer eierskap.
                         bool canEdit = isOwn;
-
                         string statusClass = need.Status switch
                         {
                             NeedStatus.UnderReview => "status-review",
@@ -953,7 +914,6 @@
                             NeedStatus.Resolved => "status-resolved",
                             _ => "status-new"
                         };
-
                         string statusName = need.Status switch
                         {
                             NeedStatus.UnderReview => "Vurderes",
@@ -961,56 +921,43 @@
                             NeedStatus.Resolved => "Løst",
                             _ => "Ny"
                         };
-
                         string typeName =
                             typeNames.GetValueOrDefault(
                                 ((int)need.ResourceType).ToString()
                             ) ?? need.ResourceType.ToString();
-
                         <article
-                            class="entry need-overview-entry @(isPlanned ? "planned" : "")"
+                            class="entry need-overview-entry @(isPlanned ? "planned" : "") @(need.Status == NeedStatus.Resolved ? "resolved" : "")"
                             data-type="@need.ResourceType"
                             data-lat="@need.Latitude.ToString(CultureInfo.InvariantCulture)"
                             data-lng="@need.Longitude.ToString(CultureInfo.InvariantCulture)"
                             data-planned="@(isPlanned ? "true" : "false")"
+                            data-resolved="@(need.Status == NeedStatus.Resolved ? "true" : "false")"
                             tabindex="0"
                             role="button"
                             aria-label="Vis behov @typeName i kartet">
-
                             <!-- TOPP PÅ KORTET -->
-
                             <div class="entry-top">
-
                                 <span class="need-number">
                                     @(i + 1)
                                 </span>
-
                                 <strong>
                                     @typeName
                                 </strong>
-
                                 <span class="badge">
                                     @(isPlanned ? "Planlagt" : "Akutt")
                                 </span>
-
                                 <span class="entry-quantity">
                                     Antall: @need.Quantity
                                 </span>
-
                                 <span class="need-status @statusClass">
                                     @statusName
                                 </span>
-
                             </div>
-
                             <!-- BESKRIVELSE -->
-
                             <p class="entry-description">
                                 @need.Description
                             </p>
-
                             <!-- DETALJER -->
-
                             @if (
                                 need.Deadline.HasValue
                                 || !string.IsNullOrWhiteSpace(need.ContactName)
@@ -1018,22 +965,17 @@
                             )
                             {
                                 <p class="entry-details">
-
                                     @if (need.Deadline.HasValue)
                                     {
                                         bool overdue =
                                             need.Deadline.Value.Date < DateTime.Today
                                             && need.Status != NeedStatus.Resolved;
-
                                         <span class="@(overdue ? "deadline-overdue" : "")">
-
                                             Frist:
                                             @need.Deadline.Value.ToString("dd.MM.yyyy")
                                             @(overdue ? " (passert)" : "")
-
                                         </span>
                                     }
-
                                     @if (
                                         !string.IsNullOrWhiteSpace(need.ContactName)
                                         || !string.IsNullOrWhiteSpace(need.ContactPhone)
@@ -1042,44 +984,31 @@
                                         <span>
                                             Kontakt:
                                             @need.ContactName
-
                                             @(string.IsNullOrWhiteSpace(need.ContactPhone)
                                                 ? ""
                                                 : $"({need.ContactPhone})")
                                         </span>
                                     }
-
                                 </p>
                             }
-
                             <!-- BUNN -->
-
                             <div class="entry-bottom">
-
                                 <span class="entry-meta">
-
                                     Registrert
                                     @need.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
-
                                     @(isOwn
                                         ? "av deg"
                                         : $"av {need.OwnerEmail}")
-
                                 </span>
-
                                 <!-- HANDLINGSKNAPPER -->
-
                                 <div class="entry-actions">
-
                                     @if (need.Status != NeedStatus.Resolved)
                                     {
                                         <a asp-controller="Match"
                                            asp-action="Need"
                                            asp-route-id="@need.Id"
                                            class="small-button primary">
-
                                             Finn ressurser
-
                                         </a>
                                     }
                                     else
@@ -1088,194 +1017,142 @@
                                            asp-action="Need"
                                            asp-route-id="@need.Id"
                                            class="small-button">
-
                                             Se tildeling
-
                                         </a>
                                     }
-
                                     @if (canEdit)
                                     {
                                         <a asp-controller="Need"
                                            asp-action="EditNeed"
                                            asp-route-id="@need.Id"
                                            class="small-button">
-
                                             Endre
-
                                         </a>
-
                                         <form asp-controller="Need"
                                               asp-action="DeleteNeed"
                                               asp-route-id="@need.Id"
                                               method="post"
                                               onsubmit="return confirm('Er du sikker på at du vil slette dette behovet?');">
-
                                             <button
                                                 type="submit"
                                                 class="small-button danger">
-
                                                 Slett
-
                                             </button>
-
                                         </form>
                                     }
-
                                 </div>
-
                             </div>
-
                         </article>
                     }
                 }
-
             </div>
-
         </section>
-
         <!-- ==========================================
              HØYRE: KART
-        ========================================== -->
-
+        ========================================= -->
         <section class="need-overview-panel need-overview-map-panel">
-
             <div class="need-map-heading">
-
                 <div>
-                    <h2>Behov i kartet</h2>
-
+                    <h2>@(showResolved ? "Løste behov i kartet" : "Aktive behov i kartet")</h2>
                     <p>
                         Klikk på et behov i listen eller
                         på en markør for å se plasseringen.
                     </p>
                 </div>
-
                 <div class="need-map-legend">
-
-                    <span>
-                        <i style="background:#d34b4b"></i>
-                        Akutt
-                    </span>
-
-                    <span>
-                        <i style="background:#d99a24"></i>
-                        Planlagt
-                    </span>
-
+                    @if (showResolved)
+                    {
+                        <span>
+                            <i style="background:#23855b"></i>
+                            Løst
+                        </span>
+                    }
+                    else
+                    {
+                        <span>
+                            <i style="background:#d34b4b"></i>
+                            Akutt
+                        </span>
+                        <span>
+                            <i style="background:#d99a24"></i>
+                            Planlagt
+                        </span>
+                    }
                 </div>
-
             </div>
-
             <!-- SELVE KARTET -->
-
             <div class="need-map-frame">
-
                 <div id="map"
-                     aria-label="Kart over registrerte behov">
+                     aria-label="Kart over @(showResolved ? "løste" : "aktive") behov">
                 </div>
-
                 <div id="needMapNotice"
                      class="need-map-notice"
                      role="status"
                      hidden>
-
                     <strong>
                         Ingen kartpunkter
                     </strong>
-
                     <span>
                         Ingen behov har en gyldig kartposisjon
                         som kan vises.
                     </span>
-
                 </div>
-
             </div>
-
             <!-- SAMME INSTRUKSJONSKORT SOM KARTMALEN -->
-
             <div class="need-map-help-grid">
-
                 <div class="need-map-help-item">
-
                     <strong>
                         1. Finn behov
                     </strong>
-
                     <span>
-                        Se registrerte behov i listen til venstre.
+                        Se behovene som vises i listen til venstre.
                     </span>
-
                 </div>
-
                 <div class="need-map-help-item">
-
                     <strong>
                         2. Utforsk kartet
                     </strong>
-
                     <span>
                         Zoom, flytt kartet og klikk på markører.
                     </span>
-
                 </div>
-
                 <div class="need-map-help-item">
-
                     <strong>
                         3. Følg opp
                     </strong>
-
                     <span>
                         Finn ressurser, se tildeling eller endre behov.
                     </span>
-
                 </div>
-
             </div>
-
         </section>
-
     </div>
-
 </main>
-
 <!-- ==========================================
      LEAFLET OG KARTVERKET
-========================================== -->
-
+========================================= -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="~/js/kartverket.js" asp-append-version="true"></script>
-
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-
         /* ==========================================
            REFERANSER
         ========================================== */
-
         const entries = Array.from(
             document.querySelectorAll(
                 "#needList .need-overview-entry"
             )
         );
-
         const listScroll =
             document.getElementById("needList");
-
         const layout =
             document.querySelector(".need-overview-layout");
-
         const mapPanel =
             document.querySelector(".need-overview-map-panel");
-
         const mapElement =
             document.getElementById("map");
-
         const mapNotice =
             document.getElementById("needMapNotice");
-
         if (
             !layout ||
             !mapPanel ||
@@ -1284,69 +1161,48 @@
         ) {
             return;
         }
-
         /* ==========================================
            LIK HØYDE PÅ LISTE OG KART
         ========================================== */
-
         function syncPanelHeight() {
-
             const height =
                 mapPanel.getBoundingClientRect().height;
-
             layout.style.setProperty(
                 "--need-map-panel-height",
                 height + "px"
             );
         }
-
         syncPanelHeight();
-
         window.addEventListener(
             "resize",
             syncPanelHeight
         );
-
         if (typeof ResizeObserver !== "undefined") {
-
             const panelObserver =
                 new ResizeObserver(syncPanelHeight);
-
             panelObserver.observe(mapPanel);
         }
-
         /* ==========================================
            KONTROLLER KARTBIBLIOTEK
         ========================================== */
-
         if (typeof L === "undefined") {
-
             mapNotice.hidden = false;
-
             mapNotice.querySelector("strong").textContent =
                 "Kartet kunne ikke lastes";
-
             mapNotice.querySelector("span").textContent =
                 "Behovslisten og handlingsknappene " +
                 "kan fortsatt brukes.";
-
             return;
         }
-
         /* ==========================================
            OPPRETT KART
         ========================================== */
-
         const map = L.map("map")
             .setView([58.1467, 7.9956], 11);
-
         // Kartlagvelgeren opprettes først.
         if (typeof addKartverketLayers === "function") {
-
             addKartverketLayers(map);
-
         } else {
-
             L.tileLayer(
                 "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                 {
@@ -1355,262 +1211,182 @@
                 }
             ).addTo(map);
         }
-
         /* ==========================================
            FULLSKJERM
         ========================================== */
-
         const fullscreenDialog =
             document.createElement("dialog");
-
         fullscreenDialog.className =
             "need-map-fullscreen-dialog";
-
         fullscreenDialog.setAttribute(
             "aria-label",
             "Behovskart i fullskjerm"
         );
-
         document.body.appendChild(fullscreenDialog);
-
         let mapPlaceholder = null;
         let fullscreenButton = null;
-
         const expandIcon =
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/></svg>';
-
         const collapseIcon =
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 9h6V3m6 0v6h6M9 21v-6H3m18 0h-6v6"/></svg>';
-
         function isFullscreen() {
-
             return (
                 document.fullscreenElement === mapElement
                 || fullscreenDialog.open
             );
         }
-
         function refreshMapSize() {
-
             map.invalidateSize({
                 pan: false
             });
         }
-
         function updateFullscreenControl() {
-
             if (!fullscreenButton) {
                 return;
             }
-
             const expanded = isFullscreen();
-
             const label = expanded
                 ? "Avslutt fullskjerm"
                 : "Vis i fullskjerm";
-
             fullscreenButton.title = label;
-
             fullscreenButton.setAttribute(
                 "aria-label",
                 label
             );
-
             fullscreenButton.setAttribute(
                 "aria-pressed",
                 String(expanded)
             );
-
             fullscreenButton.innerHTML =
                 expanded ? collapseIcon : expandIcon;
-
             requestAnimationFrame(refreshMapSize);
         }
-
         function openFullscreenDialog() {
-
             mapPlaceholder = document.createComment(
                 "Original plassering av behovskartet"
             );
-
             mapElement.before(mapPlaceholder);
-
             fullscreenDialog.appendChild(mapElement);
-
             fullscreenDialog.showModal();
-
             updateFullscreenControl();
-
             fullscreenButton.focus();
         }
-
         fullscreenDialog.addEventListener(
             "close",
             function () {
-
                 if (mapPlaceholder) {
-
                     mapPlaceholder.replaceWith(mapElement);
                     mapPlaceholder = null;
                 }
-
                 updateFullscreenControl();
-
                 fullscreenButton.focus({
                     preventScroll: true
                 });
             }
         );
-
         document.addEventListener(
             "fullscreenchange",
             updateFullscreenControl
         );
-
         document.addEventListener(
             "keydown",
             function (event) {
-
                 if (
                     event.key !== "Escape"
                     || !isFullscreen()
                 ) {
                     return;
                 }
-
                 if (fullscreenDialog.open) {
-
                     event.preventDefault();
                     fullscreenDialog.close();
-
                 } else if (document.fullscreenElement) {
-
                     event.preventDefault();
                     document.exitFullscreen();
                 }
             }
         );
-
         const FullscreenControl = L.Control.extend({
-
             options: {
                 position: "topright"
             },
-
             onAdd: function () {
-
                 const control = L.DomUtil.create(
                     "div",
                     "leaflet-bar need-map-fullscreen-control"
                 );
-
                 fullscreenButton = L.DomUtil.create(
                     "button",
                     "",
                     control
                 );
-
                 fullscreenButton.type = "button";
-
                 L.DomEvent.disableClickPropagation(control);
                 L.DomEvent.disableScrollPropagation(control);
-
                 fullscreenButton.addEventListener(
                     "click",
                     async function (event) {
-
                         event.preventDefault();
                         event.stopPropagation();
-
                         if (fullscreenDialog.open) {
-
                             fullscreenDialog.close();
-
                         } else if (
                             document.fullscreenElement === mapElement
                         ) {
-
                             await document.exitFullscreen();
-
                         } else if (
                             mapElement.requestFullscreen
                             && document.fullscreenEnabled
                         ) {
-
                             try {
-
                                 await mapElement.requestFullscreen();
-
                             } catch {
-
                                 openFullscreenDialog();
                             }
-
                         } else {
-
                             openFullscreenDialog();
                         }
                     }
                 );
-
                 return control;
             }
         });
-
         // Denne legges til etter kartlagvelgeren.
         // Dermed vises "Vanlig kart" øverst.
         new FullscreenControl().addTo(map);
-
         updateFullscreenControl();
-
         /* ==========================================
            SYMBOLER FOR BEHOV
         ========================================== */
-
         function symbolFor(type) {
-
             const icons = {
-
                 Transport:
                     "<path d='M1 3h15v13H1z'/><path d='M16 8h4l3 3v5h-7z'/><circle cx='5.5' cy='18.5' r='2.5'/><circle cx='18.5' cy='18.5' r='2.5'/>",
-
                 Drone:
                     "<circle cx='12' cy='12' r='3'/><circle cx='5' cy='5' r='2.5'/><circle cx='19' cy='5' r='2.5'/><circle cx='5' cy='19' r='2.5'/><circle cx='19' cy='19' r='2.5'/><path d='M7 7l3 3M17 7l-3 3M7 17l3-3M17 17l-3-3'/>",
-
                 Generator:
                     "<polygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'/>",
-
                 Machinery:
                     "<path d='M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z'/>",
-
                 CommunicationEquipment:
                     "<circle cx='12' cy='12' r='2'/><path d='M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14'/>",
-
                 Personnel:
                     "<path d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/><circle cx='9' cy='7' r='4'/><path d='M23 21v-2a4 4 0 0 1-3-3.87M16 3.13a4 4 0 0 1 0 7.75'/>",
-
                 Premises:
                     "<path d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/><polyline points='9 22 9 12 15 12 15 22'/>",
-
                 SandAndGravel:
                     "<polygon points='12 2 2 7 12 12 22 7 12 2'/><polyline points='2 17 12 22 22 17'/><polyline points='2 12 12 17 22 12'/>",
-
                 Boat:
                     "<circle cx='12' cy='5' r='3'/><line x1='12' y1='22' x2='12' y2='8'/><path d='M5 12H2a10 10 0 0 0 20 0h-3'/>",
-
                 Other:
                     "<circle cx='12' cy='12' r='10'/><line x1='12' y1='8' x2='12' y2='12'/><line x1='12' y1='16' x2='12.01' y2='16'/>"
             };
-
             return icons[type] || icons.Other;
         }
-
         /* ==========================================
            LAG KARTMARKØR
         ========================================== */
-
         function createSymbolMarker(color, type, badge) {
-
             const svg =
                 "<svg xmlns='http://www.w3.org/2000/svg' " +
                 "width='24' height='24' viewBox='0 0 24 24' " +
@@ -1619,7 +1395,6 @@
                 "stroke-linejoin='round'>" +
                 symbolFor(type) +
                 "</svg>";
-
             const badgeHtml = badge
                 ? "<div style='position:absolute;top:-6px;right:-6px;" +
                   "min-width:20px;height:20px;padding:0 4px;" +
@@ -1629,11 +1404,8 @@
                   badge +
                   "</div>"
                 : "";
-
             return L.divIcon({
-
                 className: "",
-
                 html:
                     "<div style='position:relative;width:50px;height:62px;'>" +
                     "<div style='position:absolute;left:0;top:0;" +
@@ -1653,74 +1425,133 @@
                     "</div></div>" +
                     badgeHtml +
                     "</div>",
-
                 iconSize: [50, 62],
                 iconAnchor: [25, 60],
                 popupAnchor: [0, -54]
             });
         }
-
         /* ==========================================
            KARTMARKØRER FRA BEHOVSLISTEN
         ========================================== */
-
         const bounds = [];
-
         const markers = new Map();
-
         // Velg riktig kort i listen.
         function select(entry) {
-
             entries.forEach(function (other) {
-
                 const active = other === entry;
-
                 other.classList.toggle(
                     "active",
                     active
                 );
-
                 other.setAttribute(
                     "aria-pressed",
                     String(active)
                 );
             });
         }
-
         // Scroll bare inni venstrepanelet,
         // ikke hele nettsiden.
         function scrollToEntry(entry) {
-
             const listRect =
                 listScroll.getBoundingClientRect();
-
             const entryRect =
                 entry.getBoundingClientRect();
-
             if (entryRect.top < listRect.top) {
-
                 listScroll.scrollBy({
                     top: entryRect.top - listRect.top - 8,
                     behavior: "smooth"
                 });
-
             } else if (entryRect.bottom > listRect.bottom) {
-
                 listScroll.scrollBy({
                     top: entryRect.bottom - listRect.bottom + 8,
                     behavior: "smooth"
                 });
             }
         }
+        /* ==========================================
+           BEHOVSINFORMASJON I KARTETS POPUP
 
+           Innhold hentes fra det eksisterende behovskortet.
+           textContent hindrer at brukerregistrert tekst
+           blir tolket som HTML.
+        ========================================== */
+        function createNeedPopup(entry) {
+            const content = document.createElement("div");
+            content.className = "need-map-popup";
+
+            const title = document.createElement("strong");
+            title.className = "need-map-popup-title";
+            title.textContent =
+                entry.querySelector(".entry-top > strong")?.textContent.trim()
+                || "Registrert behov";
+            content.appendChild(title);
+
+            const priority =
+                entry.querySelector(".entry-top .badge")?.textContent.trim();
+            const quantity =
+                entry.querySelector(".entry-quantity")?.textContent.trim();
+            const status =
+                entry.querySelector(".need-status")?.textContent.trim();
+
+            const summaryParts = [priority, quantity, status]
+                .filter(Boolean);
+
+            if (summaryParts.length > 0) {
+                const summary = document.createElement("p");
+                summary.className = "need-map-popup-meta";
+                summary.textContent = summaryParts.join(" · ");
+                content.appendChild(summary);
+            }
+
+            const description =
+                entry.querySelector(".entry-description")?.textContent.trim();
+
+            if (description) {
+                const descriptionElement = document.createElement("p");
+                descriptionElement.className = "need-map-popup-description";
+                descriptionElement.textContent = description;
+                content.appendChild(descriptionElement);
+            }
+
+            // Frist og kontaktopplysninger, hvis registrert.
+            entry.querySelectorAll(".entry-details > span").forEach(function (detail) {
+                const detailText = detail.textContent.trim();
+                if (!detailText) {
+                    return;
+                }
+                const detailElement = document.createElement("p");
+                detailElement.className = "need-map-popup-detail";
+                detailElement.textContent = detailText;
+                content.appendChild(detailElement);
+            });
+
+            const registered =
+                entry.querySelector(".entry-meta")?.textContent.trim();
+            if (registered) {
+                const registeredElement = document.createElement("p");
+                registeredElement.className = "need-map-popup-detail";
+                registeredElement.textContent = registered;
+                content.appendChild(registeredElement);
+            }
+
+            // Samme handling som på behovskortet:
+            // Finn ressurser for aktive, Se tildeling for løste.
+            const cardAction = entry.querySelector(".entry-actions a");
+            if (cardAction) {
+                const action = document.createElement("a");
+                action.className = "need-map-popup-action";
+                action.href = cardAction.href;
+                action.textContent = cardAction.textContent.trim();
+                content.appendChild(action);
+            }
+
+            return content;
+        }
         entries.forEach(function (entry, index) {
-
             const latitude =
                 Number(entry.dataset.lat);
-
             const longitude =
                 Number(entry.dataset.lng);
-
             const validPosition =
                 Number.isFinite(latitude)
                 && Number.isFinite(longitude)
@@ -1729,21 +1560,16 @@
                 && longitude >= -180
                 && longitude <= 180
                 && (latitude !== 0 || longitude !== 0);
-
             if (!validPosition) {
                 return;
             }
-
             const position = [
                 latitude,
                 longitude
             ];
-
-            const color =
-                entry.dataset.planned === "true"
-                    ? "#d99a24"
-                    : "#d34b4b";
-
+            const color = entry.dataset.resolved === "true"
+                ? "#23855b"
+                : (entry.dataset.planned === "true" ? "#d99a24" : "#d34b4b");
             const marker = L.marker(
                 position,
                 {
@@ -1755,34 +1581,35 @@
                 }
             ).addTo(map);
 
+            // Både markør og behovskort åpner samme informasjon.
+            marker.bindPopup(createNeedPopup(entry), {
+                maxWidth: 330,
+                minWidth: 230,
+                maxHeight: 370,
+                autoPan: true,
+                keepInView: true,
+                closeButton: true
+            });
+
             markers.set(entry, marker);
-
             bounds.push(position);
-
             // Markør -> behovskort
             marker.on("click", function () {
-
                 select(entry);
                 scrollToEntry(entry);
             });
-
             // Behovskort -> markør
             function showEntryOnMap() {
-
                 select(entry);
-
                 map.setView(
                     position,
                     14
                 );
-
                 marker.openPopup();
             }
-
             entry.addEventListener(
                 "click",
                 function (event) {
-
                     if (
                         event.target.closest(
                             "a, button, form, input"
@@ -1790,16 +1617,13 @@
                     ) {
                         return;
                     }
-
                     showEntryOnMap();
                 }
             );
-
             // Tastaturstøtte for valg av behov.
             entry.addEventListener(
                 "keydown",
                 function (event) {
-
                     if (
                         event.target !== entry
                         || (
@@ -1809,27 +1633,20 @@
                     ) {
                         return;
                     }
-
                     event.preventDefault();
-
                     showEntryOnMap();
                 }
             );
         });
-
         /* ==========================================
            ZOOM SLIK AT ALLE BEHOV VISES
         ========================================== */
-
         if (bounds.length === 1) {
-
             map.setView(
                 bounds[0],
                 13
             );
-
         } else if (bounds.length > 1) {
-
             map.fitBounds(
                 bounds,
                 {
@@ -1837,62 +1654,44 @@
                     maxZoom: 12
                 }
             );
-
         } else {
-
             mapNotice.hidden = false;
-
             if (entries.length === 0) {
-
+                const showResolved = @Json.Serialize(showResolved);
                 mapNotice.querySelector("strong").textContent =
-                    "Ingen registrerte behov";
-
-                mapNotice.querySelector("span").textContent =
-                    "Behov vil vises i kartet når de blir registrert.";
+                    showResolved ? "Ingen løste behov" : "Ingen aktive behov";
+                mapNotice.querySelector("span").textContent = showResolved
+                    ? "Løste behov vises her når de blir ferdigbehandlet."
+                    : "Aktive behov vises her når de blir registrert.";
             }
         }
-
         /* ==========================================
            OPPDATER KARTETS STØRRELSE
         ========================================== */
-
         if (typeof ResizeObserver !== "undefined") {
-
             const mapObserver =
                 new ResizeObserver(function () {
-
                     requestAnimationFrame(
                         refreshMapSize
                     );
                 });
-
             mapObserver.observe(mapElement);
         }
-
         window.addEventListener(
             "resize",
             function () {
-
                 syncPanelHeight();
-
                 requestAnimationFrame(
                     refreshMapSize
                 );
             }
         );
-
         window.setTimeout(function () {
-
             map.invalidateSize();
-
             syncPanelHeight();
-
         }, 100);
-
     });
 </script>
-
 <partial name="_Sami" />
-
 </body>
 </html>
