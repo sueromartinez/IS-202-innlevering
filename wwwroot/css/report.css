@@ -234,6 +234,27 @@ html:root[data-theme="navy"] .coverage-bar.resource { background: #3fbf86; }
     text-align: right;
 }
 
+.coverage-more {
+    margin-top: 14px;
+}
+
+.coverage-more summary {
+    color: var(--primary);
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.coverage-more[open] summary {
+    margin-bottom: 12px;
+}
+
+@media print {
+    .coverage-more:not([open]) {
+        display: none;
+    }
+}
+
 .report-link {
     color: var(--primary);
     font-weight: 700;

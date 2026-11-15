@@ -7,7 +7,40 @@
 
     bool isAdmin = User.IsInRole(IdentitySeeder.AdminRole);
     string generated = Model.GeneratedAt.ToLocalTime().ToString("dd.MM.yyyy 'kl.' HH:mm");
-    int maxCoverage = Math.Max(1, Model.Coverage.Select(row => Math.Max(row.OpenNeeds, row.AvailableResources)).DefaultIfEmpty(1).Max());
+
+    // Bare typene med åpne behov vises fast. Resten ligger bak «Vis alle».
+    var coverageWithNeeds = Model.Coverage.Where(row => row.OpenNeeds > 0).ToList();
+    var coverageOthers = Model.Coverage.Where(row => row.OpenNeeds == 0).ToList();
+
+    int MaxOf(IEnumerable<FirstWebAppInDocker.ViewModels.TypeCoverageRow> rows) =>
+        Math.Max(1, rows.Select(row => Math.Max(row.OpenNeeds, row.AvailableResources)).DefaultIfEmpty(1).Max());
+
+    string Percent(int value, int max) =>
+        (value * 100.0 / max).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+
+    void CoverageRow(FirstWebAppInDocker.ViewModels.TypeCoverageRow row, int max)
+    {
+        <li class="coverage-row">
+            <div class="coverage-name">
+                <span class="coverage-icon">@Html.Raw(ResourceDisplay.Icon(row.Type))</span>
+                <span>@row.TypeName</span>
+                @if (row.IsGap)
+                {
+                    <span class="coverage-badge coverage-gap">Mangler</span>
+                }
+                else if (row.IsTight)
+                {
+                    <span class="coverage-badge coverage-tight">Knapp</span>
+                }
+            </div>
+            <div class="coverage-bars">
+                <div class="coverage-bar need" style="width:@Percent(row.OpenNeeds, max)%"></div>
+                <span class="coverage-count">@row.OpenNeeds</span>
+                <div class="coverage-bar resource" style="width:@Percent(row.AvailableResources, max)%"></div>
+                <span class="coverage-count">@row.AvailableResources</span>
+            </div>
+        </li>
+    }
 }
 
 @section Styles {
@@ -98,7 +131,7 @@
     <!-- DEKNING PER TYPE -->
     <section class="app-card portal-section">
         <h2>Dekning per ressurstype</h2>
-        <p class="section-hint">Åpne behov som ikke er tildelt, mot tilgjengelige ressurser av samme type.</p>
+        <p class="section-hint">Ressurstyper med åpne behov som ikke er tildelt, mot tilgjengelige ressurser av samme type.</p>
 
         @if (Model.Coverage.Count == 0)
         {
@@ -110,31 +143,37 @@
                 <span><i class="coverage-swatch need"></i>Åpne behov</span>
                 <span><i class="coverage-swatch resource"></i>Tilgjengelige ressurser</span>
             </div>
-            <ul class="coverage-list">
-                @foreach (var row in Model.Coverage)
-                {
-                    <li class="coverage-row">
-                        <div class="coverage-name">
-                            <span class="coverage-icon">@Html.Raw(ResourceDisplay.Icon(row.Type))</span>
-                            <span>@row.TypeName</span>
-                            @if (row.IsGap)
-                            {
-                                <span class="coverage-badge coverage-gap">Mangler</span>
-                            }
-                            else if (row.IsTight)
-                            {
-                                <span class="coverage-badge coverage-tight">Knapp</span>
-                            }
-                        </div>
-                        <div class="coverage-bars">
-                            <div class="coverage-bar need" style="width:@((row.OpenNeeds * 100.0 / maxCoverage).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))%"></div>
-                            <span class="coverage-count">@row.OpenNeeds</span>
-                            <div class="coverage-bar resource" style="width:@((row.AvailableResources * 100.0 / maxCoverage).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))%"></div>
-                            <span class="coverage-count">@row.AvailableResources</span>
-                        </div>
-                    </li>
-                }
-            </ul>
+
+            if (coverageWithNeeds.Count == 0)
+            {
+                <p class="empty-state">Ingen åpne behov venter på ressurser.</p>
+            }
+            else
+            {
+                int max = MaxOf(coverageWithNeeds);
+
+                <ul class="coverage-list">
+                    @foreach (var row in coverageWithNeeds)
+                    {
+                        CoverageRow(row, max);
+                    }
+                </ul>
+            }
+
+            if (coverageOthers.Count > 0)
+            {
+                int maxOthers = MaxOf(coverageOthers);
+
+                <details class="coverage-more">
+                    <summary>Vis typer uten åpne behov (@coverageOthers.Count)</summary>
+                    <ul class="coverage-list">
+                        @foreach (var row in coverageOthers)
+                        {
+                            CoverageRow(row, maxOthers);
+                        }
+                    </ul>
+                </details>
+            }
         }
     </section>
 
