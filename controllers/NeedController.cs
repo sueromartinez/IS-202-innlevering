@@ -78,12 +78,6 @@ public class NeedController : Controller
             .OrderByDescending(need => need.CreatedAt)
             .ToListAsync();
 
-        // Hastegrad (0–100) for hvert behov, vises som merke i listen.
-        // Lages direkte her, så konstruktøren og testene ikke må endres.
-        ViewData["Urgency"] =
-            await new FirstWebAppInDocker.Services.Matching.NeedUrgencyService(_context)
-                .CalculateAsync(needs);
-
         return View(needs);
     }
 

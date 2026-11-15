@@ -284,24 +284,12 @@ public static class SamiHelpGuide
             - Løst: behovet er markert som dekket. Bekreftede ressurser blir tilgjengelige igjen.
             """),
 
-        new("hastegrad",
-            "Hva betyr hastegrad (Kritisk, Høy, Middels, Lav)?",
-            Officials,
-            new[] { "hastegrad", "haster", "risiko", "kritisk", "høy", "middels", "lav", "poeng", "prioritere", "viktigst", "først", "risikomodell" },
-            """
-            - Hvert åpent behov får en hastegrad fra 0 til 100 poeng, regnet ut automatisk. Hold musen over merket for å se hvorfor.
-            - Poengene kommer fra fire ting: prioritet (Akutt 50, Planlagt 15), frist (passert +35, innen et døgn +30, innen tre døgn +20, innen en uke +10), hvor lenge behovet har ventet (opptil +15) og dekning (ingen ressurser av riktig type innen 50 km +20, bare 1–2 +8).
-            - Behov som allerede er tildelt får bare 30 % av poengene. Løste behov får 0.
-            - Nivåer: 70+ Kritisk, 45–69 Høy, 25–44 Middels, under 25 Lav.
-            - Hastegraden vises på «Behov», på «Finn ressurser» og i situasjonsrapporten.
-            """),
-
         new("rapporter",
             "Situasjonsrapport, utskrift og eksport (CSV/JSON)",
             Officials,
             new[] { "rapport", "rapporter", "situasjonsrapport", "situasjon", "oversikt", "skrive ut", "utskrift", "print", "eksport", "eksportere", "csv", "json", "excel", "last ned", "laste ned", "kommune", "region", "liste" },
             """
-            - «Rapporter» i menyen åpner situasjonsrapporten: nøkkeltall, dekning per ressurstype, ressurser per kommune, de mest presserende behovene og behov uten ressurser i nærheten.
+            - «Rapporter» i menyen åpner situasjonsrapporten: nøkkeltall, dekning per ressurstype, ressurser per kommune, åpne behov (ikke tildelte og akutte først) og behov uten ressurser i nærheten.
             - Trykk «Be Sami skrive vurdering» for en kort vurdering med risikoer og anbefalte tiltak. Den automatiske oppsummeringen virker også uten Sami.
             - «Ressursliste per kommune» viser en utskriftsvennlig liste. Velg kommune, type og om bare tilgjengelige skal vises.
             - «Skriv ut» skriver ut siden uten meny og knapper. «Last ned CSV (Excel)» og «Last ned JSON» laster ned listen med samme filter.
