@@ -260,6 +260,19 @@ public class MatchController : Controller
                     excludeRequestedForNeedId: need.Id
                 );
 
+        // Posisjonene til kandidatene, så de kan vises i kartet på siden.
+        // Holdes utenfor ResourceCandidate, som også sendes til Sami.
+        List<int> candidateIds =
+            candidates.Select(c => c.ResourceId).ToList();
+
+        ViewData["CandidatePositions"] =
+            await _context.Resources
+                .AsNoTracking()
+                .Where(r => candidateIds.Contains(r.Id))
+                .ToDictionaryAsync(
+                    r => r.Id,
+                    r => new[] { r.Latitude, r.Longitude });
+
         // NYTT:
         // Avbrutte forespørsler fjernes fra
         // listen som vises på detaljsiden.
