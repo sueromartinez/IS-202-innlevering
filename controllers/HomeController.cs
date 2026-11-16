@@ -143,6 +143,8 @@ public class HomeController : Controller
                     Needs =
                         await _context.Needs
                             .AsNoTracking()
+                            // Løste behov skal ikke vises i kartet, tellerne eller listen.
+                            .Where(need => need.Status != NeedStatus.Resolved)
                             .OrderByDescending(
                                 need => need.CreatedAt
                             )
