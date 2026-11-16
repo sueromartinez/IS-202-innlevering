@@ -638,6 +638,30 @@
     // ---------------------------------------------------------
     // START
     // ---------------------------------------------------------
+    // SPØR SAMI FRA ANDRE SIDER
+    // En knapp hvor som helst på siden med data-sami-ask="spørsmål"
+    // åpner Sami og sender spørsmålet med en gang.
+    // ---------------------------------------------------------
+
+    function ask(text) {
+        open(false);
+        sendMessage(text);
+    }
+
+    document.addEventListener("click", function (event) {
+        const trigger = event.target.closest("[data-sami-ask]");
+
+        if (!trigger) {
+            return;
+        }
+
+        event.preventDefault();
+        ask(trigger.getAttribute("data-sami-ask"));
+    });
+
+    window.Sami = { ask: ask, open: open };
+
+    // ---------------------------------------------------------
 
     renderAll();
 
