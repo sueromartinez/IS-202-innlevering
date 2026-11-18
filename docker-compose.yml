@@ -1,28 +1,29 @@
 
+# Docker Compose-oppsett for lokal utvikling og demonstrasjon.
+# Passord og andre hemmeligheter hentes fra en lokal .env-fil.
+
 services:
 
-  # ========================================
-  # MARIADB DATABASE
-  # ========================================
+  #region MariaDB
 
   mariadb:
     image: mariadb:11.4
     container_name: beredskap-mariadb
-
     restart: unless-stopped
 
     environment:
       MARIADB_DATABASE: beredskap_db
       MARIADB_USER: beredskap_user
-      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-beredskap_dev_password}
-      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-beredskap_root_dev_password}
 
-    # Kun tilgjengelig fra egen PC.
+      # Krev passord fra .env. Ingen kjente reservepassord.
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:?Sett MARIADB_PASSWORD i .env}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Sett MARIADB_ROOT_PASSWORD i .env}
+
+    # Databasen er kun tilgjengelig fra vertsmaskinen.
     ports:
       - "127.0.0.1:3307:3306"
 
-    # Databaseinnholdet overlever omstart
-    # og gjenoppretting av containeren.
+    # Beholder databaseinnhold ved omstart.
     volumes:
       - beredskap-db:/var/lib/mysql
 
@@ -38,10 +39,9 @@ services:
       timeout: 5s
       retries: 10
 
+  #endregion
 
-  # ========================================
-  # ASP.NET CORE MVC APPLICATION
-  # ========================================
+  #region ASP.NET Core
 
   app:
     build:
@@ -49,10 +49,9 @@ services:
       dockerfile: Dockerfile
 
     container_name: beredskap-app
-
     restart: unless-stopped
 
-    # Vent til MariaDB er klar.
+    # Start først når databasen er klar.
     depends_on:
       mariadb:
         condition: service_healthy
@@ -60,93 +59,107 @@ services:
         condition: service_started
 
     environment:
-      # Kun lokal utvikling og demonstrasjon.
-      # Demoinnlogging er aktiv i Development.
+      # Dette Compose-oppsettet er laget for lokal utvikling.
+      # Et produksjonsmiljø må bruke et eget, herdet oppsett.
       ASPNETCORE_ENVIRONMENT: Development
 
+      # Samme databasepassord brukes av MariaDB og EF Core.
       ConnectionStrings__DefaultConnection: >-
         Server=mariadb;
         Port=3306;
         Database=beredskap_db;
         User=beredskap_user;
-        Password=${MARIADB_PASSWORD:-beredskap_dev_password};
+        Password=${MARIADB_PASSWORD:?Sett MARIADB_PASSWORD i .env};
 
-      # Admin-bruker (se .env.example)
-      Seed__AdminEmail: ${ADMIN_EMAIL:-admin@beredskap.no}
-      Seed__AdminPassword: ${ADMIN_PASSWORD:-Admin123!}
+      # IdentitySeeder oppretter admin kun dersom
+      # kontoen ikke allerede finnes i databasen.
+      Seed__AdminEmail: ${ADMIN_EMAIL:?Sett ADMIN_EMAIL i .env}
+      Seed__AdminPassword: ${ADMIN_PASSWORD:?Sett ADMIN_PASSWORD i .env}
 
-      # Sami – AI-assistenten
+      # Sami kan bruke lokal Ollama eller konfigurert Claude.
       Sami__Provider: ${SAMI_PROVIDER:-Ollama}
       Sami__Ollama__BaseUrl: http://ollama:11434
       Sami__Ollama__Model: ${SAMI_OLLAMA_MODEL:-qwen2.5:7b}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
 
-      # E-post går til Mailpit (se http://localhost:8025)
+      # Mailpit mottar test-e-poster.
       Smtp__Host: mailpit
       Smtp__Port: 1025
 
-
-    # Kun tilgjengelig fra egen PC.
+    # Nettsiden er kun tilgjengelig fra vertsmaskinen.
     ports:
       - "127.0.0.1:8080:5216"
 
-    # Behold ASP.NET Core Data Protection-nøkler
-    # når app-containeren opprettes på nytt.
+    # Behold Identity/Data Protection-nøkler ved omstart.
     volumes:
       - beredskap-dataprotection:/home/app/.aspnet/DataProtection-Keys
 
+  #endregion
 
-  # =========================================
-  # OLLAMA – lokal språkmodell for Sami
-  # =========================================
+  #region Sami - lokal AI
+
   ollama:
     image: ollama/ollama:latest
     container_name: beredskap-ollama
     restart: unless-stopped
+
+    # Modellen beholdes når containeren opprettes på nytt.
     volumes:
       - ollama-models:/root/.ollama
-    # Port 11434 åpnes også lokalt, så man kan kjøre appen
-    # med "dotnet run" utenfor Docker og fortsatt bruke Sami.
+
+    # Tillater bruk av Ollama også fra dotnet run på vertsmaskinen.
     ports:
       - "127.0.0.1:11434:11434"
 
-
-  # Laster ned modellen første gang (ca. 4–5 GB). Avslutter når den er ferdig.
+  # Laster ned modellen ved første oppstart.
   ollama-pull:
     image: ollama/ollama:latest
     container_name: beredskap-ollama-pull
+
     depends_on:
       - ollama
+
     environment:
       OLLAMA_HOST: http://ollama:11434
-    # Venter til Ollama svarer, og laster så ned modellen.
-    entrypoint: ["/bin/sh", "-c", "until ollama list > /dev/null 2>&1; do sleep 2; done; ollama pull ${SAMI_OLLAMA_MODEL:-qwen2.5:7b}"]
+
+    # Vent på Ollama før modellen lastes ned.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >-
+        until ollama list > /dev/null 2>&1;
+        do sleep 2;
+        done;
+        ollama pull ${SAMI_OLLAMA_MODEL:-qwen2.5:7b}
+
     restart: "no"
 
+  #endregion
 
-  # =========================================
-  # MAILPIT – test-e-postserver
-  # Fanger alle e-poster: http://localhost:8025
-  # =========================================
+  #region E-post - Mailpit
+
   mailpit:
     image: axllent/mailpit:latest
     container_name: beredskap-mailpit
     restart: unless-stopped
+
+    # Test-e-poster vises på http://localhost:8025.
     ports:
       - "127.0.0.1:8025:8025"
 
+  #endregion
 
-# ========================================
-# PERSISTENT DOCKER VOLUMES
-# ========================================
+#region Vedvarende Docker-volumer
 
 volumes:
 
-  # Brukere, ressurser, behov og Identity-data.
+  # Database: brukere, roller, ressurser og behov.
   beredskap-db:
 
-  # Nøkler til innloggingscookies og Data Protection.
+  # Nøkler for Identity-cookies og Data Protection.
   beredskap-dataprotection:
 
-  # Språkmodellen til Sami (ca. 5 GB).
+  # Nedlastede språkmodeller for Sami.
   ollama-models:
+
+#endregion

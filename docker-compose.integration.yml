@@ -1,0 +1,40 @@
+
+# Egen MariaDB-container for integrasjonstester.
+# Bruker ikke produksjons-/utviklingsdatabasen.
+#
+# Startes med:
+# docker compose -p beredskap-integration -f docker-compose.integration.yml up -d
+
+services:
+
+  mariadb-test:
+    image: mariadb:11.4
+    restart: unless-stopped
+
+    environment:
+      MARIADB_DATABASE: beredskap_test_db
+      MARIADB_USER: beredskap_test_user
+
+      # Bruker eksisterende lokale .env-passord.
+      # Databasen og Docker-volumet er likevel separate.
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:?Sett MARIADB_PASSWORD i .env}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Sett MARIADB_ROOT_PASSWORD i .env}
+
+    ports:
+      - "127.0.0.1:3308:3306"
+
+    volumes:
+      - beredskap-integration-db:/var/lib/mysql
+
+    healthcheck:
+      test:
+        - CMD
+        - healthcheck.sh
+        - --connect
+        - --innodb_initialized
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  beredskap-integration-db:
