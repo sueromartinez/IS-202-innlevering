@@ -50,7 +50,8 @@ public class SamiToolsTests
         // Geokoderen brukes ikke i disse testene.
         var geocoder = new NominatimGeocoder(new HttpClient(), NullLogger<NominatimGeocoder>.Instance);
 
-        return new SamiTools(database, new ResourceMatchingService(database), geocoder, new FakeAddressLookup());
+        return new SamiTools(database, new ResourceMatchingService(
+    new EfResourceMatchingRepository(database)), geocoder, new FakeAddressLookup());
     }
 
 

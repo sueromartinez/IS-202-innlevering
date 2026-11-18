@@ -1,4 +1,3 @@
-
 using System.Globalization;
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
@@ -13,379 +12,265 @@ using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ========================================
-// DATABASE
-// ========================================
+#region Sikkerhet og webserver
+
+// Skjul servertypen i HTTP-responsen.
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.AddServerHeader = false;
+});
+
+#endregion
+
+#region Database
 
 string connectionString =
-    builder.Configuration.GetConnectionString(
-        "DefaultConnection")
+    builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException(
         "Connection string 'DefaultConnection' ble ikke funnet.");
 
-builder.Services.AddDbContext<ApplicationDbContext>(
-    options =>
-        options.UseMySql(
-            connectionString,
-            new MariaDbServerVersion(
-                new Version(11, 4, 0)
-            )
-        )
-);
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseMySql(
+        connectionString,
+        new MariaDbServerVersion(new Version(11, 4, 0))));
 
-// ========================================
-// ASP.NET CORE IDENTITY
-// ========================================
+#endregion
+
+#region ASP.NET Core Identity
 
 builder.Services
-    .AddIdentity<ApplicationUser, IdentityRole>(
-        options =>
-        {
-            // Hver e-postadresse skal være unik.
-            options.User.RequireUniqueEmail = true;
+    .AddIdentity<ApplicationUser, IdentityRole>(options =>
+    {
+        options.User.RequireUniqueEmail = true;
 
-            // ========================================
-            // PASSORDKRAV
-            // ========================================
+        // Passordkrav.
+        options.Password.RequiredLength = 8;
+        options.Password.RequireDigit = true;
+        options.Password.RequireLowercase = true;
+        options.Password.RequireUppercase = true;
+        options.Password.RequireNonAlphanumeric = true;
 
-            options.Password.RequiredLength = 8;
-            options.Password.RequireDigit = true;
-            options.Password.RequireLowercase = true;
-            options.Password.RequireUppercase = true;
-            options.Password.RequireNonAlphanumeric = true;
+        // Eksisterende AccountController kontrollerer e-postbekreftelse.
+        // Endres først når hele innloggings- og registreringsflyten er gjennomgått.
+        options.SignIn.RequireConfirmedEmail = false;
 
-            // ========================================
-            // E-POSTBEKREFTELSE
-            // ========================================
-
-            // AccountController kontrollerer allerede
-            // bekreftet e-post ved vanlig innlogging.
-
-            options.SignIn.RequireConfirmedEmail = false;
-
-            // ========================================
-            // BESKYTTELSE MOT BRUTE-FORCE
-            // ========================================
-
-            options.Lockout.AllowedForNewUsers = true;
-            options.Lockout.MaxFailedAccessAttempts = 5;
-
-            options.Lockout.DefaultLockoutTimeSpan =
-                TimeSpan.FromMinutes(10);
-        }
-    )
+        // Kontoen kan låses etter gjentatte feilforsøk.
+        // Innloggingshandlingen må også bruke lockoutOnFailure: true.
+        options.Lockout.AllowedForNewUsers = true;
+        options.Lockout.MaxFailedAccessAttempts = 5;
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(10);
+    })
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders()
-
-    // ========================================
-    // UNIKE E-POSTKODER
-    // ========================================
-
-    // Beholder eksisterende løsning for
-    // e-postbasert tofaktorautentisering.
-
+    // Behold eksisterende tokenleverandør for e-postbasert tofaktor.
     .AddTokenProvider<UniqueEmailTokenProvider>(
-        TokenOptions.DefaultEmailProvider
-    );
+        TokenOptions.DefaultEmailProvider);
 
-// ========================================
-// IDENTITY COOKIE
-// ========================================
+#endregion
 
-builder.Services.ConfigureApplicationCookie(
-    options =>
+#region Autentiseringscookie
+
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    // Innloggingen skjer på forsiden i den eksisterende løsningen.
+    options.LoginPath = "/";
+    options.AccessDeniedPath = "/Account/AccessDenied";
+
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+
+    // Vanlig innlogging bruker en sesjonscookie med 60 minutters billettlevetid.
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+    options.SlidingExpiration = true;
+
+    // En vedvarende cookie brukes bare når brukeren velger «Husk meg».
+    options.Events.OnSigningIn = context =>
     {
-        // Innloggingen ligger på forsiden.
-        options.LoginPath = "/";
-
-        options.AccessDeniedPath =
-            "/Account/AccessDenied";
-
-        options.Cookie.HttpOnly = true;
-        options.Cookie.IsEssential = true;
-
-        // ========================================
-        // VANLIG INNLOGGING
-        // ========================================
-
-        // Uten "Husk meg" brukes en sesjonscookie.
-        // Autentiseringsbilletten varer i 60 minutter.
-        //
-        // Ved aktivitet kan varigheten fornyes
-        // fordi SlidingExpiration er aktivert.
-
-        options.ExpireTimeSpan =
-            TimeSpan.FromMinutes(60);
-
-        options.SlidingExpiration = true;
-
-        // ========================================
-        // HUSK MEG
-        // ========================================
-
-        // Identity sender IsPersistent = true
-        // bare når "Husk meg" er valgt.
-        //
-        // Vi gir slike innlogginger en egen
-        // varighet på 7 dager.
-        //
-        // Uten "Husk meg" beholder vi
-        // standardvarigheten og sesjonscookie.
-
-        options.Events.OnSigningIn = context =>
+        if (context.Properties.IsPersistent)
         {
-            if (context.Properties.IsPersistent)
-            {
-                context.Properties.ExpiresUtc =
-                    DateTimeOffset.UtcNow.AddDays(7);
-            }
+            context.Properties.ExpiresUtc =
+                DateTimeOffset.UtcNow.AddDays(7);
+        }
 
-            return Task.CompletedTask;
-        };
-    }
-);
+        return Task.CompletedTask;
+    };
+});
 
-// ========================================
-// MVC
-// ========================================
+#endregion
 
+#region MVC
+
+// Global CSRF-validering innføres etter at POST-kall fra skjemaer og Sami er kontrollert.
 builder.Services.AddControllersWithViews();
 
-// ========================================
-// MATCHING OG VARSLING
-// ========================================
+#endregion
+
+#region Matching, varsling og rapportering
 
 builder.Services.Configure<SmtpOptions>(
-    builder.Configuration.GetSection("Smtp")
-);
+    builder.Configuration.GetSection("Smtp"));
 
-builder.Services.AddScoped<
-    IPortalEmailSender,
-    SmtpEmailSender
->();
-
-builder.Services.AddScoped<
-    ISmsSender,
-    SimulatedSmsSender
->();
+builder.Services.AddScoped<IPortalEmailSender, SmtpEmailSender>();
+builder.Services.AddScoped<ISmsSender, SimulatedSmsSender>();
 
 builder.Services.AddScoped<NotificationService>();
+
+// Repository Pattern:
+// Matchingservicen bruker et interface i stedet for
+// å være direkte avhengig av ApplicationDbContext.
+builder.Services.AddScoped<
+    IResourceMatchingRepository,
+    EfResourceMatchingRepository>();
+
 builder.Services.AddScoped<ResourceMatchingService>();
 builder.Services.AddScoped<AssignmentService>();
-
-// Audit-logg.
 builder.Services.AddScoped<AuditService>();
 builder.Services.AddScoped<FirstWebAppInDocker.Services.Reports.ReportService>();
 
-// ========================================
-// SAMI (AI-ASSISTENT)
-// ========================================
+// Brukes til bekreftelse av e-post, e-postendring,
+// tofaktor og passordtilbakestilling.
+builder.Services.AddScoped<IEmailCodeSender, SmtpEmailCodeSender>();
+
+#endregion
+
+#region Sami AI-assistent
 
 builder.Services.Configure<SamiOptions>(
-    builder.Configuration.GetSection("Sami")
-);
+    builder.Configuration.GetSection("Sami"));
 
 builder.Services.AddHttpClient<OllamaChatClient>();
 builder.Services.AddHttpClient<ClaudeChatClient>();
 builder.Services.AddHttpClient<NominatimGeocoder>();
 
-// Adresseoppslag (Kartverket, med Nominatim som reserve) når Sami registrerer ressurser.
+// Kartverket brukes til adresseoppslag, med Nominatim som reserve.
 builder.Services.AddHttpClient<IAddressLookup, KartverketAddressLookup>();
 
-builder.Services.AddScoped<IChatModelClient>(
-    services =>
-    {
-        SamiOptions options =
-            services
-                .GetRequiredService<IOptions<SamiOptions>>()
-                .Value;
+builder.Services.AddScoped<IChatModelClient>(services =>
+{
+    SamiOptions options = services
+        .GetRequiredService<IOptions<SamiOptions>>()
+        .Value;
 
-        return string.Equals(
-            options.Provider,
-            "Claude",
-            StringComparison.OrdinalIgnoreCase
-        )
-            ? (IChatModelClient)
-                services.GetRequiredService<ClaudeChatClient>()
-            : services.GetRequiredService<OllamaChatClient>();
-    }
-);
+    return string.Equals(
+        options.Provider,
+        "Claude",
+        StringComparison.OrdinalIgnoreCase)
+        ? (IChatModelClient)services.GetRequiredService<ClaudeChatClient>()
+        : services.GetRequiredService<OllamaChatClient>();
+});
 
 builder.Services.AddScoped<SamiTools>();
 builder.Services.AddScoped<SamiAssistantService>();
 
-// ========================================
-// DISTRIBUTED CACHE
-// ========================================
+#endregion
+
+#region Cache og sesjon
 
 builder.Services.AddDistributedMemoryCache();
 
-// ========================================
-// SESSION
-// ========================================
+// Session brukes til eksisterende sesjonsdata,
+// ikke som erstatning for Identity.
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+});
 
-// Eksisterende Session-løsning beholdes.
-// Identity og roller styrer tilgang.
+#endregion
 
-builder.Services.AddSession(
-    options =>
-    {
-        options.IdleTimeout =
-            TimeSpan.FromMinutes(30);
+#region Lokalisering
 
-        options.Cookie.HttpOnly = true;
-        options.Cookie.IsEssential = true;
-    }
-);
+// Behold en-US til dato- og tallformater
+// i den eksisterende løsningen er gjennomgått.
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    var supportedCultures = new[] { new CultureInfo("en-US") };
 
-// ========================================
-// SPRÅK / KULTUR
-// ========================================
+    options.DefaultRequestCulture = new RequestCulture("en-US");
+    options.SupportedCultures = supportedCultures;
+    options.SupportedUICultures = supportedCultures;
+});
 
-builder.Services.Configure<RequestLocalizationOptions>(
-    options =>
-    {
-        var supportedCultures =
-            new[]
-            {
-                new CultureInfo("en-US")
-            };
-
-        options.DefaultRequestCulture =
-            new RequestCulture("en-US");
-
-        options.SupportedCultures =
-            supportedCultures;
-
-        options.SupportedUICultures =
-            supportedCultures;
-    }
-);
-
-// ========================================
-// E-POSTUTSENDING
-// ========================================
-
-// Brukes til:
-// - E-postbekreftelse
-// - E-postendring
-// - Tofaktorkoder
-// - Passordtilbakestilling
-
-builder.Services.AddScoped<
-    IEmailCodeSender,
-    SmtpEmailCodeSender
->();
-
-// ========================================
-// BUILD APPLICATION
-// ========================================
+#endregion
 
 var app = builder.Build();
 
-// ========================================
-// DATABASE MIGRATIONS
-// ========================================
+#region Migrasjoner og oppstartsdata
 
 using (var scope = app.Services.CreateScope())
 {
-    var dbContext =
-        scope.ServiceProvider
-            .GetRequiredService<ApplicationDbContext>();
+    var dbContext = scope.ServiceProvider
+        .GetRequiredService<ApplicationDbContext>();
 
     await dbContext.Database.MigrateAsync();
 }
 
-// ========================================
-// IDENTITY ROLE SEEDING
-// ========================================
+await IdentitySeeder.SeedAsync(app.Services);
 
-await IdentitySeeder.SeedAsync(
-    app.Services
-);
-
-// ========================================
-// DEMODATA
-// ========================================
-
-// Beholder eksisterende demodata
-// og offentlige testbrukere.
-
-if (
-    app.Environment.IsDevelopment()
+// Demodata skal bare opprettes i utviklingsmiljø
+// og kan slås av i konfigurasjonen.
+if (app.Environment.IsDevelopment()
     && !string.Equals(
         app.Configuration["Seed:DemoData"],
         "false",
-        StringComparison.OrdinalIgnoreCase
-    )
-)
+        StringComparison.OrdinalIgnoreCase))
 {
-    await DemoDataSeeder.SeedAsync(
-        app.Services
-    );
+    await DemoDataSeeder.SeedAsync(app.Services);
 }
 
-// ========================================
-// ERROR HANDLING
-// ========================================
+#endregion
+
+#region Feilhåndtering og sikkerhetsheadere
 
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler(
-        "/Home/Error"
-    );
-
+    app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
 
-// ========================================
-// LOCALIZATION
-// ========================================
+// Disse headerne kan brukes uten å blokkere
+// Leaflet, Kartverket eller Sami.
+// Content-Security-Policy innføres separat etter
+// kartlegging av eksterne ressurser.
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    context.Response.Headers["X-Frame-Options"] = "SAMEORIGIN";
+    context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
 
-var localizationOptions =
-    app.Services
-        .GetRequiredService<
-            IOptions<RequestLocalizationOptions>
-        >()
-        .Value;
+    await next();
+});
 
-app.UseRequestLocalization(
-    localizationOptions
-);
+#endregion
 
-// ========================================
-// MIDDLEWARE
-// ========================================
+#region Middleware
 
+var localizationOptions = app.Services
+    .GetRequiredService<IOptions<RequestLocalizationOptions>>()
+    .Value;
+
+app.UseRequestLocalization(localizationOptions);
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
-// ========================================
-// SESSION
-// ========================================
-
 app.UseSession();
-
-// ========================================
-// IDENTITY AUTHENTICATION
-// ========================================
-
 app.UseAuthentication();
 app.UseAuthorization();
 
-// ========================================
-// ROUTING
-// ========================================
+#endregion
+
+#region Endepunkter
 
 app.MapControllerRoute(
     name: "default",
-    pattern:
-        "{controller=Home}/{action=Index}/{id?}"
-);
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
-// ========================================
-// START APPLICATION
-// ========================================
+#endregion
 
 app.Run();

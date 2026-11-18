@@ -11,17 +11,47 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FirstWebAppInDocker.Controllers;
 
+/// <summary>
+/// Håndterer koordinering, ressursmatching og tildelinger
+/// for offentlige aktører og administratorer.
+/// </summary>
+/// <remarks>
+/// Innlogging og roller kontrolleres med ASP.NET Core Identity.
+///
+/// Offentlige aktører kan se koordineringsoversikten,
+/// men kan bare endre forespørsler på behov de selv eier.
+/// Administratorer kan administrere alle behov.
+///
+/// Permanente eierskapskontroller bruker OwnerUserId.
+/// OwnerEmail støttes for eldre behov uten Identity-eier.
+/// </remarks>
 [Authorize(
     Roles = IdentitySeeder.PublicActorRole + "," +
-            IdentitySeeder.AdminRole
-)]
+            IdentitySeeder.AdminRole)]
 public class MatchController : Controller
 {
+    #region Konstanter og avhengigheter
+
+    private const double MinRadiusKm = 1;
+    private const double MaxRadiusKm = 500;
+
     private readonly ApplicationDbContext _context;
     private readonly ResourceMatchingService _matching;
     private readonly AssignmentService _assignments;
     private readonly UserManager<ApplicationUser> _userManager;
 
+    #endregion
+
+    #region Konstruktør
+
+    /// <summary>
+    /// Oppretter kontrolleren med database-, matching-,
+    /// tildelings- og Identity-tjenester.
+    /// </summary>
+    /// <param name="context">Applikasjonens databasekontekst.</param>
+    /// <param name="matching">Tjeneste for ressursmatching.</param>
+    /// <param name="assignments">Tjeneste for forespørsler og tildelinger.</param>
+    /// <param name="userManager">Identity-tjeneste for brukere.</param>
     public MatchController(
         ApplicationDbContext context,
         ResourceMatchingService matching,
@@ -34,51 +64,51 @@ public class MatchController : Controller
         _userManager = userManager;
     }
 
-    // =========================================================
-    // KOORDINERING – KANBAN-TAVLE
-    // =========================================================
+    #endregion
 
+    #region Koordinering og Kanban-tavle
+
+    /// <summary>
+    /// Viser aktive og løste behov samt antall aktive
+    /// forespørsler og bekreftelser per behov.
+    /// </summary>
+    /// <returns>Kanban-tavlen med eksisterende ViewBag-data.</returns>
     [HttpGet]
     public async Task<IActionResult> Index()
     {
         List<Need> allNeeds = await _context.Needs
             .AsNoTracking()
-            .OrderByDescending(n => n.Id)
+            .OrderByDescending(need => need.Id)
             .ToListAsync();
 
         List<Need> activeNeeds = allNeeds
-            .Where(n => n.Status != NeedStatus.Resolved)
+            .Where(need => need.Status != NeedStatus.Resolved)
             .ToList();
 
         List<Need> resolvedNeeds = allNeeds
-            .Where(n => n.Status == NeedStatus.Resolved)
+            .Where(need => need.Status == NeedStatus.Resolved)
             .ToList();
 
-        // Bare aktive forespørsler skal brukes til
-        // å plassere behov på Kanban-tavlen.
-        //
-        // Cancelled og Declined regnes ikke
-        // som aktive forespørsler.
-
+        // Bare Requested og Confirmed skal telle
+        // som aktive forespørsler på Kanban-tavlen.
         var activeAssignmentStates =
             await _context.NeedAssignments
                 .AsNoTracking()
-                .Where(a =>
-                    a.Status == AssignmentStatus.Requested ||
-                    a.Status == AssignmentStatus.Confirmed)
-                .Select(a => new
+                .Where(assignment =>
+                    assignment.Status == AssignmentStatus.Requested
+                    || assignment.Status == AssignmentStatus.Confirmed)
+                .Select(assignment => new
                 {
-                    a.NeedId,
-                    a.Status
+                    assignment.NeedId,
+                    assignment.Status
                 })
                 .ToListAsync();
 
         var groupedAssignments = activeAssignmentStates
-            .GroupBy(a => a.NeedId)
+            .GroupBy(assignment => assignment.NeedId)
             .ToDictionary(
                 group => group.Key,
-                group => group.ToList()
-            );
+                group => group.ToList());
 
         var pendingByNeed = new Dictionary<int, int>();
         var confirmedByNeed = new Dictionary<int, int>();
@@ -93,11 +123,11 @@ public class MatchController : Controller
                 need.Id,
                 out var relatedAssignments))
             {
-                pending = relatedAssignments.Count(a =>
-                    a.Status == AssignmentStatus.Requested);
+                pending = relatedAssignments.Count(assignment =>
+                    assignment.Status == AssignmentStatus.Requested);
 
-                confirmed = relatedAssignments.Count(a =>
-                    a.Status == AssignmentStatus.Confirmed);
+                confirmed = relatedAssignments.Count(assignment =>
+                    assignment.Status == AssignmentStatus.Confirmed);
             }
 
             pendingByNeed[need.Id] = pending;
@@ -105,74 +135,79 @@ public class MatchController : Controller
             totalByNeed[need.Id] = pending + confirmed;
         }
 
+        // Behold ViewBag-navnene som Razor-visningen bruker.
         ViewBag.PendingByNeed = pendingByNeed;
         ViewBag.ConfirmedByNeed = confirmedByNeed;
         ViewBag.TotalByNeed = totalByNeed;
         ViewBag.ResolvedNeeds = resolvedNeeds;
 
         ViewBag.TotalActiveNeeds = activeNeeds.Count;
-
         ViewBag.TotalPending = activeNeeds.Sum(
-            n => pendingByNeed[n.Id]);
+            need => pendingByNeed[need.Id]);
 
         ViewBag.TotalConfirmed = activeNeeds.Sum(
-            n => confirmedByNeed[n.Id]);
+            need => confirmedByNeed[need.Id]);
 
         ViewBag.TotalResolvedNeeds = resolvedNeeds.Count;
 
         return View(activeNeeds);
     }
 
-    // =========================================================
-    // TILDELINGER – OVERSIKT
-    // =========================================================
+    #endregion
 
+    #region Tildelingsoversikt
+
+    /// <summary>
+    /// Viser registrerte forespørsler og tildelinger,
+    /// gruppert etter behov.
+    /// </summary>
+    /// <remarks>
+    /// Kansellerte forespørsler skjules fra oversikten,
+    /// men beholdes i MariaDB for historikk og sporbarhet.
+    /// </remarks>
+    /// <returns>En liste med MatchNeedViewModel.</returns>
     [HttpGet]
     public async Task<IActionResult> Assignments()
     {
-        // Avbrutte forespørsler vises ikke
-        // i den aktive tildelingsoversikten.
-        //
-        // De beholdes fortsatt i databasen.
-
         var assignmentRows =
             await _context.NeedAssignments
                 .AsNoTracking()
-                .Where(a =>
-                    a.Status != AssignmentStatus.Cancelled)
-                .OrderByDescending(a => a.CreatedAt)
-                .Select(a => new
+                .Where(assignment =>
+                    assignment.Status != AssignmentStatus.Cancelled)
+                .OrderByDescending(assignment => assignment.CreatedAt)
+                .Select(assignment => new
                 {
-                    NeedId = a.NeedId,
+                    assignment.NeedId,
 
                     Row = new AssignmentRowViewModel
                     {
-                        Id = a.Id,
+                        Id = assignment.Id,
+
                         ResourceName =
-                            a.Resource!.ResourceName,
+                            assignment.Resource!.ResourceName,
 
                         ResourceType =
-                            a.Resource.ResourceType,
+                            assignment.Resource.ResourceType,
 
-                        Status = a.Status,
-                        Message = a.Message,
+                        Status = assignment.Status,
+                        Message = assignment.Message,
 
                         SuggestedByAssistant =
-                            a.SuggestedByAssistant,
+                            assignment.SuggestedByAssistant,
 
                         ContactEmail =
-                            a.Resource.ContactEmail
-                            ?? a.Resource.OwnerEmail,
+                            assignment.Resource.ContactEmail
+                            ?? assignment.Resource.OwnerEmail,
 
                         ContactPhone =
-                            a.Resource.ContactPhoneNumber == null
+                            assignment.Resource.ContactPhoneNumber == null
                                 ? null
-                                : a.Resource.ContactPhoneCountryCode
+                                : assignment.Resource.ContactPhoneCountryCode
                                   + " "
-                                  + a.Resource.ContactPhoneNumber,
+                                  + assignment.Resource.ContactPhoneNumber,
 
-                        CreatedAt = a.CreatedAt,
-                        RespondedAt = a.RespondedAt
+                        CreatedAt = assignment.CreatedAt,
+                        RespondedAt = assignment.RespondedAt
                     }
                 })
                 .ToListAsync();
@@ -185,24 +220,23 @@ public class MatchController : Controller
         }
 
         List<int> needIds = assignmentRows
-            .Select(a => a.NeedId)
+            .Select(assignment => assignment.NeedId)
             .Distinct()
             .ToList();
 
         List<Need> needs = await _context.Needs
             .AsNoTracking()
-            .Where(n => needIds.Contains(n.Id))
-            .OrderByDescending(n => n.Id)
+            .Where(need => needIds.Contains(need.Id))
+            .OrderByDescending(need => need.Id)
             .ToListAsync();
 
         var assignmentsByNeed = assignmentRows
-            .GroupBy(a => a.NeedId)
+            .GroupBy(assignment => assignment.NeedId)
             .ToDictionary(
                 group => group.Key,
                 group => group
-                    .Select(a => a.Row)
-                    .ToList()
-            );
+                    .Select(assignment => assignment.Row)
+                    .ToList());
 
         foreach (Need need in needs)
         {
@@ -216,9 +250,7 @@ public class MatchController : Controller
             model.Add(new MatchNeedViewModel
             {
                 Need = need,
-                RadiusKm =
-                    ResourceMatchingService.DefaultRadiusKm,
-
+                RadiusKm = ResourceMatchingService.DefaultRadiusKm,
                 Candidates = new List<ResourceCandidate>(),
                 Assignments = rows
             });
@@ -227,113 +259,130 @@ public class MatchController : Controller
         return View(model);
     }
 
-    // =========================================================
-    // MATCHING FOR ET KONKRET BEHOV
-    // =========================================================
+    #endregion
 
+    #region Ressursmatching for et behov
+
+    /// <summary>
+    /// Viser et behov og finner tilgjengelige ressurser
+    /// som passer behovets kategori og geografiske plassering.
+    /// </summary>
+    /// <param name="id">Behovets identifikator.</param>
+    /// <param name="radiusKm">Søkeradius i kilometer.</param>
+    /// <returns>Detaljsiden for behovet med ressurskandidater.</returns>
     [HttpGet]
     public async Task<IActionResult> Need(
         int id,
-        double radiusKm =
-            ResourceMatchingService.DefaultRadiusKm)
+        double radiusKm = ResourceMatchingService.DefaultRadiusKm)
     {
         Need? need = await _context.Needs
             .AsNoTracking()
-            .FirstOrDefaultAsync(n => n.Id == id);
+            .FirstOrDefaultAsync(item => item.Id == id);
 
         if (need is null)
         {
             return NotFound();
         }
 
-        // Eksisterende matching beholdes.
+        radiusKm = NormalizeRadius(radiusKm);
 
+        Coordinate needPosition = need.Position;
+
+        // Løste behov skal ikke foreslå nye ressurser.
         List<ResourceCandidate> candidates =
             need.Status == NeedStatus.Resolved
                 ? new List<ResourceCandidate>()
                 : await _matching.FindNearbyResourcesAsync(
-                    need.Latitude,
-                    need.Longitude,
+                    needPosition.Latitude,
+                    needPosition.Longitude,
                     radiusKm,
                     new[] { need.ResourceType },
                     maxResults: 15,
-                    excludeRequestedForNeedId: need.Id
-                );
+                    excludeRequestedForNeedId: need.Id);
 
-        // Posisjonene til kandidatene, så de kan vises i kartet på siden.
-        // Holdes utenfor ResourceCandidate, som også sendes til Sami.
-        List<int> candidateIds =
-            candidates.Select(c => c.ResourceId).ToList();
+        // Kartposisjonene ligger utenfor ResourceCandidate
+        // fordi denne returtypen også brukes av Sami.
+        List<int> candidateIds = candidates
+            .Select(candidate => candidate.ResourceId)
+            .ToList();
 
         ViewData["CandidatePositions"] =
             await _context.Resources
                 .AsNoTracking()
-                .Where(r => candidateIds.Contains(r.Id))
+                .Where(resource => candidateIds.Contains(resource.Id))
                 .ToDictionaryAsync(
-                    r => r.Id,
-                    r => new[] { r.Latitude, r.Longitude });
+                    resource => resource.Id,
+                    resource => new[]
+                    {
+                        resource.Latitude,
+                        resource.Longitude
+                    });
 
-        // NYTT:
-        // Avbrutte forespørsler fjernes fra
-        // listen som vises på detaljsiden.
-        //
-        // Bekreftede, ventende og avslåtte
-        // forespørsler kan fortsatt vises.
-        //
-        // Ingen historikk slettes fra databasen.
-
+        // Kansellerte forespørsler skal ikke vises,
+        // men historikken beholdes i databasen.
         List<AssignmentRowViewModel> assignments =
             await _context.NeedAssignments
                 .AsNoTracking()
-                .Where(a =>
-                    a.NeedId == id &&
-                    a.Status != AssignmentStatus.Cancelled)
-                .OrderByDescending(a => a.CreatedAt)
-                .Select(a => new AssignmentRowViewModel
+                .Where(assignment =>
+                    assignment.NeedId == id
+                    && assignment.Status != AssignmentStatus.Cancelled)
+                .OrderByDescending(assignment => assignment.CreatedAt)
+                .Select(assignment => new AssignmentRowViewModel
                 {
-                    Id = a.Id,
+                    Id = assignment.Id,
 
                     ResourceName =
-                        a.Resource!.ResourceName,
+                        assignment.Resource!.ResourceName,
 
                     ResourceType =
-                        a.Resource.ResourceType,
+                        assignment.Resource.ResourceType,
 
-                    Status = a.Status,
-                    Message = a.Message,
+                    Status = assignment.Status,
+                    Message = assignment.Message,
 
                     SuggestedByAssistant =
-                        a.SuggestedByAssistant,
+                        assignment.SuggestedByAssistant,
 
                     ContactEmail =
-                        a.Resource.ContactEmail
-                        ?? a.Resource.OwnerEmail,
+                        assignment.Resource.ContactEmail
+                        ?? assignment.Resource.OwnerEmail,
 
                     ContactPhone =
-                        a.Resource.ContactPhoneNumber == null
+                        assignment.Resource.ContactPhoneNumber == null
                             ? null
-                            : a.Resource.ContactPhoneCountryCode
+                            : assignment.Resource.ContactPhoneCountryCode
                               + " "
-                              + a.Resource.ContactPhoneNumber,
+                              + assignment.Resource.ContactPhoneNumber,
 
-                    CreatedAt = a.CreatedAt,
-                    RespondedAt = a.RespondedAt
+                    CreatedAt = assignment.CreatedAt,
+                    RespondedAt = assignment.RespondedAt
                 })
                 .ToListAsync();
 
         return View(new MatchNeedViewModel
         {
             Need = need,
-            RadiusKm = Math.Clamp(radiusKm, 1, 500),
+            RadiusKm = radiusKm,
             Candidates = candidates,
             Assignments = assignments
         });
     }
 
-    // =========================================================
-    // SEND FORESPØRSEL
-    // =========================================================
+    #endregion
 
+    #region Sende forespørsel
+
+    /// <summary>
+    /// Sender en forespørsel om en ressurs til et behov
+    /// som den innloggede brukeren har lov til å administrere.
+    /// </summary>
+    /// <param name="needId">Behovets identifikator.</param>
+    /// <param name="resourceId">Ressursens identifikator.</param>
+    /// <param name="message">Valgfri melding til ressurseieren.</param>
+    /// <param name="suggestedByAssistant">
+    /// Angir om ressursen er foreslått av Sami.
+    /// </param>
+    /// <returns>JSON eller omdirigering til behovets detaljside.</returns>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SendRequest(
@@ -342,7 +391,28 @@ public class MatchController : Controller
         string? message,
         bool suggestedByAssistant = false)
     {
-        string userId = _userManager.GetUserId(User)!;
+        string? userId = _userManager.GetUserId(User);
+
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Challenge();
+        }
+
+        Need? need = await _context.Needs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(item => item.Id == needId);
+
+        if (need is null)
+        {
+            return NotFound();
+        }
+
+        // En offentlig aktør skal bare administrere
+        // sine egne behov. Admin kan administrere alle.
+        if (!await CanManageNeedAsync(need, userId))
+        {
+            return Forbid();
+        }
 
         if (message is { Length: > 500 })
         {
@@ -354,8 +424,7 @@ public class MatchController : Controller
             resourceId,
             userId,
             message,
-            suggestedByAssistant
-        );
+            suggestedByAssistant);
 
         if (result.Success)
         {
@@ -365,6 +434,7 @@ public class MatchController : Controller
                 + (suggestedByAssistant ? " (foreslått av Sami)" : ""));
         }
 
+        // Behold JSON-responsen som Sami og AJAX-kall bruker.
         if (WantsJson())
         {
             return Json(new
@@ -375,91 +445,235 @@ public class MatchController : Controller
         }
 
         TempData[
-            result.Success
-                ? "MatchMessage"
-                : "MatchError"
+            result.Success ? "MatchMessage" : "MatchError"
         ] = result.Message;
 
         return RedirectToAction(
             nameof(Need),
-            new { id = needId }
-        );
+            new { id = needId });
     }
 
-    // =========================================================
-    // AVBRYT FORESPØRSEL
-    // =========================================================
+    #endregion
 
+    #region Avbryte forespørsel
+
+    /// <summary>
+    /// Avbryter en forespørsel dersom brukeren eier
+    /// behovet eller har administratorrollen.
+    /// </summary>
+    /// <remarks>
+    /// Identifikatorene kontrolleres mot databasen før
+    /// AssignmentService.CancelAsync kalles.
+    ///
+    /// Kansellering endrer forespørselens status, men
+    /// sletter ikke forespørselen fra databasen.
+    /// </remarks>
+    /// <param name="assignmentId">Forespørselens identifikator.</param>
+    /// <param name="needId">Behovet forespørselen tilhører.</param>
+    /// <returns>Omdirigering til behovets detaljside.</returns>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Cancel(
         int assignmentId,
         int needId)
     {
+        string? userId = _userManager.GetUserId(User);
+
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Challenge();
+        }
+
+        // Kontroller at forespørselen faktisk tilhører
+        // behovet som ble sendt inn fra skjemaet.
+        NeedAssignment? assignment =
+            await _context.NeedAssignments
+                .AsNoTracking()
+                .Include(item => item.Need)
+                .FirstOrDefaultAsync(item =>
+                    item.Id == assignmentId
+                    && item.NeedId == needId);
+
+        if (assignment?.Need is null)
+        {
+            return NotFound();
+        }
+
+        // Stopp handlingen før CancelAsync dersom
+        // brukeren ikke har eierskap til behovet.
+        if (!await CanManageNeedAsync(assignment.Need, userId))
+        {
+            return Forbid();
+        }
+
         ServiceResult result =
-            await _assignments.CancelAsync(assignmentId);
+            await _assignments.CancelAsync(assignment.Id);
 
         if (result.Success)
         {
             await this.AuditAsync(
                 AuditActions.RequestCancelled,
-                $"Forespørsel #{assignmentId} på behov #{needId} ble avbrutt");
+                $"Forespørsel #{assignment.Id} " +
+                $"på behov #{assignment.NeedId} ble avbrutt");
         }
 
         TempData[
-            result.Success
-                ? "MatchMessage"
-                : "MatchError"
+            result.Success ? "MatchMessage" : "MatchError"
         ] = result.Message;
 
+        // Bruk verifisert NeedId fra databasen,
+        // ikke en ubekreftet ID fra skjemaet.
         return RedirectToAction(
             nameof(Need),
-            new { id = needId }
-        );
+            new { id = assignment.NeedId });
     }
 
-    // =========================================================
-    // MARKER BEHOV SOM LØST
-    // =========================================================
+    #endregion
 
+    #region Markere behov som løst
+
+    /// <summary>
+    /// Marker et behov som løst og frigjør ressursene
+    /// som ikke lenger er i bruk.
+    /// </summary>
+    /// <param name="needId">Behovets identifikator.</param>
+    /// <returns>Omdirigering til behovets detaljside.</returns>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Resolve(
-        int needId)
+    public async Task<IActionResult> Resolve(int needId)
     {
+        string? userId = _userManager.GetUserId(User);
+
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return Challenge();
+        }
+
+        Need? need = await _context.Needs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(item => item.Id == needId);
+
+        if (need is null)
+        {
+            return NotFound();
+        }
+
+        // Bare behovets eier eller administrator
+        // skal kunne markere behovet som løst.
+        if (!await CanManageNeedAsync(need, userId))
+        {
+            return Forbid();
+        }
+
         ServiceResult result =
-            await _assignments.ResolveNeedAsync(needId);
+            await _assignments.ResolveNeedAsync(need.Id);
 
         if (result.Success)
         {
             await this.AuditAsync(
                 AuditActions.NeedResolved,
-                $"Behov #{needId} markert som løst");
+                $"Behov #{need.Id} markert som løst");
         }
 
         TempData[
-            result.Success
-                ? "MatchMessage"
-                : "MatchError"
+            result.Success ? "MatchMessage" : "MatchError"
         ] = result.Message;
 
         return RedirectToAction(
             nameof(Need),
-            new { id = needId }
-        );
+            new { id = need.Id });
     }
 
-    // =========================================================
-    // JSON-SVAR TIL SAMI
-    // =========================================================
+    #endregion
 
+    #region Autorisasjon og hjelpemetoder
+
+    /// <summary>
+    /// Kontrollerer om den innloggede brukeren har rett
+    /// til å administrere et bestemt behov.
+    /// </summary>
+    /// <remarks>
+    /// Administratorer kan administrere alle behov.
+    ///
+    /// For andre brukere brukes OwnerUserId når den finnes.
+    /// OwnerEmail brukes bare for eldre behov uten
+    /// permanent Identity-eier.
+    /// </remarks>
+    /// <param name="need">Behovet som skal administreres.</param>
+    /// <param name="userId">Innlogget brukers Identity-ID.</param>
+    /// <returns>
+    /// True dersom brukeren er administrator eller eier behovet.
+    /// </returns>
+    private async Task<bool> CanManageNeedAsync(
+        Need need,
+        string userId)
+    {
+        if (User.IsInRole(IdentitySeeder.AdminRole))
+        {
+            return true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(need.OwnerUserId))
+        {
+            return string.Equals(
+                need.OwnerUserId,
+                userId,
+                StringComparison.Ordinal);
+        }
+
+        // Støtt eldre behov som bare har OwnerEmail.
+        // Ikke bruk e-post som reserve dersom
+        // OwnerUserId allerede er registrert.
+        if (string.IsNullOrWhiteSpace(need.OwnerEmail))
+        {
+            return false;
+        }
+
+        ApplicationUser? currentUser =
+            await _userManager.GetUserAsync(User);
+
+        if (currentUser is null
+            || string.IsNullOrWhiteSpace(currentUser.Email))
+        {
+            return false;
+        }
+
+        return string.Equals(
+            currentUser.Email,
+            need.OwnerEmail,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Begrens søkeradius til portalens tillatte intervall.
+    /// </summary>
+    /// <param name="radiusKm">Ønsket radius i kilometer.</param>
+    /// <returns>En gyldig radius.</returns>
+    private static double NormalizeRadius(double radiusKm)
+    {
+        if (!double.IsFinite(radiusKm))
+        {
+            return ResourceMatchingService.DefaultRadiusKm;
+        }
+
+        return Math.Clamp(
+            radiusKm,
+            MinRadiusKm,
+            MaxRadiusKm);
+    }
+
+    /// <summary>
+    /// Kontrollerer om forespørselen ønsker JSON-respons.
+    /// </summary>
+    /// <returns>True dersom Accept-headeren inneholder application/json.</returns>
     private bool WantsJson()
     {
         return HttpContext.Request.Headers.Accept
             .ToString()
             .Contains(
                 "application/json",
-                StringComparison.OrdinalIgnoreCase
-            );
+                StringComparison.OrdinalIgnoreCase);
     }
+
+    #endregion
 }

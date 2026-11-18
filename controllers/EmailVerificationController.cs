@@ -1,35 +1,69 @@
 
 using System.ComponentModel.DataAnnotations;
 using System.Text;
+using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
 
 namespace FirstWebAppInDocker.Controllers;
 
+/// <summary>
+/// Håndterer bekreftelse av e-postadresser, status for
+/// registrering og bekreftelse av endret e-postadresse.
+/// Bruker ASP.NET Core Identity til tokenvalidering.
+/// </summary>
 public class EmailVerificationController : Controller
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly ApplicationDbContext _dbContext;
 
-    // Må være samme nøkkel som i AccountController.
+    // Må samsvare med nøkkelen i AccountController.
     private const string PendingRegistrationUserIdKey =
         "PendingRegistrationUserId";
 
+    /// <summary>
+    /// Oppretter kontrolleren med Identity og databasekonteksten.
+    /// </summary>
+    /// <param name="userManager">
+    /// Administrerer brukere og Identity-tokener.
+    /// </param>
+    /// <param name="signInManager">
+    /// Administrerer autentiseringscookies.
+    /// </param>
+    /// <param name="dbContext">
+    /// Databasekontekst for atomiske brukeroppdateringer.
+    /// </param>
     public EmailVerificationController(
         UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager)
+        SignInManager<ApplicationUser> signInManager,
+        ApplicationDbContext dbContext)
     {
         _userManager = userManager;
         _signInManager = signInManager;
+        _dbContext = dbContext;
     }
 
-    // ========================================
-    // BEKREFT E-POST VED REGISTRERING
-    // ========================================
+    #region Bekreftelse av e-post ved registrering
 
+    /// <summary>
+    /// Validerer bekreftelseslenken og aktiverer e-postbasert
+    /// tofaktorautentisering når e-postadressen er bekreftet.
+    /// </summary>
+    /// <param name="userId">
+    /// Identifikatoren til brukeren som skal bekreftes.
+    /// </param>
+    /// <param name="code">
+    /// Base64Url-kodet bekreftelsestoken.
+    /// </param>
+    /// <returns>
+    /// Registreringsbekreftelse eller en feilmelding
+    /// dersom lenken er ugyldig.
+    /// </returns>
     [AllowAnonymous]
     [HttpGet]
     [ResponseCache(
@@ -39,8 +73,6 @@ public class EmailVerificationController : Controller
         string? userId,
         string? code)
     {
-        // Kontroller parameterne i lenken.
-
         if (string.IsNullOrWhiteSpace(userId) ||
             string.IsNullOrWhiteSpace(code) ||
             userId.Length > 256 ||
@@ -49,10 +81,6 @@ public class EmailVerificationController : Controller
             return BadRequest(
                 "Bekreftelseslenken er ugyldig.");
         }
-
-        // ========================================
-        // FINN BRUKER
-        // ========================================
 
         ApplicationUser? user =
             await _userManager.FindByIdAsync(userId);
@@ -63,40 +91,62 @@ public class EmailVerificationController : Controller
                 "Bekreftelseslenken er ugyldig.");
         }
 
-        // ========================================
-        // KONTROLLER EKSISTERENDE BEKREFTELSE
-        // ========================================
-        //
-        // Hvis brukeren allerede har bekreftet
-        // e-postadressen, trenger ikke Identity
-        // bekrefte samme adresse på nytt.
-        //
-        // Vi kontrollerer også at tofaktor
-        // faktisk er aktivert.
-
         bool alreadyConfirmed =
             await _userManager.IsEmailConfirmedAsync(user);
 
+        // Behandle gjentatte besøk på en bekreftelseslenke
+        // uten å starte en ny registreringsflyt.
         if (alreadyConfirmed)
         {
             bool twoFactorEnabled =
-                await _userManager.GetTwoFactorEnabledAsync(
-                    user);
+                await _userManager.GetTwoFactorEnabledAsync(user);
 
             if (!twoFactorEnabled)
             {
-                return Problem(
-                    "E-postadressen er allerede bekreftet, " +
-                    "men tofaktorautentisering er ikke " +
-                    "aktivert. Kontakt administrator.");
+                // Dersom en tidligere bekreftelse ble avbrutt,
+                // krev fortsatt et gyldig token før tofaktor
+                // kan aktiveres.
+                string? existingToken = DecodeToken(code);
+
+                if (existingToken is null)
+                {
+                    return BadRequest(
+                        "Bekreftelseslenken er ugyldig.");
+                }
+
+                bool validToken =
+                    await _userManager.VerifyUserTokenAsync(
+                        user,
+                        _userManager.Options.Tokens
+                            .EmailConfirmationTokenProvider,
+                        UserManager<ApplicationUser>
+                            .ConfirmEmailTokenPurpose,
+                        existingToken);
+
+                if (!validToken)
+                {
+                    return BadRequest(
+                        "Bekreftelseslenken er ugyldig " +
+                        "eller utløpt. Kontakt administrator " +
+                        "dersom kontoen ikke er aktivert.");
+                }
+
+                IdentityResult enableResult =
+                    await _userManager.SetTwoFactorEnabledAsync(
+                        user,
+                        true);
+
+                if (!enableResult.Succeeded)
+                {
+                    return Problem(
+                        "E-postadressen er bekreftet, " +
+                        "men tofaktorautentisering kunne " +
+                        "ikke aktiveres. Kontakt administrator.");
+                }
             }
 
             return ShowRegistrationCompleted(user.Id);
         }
-
-        // ========================================
-        // DEKOD BEKREFTELSESTOKEN
-        // ========================================
 
         string? token = DecodeToken(code);
 
@@ -106,9 +156,12 @@ public class EmailVerificationController : Controller
                 "Bekreftelseslenken er ugyldig.");
         }
 
-        // ========================================
-        // BEKREFT E-POST MED IDENTITY
-        // ========================================
+        // Identity og denne kontrolleren bruker samme
+        // scoped ApplicationDbContext. Transaksjonen
+        // hindrer at e-post bekreftes uten at tofaktor
+        // samtidig blir aktivert.
+        await using var transaction =
+            await _dbContext.Database.BeginTransactionAsync();
 
         IdentityResult confirmationResult =
             await _userManager.ConfirmEmailAsync(
@@ -122,19 +175,6 @@ public class EmailVerificationController : Controller
                 "Lenken kan være ugyldig eller utløpt.");
         }
 
-        // ========================================
-        // AKTIVER E-POSTBASERT TOFAKTOR
-        // ========================================
-        //
-        // Nye brukere skal bruke e-postkode
-        // ved hver nye innlogging.
-        //
-        // Vi aktiverer Identity sin
-        // tofaktorfunksjonalitet.
-        //
-        // Selve e-postkoden sendes senere
-        // av TwoFactorController.
-
         IdentityResult twoFactorResult =
             await _userManager.SetTwoFactorEnabledAsync(
                 user,
@@ -142,35 +182,33 @@ public class EmailVerificationController : Controller
 
         if (!twoFactorResult.Succeeded)
         {
+            // Transaksjonen rulles automatisk tilbake
+            // ved avslutning uten CommitAsync.
             return Problem(
-                "E-postadressen ble bekreftet, men " +
-                "tofaktorautentisering kunne ikke " +
-                "aktiveres. Kontakt administrator.");
+                "E-postadressen kunne ikke bekreftes " +
+                "fullstendig fordi tofaktorautentisering " +
+                "ikke kunne aktiveres. Prøv igjen senere.");
         }
 
-        // ========================================
-        // VIS REGISTRERING FULLFØRT
-        // ========================================
+        await transaction.CommitAsync();
 
+        // Selve sikkerhetskoden sendes senere
+        // fra TwoFactorController ved innlogging.
         return ShowRegistrationCompleted(user.Id);
     }
 
-    // ========================================
-    // NYTT: STATUS FOR REGISTRERING
-    // ========================================
-    //
-    // Popupen på RegistrationPending.cshtml
-    // spør denne handlingen hvert fjerde sekund.
-    //
-    // Vi returnerer bare en boolsk verdi.
-    //
-    // Ingen e-postadresse, token eller
-    // personopplysninger returneres.
-    //
-    // Brukeren trenger ikke være logget inn.
-    // Vi bruker den midlertidige sesjonen
-    // som ble opprettet ved registreringen.
+    #endregion
 
+    #region Registreringsstatus
+
+    /// <summary>
+    /// Returnerer registreringsstatus til JavaScript i
+    /// RegistrationPending.cshtml.
+    /// </summary>
+    /// <returns>
+    /// JSON med feltet confirmed, som er true når både
+    /// e-postbekreftelse og tofaktor er aktivert.
+    /// </returns>
     [AllowAnonymous]
     [HttpGet]
     [ResponseCache(
@@ -178,6 +216,8 @@ public class EmailVerificationController : Controller
         NoStore = true)]
     public async Task<IActionResult> Status()
     {
+        // Registreringssiden spør etter status fra
+        // samme sesjon som opprettet registreringen.
         string? pendingUserId =
             HttpContext.Session.GetString(
                 PendingRegistrationUserIdKey);
@@ -189,10 +229,6 @@ public class EmailVerificationController : Controller
                 confirmed = false
             });
         }
-
-        // ========================================
-        // FINN REGISTRERINGEN
-        // ========================================
 
         ApplicationUser? user =
             await _userManager.FindByIdAsync(
@@ -206,71 +242,40 @@ public class EmailVerificationController : Controller
             });
         }
 
-        // ========================================
-        // KONTROLLER BEKREFTELSE OG TOFAKTOR
-        // ========================================
-        //
-        // Begge må være fullført før popupen
-        // kan vise "Registrering fullført".
-
         bool emailConfirmed =
-            await _userManager.IsEmailConfirmedAsync(
-                user);
+            await _userManager.IsEmailConfirmedAsync(user);
 
         bool twoFactorEnabled =
-            await _userManager.GetTwoFactorEnabledAsync(
-                user);
+            await _userManager.GetTwoFactorEnabledAsync(user);
 
         bool registrationCompleted =
             emailConfirmed && twoFactorEnabled;
 
-        // ========================================
-        // RETURNER STATUS TIL JAVASCRIPT
-        // ========================================
-        //
-        // Eksempel før bekreftelse:
-        //
-        // { "confirmed": false }
-        //
-        // Eksempel etter bekreftelse:
-        //
-        // { "confirmed": true }
-        //
-        // RegistrationPending.cshtml bruker
-        // denne verdien til å bytte popup.
-
+        // Returner bare status. Ingen token,
+        // e-postadresse eller personopplysninger.
         return Json(new
         {
             confirmed = registrationCompleted
         });
     }
 
-    // ========================================
-    // NYTT: VIS FULLFØRT-POPUP
-    // ========================================
-    //
-    // Når bekreftelseslenken åpnes:
-    //
-    // Samme nettleser med aktiv registrering:
-    //  -> Gå til RegistrationPending.
-    //
-    // Annen nettleser eller annen sesjon:
-    //  -> Vis fullført-popupen direkte.
-    //
-    // Dermed fungerer bekreftelseslenken
-    // også når den åpnes fra en annen fane
-    // eller nettleser.
-
+    /// <summary>
+    /// Viser fullført registrering i samme nettlesersesjon
+    /// eller direkte når bekreftelsen åpnes i en annen sesjon.
+    /// </summary>
+    /// <param name="userId">
+    /// Brukeridentifikatoren til den bekreftede registreringen.
+    /// </param>
+    /// <returns>
+    /// Omdirigering til registreringssiden eller
+    /// fullførtvisningen direkte.
+    /// </returns>
     private IActionResult ShowRegistrationCompleted(
         string userId)
     {
         string? pendingUserId =
             HttpContext.Session.GetString(
                 PendingRegistrationUserIdKey);
-
-        // ========================================
-        // SAMME REGISTRERINGSSESJON
-        // ========================================
 
         if (string.Equals(
             pendingUserId,
@@ -282,35 +287,35 @@ public class EmailVerificationController : Controller
                 "Account");
         }
 
-        // ========================================
-        // ANNEN SESJON
-        // ========================================
-        //
-        // Vi kan ikke anta at denne nettleseren
-        // har samme Session som registreringen.
-        //
-        // Derfor viser vi Razor-siden direkte
-        // i fullført-tilstand.
-        //
-        // Dette oppretter ingen innlogging.
-
+        // Bekreftelseslenken kan åpnes i en annen
+        // nettleser uten tilgang til den opprinnelige
+        // registreringssesjonen.
         ViewData["RegistrationComplete"] = true;
 
         return View(
             "~/Views/Account/RegistrationPending.cshtml");
     }
 
-    // ========================================
-    // BEKREFT ENDRING AV E-POSTADRESSE
-    // ========================================
-    //
-    // Denne handlingen beholder vi fra
-    // den tidligere løsningen.
-    //
-    // Ved endring av e-post på profilsiden
-    // skal brukeren bekrefte den nye adressen
-    // før den gamle erstattes.
+    #endregion
 
+    #region Bekreftelse av endret e-postadresse
+
+    /// <summary>
+    /// Validerer lenken for e-postendring og oppdaterer
+    /// både e-postadresse og brukernavn gjennom Identity.
+    /// </summary>
+    /// <param name="userId">
+    /// Brukeren som har bedt om å endre e-postadresse.
+    /// </param>
+    /// <param name="newEmail">
+    /// Den nye e-postadressen som skal bekreftes.
+    /// </param>
+    /// <param name="code">
+    /// Base64Url-kodet token for e-postendringen.
+    /// </param>
+    /// <returns>
+    /// En bekreftelse eller feilmelding.
+    /// </returns>
     [AllowAnonymous]
     [HttpGet]
     [ResponseCache(
@@ -321,10 +326,6 @@ public class EmailVerificationController : Controller
         string? newEmail,
         string? code)
     {
-        // ========================================
-        // VALIDER PARAMETERE
-        // ========================================
-
         if (string.IsNullOrWhiteSpace(userId) ||
             string.IsNullOrWhiteSpace(newEmail) ||
             string.IsNullOrWhiteSpace(code) ||
@@ -336,6 +337,8 @@ public class EmailVerificationController : Controller
                 "Bekreftelseslenken er ugyldig.");
         }
 
+        newEmail = newEmail.Trim();
+
         var emailValidator = new EmailAddressAttribute();
 
         if (!emailValidator.IsValid(newEmail))
@@ -344,52 +347,14 @@ public class EmailVerificationController : Controller
                 "E-postadressen er ugyldig.");
         }
 
-        // ========================================
-        // FINN BRUKER
-        // ========================================
-
         ApplicationUser? user =
-            await _userManager.FindByIdAsync(
-                userId);
+            await _userManager.FindByIdAsync(userId);
 
         if (user is null)
         {
             return BadRequest(
                 "Bekreftelseslenken er ugyldig.");
         }
-
-        // ========================================
-        // KONTROLLER AT ADRESSEN ER LEDIG
-        // ========================================
-
-        ApplicationUser? existingUser =
-            await _userManager.FindByEmailAsync(
-                newEmail);
-
-        if (existingUser is not null &&
-            existingUser.Id != user.Id)
-        {
-            return BadRequest(
-                "Denne e-postadressen er allerede i bruk.");
-        }
-
-        // Vi bruker e-post som brukernavn,
-        // så dette må også kontrolleres.
-
-        ApplicationUser? existingUserName =
-            await _userManager.FindByNameAsync(
-                newEmail);
-
-        if (existingUserName is not null &&
-            existingUserName.Id != user.Id)
-        {
-            return BadRequest(
-                "Denne e-postadressen kan ikke brukes.");
-        }
-
-        // ========================================
-        // DEKOD TOKEN
-        // ========================================
 
         string? token = DecodeToken(code);
 
@@ -399,17 +364,14 @@ public class EmailVerificationController : Controller
                 "Bekreftelseslenken er ugyldig.");
         }
 
-        // ========================================
-        // BEKREFT NY E-POSTADRESSE
-        // ========================================
-        //
-        // ChangeEmailAsync verifiserer at
-        // tokenet gjelder denne brukeren
-        // og den nye e-postadressen.
-        //
-        // Først etter gyldig token blir
-        // adressen endret.
+        // E-post og Identity-brukernavn skal være like
+        // i denne applikasjonen. Begge oppdateringene
+        // må derfor lykkes før transaksjonen lagres.
+        await using var transaction =
+            await _dbContext.Database.BeginTransactionAsync();
 
+        // ChangeEmailAsync kontrollerer at tokenet er
+        // gyldig for brukeren og den nye adressen.
         IdentityResult changeResult =
             await _userManager.ChangeEmailAsync(
                 user,
@@ -420,15 +382,9 @@ public class EmailVerificationController : Controller
         {
             return BadRequest(
                 "E-postadressen kunne ikke endres. " +
-                "Lenken kan være ugyldig eller utløpt.");
+                "Lenken kan være ugyldig, utløpt, " +
+                "eller adressen kan være i bruk.");
         }
-
-        // ========================================
-        // OPPDATER BRUKERNAVN
-        // ========================================
-        //
-        // I dette prosjektet er Identity sitt
-        // brukernavn lik e-postadressen.
 
         IdentityResult userNameResult =
             await _userManager.SetUserNameAsync(
@@ -438,18 +394,13 @@ public class EmailVerificationController : Controller
         if (!userNameResult.Succeeded)
         {
             return Problem(
-                "Den nye e-postadressen ble bekreftet, " +
-                "men brukernavnet kunne ikke oppdateres. " +
-                "Kontakt administrator.");
+                "E-postadressen kunne ikke oppdateres " +
+                "fullstendig. Ingen endringer ble lagret. " +
+                "Kontakt administrator dersom feilen vedvarer.");
         }
 
-        // ========================================
-        // BEHOLD TOFAKTOR
-        // ========================================
-
         bool twoFactorEnabled =
-            await _userManager.GetTwoFactorEnabledAsync(
-                user);
+            await _userManager.GetTwoFactorEnabledAsync(user);
 
         if (!twoFactorEnabled)
         {
@@ -461,22 +412,30 @@ public class EmailVerificationController : Controller
             if (!enableResult.Succeeded)
             {
                 return Problem(
-                    "E-postadressen ble endret, men " +
-                    "tofaktor kunne ikke aktiveres. " +
-                    "Kontakt administrator.");
+                    "E-postendringen kunne ikke fullføres " +
+                    "fordi tofaktorautentisering ikke " +
+                    "kunne aktiveres. Ingen endringer ble lagret.");
             }
         }
 
-        // ========================================
-        // AVSLUTT INNLOGGING I DENNE NETTLESEREN
-        // ========================================
-        //
-        // Brukeren skal logge inn på nytt
-        // med den oppdaterte e-postadressen.
+        await transaction.CommitAsync();
 
-        await _signInManager.SignOutAsync();
+        // En bekreftelseslenke kan åpnes mens en annen
+        // bruker er logget inn i samme nettleser.
+        // Logg derfor bare ut dersom den innloggede
+        // brukeren faktisk eier kontoen som ble endret.
+        string? signedInUserId =
+            _userManager.GetUserId(User);
 
-        HttpContext.Session.Clear();
+        if (User.Identity?.IsAuthenticated == true &&
+            string.Equals(
+                signedInUserId,
+                user.Id,
+                StringComparison.Ordinal))
+        {
+            await _signInManager.SignOutAsync();
+            HttpContext.Session.Clear();
+        }
 
         return Content(
             "Den nye e-postadressen er bekreftet!\n\n" +
@@ -489,10 +448,20 @@ public class EmailVerificationController : Controller
             "text/plain; charset=utf-8");
     }
 
-    // ========================================
-    // HJELPEMETODE - DEKOD TOKEN
-    // ========================================
+    #endregion
 
+    #region Hjelpemetoder
+
+    /// <summary>
+    /// Dekoder et Base64Url-kodet Identity-token.
+    /// </summary>
+    /// <param name="encodedToken">
+    /// Tokenet fra bekreftelseslenken.
+    /// </param>
+    /// <returns>
+    /// Det dekodede tokenet, eller null dersom
+    /// verdien ikke er gyldig Base64Url.
+    /// </returns>
     private static string? DecodeToken(
         string encodedToken)
     {
@@ -502,8 +471,7 @@ public class EmailVerificationController : Controller
                 WebEncoders.Base64UrlDecode(
                     encodedToken);
 
-            return Encoding.UTF8.GetString(
-                tokenBytes);
+            return Encoding.UTF8.GetString(tokenBytes);
         }
         catch (FormatException)
         {
@@ -514,4 +482,6 @@ public class EmailVerificationController : Controller
             return null;
         }
     }
+
+    #endregion
 }
