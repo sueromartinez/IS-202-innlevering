@@ -1,60 +1,106 @@
+
+using System.ComponentModel.DataAnnotations;
+using System.Security.Cryptography;
 using FirstWebAppInDocker.Models;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Hosting;
 
 namespace FirstWebAppInDocker.Data;
 
 /// <summary>
-/// Oppretter roller og nødvendige testbrukere
-/// for Beredskapsportalen.
+/// Oppretter nødvendige Identity-roller og konfigurerte oppstartskontoer.
+/// Testbrukere opprettes kun i utviklingsmiljøet.
 /// </summary>
 public static class IdentitySeeder
 {
-    public const string AdminRole =
-        "Admin";
+    /// <summary>Rollen for portalens administratorer.</summary>
+    public const string AdminRole = "Admin";
 
-    public const string PublicActorRole =
-        "PublicActor";
+    /// <summary>Rollen for offentlige aktører.</summary>
+    public const string PublicActorRole = "PublicActor";
 
-    public const string ResourceProviderRole =
-        "ResourceProvider";
+    /// <summary>Rollen for ressursleverandører.</summary>
+    public const string ResourceProviderRole = "ResourceProvider";
 
+    /// <summary>
+    /// E-postadressen til den lokale demobrukeren.
+    /// Brukes også av AccountController ved demoinnlogging.
+    /// </summary>
+    public const string PublicActorEmail = "offentlig@beredskap.no";
 
-    // Midlertidig testbruker.
-    // Denne skal senere flyttes til konfigurasjon/.env
-    // eller erstattes av administrert brukeropprettelse.
-    public const string PublicActorEmail =
-        "offentlig@beredskap.no";
+    #region Oppstart
 
-    public const string PublicActorPassword =
-        "Test123!";
-
-
-    public static async Task SeedAsync(
-        IServiceProvider services
-    )
+    /// <summary>
+    /// Oppretter manglende roller, eventuell utviklingsbruker
+    /// og administrator når administrator er konfigurert.
+    /// </summary>
+    /// <param name="services">Applikasjonens tjenesteleverandør.</param>
+    /// <returns>En oppgave som fullføres når oppstartsdata er kontrollert.</returns>
+    public static async Task SeedAsync(IServiceProvider services)
     {
-        using IServiceScope scope =
-            services.CreateScope();
+        using IServiceScope scope = services.CreateScope();
 
+        RoleManager<IdentityRole> roleManager = scope.ServiceProvider
+            .GetRequiredService<RoleManager<IdentityRole>>();
 
-        RoleManager<IdentityRole> roleManager =
-            scope.ServiceProvider
-                .GetRequiredService<
-                    RoleManager<IdentityRole>
-                >();
+        UserManager<ApplicationUser> userManager = scope.ServiceProvider
+            .GetRequiredService<UserManager<ApplicationUser>>();
 
+        IConfiguration configuration = scope.ServiceProvider
+            .GetRequiredService<IConfiguration>();
 
-        UserManager<ApplicationUser> userManager =
-            scope.ServiceProvider
-                .GetRequiredService<
-                    UserManager<ApplicationUser>
-                >();
+        IWebHostEnvironment environment = scope.ServiceProvider
+            .GetRequiredService<IWebHostEnvironment>();
 
+        ILogger logger = scope.ServiceProvider
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger(nameof(IdentitySeeder));
 
-        // =========================
-        // ROLES
-        // =========================
+        await SeedRolesAsync(roleManager);
 
+        // Samme bryter som Program.cs bruker for utviklingsdata.
+        bool seedDemoData = environment.IsDevelopment()
+            && !string.Equals(
+                configuration["Seed:DemoData"],
+                "false",
+                StringComparison.OrdinalIgnoreCase);
+
+        if (seedDemoData)
+        {
+            await SeedPublicActorAsync(userManager, configuration, logger);
+        }
+        else if (!environment.IsDevelopment())
+        {
+            // Tidligere oppstartsdata fjernes ikke automatisk.
+            ApplicationUser? oldDemoUser =
+                await userManager.FindByEmailAsync(PublicActorEmail);
+
+            if (oldDemoUser is not null)
+            {
+                logger.LogWarning(
+                    "Utviklingsbrukeren {UserId} finnes fortsatt. " +
+                    "Kontroller at den er deaktivert eller fjernet før produksjonssetting.",
+                    oldDemoUser.Id);
+            }
+        }
+
+        await SeedAdminAsync(userManager, configuration, environment, logger);
+    }
+
+    #endregion
+
+    #region Roller
+
+    /// <summary>
+    /// Oppretter de tre faste rollene dersom de mangler.
+    /// Eksisterende roller endres ikke.
+    /// </summary>
+    /// <param name="roleManager">Identity sin rolleadministrator.</param>
+    /// <returns>En oppgave som fullføres når rollene er kontrollert.</returns>
+    private static async Task SeedRolesAsync(
+        RoleManager<IdentityRole> roleManager)
+    {
         string[] roles =
         {
             AdminRole,
@@ -62,237 +108,244 @@ public static class IdentitySeeder
             ResourceProviderRole
         };
 
-
         foreach (string roleName in roles)
         {
-            bool roleExists =
-                await roleManager
-                    .RoleExistsAsync(
-                        roleName
-                    );
-
-
-            if (roleExists)
+            if (await roleManager.RoleExistsAsync(roleName))
             {
                 continue;
             }
 
-
-            IdentityResult result =
-                await roleManager.CreateAsync(
-                    new IdentityRole(
-                        roleName
-                    )
-                );
-
+            IdentityResult result = await roleManager.CreateAsync(
+                new IdentityRole(roleName));
 
             if (!result.Succeeded)
             {
-                string errors =
-                    string.Join(
-                        ", ",
-                        result.Errors.Select(
-                            error =>
-                                error.Description
-                        )
-                    );
-
-
                 throw new InvalidOperationException(
-                    $"Kunne ikke opprette rollen '{roleName}': {errors}"
-                );
+                    $"Kunne ikke opprette rollen '{roleName}': " +
+                    FormatIdentityErrors(result));
             }
         }
-
-
-        // =========================
-        // PUBLIC ACTOR TEST USER
-        // =========================
-
-        ApplicationUser? publicActor =
-            await userManager.FindByEmailAsync(
-                PublicActorEmail
-            );
-
-
-        if (publicActor is null)
-        {
-            publicActor =
-                new ApplicationUser
-                {
-                    UserName =
-                        PublicActorEmail,
-
-                    Email =
-                        PublicActorEmail,
-
-                    Name =
-                        "Beredskapsbruker",
-
-                    EmailConfirmed =
-                        true,
-
-                    CreatedAt =
-                        DateTime.UtcNow
-                };
-
-
-            IdentityResult createResult =
-                await userManager.CreateAsync(
-                    publicActor,
-                    PublicActorPassword
-                );
-
-
-            if (!createResult.Succeeded)
-            {
-                string errors =
-                    string.Join(
-                        ", ",
-                        createResult.Errors.Select(
-                            error =>
-                                error.Description
-                        )
-                    );
-
-
-                throw new InvalidOperationException(
-                    $"Kunne ikke opprette offentlig testbruker: {errors}"
-                );
-            }
-        }
-
-
-        bool hasPublicActorRole =
-            await userManager.IsInRoleAsync(
-                publicActor,
-                PublicActorRole
-            );
-
-
-        if (!hasPublicActorRole)
-        {
-            IdentityResult roleResult =
-                await userManager.AddToRoleAsync(
-                    publicActor,
-                    PublicActorRole
-                );
-
-
-            if (!roleResult.Succeeded)
-            {
-                string errors =
-                    string.Join(
-                        ", ",
-                        roleResult.Errors.Select(
-                            error =>
-                                error.Description
-                        )
-                    );
-
-
-                throw new InvalidOperationException(
-                    $"Kunne ikke gi testbrukeren rollen '{PublicActorRole}': {errors}"
-                );
-            }
-        }
-
-
-        // =========================
-        // ADMIN USER
-        // =========================
-
-        IConfiguration configuration =
-            scope.ServiceProvider
-                .GetRequiredService<IConfiguration>();
-
-        await SeedAdminAsync(
-            userManager,
-            configuration
-        );
     }
 
+    #endregion
+
+    #region Utviklingsbruker
 
     /// <summary>
-    /// Oppretter en admin-bruker hvis den ikke finnes.
-    ///
-    /// E-post og passord hentes fra konfigurasjon
-    /// (Seed:AdminEmail / Seed:AdminPassword, eller
-    /// miljøvariablene Seed__AdminEmail / Seed__AdminPassword
-    /// i docker-compose). Standardverdiene under er kun
-    /// for lokal utvikling og demo.
+    /// Oppretter en offentlig demobruker for lokal utvikling.
+    /// Demoinnloggingen i AccountController trenger ikke passordet.
     /// </summary>
+    /// <param name="userManager">Identity sin brukeradministrator.</param>
+    /// <param name="configuration">Applikasjonens konfigurasjon.</param>
+    /// <param name="logger">Logger for oppstartshendelser.</param>
+    /// <returns>En oppgave som fullføres når demobrukeren er kontrollert.</returns>
+    private static async Task SeedPublicActorAsync(
+        UserManager<ApplicationUser> userManager,
+        IConfiguration configuration,
+        ILogger logger)
+    {
+        ApplicationUser? publicActor =
+            await userManager.FindByEmailAsync(PublicActorEmail);
+
+        if (publicActor is not null)
+        {
+            // Ikke gi en eksisterende ordinær konto en høyere rolle
+            // bare fordi e-postadressen stemmer med demokontoen.
+            if (!await userManager.IsInRoleAsync(
+                publicActor, PublicActorRole))
+            {
+                throw new InvalidOperationException(
+                    "E-postadressen for offentlig demobruker er allerede i bruk " +
+                    "av en konto uten PublicActor-rollen.");
+            }
+
+            return;
+        }
+
+        // Ingen kjent standardpassord lagres i kildekoden.
+        // Ved manglende konfigurasjon får demobrukeren et tilfeldig passord.
+        string? configuredPassword = configuration["Seed:PublicActorPassword"];
+
+        string password = !string.IsNullOrWhiteSpace(configuredPassword)
+            ? configuredPassword
+            : Convert.ToBase64String(RandomNumberGenerator.GetBytes(48)) + "Aa1!";
+
+        var user = new ApplicationUser
+        {
+            UserName = PublicActorEmail,
+            Email = PublicActorEmail,
+            Name = "Beredskapsbruker",
+            EmailConfirmed = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        IdentityResult createResult =
+            await userManager.CreateAsync(user, password);
+
+        if (!createResult.Succeeded)
+        {
+            throw new InvalidOperationException(
+                "Kunne ikke opprette offentlig demobruker: " +
+                FormatIdentityErrors(createResult));
+        }
+
+        IdentityResult roleResult = await userManager.AddToRoleAsync(
+            user, PublicActorRole);
+
+        if (!roleResult.Succeeded)
+        {
+            await userManager.DeleteAsync(user);
+
+            throw new InvalidOperationException(
+                "Kunne ikke tildele PublicActor-rollen: " +
+                FormatIdentityErrors(roleResult));
+        }
+
+        logger.LogInformation(
+            "Offentlig demobruker {UserId} er opprettet for lokal utvikling.",
+            user.Id);
+    }
+
+    #endregion
+
+    #region Administrator
+
+    /// <summary>
+    /// Oppretter en administrator fra konfigurasjon uten standardpassord.
+    /// Eksisterende administratorers passord endres ikke ved oppstart.
+    /// </summary>
+    /// <param name="userManager">Identity sin brukeradministrator.</param>
+    /// <param name="configuration">Applikasjonens konfigurasjon.</param>
+    /// <param name="environment">Gjeldende kjøremiljø.</param>
+    /// <param name="logger">Logger for oppstartshendelser.</param>
+    /// <returns>En oppgave som fullføres når administrator er kontrollert.</returns>
     private static async Task SeedAdminAsync(
         UserManager<ApplicationUser> userManager,
-        IConfiguration configuration
-    )
+        IConfiguration configuration,
+        IWebHostEnvironment environment,
+        ILogger logger)
     {
-        string adminEmail =
-            configuration["Seed:AdminEmail"]
-            ?? "admin@beredskap.no";
+        string? configuredEmail = configuration["Seed:AdminEmail"];
+        string? configuredPassword = configuration["Seed:AdminPassword"];
 
-        string adminPassword =
-            configuration["Seed:AdminPassword"]
-            ?? "Admin123!";
+        if (string.IsNullOrWhiteSpace(configuredEmail)
+            && string.IsNullOrWhiteSpace(configuredPassword))
+        {
+            logger.LogInformation(
+                "Ingen administrator er konfigurert for automatisk opprettelse.");
+            return;
+        }
 
+        if (string.IsNullOrWhiteSpace(configuredEmail)
+            || string.IsNullOrWhiteSpace(configuredPassword))
+        {
+            throw new InvalidOperationException(
+                "Både Seed:AdminEmail og Seed:AdminPassword må konfigureres.");
+        }
+
+        string adminEmail = configuredEmail.Trim();
+        string adminPassword = configuredPassword;
+
+        if (!new EmailAddressAttribute().IsValid(adminEmail))
+        {
+            throw new InvalidOperationException(
+                "Seed:AdminEmail inneholder ikke en gyldig e-postadresse.");
+        }
+
+        // Et kort oppstartspassord skal aldri godtas i produksjonsmiljø.
+        // I utvikling beholdes eksisterende Docker-oppsett inntil det ryddes.
+        if (!environment.IsDevelopment() && adminPassword.Length < 16)
+        {
+            throw new InvalidOperationException(
+                "Seed:AdminPassword må være minst 16 tegn i produksjon.");
+        }
 
         ApplicationUser? admin =
-            await userManager.FindByEmailAsync(
-                adminEmail
-            );
+            await userManager.FindByEmailAsync(adminEmail);
 
-
-        if (admin is null)
+        if (admin is not null)
         {
-            admin =
-                new ApplicationUser
-                {
-                    UserName = adminEmail,
-                    Email = adminEmail,
-                    Name = "Administrator",
-                    EmailConfirmed = true,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-
-            IdentityResult createResult =
-                await userManager.CreateAsync(
-                    admin,
-                    adminPassword
-                );
-
-
-            if (!createResult.Succeeded)
-            {
-                string errors =
-                    string.Join(
-                        ", ",
-                        createResult.Errors.Select(
-                            error => error.Description
-                        )
-                    );
-
-                throw new InvalidOperationException(
-                    $"Kunne ikke opprette admin-bruker: {errors}"
-                );
-            }
-        }
-
-
-        if (!await userManager.IsInRoleAsync(admin, AdminRole))
-        {
-            IdentityResult roleResult =
-                await userManager.AddToRoleAsync(
-                    admin,
-                    AdminRole
-                );
-
-            if (!roleResult.Succeeded)
+            // Unngå automatisk rolleopprykk av en konto som allerede finnes.
+            if (!await userManager.IsInRoleAsync(admin, AdminRole))
             {
                 throw new InvalidOperationException(
-                    "Kunne ikke gi admin-brukeren rollen Admin."
-                );
+                    "Den konfigurerte administratoradressen tilhører en " +
+                    "eksisterende konto uten Admin-rollen.");
             }
+
+            if (!await userManager.GetTwoFactorEnabledAsync(admin))
+            {
+                logger.LogWarning(
+                    "Administrator {UserId} mangler tofaktorautentisering. " +
+                    "Dette må aktiveres før produksjonssetting.",
+                    admin.Id);
+            }
+
+            return;
         }
+
+        var newAdmin = new ApplicationUser
+        {
+            UserName = adminEmail,
+            Email = adminEmail,
+            Name = "Administrator",
+            EmailConfirmed = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        IdentityResult createResult =
+            await userManager.CreateAsync(newAdmin, adminPassword);
+
+        if (!createResult.Succeeded)
+        {
+            throw new InvalidOperationException(
+                "Kunne ikke opprette administrator: " +
+                FormatIdentityErrors(createResult));
+        }
+
+        IdentityResult roleResult =
+            await userManager.AddToRoleAsync(newAdmin, AdminRole);
+
+        if (!roleResult.Succeeded)
+        {
+            await userManager.DeleteAsync(newAdmin);
+
+            throw new InvalidOperationException(
+                "Kunne ikke tildele Admin-rollen: " +
+                FormatIdentityErrors(roleResult));
+        }
+
+        // Nye administratorer må bruke portalens e-postbaserte tofaktor.
+        IdentityResult twoFactorResult =
+            await userManager.SetTwoFactorEnabledAsync(newAdmin, true);
+
+        if (!twoFactorResult.Succeeded)
+        {
+            await userManager.DeleteAsync(newAdmin);
+
+            throw new InvalidOperationException(
+                "Kunne ikke aktivere tofaktor for administrator: " +
+                FormatIdentityErrors(twoFactorResult));
+        }
+
+        logger.LogInformation(
+            "Administrator {UserId} er opprettet med tofaktorautentisering.",
+            newAdmin.Id);
     }
+
+    #endregion
+
+    #region Hjelpemetoder
+
+    /// <summary>
+    /// Samler Identity-feilkoder uten å inkludere passord eller tokener.
+    /// </summary>
+    /// <param name="result">Resultatet fra en Identity-operasjon.</param>
+    /// <returns>En kommaseparert liste over feilkoder.</returns>
+    private static string FormatIdentityErrors(IdentityResult result)
+    {
+        return string.Join(", ", result.Errors.Select(error => error.Code));
+    }
+
+    #endregion
 }

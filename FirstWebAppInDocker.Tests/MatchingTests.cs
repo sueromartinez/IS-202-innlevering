@@ -1,3 +1,4 @@
+
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
 using FirstWebAppInDocker.Services.Matching;
@@ -10,21 +11,40 @@ using Xunit;
 namespace FirstWebAppInDocker.Tests;
 
 /// <summary>
-/// Tester avstandsberegning, matching og statusflyten for forespørsler.
+/// Tester geografiske avstandsberegninger, matching mellom
+/// behov og ressurser, samt statusflyten for forespørsler.
 /// </summary>
+/// <remarks>
+/// Testene bruker EF Core InMemory for å kontrollere
+/// applikasjonslogikken uten en ekstern database.
+///
+/// Matchingservicen bruker det samme repository-interfacet
+/// som i produksjonskoden.
+/// </remarks>
 public class MatchingTests
 {
-    // Koordinater brukt i testene.
-    private const double GrimstadLat = 58.3405, GrimstadLon = 8.5934;
-    private const double ArendalLat = 58.4615, ArendalLon = 8.7725;
-    private const double KristiansandLat = 58.1467, KristiansandLon = 7.9956;
-    private const double OsloLat = 59.9139, OsloLon = 10.7522;
+    #region Testkoordinater
 
+    private const double GrimstadLat = 58.3405;
+    private const double GrimstadLon = 8.5934;
 
-    // ========================================
-    // HJELPERE
-    // ========================================
+    private const double ArendalLat = 58.4615;
+    private const double ArendalLon = 8.7725;
 
+    private const double KristiansandLat = 58.1467;
+    private const double KristiansandLon = 7.9956;
+
+    private const double OsloLat = 59.9139;
+    private const double OsloLon = 10.7522;
+
+    #endregion
+
+    #region Testoppsett
+
+    /// <summary>
+    /// Oppretter en isolert InMemory-database for hver test.
+    /// </summary>
+    /// <returns>En ny ApplicationDbContext.</returns>
     private static ApplicationDbContext CreateDatabase()
     {
         var options =
@@ -35,7 +55,31 @@ public class MatchingTests
         return new ApplicationDbContext(options);
     }
 
+    /// <summary>
+    /// Oppretter matchingservicen med et EF Core-repository.
+    /// </summary>
+    /// <param name="database">Testens databasekontekst.</param>
+    /// <returns>En konfigurert matchingservice.</returns>
+    private static ResourceMatchingService CreateMatchingService(
+        ApplicationDbContext database)
+    {
+        var repository =
+            new EfResourceMatchingRepository(database);
 
+        return new ResourceMatchingService(repository);
+    }
+
+    /// <summary>
+    /// Oppretter og lagrer en testressurs.
+    /// </summary>
+    /// <param name="database">Testens database.</param>
+    /// <param name="type">Ressurstype.</param>
+    /// <param name="latitude">Breddegrad.</param>
+    /// <param name="longitude">Lengdegrad.</param>
+    /// <param name="ownerUserId">Identifikator til eieren.</param>
+    /// <param name="status">Ressursens tilgjengelighetsstatus.</param>
+    /// <param name="name">Ressursens navn.</param>
+    /// <returns>Den lagrede ressursen.</returns>
     private static Resource AddResource(
         ApplicationDbContext database,
         ResourceType type,
@@ -51,8 +95,7 @@ public class MatchingTests
             ResourceName = name,
             Description = "Beskrivelse",
             Quantity = 1,
-            Latitude = latitude,
-            Longitude = longitude,
+            Position = new Coordinate(latitude, longitude),
             OwnerUserId = ownerUserId,
             OwnerEmail = ownerUserId + "@example.com",
             Status = status
@@ -64,22 +107,31 @@ public class MatchingTests
         return resource;
     }
 
-
+    /// <summary>
+    /// Oppretter og lagrer et testbehov.
+    /// </summary>
+    /// <param name="database">Testens database.</param>
+    /// <param name="type">Etterspurt ressurstype.</param>
+    /// <param name="latitude">Breddegrad.</param>
+    /// <param name="longitude">Lengdegrad.</param>
+    /// <param name="status">Behovets status.</param>
+    /// <param name="priority">Behovets prioritet.</param>
+    /// <returns>Det lagrede behovet.</returns>
     private static Need AddNeed(
         ApplicationDbContext database,
         ResourceType type,
         double latitude,
         double longitude,
-        NeedStatus status = NeedStatus.New)
+        NeedStatus status = NeedStatus.New,
+        NeedPriority priority = NeedPriority.Acute)
     {
         var need = new Need
         {
             ResourceType = type,
-            Priority = NeedPriority.Acute,
+            Priority = priority,
             Quantity = 1,
             Description = "Testbehov",
-            Latitude = latitude,
-            Longitude = longitude,
+            Position = new Coordinate(latitude, longitude),
             OwnerEmail = "actor@example.com",
             Status = status
         };
@@ -90,31 +142,56 @@ public class MatchingTests
         return need;
     }
 
-
+    /// <summary>
+    /// Testimplementasjon som registrerer e-postmottakere
+    /// uten å sende faktiske e-poster.
+    /// </summary>
     private sealed class FakeEmailSender : IPortalEmailSender
     {
+        /// <summary>
+        /// E-postadressene som har mottatt testmeldinger.
+        /// </summary>
         public List<string> SentTo { get; } = new();
 
-        public Task SendAsync(string toEmail, string subject, string body)
+        /// <inheritdoc />
+        public Task SendAsync(
+            string toEmail,
+            string subject,
+            string body)
         {
             SentTo.Add(toEmail);
             return Task.CompletedTask;
         }
     }
 
-
+    /// <summary>
+    /// Testimplementasjon som registrerer SMS-mottakere
+    /// uten å sende faktiske tekstmeldinger.
+    /// </summary>
     private sealed class FakeSmsSender : ISmsSender
     {
+        /// <summary>
+        /// Telefonnummer som har mottatt testmeldinger.
+        /// </summary>
         public List<string> SentTo { get; } = new();
 
-        public Task SendAsync(string phoneNumber, string message)
+        /// <inheritdoc />
+        public Task SendAsync(
+            string phoneNumber,
+            string message)
         {
             SentTo.Add(phoneNumber);
             return Task.CompletedTask;
         }
     }
 
-
+    /// <summary>
+    /// Oppretter AssignmentService med testimplementasjoner
+    /// for e-post og SMS.
+    /// </summary>
+    /// <param name="database">Testens database.</param>
+    /// <param name="email">Valgfri testimplementasjon for e-post.</param>
+    /// <returns>En konfigurert AssignmentService.</returns>
     private static AssignmentService CreateAssignmentService(
         ApplicationDbContext database,
         FakeEmailSender? email = null)
@@ -129,92 +206,335 @@ public class MatchingTests
         return new AssignmentService(database, notifications);
     }
 
+    #endregion
 
-    // ========================================
-    // AVSTAND
-    // ========================================
+    #region Koordinater og avstandsberegning
 
+    /// <summary>
+    /// Kontrollerer at Coordinate oppdaterer de eksisterende
+    /// koordinatfeltene i både Resource og Need.
+    /// </summary>
+    [Fact]
+    public void Coordinate_PositionUpdatesLatitudeAndLongitude()
+    {
+        var resource = new Resource
+        {
+            Position = new Coordinate(
+                GrimstadLat,
+                GrimstadLon)
+        };
+
+        var need = new Need
+        {
+            Position = new Coordinate(
+                ArendalLat,
+                ArendalLon)
+        };
+
+        Assert.Equal(GrimstadLat, resource.Latitude);
+        Assert.Equal(GrimstadLon, resource.Longitude);
+
+        Assert.Equal(ArendalLat, need.Latitude);
+        Assert.Equal(ArendalLon, need.Longitude);
+
+        Assert.Equal(
+            new Coordinate(GrimstadLat, GrimstadLon),
+            resource.Position);
+
+        Assert.Equal(
+            new Coordinate(ArendalLat, ArendalLon),
+            need.Position);
+    }
+
+    /// <summary>
+    /// Kontrollerer at avstanden fra et punkt til seg selv er null.
+    /// </summary>
     [Fact]
     public void Haversine_SamePoint_IsZero()
     {
-        double distance = GeoDistance.HaversineKm(GrimstadLat, GrimstadLon, GrimstadLat, GrimstadLon);
+        double distance = GeoDistance.HaversineKm(
+            GrimstadLat,
+            GrimstadLon,
+            GrimstadLat,
+            GrimstadLon);
 
         Assert.Equal(0, distance, precision: 6);
     }
 
-
+    /// <summary>
+    /// Kontrollerer en kjent omtrentlig luftlinjeavstand
+    /// mellom Grimstad og Arendal.
+    /// </summary>
     [Fact]
     public void Haversine_GrimstadToArendal_IsAbout17Km()
     {
-        double distance = GeoDistance.HaversineKm(GrimstadLat, GrimstadLon, ArendalLat, ArendalLon);
+        double distance = GeoDistance.HaversineKm(
+            GrimstadLat,
+            GrimstadLon,
+            ArendalLat,
+            ArendalLon);
 
-        // Luftlinje Grimstad–Arendal er ca. 17 km.
         Assert.InRange(distance, 15, 19);
     }
 
-
+    /// <summary>
+    /// Kontrollerer at avstanden er lik i begge retninger.
+    /// </summary>
     [Fact]
     public void Haversine_IsSymmetric()
     {
-        double there = GeoDistance.HaversineKm(GrimstadLat, GrimstadLon, OsloLat, OsloLon);
-        double back = GeoDistance.HaversineKm(OsloLat, OsloLon, GrimstadLat, GrimstadLon);
+        double there = GeoDistance.HaversineKm(
+            GrimstadLat,
+            GrimstadLon,
+            OsloLat,
+            OsloLon);
+
+        double back = GeoDistance.HaversineKm(
+            OsloLat,
+            OsloLon,
+            GrimstadLat,
+            GrimstadLon);
 
         Assert.Equal(there, back, precision: 6);
     }
 
+    #endregion
 
-    // ========================================
-    // MATCHING
-    // ========================================
+    #region Matching av ressurser
 
+    /// <summary>
+    /// Kontrollerer at ressurser returneres sortert
+    /// fra kortest til lengst geografisk avstand.
+    /// </summary>
     [Fact]
     public async Task FindNearbyResources_ReturnsNearestFirst()
     {
         using var database = CreateDatabase();
 
-        AddResource(database, ResourceType.Boat, ArendalLat, ArendalLon, name: "Arendal");
-        AddResource(database, ResourceType.Boat, GrimstadLat + 0.01, GrimstadLon, name: "Grimstad");
-        AddResource(database, ResourceType.Boat, KristiansandLat, KristiansandLon, name: "Kristiansand");
+        AddResource(
+            database, ResourceType.Boat,
+            ArendalLat, ArendalLon,
+            name: "Arendal");
 
-        var service = new ResourceMatchingService(database);
+        AddResource(
+            database, ResourceType.Boat,
+            GrimstadLat + 0.01, GrimstadLon,
+            name: "Grimstad");
+
+        AddResource(
+            database, ResourceType.Boat,
+            KristiansandLat, KristiansandLon,
+            name: "Kristiansand");
+
+        var service = CreateMatchingService(database);
 
         var result = await service.FindNearbyResourcesAsync(
-            GrimstadLat, GrimstadLon, radiusKm: 100, types: new[] { ResourceType.Boat });
+            GrimstadLat,
+            GrimstadLon,
+            radiusKm: 100,
+            types: new[] { ResourceType.Boat });
 
-        Assert.Equal(new[] { "Grimstad", "Arendal", "Kristiansand" }, result.Select(r => r.ResourceName));
+        Assert.Equal(
+            new[] { "Grimstad", "Arendal", "Kristiansand" },
+            result.Select(resource => resource.ResourceName));
+
         Assert.True(result[0].DistanceKm < result[1].DistanceKm);
     }
 
-
+    /// <summary>
+    /// Kontrollerer at feil ressurstype, utilgjengelige
+    /// ressurser og ressurser utenfor radius ekskluderes.
+    /// </summary>
     [Fact]
     public async Task FindNearbyResources_IgnoresOtherTypesUnavailableAndFarAway()
     {
         using var database = CreateDatabase();
 
-        AddResource(database, ResourceType.Boat, GrimstadLat, GrimstadLon, name: "Riktig");
-        AddResource(database, ResourceType.Generator, GrimstadLat, GrimstadLon, name: "Feil type");
-        AddResource(database, ResourceType.Boat, GrimstadLat, GrimstadLon, status: ResourceStatus.Unavailable, name: "Utilgjengelig");
-        AddResource(database, ResourceType.Boat, GrimstadLat, GrimstadLon, status: ResourceStatus.Busy, name: "Opptatt");
-        AddResource(database, ResourceType.Boat, OsloLat, OsloLon, name: "For langt unna");
+        AddResource(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            name: "Riktig");
 
-        var service = new ResourceMatchingService(database);
+        AddResource(
+            database, ResourceType.Generator,
+            GrimstadLat, GrimstadLon,
+            name: "Feil type");
+
+        AddResource(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            status: ResourceStatus.Unavailable,
+            name: "Utilgjengelig");
+
+        AddResource(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            status: ResourceStatus.Busy,
+            name: "Opptatt");
+
+        AddResource(
+            database, ResourceType.Boat,
+            OsloLat, OsloLon,
+            name: "For langt unna");
+
+        var service = CreateMatchingService(database);
 
         var result = await service.FindNearbyResourcesAsync(
-            GrimstadLat, GrimstadLon, radiusKm: 50, types: new[] { ResourceType.Boat });
+            GrimstadLat,
+            GrimstadLon,
+            radiusKm: 50,
+            types: new[] { ResourceType.Boat });
 
         Assert.Single(result);
         Assert.Equal("Riktig", result[0].ResourceName);
     }
 
+    /// <summary>
+    /// Kontrollerer at alle tilgjengelige ressurstyper
+    /// inkluderes når det ikke er valgt et typefilter.
+    /// </summary>
+    [Fact]
+    public async Task FindNearbyResources_WithoutTypeFilter_ReturnsAllTypes()
+    {
+        using var database = CreateDatabase();
 
+        AddResource(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon);
+
+        AddResource(
+            database, ResourceType.Generator,
+            GrimstadLat, GrimstadLon);
+
+        AddResource(
+            database, ResourceType.Drone,
+            GrimstadLat, GrimstadLon);
+
+        var service = CreateMatchingService(database);
+
+        var result = await service.FindNearbyResourcesAsync(
+            GrimstadLat,
+            GrimstadLon,
+            types: null);
+
+        Assert.Equal(3, result.Count);
+
+        Assert.Contains(
+            result,
+            resource => resource.ResourceType == ResourceType.Boat);
+
+        Assert.Contains(
+            result,
+            resource => resource.ResourceType == ResourceType.Generator);
+
+        Assert.Contains(
+            result,
+            resource => resource.ResourceType == ResourceType.Drone);
+    }
+
+    /// <summary>
+    /// Kontrollerer at maksgrensen for antall resultater
+    /// respekteres og at lik avstand gir stabil sortering.
+    /// </summary>
+    [Fact]
+    public async Task FindNearbyResources_RespectsMaxResults()
+    {
+        using var database = CreateDatabase();
+
+        Resource first = AddResource(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            name: "Første");
+
+        Resource second = AddResource(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            name: "Andre");
+
+        AddResource(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            name: "Tredje");
+
+        var service = CreateMatchingService(database);
+
+        var result = await service.FindNearbyResourcesAsync(
+            GrimstadLat,
+            GrimstadLon,
+            maxResults: 2);
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal(first.Id, result[0].ResourceId);
+        Assert.Equal(second.Id, result[1].ResourceId);
+    }
+
+    /// <summary>
+    /// Kontrollerer at filtreringen bruker nøyaktig avstand
+    /// og ikke den avrundede visningsavstanden.
+    /// </summary>
+    [Fact]
+    public async Task FindNearbyResources_ExcludesPointJustOutsideRadius()
+    {
+        using var database = CreateDatabase();
+
+        // Posisjonen ligger diagonalt fra Grimstad.
+        // Avstanden er litt over 50 km, men avrundes
+        // til omtrent 50,0 km med én desimal.
+        double outsideLatitude = GrimstadLat + 0.30;
+        double outsideLongitude = GrimstadLon + 0.6415;
+
+        double actualDistance = GeoDistance.HaversineKm(
+            GrimstadLat,
+            GrimstadLon,
+            outsideLatitude,
+            outsideLongitude);
+
+        Assert.True(actualDistance > 50);
+        Assert.Equal(50.0, Math.Round(actualDistance, 1));
+
+        AddResource(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            name: "Innenfor");
+
+        AddResource(
+            database, ResourceType.Boat,
+            outsideLatitude, outsideLongitude,
+            name: "Utenfor");
+
+        var service = CreateMatchingService(database);
+
+        var result = await service.FindNearbyResourcesAsync(
+            GrimstadLat,
+            GrimstadLon,
+            radiusKm: 50);
+
+        Assert.Single(result);
+        Assert.Equal("Innenfor", result[0].ResourceName);
+    }
+
+    /// <summary>
+    /// Kontrollerer at en ressurs som allerede er forespurt
+    /// for et behov, ikke foreslås på nytt for samme behov.
+    /// </summary>
     [Fact]
     public async Task FindNearbyResources_ExcludesResourcesAlreadyRequestedForNeed()
     {
         using var database = CreateDatabase();
 
-        Need need = AddNeed(database, ResourceType.Boat, GrimstadLat, GrimstadLon);
-        Resource requested = AddResource(database, ResourceType.Boat, GrimstadLat, GrimstadLon, name: "Spurt");
-        AddResource(database, ResourceType.Boat, GrimstadLat, GrimstadLon, name: "Ledig");
+        Need need = AddNeed(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon);
+
+        Resource requested = AddResource(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            name: "Spurt");
+
+        AddResource(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            name: "Ledig");
 
         database.NeedAssignments.Add(new NeedAssignment
         {
@@ -223,31 +543,108 @@ public class MatchingTests
             RequestedByUserId = "actor",
             Status = AssignmentStatus.Requested
         });
+
         database.SaveChanges();
 
-        var service = new ResourceMatchingService(database);
+        var service = CreateMatchingService(database);
 
         var result = await service.FindNearbyResourcesAsync(
-            GrimstadLat, GrimstadLon, types: new[] { ResourceType.Boat }, excludeRequestedForNeedId: need.Id);
+            GrimstadLat,
+            GrimstadLon,
+            types: new[] { ResourceType.Boat },
+            excludeRequestedForNeedId: need.Id);
 
         Assert.Single(result);
         Assert.Equal("Ledig", result[0].ResourceName);
     }
 
+    /// <summary>
+    /// Kontrollerer at aktive forespørsler blokkerer ny matching,
+    /// mens avslåtte og kansellerte forespørsler ikke gjør det.
+    /// </summary>
+    /// <param name="status">Forespørselens status.</param>
+    /// <param name="shouldBeIncluded">
+    /// Om ressursen skal kunne matches på nytt.
+    /// </param>
+    [Theory]
+    [InlineData(AssignmentStatus.Requested, false)]
+    [InlineData(AssignmentStatus.Confirmed, false)]
+    [InlineData(AssignmentStatus.Declined, true)]
+    [InlineData(AssignmentStatus.Cancelled, true)]
+    public async Task FindNearbyResources_FiltersAssignmentsByStatus(
+        AssignmentStatus status,
+        bool shouldBeIncluded)
+    {
+        using var database = CreateDatabase();
 
+        Need need = AddNeed(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon);
+
+        Resource resource = AddResource(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon);
+
+        // Ressursen holdes tilgjengelig for å isolere
+        // filtreringen på AssignmentStatus.
+        database.NeedAssignments.Add(new NeedAssignment
+        {
+            NeedId = need.Id,
+            ResourceId = resource.Id,
+            RequestedByUserId = "actor",
+            Status = status
+        });
+
+        database.SaveChanges();
+
+        var service = CreateMatchingService(database);
+
+        var result = await service.FindNearbyResourcesAsync(
+            GrimstadLat,
+            GrimstadLon,
+            excludeRequestedForNeedId: need.Id);
+
+        Assert.Equal(shouldBeIncluded, result.Any(candidate =>
+            candidate.ResourceId == resource.Id));
+    }
+
+    #endregion
+
+    #region Matching av behov for ressursleverandør
+
+    /// <summary>
+    /// Kontrollerer at en leverandør bare ser åpne behov
+    /// som samsvarer med egne ressurstyper.
+    /// </summary>
     [Fact]
     public async Task FindNeedsForProvider_OnlyReturnsNeedsMatchingOwnResourceTypes()
     {
         using var database = CreateDatabase();
 
-        AddResource(database, ResourceType.Boat, GrimstadLat, GrimstadLon, ownerUserId: "me");
-        AddResource(database, ResourceType.Generator, GrimstadLat, GrimstadLon, ownerUserId: "someone-else");
+        AddResource(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            ownerUserId: "me");
 
-        AddNeed(database, ResourceType.Boat, GrimstadLat, GrimstadLon);
-        AddNeed(database, ResourceType.Generator, GrimstadLat, GrimstadLon);
-        AddNeed(database, ResourceType.Boat, GrimstadLat, GrimstadLon, status: NeedStatus.Resolved);
+        AddResource(
+            database, ResourceType.Generator,
+            GrimstadLat, GrimstadLon,
+            ownerUserId: "someone-else");
 
-        var service = new ResourceMatchingService(database);
+        AddNeed(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon);
+
+        AddNeed(
+            database, ResourceType.Generator,
+            GrimstadLat, GrimstadLon);
+
+        AddNeed(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            status: NeedStatus.Resolved);
+
+        var service = CreateMatchingService(database);
 
         var result = await service.FindNeedsForProviderAsync("me");
 
@@ -255,139 +652,456 @@ public class MatchingTests
         Assert.Equal(ResourceType.Boat, result[0].ResourceType);
     }
 
+    /// <summary>
+    /// Kontrollerer at akutte behov prioriteres foran
+    /// planlagte behov, selv om de ligger lenger unna.
+    /// </summary>
+    [Fact]
+    public async Task FindNeedsForProvider_PrioritizesAcuteNeeds()
+    {
+        using var database = CreateDatabase();
 
-    // ========================================
-    // STATUSFLYT FOR FORESPØRSLER
-    // ========================================
+        AddResource(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            ownerUserId: "me");
 
+        Need planned = AddNeed(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            priority: NeedPriority.Planned);
+
+        Need acute = AddNeed(
+            database, ResourceType.Boat,
+            ArendalLat, ArendalLon,
+            priority: NeedPriority.Acute);
+
+        var service = CreateMatchingService(database);
+
+        var result = await service.FindNeedsForProviderAsync(
+            "me",
+            radiusKm: 100);
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal(acute.Id, result[0].NeedId);
+        Assert.Equal(planned.Id, result[1].NeedId);
+
+        // Prioritet skal overstyre avstand.
+        Assert.True(result[0].DistanceKm > result[1].DistanceKm);
+    }
+
+    /// <summary>
+    /// Kontrollerer at et behov matches med leverandørens
+    /// nærmeste tilgjengelige ressurs av riktig type.
+    /// </summary>
+    [Fact]
+    public async Task FindNeedsForProvider_UsesClosestMatchingResource()
+    {
+        using var database = CreateDatabase();
+
+        AddResource(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            ownerUserId: "me",
+            name: "Båt i Grimstad");
+
+        Resource closest = AddResource(
+            database, ResourceType.Boat,
+            ArendalLat, ArendalLon,
+            ownerUserId: "me",
+            name: "Båt i Arendal");
+
+        Need need = AddNeed(
+            database, ResourceType.Boat,
+            ArendalLat + 0.01, ArendalLon);
+
+        var service = CreateMatchingService(database);
+
+        var result = await service.FindNeedsForProviderAsync(
+            "me",
+            radiusKm: 100);
+
+        Assert.Single(result);
+
+        Assert.Equal(need.Id, result[0].NeedId);
+        Assert.Equal(closest.Id, result[0].MatchingResourceId);
+        Assert.Equal(
+            "Båt i Arendal",
+            result[0].MatchingResourceName);
+    }
+
+    /// <summary>
+    /// Kontrollerer at behov utenfor valgt radius
+    /// ikke returneres til ressursleverandøren.
+    /// </summary>
+    [Fact]
+    public async Task FindNeedsForProvider_ExcludesNeedsOutsideRadius()
+    {
+        using var database = CreateDatabase();
+
+        AddResource(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            ownerUserId: "me");
+
+        AddNeed(
+            database, ResourceType.Boat,
+            OsloLat, OsloLon);
+
+        var service = CreateMatchingService(database);
+
+        var result = await service.FindNeedsForProviderAsync(
+            "me",
+            radiusKm: 50);
+
+        Assert.Empty(result);
+    }
+
+    /// <summary>
+    /// Kontrollerer at behov som vurderes fortsatt
+    /// kan vises, mens tildelte og løste behov utelates.
+    /// </summary>
+    [Fact]
+    public async Task FindNeedsForProvider_OnlyIncludesOpenStatuses()
+    {
+        using var database = CreateDatabase();
+
+        AddResource(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            ownerUserId: "me");
+
+        Need newNeed = AddNeed(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            status: NeedStatus.New);
+
+        Need underReview = AddNeed(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            status: NeedStatus.UnderReview);
+
+        AddNeed(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            status: NeedStatus.Assigned);
+
+        AddNeed(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            status: NeedStatus.Resolved);
+
+        var service = CreateMatchingService(database);
+
+        var result = await service.FindNeedsForProviderAsync("me");
+
+        Assert.Equal(2, result.Count);
+
+        Assert.Contains(result, candidate =>
+            candidate.NeedId == newNeed.Id);
+
+        Assert.Contains(result, candidate =>
+            candidate.NeedId == underReview.Id);
+    }
+
+    /// <summary>
+    /// Kontrollerer at en manglende brukeridentifikator
+    /// ikke gir tilgang til registrerte behov.
+    /// </summary>
+    [Fact]
+    public async Task FindNeedsForProvider_EmptyUserId_ReturnsNoResults()
+    {
+        using var database = CreateDatabase();
+
+        AddResource(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            ownerUserId: "me");
+
+        AddNeed(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon);
+
+        var service = CreateMatchingService(database);
+
+        var result = await service.FindNeedsForProviderAsync(
+            string.Empty);
+
+        Assert.Empty(result);
+    }
+
+    #endregion
+
+    #region Statusflyt for forespørsler
+
+    /// <summary>
+    /// Kontrollerer at forespørselen opprettes,
+    /// behovet settes til vurdering og eieren varsles.
+    /// </summary>
     [Fact]
     public async Task Request_SetsNeedUnderReview_AndNotifiesOwner()
     {
         using var database = CreateDatabase();
 
-        database.Users.Add(new ApplicationUser { Id = "owner-1", Email = "owner@example.com", UserName = "owner@example.com" });
+        database.Users.Add(new ApplicationUser
+        {
+            Id = "owner-1",
+            Email = "owner@example.com",
+            UserName = "owner@example.com"
+        });
+
         database.SaveChanges();
 
-        Need need = AddNeed(database, ResourceType.Boat, GrimstadLat, GrimstadLon);
-        Resource resource = AddResource(database, ResourceType.Boat, GrimstadLat, GrimstadLon);
+        Need need = AddNeed(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon);
+
+        Resource resource = AddResource(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon);
 
         var email = new FakeEmailSender();
         var service = CreateAssignmentService(database, email);
 
-        ServiceResult result = await service.RequestAsync(need.Id, resource.Id, "actor", "Trenger båt", false);
+        ServiceResult result = await service.RequestAsync(
+            need.Id,
+            resource.Id,
+            "actor",
+            "Trenger båt",
+            false);
 
         Assert.True(result.Success);
-        Assert.Equal(NeedStatus.UnderReview, database.Needs.Single().Status);
+
+        Assert.Equal(
+            NeedStatus.UnderReview,
+            database.Needs.Single().Status);
+
         Assert.Single(database.NeedAssignments);
-        Assert.Single(database.Notifications.Where(n => n.UserId == "owner-1"));
+
+        Assert.Single(
+            database.Notifications.Where(
+                notification => notification.UserId == "owner-1"));
+
         Assert.Contains("owner@example.com", email.SentTo);
     }
 
-
+    /// <summary>
+    /// Kontrollerer at samme ressurs ikke kan få
+    /// to aktive forespørsler for det samme behovet.
+    /// </summary>
     [Fact]
     public async Task Request_SameResourceTwice_IsRejected()
     {
         using var database = CreateDatabase();
 
-        Need need = AddNeed(database, ResourceType.Boat, GrimstadLat, GrimstadLon);
-        Resource resource = AddResource(database, ResourceType.Boat, GrimstadLat, GrimstadLon);
+        Need need = AddNeed(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon);
+
+        Resource resource = AddResource(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon);
 
         var service = CreateAssignmentService(database);
 
-        await service.RequestAsync(need.Id, resource.Id, "actor", null, false);
-        ServiceResult second = await service.RequestAsync(need.Id, resource.Id, "actor", null, false);
+        await service.RequestAsync(
+            need.Id, resource.Id, "actor", null, false);
+
+        ServiceResult second = await service.RequestAsync(
+            need.Id, resource.Id, "actor", null, false);
 
         Assert.False(second.Success);
         Assert.Single(database.NeedAssignments);
     }
 
-
+    /// <summary>
+    /// Kontrollerer at aksept av en forespørsel tildeler
+    /// behovet og markerer ressursen som opptatt.
+    /// </summary>
     [Fact]
     public async Task Respond_Accept_AssignsNeedAndMarksResourceBusy()
     {
         using var database = CreateDatabase();
 
-        Need need = AddNeed(database, ResourceType.Boat, GrimstadLat, GrimstadLon);
-        Resource resource = AddResource(database, ResourceType.Boat, GrimstadLat, GrimstadLon, ownerUserId: "owner-1");
+        Need need = AddNeed(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon);
+
+        Resource resource = AddResource(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            ownerUserId: "owner-1");
 
         var service = CreateAssignmentService(database);
-        await service.RequestAsync(need.Id, resource.Id, "actor", null, false);
 
-        int assignmentId = database.NeedAssignments.Single().Id;
+        await service.RequestAsync(
+            need.Id, resource.Id, "actor", null, false);
 
-        ServiceResult result = await service.RespondAsync(assignmentId, "owner-1", accept: true);
+        int assignmentId =
+            database.NeedAssignments.Single().Id;
+
+        ServiceResult result = await service.RespondAsync(
+            assignmentId,
+            "owner-1",
+            accept: true);
 
         Assert.True(result.Success);
-        Assert.Equal(AssignmentStatus.Confirmed, database.NeedAssignments.Single().Status);
-        Assert.Equal(NeedStatus.Assigned, database.Needs.Single().Status);
-        Assert.Equal(ResourceStatus.Busy, database.Resources.Single().Status);
+
+        Assert.Equal(
+            AssignmentStatus.Confirmed,
+            database.NeedAssignments.Single().Status);
+
+        Assert.Equal(
+            NeedStatus.Assigned,
+            database.Needs.Single().Status);
+
+        Assert.Equal(
+            ResourceStatus.Busy,
+            database.Resources.Single().Status);
     }
 
-
+    /// <summary>
+    /// Kontrollerer at avslag setter behovet tilbake
+    /// til Ny og lar ressursen være tilgjengelig.
+    /// </summary>
     [Fact]
     public async Task Respond_Decline_SetsNeedBackToNew()
     {
         using var database = CreateDatabase();
 
-        Need need = AddNeed(database, ResourceType.Boat, GrimstadLat, GrimstadLon);
-        Resource resource = AddResource(database, ResourceType.Boat, GrimstadLat, GrimstadLon, ownerUserId: "owner-1");
+        Need need = AddNeed(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon);
+
+        Resource resource = AddResource(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            ownerUserId: "owner-1");
 
         var service = CreateAssignmentService(database);
-        await service.RequestAsync(need.Id, resource.Id, "actor", null, false);
 
-        int assignmentId = database.NeedAssignments.Single().Id;
+        await service.RequestAsync(
+            need.Id, resource.Id, "actor", null, false);
 
-        await service.RespondAsync(assignmentId, "owner-1", accept: false);
+        int assignmentId =
+            database.NeedAssignments.Single().Id;
 
-        Assert.Equal(AssignmentStatus.Declined, database.NeedAssignments.Single().Status);
-        Assert.Equal(NeedStatus.New, database.Needs.Single().Status);
-        Assert.Equal(ResourceStatus.Available, database.Resources.Single().Status);
+        await service.RespondAsync(
+            assignmentId,
+            "owner-1",
+            accept: false);
+
+        Assert.Equal(
+            AssignmentStatus.Declined,
+            database.NeedAssignments.Single().Status);
+
+        Assert.Equal(
+            NeedStatus.New,
+            database.Needs.Single().Status);
+
+        Assert.Equal(
+            ResourceStatus.Available,
+            database.Resources.Single().Status);
     }
 
-
+    /// <summary>
+    /// Kontrollerer at en annen bruker ikke kan
+    /// godta forespørselen til ressurseieren.
+    /// </summary>
     [Fact]
     public async Task Respond_ByOtherUser_IsRejected()
     {
         using var database = CreateDatabase();
 
-        Need need = AddNeed(database, ResourceType.Boat, GrimstadLat, GrimstadLon);
-        Resource resource = AddResource(database, ResourceType.Boat, GrimstadLat, GrimstadLon, ownerUserId: "owner-1");
+        Need need = AddNeed(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon);
+
+        Resource resource = AddResource(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            ownerUserId: "owner-1");
 
         var service = CreateAssignmentService(database);
-        await service.RequestAsync(need.Id, resource.Id, "actor", null, false);
 
-        int assignmentId = database.NeedAssignments.Single().Id;
+        await service.RequestAsync(
+            need.Id, resource.Id, "actor", null, false);
 
-        ServiceResult result = await service.RespondAsync(assignmentId, "intruder", accept: true);
+        int assignmentId =
+            database.NeedAssignments.Single().Id;
+
+        ServiceResult result = await service.RespondAsync(
+            assignmentId,
+            "intruder",
+            accept: true);
 
         Assert.False(result.Success);
-        Assert.Equal(AssignmentStatus.Requested, database.NeedAssignments.Single().Status);
+
+        Assert.Equal(
+            AssignmentStatus.Requested,
+            database.NeedAssignments.Single().Status);
     }
 
-
+    /// <summary>
+    /// Kontrollerer at løsning av behovet frigjør
+    /// bekreftede ressurser og kansellerer åpne forespørsler.
+    /// </summary>
     [Fact]
     public async Task ResolveNeed_FreesConfirmedResource_AndCancelsOpenRequests()
     {
         using var database = CreateDatabase();
 
-        Need need = AddNeed(database, ResourceType.Boat, GrimstadLat, GrimstadLon);
-        Resource confirmed = AddResource(database, ResourceType.Boat, GrimstadLat, GrimstadLon, ownerUserId: "owner-1");
-        Resource pending = AddResource(database, ResourceType.Boat, GrimstadLat, GrimstadLon, ownerUserId: "owner-2");
+        Need need = AddNeed(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon);
+
+        Resource confirmed = AddResource(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            ownerUserId: "owner-1");
+
+        Resource pending = AddResource(
+            database, ResourceType.Boat,
+            GrimstadLat, GrimstadLon,
+            ownerUserId: "owner-2");
 
         var service = CreateAssignmentService(database);
-        await service.RequestAsync(need.Id, confirmed.Id, "actor", null, false);
-        await service.RequestAsync(need.Id, pending.Id, "actor", null, false);
+
+        await service.RequestAsync(
+            need.Id, confirmed.Id, "actor", null, false);
+
+        await service.RequestAsync(
+            need.Id, pending.Id, "actor", null, false);
 
         int confirmedAssignmentId =
-            database.NeedAssignments.Single(a => a.ResourceId == confirmed.Id).Id;
+            database.NeedAssignments.Single(
+                assignment =>
+                    assignment.ResourceId == confirmed.Id).Id;
 
-        await service.RespondAsync(confirmedAssignmentId, "owner-1", accept: true);
+        await service.RespondAsync(
+            confirmedAssignmentId,
+            "owner-1",
+            accept: true);
 
-        ServiceResult result = await service.ResolveNeedAsync(need.Id);
+        ServiceResult result =
+            await service.ResolveNeedAsync(need.Id);
 
         Assert.True(result.Success);
-        Assert.Equal(NeedStatus.Resolved, database.Needs.Single().Status);
-        Assert.Equal(ResourceStatus.Available, database.Resources.Single(r => r.Id == confirmed.Id).Status);
-        Assert.Equal(AssignmentStatus.Cancelled, database.NeedAssignments.Single(a => a.ResourceId == pending.Id).Status);
+
+        Assert.Equal(
+            NeedStatus.Resolved,
+            database.Needs.Single().Status);
+
+        Assert.Equal(
+            ResourceStatus.Available,
+            database.Resources.Single(
+                resource => resource.Id == confirmed.Id).Status);
+
+        Assert.Equal(
+            AssignmentStatus.Cancelled,
+            database.NeedAssignments.Single(
+                assignment => assignment.ResourceId == pending.Id).Status);
     }
+
+    #endregion
 }

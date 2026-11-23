@@ -1,4 +1,3 @@
-
 using System.Text;
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
@@ -8,12 +7,16 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 
 namespace FirstWebAppInDocker.Controllers;
 
+/// <summary>
+/// Håndterer registrering, innlogging, passord, profil og kontosletting.
+/// Autentisering og brukeradministrasjon utføres via ASP.NET Core Identity.
+/// </summary>
 public class AccountController : Controller
 {
     private readonly UserManager<ApplicationUser> _userManager;
@@ -29,6 +32,7 @@ public class AccountController : Controller
     private const string PendingTwoFactorRememberMeKey =
         "PendingTwoFactorRememberMe";
 
+    /// <summary>Oppretter kontrolleren med Identity og portalens tjenester.</summary>
     public AccountController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
@@ -45,10 +49,14 @@ public class AccountController : Controller
         _dbContext = dbContext;
     }
 
-    // ========================================
-    // LOGIN
-    // ========================================
+    #region Innlogging
 
+    /// <summary>
+    /// Kontrollerer passord og eventuell tofaktor før brukeren får tilgang.
+    /// </summary>
+    /// <param name="model">Innloggingsdata.</param>
+    /// <returns>Et MVC-resultat.</returns>
+    [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(
@@ -75,17 +83,16 @@ public class AccountController : Controller
                 userEmailOverride: email);
 
             TempData["LoginError"] =
-                "Feil e-post eller passord.";
+                "Feil e-post eller passord, eller kontoen er ikke bekreftet.";
 
             return RedirectToAction("Index", "Home");
         }
 
         if (!user.EmailConfirmed)
         {
+            // Samme feilmelding som ved ukjent e-post eller feil passord.
             TempData["LoginError"] =
-                "Du må bekrefte e-postadressen din " +
-                "før du kan logge inn. " +
-                "Sjekk innboksen din.";
+                "Feil e-post eller passord, eller kontoen er ikke bekreftet.";
 
             return RedirectToAction("Index", "Home");
         }
@@ -154,15 +161,19 @@ public class AccountController : Controller
             user.Email);
 
         TempData["LoginError"] =
-            "Feil e-post eller passord.";
+            "Feil e-post eller passord, eller kontoen er ikke bekreftet.";
 
         return RedirectToAction("Index", "Home");
     }
 
-    // ========================================
-    // GLEMT PASSORD - GET
-    // ========================================
+    #endregion
 
+    #region Passordtilbakestilling
+
+    /// <summary>
+    /// Viser skjema for å be om passordtilbakestilling.
+    /// </summary>
+    /// <returns>Et MVC-resultat.</returns>
     [AllowAnonymous]
     [HttpGet]
     [ResponseCache(
@@ -174,10 +185,11 @@ public class AccountController : Controller
             new ForgotPasswordViewModel());
     }
 
-    // ========================================
-    // GLEMT PASSORD - POST
-    // ========================================
-
+    /// <summary>
+    /// Sender passordtilbakestilling uten å avsløre om e-postadressen finnes.
+    /// </summary>
+    /// <param name="model">E-postadressen som skal motta lenken.</param>
+    /// <returns>Et MVC-resultat.</returns>
     [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -268,10 +280,10 @@ public class AccountController : Controller
             nameof(ForgotPasswordConfirmation));
     }
 
-    // ========================================
-    // BEKREFTELSE ETTER FORESPØRSEL
-    // ========================================
-
+    /// <summary>
+    /// Viser en generell bekreftelse etter forespørsel om passordtilbakestilling.
+    /// </summary>
+    /// <returns>Et MVC-resultat.</returns>
     [AllowAnonymous]
     [HttpGet]
     [ResponseCache(
@@ -282,10 +294,12 @@ public class AccountController : Controller
         return View();
     }
 
-    // ========================================
-    // TILBAKESTILL PASSORD - GET
-    // ========================================
-
+    /// <summary>
+    /// Viser skjema for tilbakestilling dersom lenkens parametere finnes.
+    /// </summary>
+    /// <param name="userId">Brukeridentifikator fra lenken.</param>
+    /// <param name="code">Kodet tilbakestillingstoken.</param>
+    /// <returns>Et MVC-resultat.</returns>
     [AllowAnonymous]
     [HttpGet]
     [ResponseCache(
@@ -311,10 +325,11 @@ public class AccountController : Controller
         return View(model);
     }
 
-    // ========================================
-    // TILBAKESTILL PASSORD - POST
-    // ========================================
-
+    /// <summary>
+    /// Validerer tilbakestillingstoken og oppdaterer passord via Identity.
+    /// </summary>
+    /// <param name="model">Skjemadata med token og nytt passord.</param>
+    /// <returns>Et MVC-resultat.</returns>
     [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -403,10 +418,10 @@ public class AccountController : Controller
             nameof(ResetPasswordConfirmation));
     }
 
-    // ========================================
-    // PASSORD ENDRET
-    // ========================================
-
+    /// <summary>
+    /// Viser bekreftelse etter vellykket passordtilbakestilling.
+    /// </summary>
+    /// <returns>Et MVC-resultat.</returns>
     [AllowAnonymous]
     [HttpGet]
     [ResponseCache(
@@ -417,10 +432,15 @@ public class AccountController : Controller
         return View();
     }
 
-    // ========================================
-    // REGISTER
-    // ========================================
+    #endregion
+        #region Registrering
 
+    /// <summary>
+    /// Oppretter ressursleverandør og sender e-postbekreftelse.
+    /// </summary>
+    /// <param name="model">Data fra registreringsskjemaet.</param>
+    /// <returns>Et MVC-resultat.</returns>
+    [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(
@@ -434,6 +454,19 @@ public class AccountController : Controller
                 "Kontroller at alle feltene er " +
                 "fylt ut riktig, og at " +
                 "passordene er like.";
+
+            return RedirectToAction("Index", "Home");
+        }
+
+        // Opprett ikke en konto dersom bekreftelsesmail ikke kan sendes.
+        if (_emailSender is null)
+        {
+            _logger?.LogError(
+                "Registrering avvist fordi e-posttjenesten ikke er konfigurert.");
+
+            TempData["RegisterError"] =
+                "Registrering er midlertidig utilgjengelig. " +
+                "Kontakt administrator.";
 
             return RedirectToAction("Index", "Home");
         }
@@ -452,18 +485,10 @@ public class AccountController : Controller
             return RedirectToAction("Index", "Home");
         }
 
-        // ========================================
-        // NYTT: BYGG TELEFONNUMMER
-        // ========================================
-
         string? fullPhoneNumber =
             BuildPhoneNumber(
                 model.PhoneCountryCode,
                 model.PhoneNumber);
-
-        // ========================================
-        // OPPRETT BRUKER
-        // ========================================
 
         var user = new ApplicationUser
         {
@@ -492,10 +517,6 @@ public class AccountController : Controller
             return RedirectToAction("Index", "Home");
         }
 
-        // ========================================
-        // TILDEL RESOURCEPROVIDER-ROLLE
-        // ========================================
-
         IdentityResult roleResult =
             await _userManager.AddToRoleAsync(
                 user,
@@ -516,24 +537,6 @@ public class AccountController : Controller
 
             return RedirectToAction("Index", "Home");
         }
-
-        // ========================================
-        // KONTROLLER E-POSTTJENESTEN
-        // ========================================
-
-        if (_emailSender is null)
-        {
-            TempData["RegisterError"] =
-                "Kontoen ble opprettet, men " +
-                "e-posttjenesten er ikke tilgjengelig. " +
-                "Kontakt administrator.";
-
-            return RedirectToAction("Index", "Home");
-        }
-
-        // ========================================
-        // GENERER BEKREFTELSESTOKEN
-        // ========================================
 
         string confirmationToken =
             await _userManager.GenerateEmailConfirmationTokenAsync(
@@ -572,18 +575,19 @@ public class AccountController : Controller
             return RedirectToAction("Index", "Home");
         }
 
-        // ========================================
-        // SEND BEKREFTELSESMAIL
-        // ========================================
-
         try
         {
             await _emailSender.SendConfirmationAsync(
                 email,
                 confirmationUrl);
         }
-        catch (Exception)
+        catch (Exception exception)
         {
+            _logger?.LogError(
+                exception,
+                "Bekreftelsesmail kunne ikke sendes til bruker {UserId}.",
+                user.Id);
+
             TempData["RegisterError"] =
                 "Kontoen ble opprettet, men vi " +
                 "klarte ikke å sende bekreftelsesmail. " +
@@ -591,10 +595,6 @@ public class AccountController : Controller
 
             return RedirectToAction("Index", "Home");
         }
-
-        // ========================================
-        // KLARGJØR REGISTRERINGSPOPUP
-        // ========================================
 
         HttpContext.Session.Clear();
 
@@ -606,10 +606,10 @@ public class AccountController : Controller
             nameof(RegistrationPending));
     }
 
-    // ========================================
-    // REGISTRERING VENTER
-    // ========================================
-
+    /// <summary>
+    /// Viser status for e-postbekreftelse og tofaktor etter registrering.
+    /// </summary>
+    /// <returns>Et MVC-resultat.</returns>
     [AllowAnonymous]
     [HttpGet]
     [ResponseCache(
@@ -655,10 +655,14 @@ public class AccountController : Controller
     }
 
 
-    // ========================================
-    // DEMO PUBLIC ACTOR
-    // ========================================
+    #endregion
 
+    #region Demoinnlogging og utlogging
+
+    /// <summary>
+    /// Logger inn den forhåndsopprettede offentlige testbrukeren kun i utviklingsmiljø.
+    /// </summary>
+    /// <returns>Et MVC-resultat.</returns>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DemoPublicActorLogin()
@@ -729,10 +733,11 @@ public class AccountController : Controller
             "Home");
     }
 
-    // ========================================
-    // LOGOUT
-    // ========================================
-
+    /// <summary>
+    /// Logger ut brukeren og tømmer sesjonsdata.
+    /// </summary>
+    /// <returns>Et MVC-resultat.</returns>
+    [Authorize]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
@@ -750,10 +755,11 @@ public class AccountController : Controller
             "Home");
     }
 
-    // ========================================
-    // ACCESS DENIED
-    // ========================================
-
+    /// <summary>
+    /// Viser en tilgangsfeil via forsiden.
+    /// </summary>
+    /// <returns>Et MVC-resultat.</returns>
+    [AllowAnonymous]
     [HttpGet]
     public IActionResult AccessDenied()
     {
@@ -766,10 +772,14 @@ public class AccountController : Controller
             "Home");
     }
 
-    // ========================================
-    // PROFILE - GET
-    // ========================================
+    #endregion
 
+    #region Profil
+
+    /// <summary>
+    /// Henter innlogget brukers profil.
+    /// </summary>
+    /// <returns>Et MVC-resultat.</returns>
     [Authorize]
     [HttpGet]
     public async Task<IActionResult> Profile()
@@ -801,10 +811,11 @@ public class AccountController : Controller
         return View(model);
     }
 
-    // ========================================
-    // PROFILE - POST
-    // ========================================
-
+    /// <summary>
+    /// Oppdaterer profilopplysninger og starter bekreftelse ved e-postendring.
+    /// </summary>
+    /// <param name="model">Endrede profilopplysninger.</param>
+    /// <returns>Et MVC-resultat.</returns>
     [Authorize]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -879,10 +890,6 @@ public class AccountController : Controller
             }
         }
 
-        // ========================================
-        // OPPDATER NAVN OG TELEFON
-        // ========================================
-
         user.Name = model.Name.Trim();
 
         user.PhoneNumber =
@@ -906,10 +913,6 @@ public class AccountController : Controller
         }
 
         await _signInManager.RefreshSignInAsync(user);
-
-        // ========================================
-        // OPPDATER SESSION
-        // ========================================
 
         HttpContext.Session.SetString(
             "UserName",
@@ -947,10 +950,6 @@ public class AccountController : Controller
             return RedirectToAction(
                 nameof(Profile));
         }
-
-        // ========================================
-        // GENERER TOKEN FOR NY E-POST
-        // ========================================
 
         string changeToken =
             await _userManager.GenerateChangeEmailTokenAsync(
@@ -995,10 +994,6 @@ public class AccountController : Controller
             return View(model);
         }
 
-        // ========================================
-        // SEND BEKREFTELSE TIL NY E-POST
-        // ========================================
-
         try
         {
             await _emailSender!.SendConfirmationAsync(
@@ -1028,10 +1023,15 @@ public class AccountController : Controller
             nameof(Profile));
     }
 
-    // ========================================
-    // SLETT KONTO OG TILHØRENDE DATA
-    // ========================================
+    #endregion
+        #region Kontosletting
 
+    /// <summary>
+    /// Sletter brukerens konto og tilhørende data i én databasetransaksjon.
+    /// </summary>
+    /// <param name="currentPassword">Brukerens gjeldende passord.</param>
+    /// <param name="confirmDeletion">Bekreftelse på permanent sletting.</param>
+    /// <returns>Et MVC-resultat.</returns>
     [Authorize]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -1094,10 +1094,6 @@ public class AccountController : Controller
 
         try
         {
-            // ========================================
-            // START TRANSAKSJON
-            // ========================================
-
             // Identity og resten av applikasjonen
             // bruker ApplicationDbContext.
             //
@@ -1110,19 +1106,11 @@ public class AccountController : Controller
             string userId = user.Id;
             string? email = user.Email;
 
-            // ========================================
-            // HENT BRUKERENS RESSURSER
-            // ========================================
-
             var ownedResources =
                 await _dbContext.Resources
                     .Where(resource =>
                         resource.OwnerUserId == userId)
                     .ToListAsync();
-
-            // ========================================
-            // HENT BRUKERENS BEHOV
-            // ========================================
 
             // Behov fra eldre versjoner kan være
             // knyttet til e-post i stedet for bruker-ID.
@@ -1138,19 +1126,11 @@ public class AccountController : Controller
                         ))
                     .ToListAsync();
 
-            // ========================================
-            // HENT BRUKERENS VARSLER
-            // ========================================
-
             var notifications =
                 await _dbContext.Notifications
                     .Where(notification =>
                         notification.UserId == userId)
                     .ToListAsync();
-
-            // ========================================
-            // SLETT TILHØRENDE DATA
-            // ========================================
 
             // NeedAssignment har Cascade for både
             // ResourceId og NeedId i ApplicationDbContext.
@@ -1170,10 +1150,6 @@ public class AccountController : Controller
                 .RemoveRange(ownedNeeds);
 
             await _dbContext.SaveChangesAsync();
-
-            // ========================================
-            // SLETT IDENTITY-BRUKEREN
-            // ========================================
 
             IdentityResult deleteResult =
                 await _userManager.DeleteAsync(user);
@@ -1195,10 +1171,6 @@ public class AccountController : Controller
 
                 return RedirectToAction(nameof(Profile));
             }
-
-            // ========================================
-            // BEKREFT SLETTINGEN
-            // ========================================
 
             await transaction.CommitAsync();
 
@@ -1239,10 +1211,6 @@ public class AccountController : Controller
             return RedirectToAction(nameof(Profile));
         }
 
-        // ========================================
-        // LOGG UT
-        // ========================================
-
         // Utføres først etter vellykket commit.
 
         await _signInManager.SignOutAsync();
@@ -1256,10 +1224,16 @@ public class AccountController : Controller
         return RedirectToAction("Index", "Home");
     }
 
-    // ========================================
-    // PHONE HELPERS
-    // ========================================
+    #endregion
 
+    #region Hjelpemetoder
+
+    /// <summary>
+    /// Kombinerer landskode og telefonnummer uten mellomrom eller bindestreker.
+    /// </summary>
+    /// <param name="countryCode">Telefonens landskode.</param>
+    /// <param name="phoneNumber">Lokalt telefonnummer.</param>
+    /// <returns>Normalisert telefonnummer eller null.</returns>
     private static string? BuildPhoneNumber(
         string countryCode,
         string? phoneNumber)
@@ -1281,6 +1255,11 @@ public class AccountController : Controller
             + normalizedPhoneNumber;
     }
 
+    /// <summary>
+    /// Deler et lagret telefonnummer i landskode og lokalt nummer.
+    /// </summary>
+    /// <param name="phoneNumber">Telefonnummer med eventuell landskode.</param>
+    /// <returns>Landskode og lokalt nummer.</returns>
     private static (
         string CountryCode,
         string? Number
@@ -1315,10 +1294,11 @@ public class AccountController : Controller
         return ("+47", phoneNumber);
     }
 
-    // ========================================
-    // ROLE HELPER
-    // ========================================
-
+    /// <summary>
+    /// Velger brukerens primære rolle etter portalens rolleprioritet.
+    /// </summary>
+    /// <param name="user">Brukeren som rollene skal hentes for.</param>
+    /// <returns>Rollen som brukes til sesjonsinformasjon.</returns>
     private async Task<string> GetPrimaryRoleAsync(
         ApplicationUser user)
     {
@@ -1338,10 +1318,11 @@ public class AccountController : Controller
         return IdentitySeeder.ResourceProviderRole;
     }
 
-    // ========================================
-    // SESSION HELPER
-    // ========================================
-
+    /// <summary>
+    /// Oppdaterer eksisterende sesjonsnøkler fra den innloggede brukeren.
+    /// </summary>
+    /// <param name="user">Autentisert bruker.</param>
+    /// <param name="role">Primærrolle.</param>
     private void CreateSession(
         ApplicationUser user,
         string role)
@@ -1394,10 +1375,10 @@ public class AccountController : Controller
         }
     }
 
-    // ========================================
-    // REGISTRATION HELPER
-    // ========================================
-
+    /// <summary>
+    /// Bevarer skjemaverdier ved redirect til eksisterende registreringspopup.
+    /// </summary>
+    /// <param name="model">Registreringsdata.</param>
     private void SaveRegistrationValues(
         RegisterViewModel model)
     {
@@ -1417,4 +1398,6 @@ public class AccountController : Controller
             model.PhoneNumber?.Trim()
             ?? string.Empty;
     }
+
+    #endregion
 }
