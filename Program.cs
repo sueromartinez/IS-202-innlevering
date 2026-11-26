@@ -1,3 +1,4 @@
+
 using System.Globalization;
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
@@ -11,6 +12,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// HTTPS-krevende cookies i produksjon.
+// Lokal Docker-utvikling med HTTP skal fortsatt fungere.
+CookieSecurePolicy cookieSecurePolicy =
+    builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
 
 #region Sikkerhet og webserver
 
@@ -79,7 +87,9 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+
+    // Krev HTTPS utenfor utviklingsmiljøet.
+    options.Cookie.SecurePolicy = cookieSecurePolicy;
 
     // Vanlig innlogging bruker en sesjonscookie med 60 minutters billettlevetid.
     options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
@@ -102,8 +112,19 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 #region MVC
 
-// Global CSRF-validering innføres etter at POST-kall fra skjemaer og Sami er kontrollert.
+// Global CSRF-validering aktiveres etter at POST-kall
+// fra skjemaer, JavaScript og Sami er gjennomgått.
 builder.Services.AddControllersWithViews();
+
+// Sikre antiforgery-cookien i miljøer som skal bruke HTTPS.
+// Dette aktiverer ikke global CSRF-validering alene.
+if (!builder.Environment.IsDevelopment())
+{
+    builder.Services.AddAntiforgery(options =>
+    {
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    });
+}
 
 #endregion
 
@@ -178,7 +199,9 @@ builder.Services.AddSession(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+
+    // Krev HTTPS utenfor utviklingsmiljøet.
+    options.Cookie.SecurePolicy = cookieSecurePolicy;
 });
 
 #endregion
