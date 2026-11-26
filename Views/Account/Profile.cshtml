@@ -1,3 +1,11 @@
+@*
+    Profile.cshtml – «Profil»
+
+    Hva filen gjør: Endre navn, telefon og e-post, se status for e-post og tofaktor, og slette
+    kontoen.
+
+    Oppgavekrav: 8, 14
+*@
 
 @model FirstWebAppInDocker.ViewModels.ProfileViewModel
 
@@ -32,9 +40,7 @@
             .ToString("dd.MM.yyyy")
         ?? "Ukjent";
 
-    // ========================================
-    // E-POST OG TOFAKTOR
-    // ========================================
+    // --- E-post og tofaktor ---
 
     var emailConfirmed =
         currentUser?.EmailConfirmed ?? false;
@@ -103,9 +109,7 @@
             font-family: inherit;
         }
 
-        /* ========================================
-           HEADER
-           ======================================== */
+        /* --- Topp --- */
 
         .site-header {
             height: 82px;
@@ -211,9 +215,7 @@
             background: #0c2639;
         }
 
-        /* ========================================
-           PAGE
-           ======================================== */
+        /* --- Side --- */
 
         .profile-page {
             max-width: 1180px;
@@ -221,9 +223,7 @@
             padding: 42px 30px 70px;
         }
 
-        /* ========================================
-           HERO
-           ======================================== */
+        /* --- Toppbanner --- */
 
         .profile-hero {
             position: relative;
@@ -295,9 +295,7 @@
             line-height: 1.65;
         }
 
-        /* ========================================
-           CONTENT
-           ======================================== */
+        /* --- Innhold --- */
 
         .profile-grid {
             display: grid;
@@ -344,9 +342,7 @@
             line-height: 1.55;
         }
 
-        /* ========================================
-           MESSAGES
-           ======================================== */
+        /* --- Meldinger --- */
 
         .profile-success {
             margin-bottom: 24px;
@@ -382,9 +378,7 @@
             background: #fff3f2;
         }
 
-        /* ========================================
-           PROFILE FIELDS
-           ======================================== */
+        /* --- Profilfelter --- */
 
         .profile-fields {
             display: grid;
@@ -438,9 +432,7 @@
             line-height: 1.5;
         }
 
-        /* ========================================
-           FORM
-           ======================================== */
+        /* --- Skjema --- */
 
         .profile-input,
         .profile-select {
@@ -501,9 +493,7 @@
             font-weight: 800;
         }
 
-        /* ========================================
-           SECURITY
-           ======================================== */
+        /* --- Sikkerhet --- */
 
         .security-card {
             display: flex;
@@ -603,9 +593,7 @@
             line-height: 1.7;
         }
 
-        /* ========================================
-           ACTIONS
-           ======================================== */
+        /* --- Handlinger --- */
 
         .profile-actions {
             display: flex;
@@ -657,9 +645,7 @@
             background: var(--surface-soft);
         }
 
-        /* ========================================
-           SLETT KONTO
-           ======================================== */
+        /* --- Slett konto --- */
 
         .delete-account-card {
             margin-top: 24px;
@@ -809,9 +795,7 @@
             font-weight: 700;
         }
 
-        /* ========================================
-           RESPONSIVE
-           ======================================== */
+        /* --- Responsivt --- */
 
         @@media (max-width: 850px) {
             .profile-grid {

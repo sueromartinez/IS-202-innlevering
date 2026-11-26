@@ -1,50 +1,50 @@
+/*
+    SamiHelpGuide.cs – hjelpeartikler for Sami
+
+    Hva filen gjør: Korte artikler om hvordan portalen brukes, merket med hvilke roller de
+    gjelder. Sami søker i dem, så svarene om portalen bygger på vår tekst og ikke på gjetning.
+*/
+
 using System.Text;
 
 namespace FirstWebAppInDocker.Services.Ai;
 
-/// <summary>
-/// En hjelpeartikkel Sami kan slå opp i.
-/// </summary>
-/// <param name="Id">Kort, unik nøkkel.</param>
-/// <param name="Title">Overskrift, slik brukeren ville spurt.</param>
-/// <param name="Roles">Rollene artikkelen gjelder for.</param>
-/// <param name="Keywords">Søkeord, også vanlige skrivemåter og synonymer.</param>
-/// <param name="Text">Selve svaret. Skal bare inneholde ting som stemmer med portalen.</param>
+/*
+    En hjelpeartikkel Sami kan slå opp i.
+
+    Id: Kort, unik nøkkel.
+    Title: Overskrift, slik brukeren ville spurt.
+    Roles: Rollene artikkelen gjelder for.
+    Keywords: Søkeord, også vanlige skrivemåter og synonymer.
+    Text: Selve svaret. Skal bare inneholde ting som stemmer med portalen.
+*/
 public record SamiHelpArticle(
     string Id,
     string Title,
     SamiRole[] Roles,
     string[] Keywords,
-    string Text
-);
+    string Text);
 
+/*
+    Hjelpesenteret til Sami: korte artikler om alt man kan gjøre i portalen.
 
-/// <summary>
-/// Hjelpesenteret til Sami: korte artikler om alt man kan gjøre i portalen.
-///
-/// Sami slår opp her med verktøyet search_help i stedet for å gjette.
-/// Når portalen endres, oppdaterer man teksten her, så svarer Sami riktig.
-/// </summary>
+    Sami slår opp her med verktøyet search_help i stedet for å gjette.
+    Når portalen endres, oppdaterer man teksten her, så svarer Sami riktig.
+*/
 public static class SamiHelpGuide
 {
     private static readonly SamiRole[] Everyone =
         { SamiRole.Volunteer, SamiRole.PublicActor, SamiRole.Admin };
 
-    private static readonly SamiRole[] Volunteers =
-        { SamiRole.Volunteer };
+    private static readonly SamiRole[] Volunteers = { SamiRole.Volunteer };
 
-    private static readonly SamiRole[] Officials =
-        { SamiRole.PublicActor, SamiRole.Admin };
+    private static readonly SamiRole[] Officials = { SamiRole.PublicActor, SamiRole.Admin };
 
-    private static readonly SamiRole[] Admins =
-        { SamiRole.Admin };
-
+    private static readonly SamiRole[] Admins = { SamiRole.Admin };
 
     public static IReadOnlyList<SamiHelpArticle> Articles { get; } = new List<SamiHelpArticle>
     {
-        // =====================================================
-        // FOR ALLE
-        // =====================================================
+        // --- For alle ---
 
         new("tema",
             "Mørk modus / bytte tema",
@@ -174,9 +174,7 @@ public static class SamiHelpGuide
             - Trykk på pila i ring øverst i chatten for å starte en ny samtale.
             """),
 
-        // =====================================================
-        // FRIVILLIG / RESSURSLEVERANDØR
-        // =====================================================
+        // --- Frivillig / ressursleverandør ---
 
         new("niva",
             "Nivå og poeng: hvordan går jeg opp i nivå?",
@@ -247,9 +245,7 @@ public static class SamiHelpGuide
             - Trykk «Jeg kan hjelpe», så får den offentlige aktøren beskjed og kan sende deg en forespørsel.
             """),
 
-        // =====================================================
-        // OFFENTLIG AKTØR / ADMIN
-        // =====================================================
+        // --- Offentlig aktør / admin ---
 
         new("registrer-behov",
             "Registrere et behov",
@@ -343,11 +339,10 @@ public static class SamiHelpGuide
             """),
     };
 
-
-    /// <summary>
-    /// Finner de artiklene som passer best til spørsmålet, for brukerens rolle.
-    /// Enkel nøkkelordsøk: treff i søkeord teller mest, deretter treff i tittel og tekst.
-    /// </summary>
+    /*
+        Finner de artiklene som passer best til spørsmålet, for brukerens rolle.
+        Enkel nøkkelordsøk: treff i søkeord teller mest, deretter treff i tittel og tekst.
+    */
     public static List<SamiHelpArticle> Search(string? query, SamiRole role, int maxResults = 3)
     {
         List<SamiHelpArticle> available =
@@ -369,10 +364,7 @@ public static class SamiHelpGuide
             .ToList();
     }
 
-
-    /// <summary>
-    /// Titlene på alle artiklene brukeren har tilgang til.
-    /// </summary>
+    // Titlene på alle artiklene brukeren har tilgang til.
     public static List<string> TopicsFor(SamiRole role)
     {
         return Articles
@@ -380,7 +372,6 @@ public static class SamiHelpGuide
             .Select(article => article.Title)
             .ToList();
     }
-
 
     private static int Score(SamiHelpArticle article, string[] words)
     {
@@ -414,7 +405,6 @@ public static class SamiHelpGuide
         return score;
     }
 
-
     // Små ord som "jeg", "hvordan" og "på" gir ikke treff, så de hoppes over.
     private static readonly HashSet<string> StopWords = new()
     {
@@ -423,7 +413,6 @@ public static class SamiHelpGuide
         "eller", "for", "med", "om", "som", "hei", "sami", "the", "how", "do", "is", "a", "an", "to", "my",
         "noe", "noen", "her", "der", "ikke", "bare", "også", "fra"
     };
-
 
     private static string[] Words(string? query)
     {
@@ -439,7 +428,6 @@ public static class SamiHelpGuide
             .Distinct()
             .ToArray();
     }
-
 
     private static string Normalize(string value)
     {

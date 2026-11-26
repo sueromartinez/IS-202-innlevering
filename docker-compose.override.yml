@@ -1,3 +1,10 @@
+# docker-compose.override.yml
+#
+# Hva filen gjør: Lastes automatisk sammen med docker-compose.yml og legger til Mailpit for å
+# teste e-post lokalt.
+#
+# Oppgavekrav: 1
+
 
 # ========================================
 # LOKAL E-POSTTESTING

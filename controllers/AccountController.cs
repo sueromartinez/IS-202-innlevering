@@ -1,3 +1,17 @@
+/*
+    AccountController.cs – konto og innlogging
+
+    Hva filen gjør: Innlogging, registrering av ny bruker, glemt passord, profil, utlogging og
+    sletting av konto.
+    Identity gjør det tekniske (sjekker passord, lagrer brukeren, lager koder). Denne
+    controlleren styrer rekkefølgen og hva brukeren ser.
+
+    På nettsiden: Innloggings- og registreringsskjemaet på forsiden, «Glemt passord», «Profil»,
+    «Logg ut» og «Slett konto».
+
+    Oppgavekrav: 8, 9, 14, 18, 20
+*/
+
 using System.Text;
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
@@ -9,72 +23,84 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Hosting;
 
 namespace FirstWebAppInDocker.Controllers;
 
-/// <summary>
-/// Håndterer registrering, innlogging, passord, profil og kontosletting.
-/// Autentisering og brukeradministrasjon utføres via ASP.NET Core Identity.
-/// </summary>
+/*
+    Håndterer registrering, innlogging, passord, profil og kontosletting.
+    Autentisering og brukeradministrasjon utføres via ASP.NET Core Identity.
+*/
 public class AccountController : Controller
 {
+    #region Felt og konstruktør
+
+    private const string PendingRegistrationUserIdKey = "PendingRegistrationUserId";
+
+    private const string PendingTwoFactorRememberMeKey = "PendingTwoFactorRememberMe";
+
     private readonly UserManager<ApplicationUser> _userManager;
+
     private readonly SignInManager<ApplicationUser> _signInManager;
+
     private readonly IWebHostEnvironment? _environment;
+
     private readonly IEmailCodeSender? _emailSender;
+
     private readonly ILogger<AccountController>? _logger;
-    private readonly ApplicationDbContext? _dbContext;
 
-    private const string PendingRegistrationUserIdKey =
-        "PendingRegistrationUserId";
+    private readonly ApplicationDbContext? _context;
 
-    private const string PendingTwoFactorRememberMeKey =
-        "PendingTwoFactorRememberMe";
-
-    /// <summary>Oppretter kontrolleren med Identity og portalens tjenester.</summary>
+    // Oppretter kontrolleren med Identity og portalens tjenester.
     public AccountController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
+        /*
+            Noen avhengigheter er valgfrie, slik at testene kan lage controlleren uten e-post og
+            logging.
+        */
         IWebHostEnvironment? environment = null,
         IEmailCodeSender? emailSender = null,
         ILogger<AccountController>? logger = null,
-        ApplicationDbContext? dbContext = null)
+        ApplicationDbContext? context = null)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _environment = environment;
         _emailSender = emailSender;
         _logger = logger;
-        _dbContext = dbContext;
+        _context = context;
     }
+
+    #endregion
 
     #region Innlogging
 
-    /// <summary>
-    /// Kontrollerer passord og eventuell tofaktor før brukeren får tilgang.
-    /// </summary>
-    /// <param name="model">Innloggingsdata.</param>
-    /// <returns>Et MVC-resultat.</returns>
+    /*
+        POST /Account/Login – innloggingsskjemaet på forsiden.
+    */
     [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Login(
-        LoginViewModel model)
+    public async Task<IActionResult> Login(LoginViewModel model)
     {
         if (!ModelState.IsValid)
         {
-            TempData["LoginError"] =
-                "Fyll inn gyldig e-post og passord.";
+            TempData["LoginError"] = "Fyll inn gyldig e-post og passord.";
 
             return RedirectToAction("Index", "Home");
         }
 
         string email = model.Email.Trim();
 
-        ApplicationUser? user =
-            await _userManager.FindByEmailAsync(email);
+        ApplicationUser? user = await _userManager.FindByEmailAsync(email);
 
+        /*
+            Samme feilmelding uansett om e-posten ikke finnes, passordet er feil eller kontoen
+            ikke er bekreftet. Da kan ingen bruke skjemaet til å finne ut hvilke e-poster som er
+            registrert.
+        */
         if (user is null)
         {
             await this.AuditAsync(
@@ -82,8 +108,7 @@ public class AccountController : Controller
                 "Ukjent e-postadresse",
                 userEmailOverride: email);
 
-            TempData["LoginError"] =
-                "Feil e-post eller passord, eller kontoen er ikke bekreftet.";
+            TempData["LoginError"] = "Feil e-post eller passord, eller kontoen er ikke bekreftet.";
 
             return RedirectToAction("Index", "Home");
         }
@@ -91,16 +116,18 @@ public class AccountController : Controller
         if (!user.EmailConfirmed)
         {
             // Samme feilmelding som ved ukjent e-post eller feil passord.
-            TempData["LoginError"] =
-                "Feil e-post eller passord, eller kontoen er ikke bekreftet.";
+            TempData["LoginError"] = "Feil e-post eller passord, eller kontoen er ikke bekreftet.";
 
             return RedirectToAction("Index", "Home");
         }
 
-        HttpContext.Session.Remove(
-            PendingTwoFactorRememberMeKey);
+        HttpContext.Session.Remove(PendingTwoFactorRememberMeKey);
 
-        var result =
+        Microsoft.AspNetCore.Identity.SignInResult result =
+            /*
+                Identity sjekker passordet og teller feil forsøk (låser etter 5). isPersistent
+                er «Husk meg».
+            */
             await _signInManager.PasswordSignInAsync(
                 user,
                 model.Password,
@@ -109,8 +136,7 @@ public class AccountController : Controller
 
         if (result.Succeeded)
         {
-            string role =
-                await GetPrimaryRoleAsync(user);
+            string role = await GetPrimaryRoleAsync(user);
 
             CreateSession(user, role);
 
@@ -120,20 +146,20 @@ public class AccountController : Controller
                 user.Id,
                 user.Email);
 
-            return RedirectToAction(
-                "Dashboard",
-                "Home");
+            return RedirectToAction("Dashboard", "Home");
         }
 
+        /*
+            Passordet var riktig, men brukeren har tofaktor på.
+            På nettsiden: man sendes videre til siden der man skriver inn koden fra e-posten.
+        */
         if (result.RequiresTwoFactor)
         {
             HttpContext.Session.SetString(
                 PendingTwoFactorRememberMeKey,
                 model.RememberMe ? "true" : "false");
 
-            return RedirectToAction(
-                "Login",
-                "TwoFactor");
+            return RedirectToAction("Login", "TwoFactor");
         }
 
         if (result.IsLockedOut)
@@ -149,55 +175,44 @@ public class AccountController : Controller
                 "etter for mange feilaktige " +
                 "innloggingsforsøk.";
 
-            return RedirectToAction(
-                "Index",
-                "Home");
+            return RedirectToAction("Index", "Home");
         }
 
-        await this.AuditAsync(
-            AuditActions.LoginFailed,
-            "Feil passord",
-            user.Id,
-            user.Email);
+        await this.AuditAsync(AuditActions.LoginFailed, "Feil passord", user.Id, user.Email);
 
-        TempData["LoginError"] =
-            "Feil e-post eller passord, eller kontoen er ikke bekreftet.";
+        TempData["LoginError"] = "Feil e-post eller passord, eller kontoen er ikke bekreftet.";
 
         return RedirectToAction("Index", "Home");
     }
 
     #endregion
 
-    #region Passordtilbakestilling
+    #region Glemt passord
 
-    /// <summary>
-    /// Viser skjema for å be om passordtilbakestilling.
-    /// </summary>
-    /// <returns>Et MVC-resultat.</returns>
+    /*
+        GET /Account/ForgotPassword
+        Viser skjema for å be om passordtilbakestilling.
+
+        Returnerer: Et MVC-resultat.
+    */
     [AllowAnonymous]
     [HttpGet]
-    [ResponseCache(
-        Location = ResponseCacheLocation.None,
-        NoStore = true)]
+    [ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult ForgotPassword()
     {
-        return View(
-            new ForgotPasswordViewModel());
+        return View(new ForgotPasswordViewModel());
     }
 
-    /// <summary>
-    /// Sender passordtilbakestilling uten å avsløre om e-postadressen finnes.
-    /// </summary>
-    /// <param name="model">E-postadressen som skal motta lenken.</param>
-    /// <returns>Et MVC-resultat.</returns>
+    /*
+        POST /Account/ForgotPassword
+        «Glemt passord». Lager en engangslenke og sender den på e-post. Man får samme
+        melding uansett om e-posten finnes eller ikke.
+    */
     [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [ResponseCache(
-        Location = ResponseCacheLocation.None,
-        NoStore = true)]
-    public async Task<IActionResult> ForgotPassword(
-        ForgotPasswordViewModel model)
+    [ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
     {
         if (!ModelState.IsValid)
         {
@@ -206,21 +221,18 @@ public class AccountController : Controller
 
         string email = model.Email.Trim();
 
-        ApplicationUser? user =
-            await _userManager.FindByEmailAsync(email);
+        ApplicationUser? user = await _userManager.FindByEmailAsync(email);
 
         // Samme svar uansett om e-postadressen finnes.
 
         if (user is null)
         {
-            return RedirectToAction(
-                nameof(ForgotPasswordConfirmation));
+            return RedirectToAction(nameof(ForgotPasswordConfirmation));
         }
 
         if (!await _userManager.IsEmailConfirmedAsync(user))
         {
-            return RedirectToAction(
-                nameof(ForgotPasswordConfirmation));
+            return RedirectToAction(nameof(ForgotPasswordConfirmation));
         }
 
         if (_emailSender is null)
@@ -229,17 +241,13 @@ public class AccountController : Controller
                 "E-posttjenesten er ikke tilgjengelig " +
                 "for tilbakestilling av passord.");
 
-            return RedirectToAction(
-                nameof(ForgotPasswordConfirmation));
+            return RedirectToAction(nameof(ForgotPasswordConfirmation));
         }
 
-        string token =
-            await _userManager.GeneratePasswordResetTokenAsync(
-                user);
+        string token = await _userManager.GeneratePasswordResetTokenAsync(user);
 
-        string encodedToken =
-            WebEncoders.Base64UrlEncode(
-                Encoding.UTF8.GetBytes(token));
+        // Gjør koden om til tegn som kan stå trygt i en lenke.
+        string encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
 
         string? resetUrl = Url.Action(
             action: nameof(ResetPassword),
@@ -253,19 +261,14 @@ public class AccountController : Controller
 
         if (string.IsNullOrWhiteSpace(resetUrl))
         {
-            _logger?.LogWarning(
-                "Kunne ikke generere lenke for " +
-                "tilbakestilling av passord.");
+            _logger?.LogWarning("Kunne ikke generere lenke for " + "tilbakestilling av passord.");
 
-            return RedirectToAction(
-                nameof(ForgotPasswordConfirmation));
+            return RedirectToAction(nameof(ForgotPasswordConfirmation));
         }
 
         try
         {
-            await _emailSender.SendPasswordResetAsync(
-                email,
-                resetUrl);
+            await _emailSender.SendPasswordResetAsync(email, resetUrl);
         }
         catch (Exception exception)
         {
@@ -276,47 +279,42 @@ public class AccountController : Controller
                 user.Id);
         }
 
-        return RedirectToAction(
-            nameof(ForgotPasswordConfirmation));
+        return RedirectToAction(nameof(ForgotPasswordConfirmation));
     }
 
-    /// <summary>
-    /// Viser en generell bekreftelse etter forespørsel om passordtilbakestilling.
-    /// </summary>
-    /// <returns>Et MVC-resultat.</returns>
+    /*
+        GET /Account/ForgotPasswordConfirmation
+        Viser en generell bekreftelse etter forespørsel om passordtilbakestilling.
+
+        Returnerer: Et MVC-resultat.
+    */
     [AllowAnonymous]
     [HttpGet]
-    [ResponseCache(
-        Location = ResponseCacheLocation.None,
-        NoStore = true)]
+    [ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult ForgotPasswordConfirmation()
     {
         return View();
     }
 
-    /// <summary>
-    /// Viser skjema for tilbakestilling dersom lenkens parametere finnes.
-    /// </summary>
-    /// <param name="userId">Brukeridentifikator fra lenken.</param>
-    /// <param name="code">Kodet tilbakestillingstoken.</param>
-    /// <returns>Et MVC-resultat.</returns>
+    /*
+        GET /Account/ResetPassword
+        Viser skjema for tilbakestilling dersom lenkens parametere finnes.
+
+        userId: Brukeridentifikator fra lenken.
+        code: Kodet tilbakestillingstoken.
+        Returnerer: Et MVC-resultat.
+    */
     [AllowAnonymous]
     [HttpGet]
-    [ResponseCache(
-        Location = ResponseCacheLocation.None,
-        NoStore = true)]
-    public IActionResult ResetPassword(
-        string? userId,
-        string? code)
+    [ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
+    public IActionResult ResetPassword(string? userId, string? code)
     {
-        if (string.IsNullOrWhiteSpace(userId) ||
-            string.IsNullOrWhiteSpace(code))
+        if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(code))
         {
-            return BadRequest(
-                "Tilbakestillingslenken er ugyldig.");
+            return BadRequest("Tilbakestillingslenken er ugyldig.");
         }
 
-        var model = new ResetPasswordViewModel
+        ResetPasswordViewModel model = new ResetPasswordViewModel
         {
             UserId = userId,
             Code = code
@@ -325,28 +323,22 @@ public class AccountController : Controller
         return View(model);
     }
 
-    /// <summary>
-    /// Validerer tilbakestillingstoken og oppdaterer passord via Identity.
-    /// </summary>
-    /// <param name="model">Skjemadata med token og nytt passord.</param>
-    /// <returns>Et MVC-resultat.</returns>
+    /*
+        POST /Account/ResetPassword
+        Siden man kommer til fra lenken i e-posten. Koden må være gyldig og ikke utløpt.
+    */
     [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [ResponseCache(
-        Location = ResponseCacheLocation.None,
-        NoStore = true)]
-    public async Task<IActionResult> ResetPassword(
-        ResetPasswordViewModel model)
+    [ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
+    public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
     {
         if (!ModelState.IsValid)
         {
             return View(model);
         }
 
-        ApplicationUser? user =
-            await _userManager.FindByIdAsync(
-                model.UserId);
+        ApplicationUser? user = await _userManager.FindByIdAsync(model.UserId);
 
         if (user is null)
         {
@@ -362,35 +354,25 @@ public class AccountController : Controller
 
         try
         {
-            byte[] tokenBytes =
-                WebEncoders.Base64UrlDecode(
-                    model.Code);
+            byte[] tokenBytes = WebEncoders.Base64UrlDecode(model.Code);
 
-            token =
-                Encoding.UTF8.GetString(tokenBytes);
+            token = Encoding.UTF8.GetString(tokenBytes);
         }
         catch (FormatException)
         {
-            ModelState.AddModelError(
-                string.Empty,
-                "Tilbakestillingslenken er ugyldig.");
+            ModelState.AddModelError(string.Empty, "Tilbakestillingslenken er ugyldig.");
 
             return View(model);
         }
         catch (ArgumentException)
         {
-            ModelState.AddModelError(
-                string.Empty,
-                "Tilbakestillingslenken er ugyldig.");
+            ModelState.AddModelError(string.Empty, "Tilbakestillingslenken er ugyldig.");
 
             return View(model);
         }
 
         IdentityResult result =
-            await _userManager.ResetPasswordAsync(
-                user,
-                token,
-                model.NewPassword);
+            await _userManager.ResetPasswordAsync(user, token, model.NewPassword);
 
         if (!result.Succeeded)
         {
@@ -405,46 +387,43 @@ public class AccountController : Controller
                 }
                 else
                 {
-                    ModelState.AddModelError(
-                        nameof(model.NewPassword),
-                        error.Description);
+                    ModelState.AddModelError(nameof(model.NewPassword), error.Description);
                 }
             }
 
             return View(model);
         }
 
-        return RedirectToAction(
-            nameof(ResetPasswordConfirmation));
+        return RedirectToAction(nameof(ResetPasswordConfirmation));
     }
 
-    /// <summary>
-    /// Viser bekreftelse etter vellykket passordtilbakestilling.
-    /// </summary>
-    /// <returns>Et MVC-resultat.</returns>
+    /*
+        GET /Account/ResetPasswordConfirmation
+        Viser bekreftelse etter vellykket passordtilbakestilling.
+
+        Returnerer: Et MVC-resultat.
+    */
     [AllowAnonymous]
     [HttpGet]
-    [ResponseCache(
-        Location = ResponseCacheLocation.None,
-        NoStore = true)]
+    [ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult ResetPasswordConfirmation()
     {
         return View();
     }
 
     #endregion
-        #region Registrering
 
-    /// <summary>
-    /// Oppretter ressursleverandør og sender e-postbekreftelse.
-    /// </summary>
-    /// <param name="model">Data fra registreringsskjemaet.</param>
-    /// <returns>Et MVC-resultat.</returns>
+    #region Registrering
+
+    /*
+        POST /Account/Register – registreringsskjemaet på forsiden.
+        Nye brukere får alltid rollen frivillig (ResourceProvider). Offentlige aktører lages
+        bare av admin.
+    */
     [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Register(
-        RegisterViewModel model)
+    public async Task<IActionResult> Register(RegisterViewModel model)
     {
         SaveRegistrationValues(model);
 
@@ -461,8 +440,7 @@ public class AccountController : Controller
         // Opprett ikke en konto dersom bekreftelsesmail ikke kan sendes.
         if (_emailSender is null)
         {
-            _logger?.LogError(
-                "Registrering avvist fordi e-posttjenesten ikke er konfigurert.");
+            _logger?.LogError("Registrering avvist fordi e-posttjenesten ikke er konfigurert.");
 
             TempData["RegisterError"] =
                 "Registrering er midlertidig utilgjengelig. " +
@@ -473,8 +451,7 @@ public class AccountController : Controller
 
         string email = model.Email.Trim();
 
-        ApplicationUser? existingUser =
-            await _userManager.FindByEmailAsync(email);
+        ApplicationUser? existingUser = await _userManager.FindByEmailAsync(email);
 
         if (existingUser is not null)
         {
@@ -485,32 +462,30 @@ public class AccountController : Controller
             return RedirectToAction("Index", "Home");
         }
 
-        string? fullPhoneNumber =
-            BuildPhoneNumber(
-                model.PhoneCountryCode,
-                model.PhoneNumber);
+        string? fullPhoneNumber = BuildPhoneNumber(model.PhoneCountryCode, model.PhoneNumber);
 
-        var user = new ApplicationUser
+        ApplicationUser user = new ApplicationUser
         {
             UserName = email,
             Email = email,
             Name = model.Name.Trim(),
             PhoneNumber = fullPhoneNumber,
             CreatedAt = DateTime.UtcNow,
+            // Kontoen virker ikke før e-posten er bekreftet med lenken man får tilsendt.
             EmailConfirmed = false
         };
 
-        IdentityResult createResult =
-            await _userManager.CreateAsync(
-                user,
-                model.Password);
+        /*
+            Lagrer den nye brukeren i databasen (tabellen AspNetUsers). Passordet lagres aldri
+            som tekst, bare som en hash.
+        */
+        IdentityResult createResult = await _userManager.CreateAsync(user, model.Password);
 
         if (!createResult.Succeeded)
         {
             string errors = string.Join(
                 " ",
-                createResult.Errors.Select(
-                    error => error.Description));
+                createResult.Errors.Select(error => error.Description));
 
             TempData["RegisterError"] = errors;
 
@@ -518,18 +493,17 @@ public class AccountController : Controller
         }
 
         IdentityResult roleResult =
-            await _userManager.AddToRoleAsync(
-                user,
-                IdentitySeeder.ResourceProviderRole);
+            await _userManager.AddToRoleAsync(user, IdentitySeeder.ResourceProviderRole);
 
         if (!roleResult.Succeeded)
         {
+            /*
+                Kunne ikke rollen settes, slettes brukeren igjen, så vi ikke står igjen med en
+                halvferdig konto.
+            */
             await _userManager.DeleteAsync(user);
 
-            string errors = string.Join(
-                " ",
-                roleResult.Errors.Select(
-                    error => error.Description));
+            string errors = string.Join(" ", roleResult.Errors.Select(error => error.Description));
 
             TempData["RegisterError"] =
                 "Brukeren kunne ikke få riktig rolle. " +
@@ -538,9 +512,7 @@ public class AccountController : Controller
             return RedirectToAction("Index", "Home");
         }
 
-        string confirmationToken =
-            await _userManager.GenerateEmailConfirmationTokenAsync(
-                user);
+        string confirmationToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
 
         if (string.IsNullOrWhiteSpace(confirmationToken))
         {
@@ -552,9 +524,7 @@ public class AccountController : Controller
         }
 
         string encodedToken =
-            WebEncoders.Base64UrlEncode(
-                Encoding.UTF8.GetBytes(
-                    confirmationToken));
+            WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(confirmationToken));
 
         string? confirmationUrl = Url.Action(
             action: "Confirm",
@@ -577,9 +547,7 @@ public class AccountController : Controller
 
         try
         {
-            await _emailSender.SendConfirmationAsync(
-                email,
-                confirmationUrl);
+            await _emailSender.SendConfirmationAsync(email, confirmationUrl);
         }
         catch (Exception exception)
         {
@@ -598,71 +566,54 @@ public class AccountController : Controller
 
         HttpContext.Session.Clear();
 
-        HttpContext.Session.SetString(
-            PendingRegistrationUserIdKey,
-            user.Id);
+        HttpContext.Session.SetString(PendingRegistrationUserIdKey, user.Id);
 
-        return RedirectToAction(
-            nameof(RegistrationPending));
+        return RedirectToAction(nameof(RegistrationPending));
     }
 
-    /// <summary>
-    /// Viser status for e-postbekreftelse og tofaktor etter registrering.
-    /// </summary>
-    /// <returns>Et MVC-resultat.</returns>
+    /*
+        GET /Account/RegistrationPending
+        Siden «Sjekk e-posten din». Den spør serveren med jevne mellomrom om e-posten er
+        bekreftet, og går videre av seg selv.
+    */
     [AllowAnonymous]
     [HttpGet]
-    [ResponseCache(
-        Location = ResponseCacheLocation.None,
-        NoStore = true)]
+    [ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
     public async Task<IActionResult> RegistrationPending()
     {
-        string? pendingUserId =
-            HttpContext.Session.GetString(
-                PendingRegistrationUserIdKey);
+        string? pendingUserId = HttpContext.Session.GetString(PendingRegistrationUserIdKey);
 
         if (string.IsNullOrWhiteSpace(pendingUserId))
         {
-            return RedirectToAction(
-                "Index",
-                "Home");
+            return RedirectToAction("Index", "Home");
         }
 
-        ApplicationUser? user =
-            await _userManager.FindByIdAsync(
-                pendingUserId);
+        ApplicationUser? user = await _userManager.FindByIdAsync(pendingUserId);
 
         if (user is null)
         {
-            HttpContext.Session.Remove(
-                PendingRegistrationUserIdKey);
+            HttpContext.Session.Remove(PendingRegistrationUserIdKey);
 
-            return RedirectToAction(
-                "Index",
-                "Home");
+            return RedirectToAction("Index", "Home");
         }
 
-        bool emailConfirmed =
-            await _userManager.IsEmailConfirmedAsync(user);
+        bool emailConfirmed = await _userManager.IsEmailConfirmedAsync(user);
 
-        bool twoFactorEnabled =
-            await _userManager.GetTwoFactorEnabledAsync(user);
+        bool twoFactorEnabled = await _userManager.GetTwoFactorEnabledAsync(user);
 
-        ViewData["RegistrationComplete"] =
-            emailConfirmed && twoFactorEnabled;
+        ViewData["RegistrationComplete"] = emailConfirmed && twoFactorEnabled;
 
         return View();
     }
 
-
     #endregion
 
-    #region Demoinnlogging og utlogging
+    #region Demoinnlogging, utlogging og ingen tilgang
 
-    /// <summary>
-    /// Logger inn den forhåndsopprettede offentlige testbrukeren kun i utviklingsmiljø.
-    /// </summary>
-    /// <returns>Et MVC-resultat.</returns>
+    /*
+        POST /Account/DemoPublicActorLogin
+        Demo-knapp for å logge inn som offentlig aktør. Virker bare i utviklingsmiljøet.
+    */
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DemoPublicActorLogin()
@@ -673,8 +624,7 @@ public class AccountController : Controller
         }
 
         ApplicationUser? publicActor =
-            await _userManager.FindByEmailAsync(
-                IdentitySeeder.PublicActorEmail);
+            await _userManager.FindByEmailAsync(IdentitySeeder.PublicActorEmail);
 
         if (publicActor is null)
         {
@@ -686,21 +636,16 @@ public class AccountController : Controller
         }
 
         bool hasCorrectRole =
-            await _userManager.IsInRoleAsync(
-                publicActor,
-                IdentitySeeder.PublicActorRole);
+            await _userManager.IsInRoleAsync(publicActor, IdentitySeeder.PublicActorRole);
 
         if (!hasCorrectRole)
         {
-            TempData["LoginError"] =
-                "Offentlig testbruker mangler riktig rolle.";
+            TempData["LoginError"] = "Offentlig testbruker mangler riktig rolle.";
 
             return RedirectToAction("Index", "Home");
         }
 
-        bool twoFactorEnabled =
-            await _userManager.GetTwoFactorEnabledAsync(
-                publicActor);
+        bool twoFactorEnabled = await _userManager.GetTwoFactorEnabledAsync(publicActor);
 
         if (twoFactorEnabled)
         {
@@ -714,13 +659,9 @@ public class AccountController : Controller
 
         await _signInManager.SignOutAsync();
 
-        await _signInManager.SignInAsync(
-            publicActor,
-            isPersistent: false);
+        await _signInManager.SignInAsync(publicActor, isPersistent: false);
 
-        CreateSession(
-            publicActor,
-            IdentitySeeder.PublicActorRole);
+        CreateSession(publicActor, IdentitySeeder.PublicActorRole);
 
         await this.AuditAsync(
             AuditActions.Login,
@@ -728,37 +669,34 @@ public class AccountController : Controller
             publicActor.Id,
             publicActor.Email);
 
-        return RedirectToAction(
-            "Dashboard",
-            "Home");
+        return RedirectToAction("Dashboard", "Home");
     }
 
-    /// <summary>
-    /// Logger ut brukeren og tømmer sesjonsdata.
-    /// </summary>
-    /// <returns>Et MVC-resultat.</returns>
+    /*
+        POST /Account/Logout
+        «Logg ut». Utlogging er et skjema (POST), ikke en vanlig lenke, så en annen
+        nettside ikke kan logge deg ut.
+    */
     [Authorize]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
-        await this.AuditAsync(
-            AuditActions.Logout,
-            "Logget ut");
+        await this.AuditAsync(AuditActions.Logout, "Logget ut");
 
         await _signInManager.SignOutAsync();
 
         HttpContext.Session.Clear();
 
-        return RedirectToAction(
-            "Index",
-            "Home");
+        return RedirectToAction("Index", "Home");
     }
 
-    /// <summary>
-    /// Viser en tilgangsfeil via forsiden.
-    /// </summary>
-    /// <returns>Et MVC-resultat.</returns>
+    /*
+        GET /Account/AccessDenied
+        Viser en tilgangsfeil via forsiden.
+
+        Returnerer: Et MVC-resultat.
+    */
     [AllowAnonymous]
     [HttpGet]
     public IActionResult AccessDenied()
@@ -767,35 +705,31 @@ public class AccountController : Controller
             "Du har ikke tilgang til denne " +
             "delen av Beredskapsportalen.";
 
-        return RedirectToAction(
-            "Index",
-            "Home");
+        return RedirectToAction("Index", "Home");
     }
 
     #endregion
 
     #region Profil
 
-    /// <summary>
-    /// Henter innlogget brukers profil.
-    /// </summary>
-    /// <returns>Et MVC-resultat.</returns>
+    /*
+        GET /Account/Profile
+        «Profil»: navn, telefon og e-post.
+    */
     [Authorize]
     [HttpGet]
     public async Task<IActionResult> Profile()
     {
-        ApplicationUser? user =
-            await _userManager.GetUserAsync(User);
+        ApplicationUser? user = await _userManager.GetUserAsync(User);
 
         if (user is null)
         {
             return Challenge();
         }
 
-        var phone =
-            SplitPhoneNumber(user.PhoneNumber);
+        (string CountryCode, string? Number) phone = SplitPhoneNumber(user.PhoneNumber);
 
-        var model = new ProfileViewModel
+        ProfileViewModel model = new ProfileViewModel
         {
             Name = user.Name,
 
@@ -811,19 +745,19 @@ public class AccountController : Controller
         return View(model);
     }
 
-    /// <summary>
-    /// Oppdaterer profilopplysninger og starter bekreftelse ved e-postendring.
-    /// </summary>
-    /// <param name="model">Endrede profilopplysninger.</param>
-    /// <returns>Et MVC-resultat.</returns>
+    /*
+        POST /Account/Profile
+        Oppdaterer profilopplysninger og starter bekreftelse ved e-postendring.
+
+        model: Endrede profilopplysninger.
+        Returnerer: Et MVC-resultat.
+    */
     [Authorize]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Profile(
-        ProfileViewModel model)
+    public async Task<IActionResult> Profile(ProfileViewModel model)
     {
-        ApplicationUser? user =
-            await _userManager.GetUserAsync(User);
+        ApplicationUser? user = await _userManager.GetUserAsync(User);
 
         if (user is null)
         {
@@ -843,19 +777,13 @@ public class AccountController : Controller
             ?? string.Empty;
 
         bool emailChanged =
-            !string.Equals(
-                currentEmail,
-                newEmail,
-                StringComparison.OrdinalIgnoreCase);
+            !string.Equals(currentEmail, newEmail, StringComparison.OrdinalIgnoreCase);
 
         if (emailChanged)
         {
-            ApplicationUser? userWithEmail =
-                await _userManager.FindByEmailAsync(
-                    newEmail);
+            ApplicationUser? userWithEmail = await _userManager.FindByEmailAsync(newEmail);
 
-            if (userWithEmail is not null &&
-                userWithEmail.Id != user.Id)
+            if (userWithEmail is not null && userWithEmail.Id != user.Id)
             {
                 ModelState.AddModelError(
                     nameof(ProfileViewModel.Email),
@@ -865,12 +793,9 @@ public class AccountController : Controller
                 return View(model);
             }
 
-            ApplicationUser? userWithUserName =
-                await _userManager.FindByNameAsync(
-                    newEmail);
+            ApplicationUser? userWithUserName = await _userManager.FindByNameAsync(newEmail);
 
-            if (userWithUserName is not null &&
-                userWithUserName.Id != user.Id)
+            if (userWithUserName is not null && userWithUserName.Id != user.Id)
             {
                 ModelState.AddModelError(
                     nameof(ProfileViewModel.Email),
@@ -892,21 +817,15 @@ public class AccountController : Controller
 
         user.Name = model.Name.Trim();
 
-        user.PhoneNumber =
-            BuildPhoneNumber(
-                model.PhoneCountryCode,
-                model.PhoneNumber);
+        user.PhoneNumber = BuildPhoneNumber(model.PhoneCountryCode, model.PhoneNumber);
 
-        IdentityResult updateResult =
-            await _userManager.UpdateAsync(user);
+        IdentityResult updateResult = await _userManager.UpdateAsync(user);
 
         if (!updateResult.Succeeded)
         {
             foreach (IdentityError error in updateResult.Errors)
             {
-                ModelState.AddModelError(
-                    string.Empty,
-                    error.Description);
+                ModelState.AddModelError(string.Empty, error.Description);
             }
 
             return View(model);
@@ -914,47 +833,32 @@ public class AccountController : Controller
 
         await _signInManager.RefreshSignInAsync(user);
 
-        HttpContext.Session.SetString(
-            "UserName",
-            user.Name);
+        HttpContext.Session.SetString("UserName", user.Name);
 
-        HttpContext.Session.SetString(
-            "UserEmail",
-            currentEmail);
+        HttpContext.Session.SetString("UserEmail", currentEmail);
 
-        HttpContext.Session.SetString(
-            "ContactEmail",
-            currentEmail);
+        HttpContext.Session.SetString("ContactEmail", currentEmail);
 
-        HttpContext.Session.SetString(
-            "PhoneCountryCode",
-            model.PhoneCountryCode);
+        HttpContext.Session.SetString("PhoneCountryCode", model.PhoneCountryCode);
 
         if (string.IsNullOrWhiteSpace(model.PhoneNumber))
         {
-            HttpContext.Session.Remove(
-                "PhoneNumber");
+            HttpContext.Session.Remove("PhoneNumber");
         }
         else
         {
-            HttpContext.Session.SetString(
-                "PhoneNumber",
-                model.PhoneNumber.Trim());
+            HttpContext.Session.SetString("PhoneNumber", model.PhoneNumber.Trim());
         }
 
         if (!emailChanged)
         {
-            TempData["ProfileSuccess"] =
-                "Profilen ble oppdatert.";
+            TempData["ProfileSuccess"] = "Profilen ble oppdatert.";
 
-            return RedirectToAction(
-                nameof(Profile));
+            return RedirectToAction(nameof(Profile));
         }
 
-        string changeToken =
-            await _userManager.GenerateChangeEmailTokenAsync(
-                user,
-                newEmail);
+        // Ny e-post må bekreftes fra den nye adressen før den tas i bruk.
+        string changeToken = await _userManager.GenerateChangeEmailTokenAsync(user, newEmail);
 
         if (string.IsNullOrWhiteSpace(changeToken))
         {
@@ -967,10 +871,7 @@ public class AccountController : Controller
             return View(model);
         }
 
-        string encodedToken =
-            WebEncoders.Base64UrlEncode(
-                Encoding.UTF8.GetBytes(
-                    changeToken));
+        string encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(changeToken));
 
         string? confirmationUrl = Url.Action(
             action: "ConfirmChange",
@@ -996,9 +897,7 @@ public class AccountController : Controller
 
         try
         {
-            await _emailSender!.SendConfirmationAsync(
-                newEmail,
-                confirmationUrl);
+            await _emailSender!.SendConfirmationAsync(newEmail, confirmationUrl);
         }
         catch (Exception)
         {
@@ -1019,28 +918,30 @@ public class AccountController : Controller
             "Den gamle adressen fungerer " +
             "frem til den nye er bekreftet.";
 
-        return RedirectToAction(
-            nameof(Profile));
+        return RedirectToAction(nameof(Profile));
     }
 
     #endregion
-        #region Kontosletting
 
-    /// <summary>
-    /// Sletter brukerens konto og tilhørende data i én databasetransaksjon.
-    /// </summary>
-    /// <param name="currentPassword">Brukerens gjeldende passord.</param>
-    /// <param name="confirmDeletion">Bekreftelse på permanent sletting.</param>
-    /// <returns>Et MVC-resultat.</returns>
+    #region Slett konto
+
+    /*
+        POST /Account/DeleteAccount
+        «Slett konto». Krever avkrysning og riktig passord. Admin kan ikke slette seg
+        selv her.
+
+        Sletter brukerens konto og tilhørende data i én databasetransaksjon.
+
+        currentPassword: Brukerens gjeldende passord.
+        confirmDeletion: Bekreftelse på permanent sletting.
+        Returnerer: Et MVC-resultat.
+    */
     [Authorize]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteAccount(
-        string? currentPassword,
-        bool confirmDeletion)
+    public async Task<IActionResult> DeleteAccount(string? currentPassword, bool confirmDeletion)
     {
-        ApplicationUser? user =
-            await _userManager.GetUserAsync(User);
+        ApplicationUser? user = await _userManager.GetUserAsync(User);
 
         if (user is null)
         {
@@ -1050,28 +951,22 @@ public class AccountController : Controller
         // Krev bekreftelse fra profilsiden.
         if (!confirmDeletion)
         {
-            TempData["ProfileError"] =
-                "Du må bekrefte at du vil slette kontoen.";
+            TempData["ProfileError"] = "Du må bekrefte at du vil slette kontoen.";
 
             return RedirectToAction(nameof(Profile));
         }
 
         // Krev riktig passord.
         if (string.IsNullOrWhiteSpace(currentPassword) ||
-            !await _userManager.CheckPasswordAsync(
-                user,
-                currentPassword))
+            !await _userManager.CheckPasswordAsync(user, currentPassword))
         {
-            TempData["ProfileError"] =
-                "Passordet er feil. Kontoen er ikke slettet.";
+            TempData["ProfileError"] = "Passordet er feil. Kontoen er ikke slettet.";
 
             return RedirectToAction(nameof(Profile));
         }
 
         // Administratorer må fortsatt beskyttes.
-        if (await _userManager.IsInRoleAsync(
-                user,
-                IdentitySeeder.AdminRole))
+        if (await _userManager.IsInRoleAsync(user, IdentitySeeder.AdminRole))
         {
             TempData["ProfileError"] =
                 "Administratorkontoer kan ikke slettes " +
@@ -1080,10 +975,9 @@ public class AccountController : Controller
             return RedirectToAction(nameof(Profile));
         }
 
-        if (_dbContext is null)
+        if (_context is null)
         {
-            _logger?.LogError(
-                "Databasekontekst mangler ved kontosletting.");
+            _logger?.LogError("Databasekontekst mangler ved kontosletting.");
 
             TempData["ProfileError"] =
                 "Databasen er ikke tilgjengelig. " +
@@ -1094,65 +988,68 @@ public class AccountController : Controller
 
         try
         {
-            // Identity og resten av applikasjonen
-            // bruker ApplicationDbContext.
-            //
-            // For atomisk sletting må UserManager
-            // bruke samme scoped DbContext-instans.
+            /*
+                Identity og resten av applikasjonen
+                bruker ApplicationDbContext.
 
-            await using var transaction =
-                await _dbContext.Database.BeginTransactionAsync();
+                For atomisk sletting må UserManager
+                bruke samme scoped DbContext-instans.
+            */
+
+            await using IDbContextTransaction transaction =
+                /*
+                    Alt slettes i én operasjon: ressurser, behov, varsler og brukeren. Går noe
+                    galt, angres alt.
+                */
+                await _context.Database.BeginTransactionAsync();
 
             string userId = user.Id;
             string? email = user.Email;
 
-            var ownedResources =
-                await _dbContext.Resources
-                    .Where(resource =>
-                        resource.OwnerUserId == userId)
+            List<Resource> ownedResources =
+                await _context.Resources
+                    .Where(resource => resource.OwnerUserId == userId)
                     .ToListAsync();
 
-            // Behov fra eldre versjoner kan være
-            // knyttet til e-post i stedet for bruker-ID.
+            /*
+                Behov fra eldre versjoner kan være
+                knyttet til e-post i stedet for bruker-ID.
+            */
 
-            var ownedNeeds =
-                await _dbContext.Needs
+            List<Need> ownedNeeds =
+                await _context.Needs
                     .Where(need =>
                         need.OwnerUserId == userId ||
-                        (
-                            need.OwnerUserId == null &&
-                            email != null &&
-                            need.OwnerEmail == email
-                        ))
+                        (need.OwnerUserId == null && email != null && need.OwnerEmail == email))
                     .ToListAsync();
 
-            var notifications =
-                await _dbContext.Notifications
-                    .Where(notification =>
-                        notification.UserId == userId)
+            List<Notification> notifications =
+                await _context.Notifications
+                    .Where(notification => notification.UserId == userId)
                     .ToListAsync();
 
-            // NeedAssignment har Cascade for både
-            // ResourceId og NeedId i ApplicationDbContext.
-            //
-            // Dermed slettes tilknyttede forespørsler
-            // og tildelinger når disse oppføringene
-            // slettes, forutsatt at databaseskjemaet
-            // har de samme fremmednøkkelreglene.
+            /*
+                NeedAssignment har Cascade for både
+                ResourceId og NeedId i ApplicationDbContext.
 
-            _dbContext.Notifications
+                Dermed slettes tilknyttede forespørsler
+                og tildelinger når disse oppføringene
+                slettes, forutsatt at databaseskjemaet
+                har de samme fremmednøkkelreglene.
+            */
+
+            _context.Notifications
                 .RemoveRange(notifications);
 
-            _dbContext.Resources
+            _context.Resources
                 .RemoveRange(ownedResources);
 
-            _dbContext.Needs
+            _context.Needs
                 .RemoveRange(ownedNeeds);
 
-            await _dbContext.SaveChangesAsync();
+            await _context.SaveChangesAsync();
 
-            IdentityResult deleteResult =
-                await _userManager.DeleteAsync(user);
+            IdentityResult deleteResult = await _userManager.DeleteAsync(user);
 
             if (!deleteResult.Succeeded)
             {
@@ -1161,9 +1058,7 @@ public class AccountController : Controller
                 _logger?.LogWarning(
                     "Kontosletting feilet for bruker {UserId}: {Errors}",
                     userId,
-                    string.Join(", ",
-                        deleteResult.Errors.Select(
-                            error => error.Code)));
+                    string.Join(", ", deleteResult.Errors.Select(error => error.Code)));
 
                 TempData["ProfileError"] =
                     "Kontoen kunne ikke slettes. " +
@@ -1172,6 +1067,7 @@ public class AccountController : Controller
                 return RedirectToAction(nameof(Profile));
             }
 
+            // Først her blir slettingen permanent.
             await transaction.CommitAsync();
 
             _logger?.LogInformation(
@@ -1186,10 +1082,7 @@ public class AccountController : Controller
         }
         catch (DbUpdateException exception)
         {
-            _logger?.LogError(
-                exception,
-                "Databasefeil under kontosletting for {UserId}.",
-                user.Id);
+            _logger?.LogError(exception, "Databasefeil under kontosletting for {UserId}.", user.Id);
 
             TempData["ProfileError"] =
                 "Databasen kunne ikke fullføre slettingen. " +
@@ -1199,10 +1092,7 @@ public class AccountController : Controller
         }
         catch (Exception exception)
         {
-            _logger?.LogError(
-                exception,
-                "Uventet feil under kontosletting for {UserId}.",
-                user.Id);
+            _logger?.LogError(exception, "Uventet feil under kontosletting for {UserId}.", user.Id);
 
             TempData["ProfileError"] =
                 "Det oppstod en feil under kontoslettingen. " +
@@ -1228,23 +1118,21 @@ public class AccountController : Controller
 
     #region Hjelpemetoder
 
-    /// <summary>
-    /// Kombinerer landskode og telefonnummer uten mellomrom eller bindestreker.
-    /// </summary>
-    /// <param name="countryCode">Telefonens landskode.</param>
-    /// <param name="phoneNumber">Lokalt telefonnummer.</param>
-    /// <returns>Normalisert telefonnummer eller null.</returns>
-    private static string? BuildPhoneNumber(
-        string countryCode,
-        string? phoneNumber)
+    /*
+        Kombinerer landskode og telefonnummer uten mellomrom eller bindestreker.
+
+        countryCode: Telefonens landskode.
+        phoneNumber: Lokalt telefonnummer.
+        Returnerer: Normalisert telefonnummer eller null.
+    */
+    private static string? BuildPhoneNumber(string countryCode, string? phoneNumber)
     {
         if (string.IsNullOrWhiteSpace(phoneNumber))
         {
             return null;
         }
 
-        string normalizedCountryCode =
-            countryCode.Trim();
+        string normalizedCountryCode = countryCode.Trim();
 
         string normalizedPhoneNumber =
             phoneNumber
@@ -1255,16 +1143,13 @@ public class AccountController : Controller
             + normalizedPhoneNumber;
     }
 
-    /// <summary>
-    /// Deler et lagret telefonnummer i landskode og lokalt nummer.
-    /// </summary>
-    /// <param name="phoneNumber">Telefonnummer med eventuell landskode.</param>
-    /// <returns>Landskode og lokalt nummer.</returns>
-    private static (
-        string CountryCode,
-        string? Number
-    ) SplitPhoneNumber(
-        string? phoneNumber)
+    /*
+        Deler et lagret telefonnummer i landskode og lokalt nummer.
+
+        phoneNumber: Telefonnummer med eventuell landskode.
+        Returnerer: Landskode og lokalt nummer.
+    */
+    private static (string CountryCode, string? Number) SplitPhoneNumber(string? phoneNumber)
     {
         if (string.IsNullOrWhiteSpace(phoneNumber))
         {
@@ -1280,30 +1165,24 @@ public class AccountController : Controller
 
         foreach (string countryCode in supportedCountryCodes)
         {
-            if (phoneNumber.StartsWith(
-                countryCode,
-                StringComparison.Ordinal))
+            if (phoneNumber.StartsWith(countryCode, StringComparison.Ordinal))
             {
-                return (
-                    countryCode,
-                    phoneNumber[countryCode.Length..]
-                );
+                return (countryCode, phoneNumber[countryCode.Length..]);
             }
         }
 
         return ("+47", phoneNumber);
     }
 
-    /// <summary>
-    /// Velger brukerens primære rolle etter portalens rolleprioritet.
-    /// </summary>
-    /// <param name="user">Brukeren som rollene skal hentes for.</param>
-    /// <returns>Rollen som brukes til sesjonsinformasjon.</returns>
-    private async Task<string> GetPrimaryRoleAsync(
-        ApplicationUser user)
+    /*
+        Velger brukerens primære rolle etter portalens rolleprioritet.
+
+        user: Brukeren som rollene skal hentes for.
+        Returnerer: Rollen som brukes til sesjonsinformasjon.
+    */
+    private async Task<string> GetPrimaryRoleAsync(ApplicationUser user)
     {
-        IList<string> roles =
-            await _userManager.GetRolesAsync(user);
+        IList<string> roles = await _userManager.GetRolesAsync(user);
 
         if (roles.Contains(IdentitySeeder.AdminRole))
         {
@@ -1318,14 +1197,11 @@ public class AccountController : Controller
         return IdentitySeeder.ResourceProviderRole;
     }
 
-    /// <summary>
-    /// Oppdaterer eksisterende sesjonsnøkler fra den innloggede brukeren.
-    /// </summary>
-    /// <param name="user">Autentisert bruker.</param>
-    /// <param name="role">Primærrolle.</param>
-    private void CreateSession(
-        ApplicationUser user,
-        string role)
+    /*
+        Lagrer navn, rolle og e-post i Session, slik at menyen øverst kan vise dem uten å spørre
+        databasen hver gang. Det er fortsatt Identity-cookien som bestemmer om man er innlogget.
+    */
+    private void CreateSession(ApplicationUser user, string role)
     {
         HttpContext.Session.Clear();
 
@@ -1339,48 +1215,34 @@ public class AccountController : Controller
                 ? email
                 : user.Name;
 
-        HttpContext.Session.SetString(
-            "UserEmail",
-            email);
+        HttpContext.Session.SetString("UserEmail", email);
 
-        HttpContext.Session.SetString(
-            "UserName",
-            name);
+        HttpContext.Session.SetString("UserName", name);
 
-        HttpContext.Session.SetString(
-            "UserRole",
-            role);
+        HttpContext.Session.SetString("UserRole", role);
 
-        HttpContext.Session.SetString(
-            "ContactEmail",
-            email);
+        HttpContext.Session.SetString("ContactEmail", email);
 
-        var phone =
-            SplitPhoneNumber(user.PhoneNumber);
+        (string CountryCode, string? Number) phone = SplitPhoneNumber(user.PhoneNumber);
 
-        HttpContext.Session.SetString(
-            "PhoneCountryCode",
-            phone.CountryCode);
+        HttpContext.Session.SetString("PhoneCountryCode", phone.CountryCode);
 
         if (string.IsNullOrWhiteSpace(phone.Number))
         {
-            HttpContext.Session.Remove(
-                "PhoneNumber");
+            HttpContext.Session.Remove("PhoneNumber");
         }
         else
         {
-            HttpContext.Session.SetString(
-                "PhoneNumber",
-                phone.Number);
+            HttpContext.Session.SetString("PhoneNumber", phone.Number);
         }
     }
 
-    /// <summary>
-    /// Bevarer skjemaverdier ved redirect til eksisterende registreringspopup.
-    /// </summary>
-    /// <param name="model">Registreringsdata.</param>
-    private void SaveRegistrationValues(
-        RegisterViewModel model)
+    /*
+        Bevarer skjemaverdier ved redirect til eksisterende registreringspopup.
+
+        model: Registreringsdata.
+    */
+    private void SaveRegistrationValues(RegisterViewModel model)
     {
         TempData["RegisterName"] =
             model.Name?.Trim()

@@ -1,3 +1,8 @@
+@*
+    TwoFactor/Login.cshtml
+
+    Hva filen gjør: Skriv inn den 6-sifrede koden fra e-posten (andre steg av innloggingen).
+*@
 
 @model FirstWebAppInDocker.ViewModels.TwoFactorLoginViewModel
 
@@ -44,9 +49,7 @@
             font-family: inherit;
         }
 
-        /* ========================================
-           HEADER
-           ======================================== */
+        /* --- Topp --- */
 
         .site-header {
             background: white;
@@ -81,9 +84,7 @@
             color: #168169;
         }
 
-        /* ========================================
-           PAGE
-           ======================================== */
+        /* --- Side --- */
 
         .page {
             max-width: 720px;
@@ -91,9 +92,7 @@
             padding: 42px 24px 70px;
         }
 
-        /* ========================================
-           HERO
-           ======================================== */
+        /* --- Toppbanner --- */
 
         .hero {
             padding: 38px 40px;
@@ -129,9 +128,7 @@
             line-height: 1.7;
         }
 
-        /* ========================================
-           CONTENT CARD
-           ======================================== */
+        /* --- Innholdskort --- */
 
         .login-card {
             margin-top: 25px;
@@ -170,9 +167,7 @@
             line-height: 1.7;
         }
 
-        /* ========================================
-           E-POST INFORMATION
-           ======================================== */
+        /* --- E-postinformasjon --- */
 
         .email-notice {
             display: flex;
@@ -220,9 +215,7 @@
             line-height: 1.6;
         }
 
-        /* ========================================
-           FORM
-           ======================================== */
+        /* --- Skjema --- */
 
         .form-label {
             display: block;
@@ -274,9 +267,7 @@
             line-height: 1.5;
         }
 
-        /* ========================================
-           VALIDATION
-           ======================================== */
+        /* --- Validering --- */
 
         .validation {
             display: block;
@@ -317,9 +308,7 @@
             font-weight: 700;
         }
 
-        /* ========================================
-           BUTTONS
-           ======================================== */
+        /* --- Knapper --- */
 
         .primary-button {
             width: 100%;
@@ -364,9 +353,7 @@
             background: #f4f6f7;
         }
 
-        /* ========================================
-           RESEND SECTION
-           ======================================== */
+        /* --- Send kode på nytt --- */
 
         .divider {
             display: flex;
@@ -415,9 +402,7 @@
             line-height: 1.6;
         }
 
-        /* ========================================
-           SECURITY NOTE
-           ======================================== */
+        /* --- Sikkerhetsmerknad --- */
 
         .security-note {
             margin-top: 26px;
@@ -452,9 +437,7 @@
             color: #168169;
         }
 
-        /* ========================================
-           RESPONSIVE
-           ======================================== */
+        /* --- Responsivt --- */
 
         @@media (max-width: 600px) {
 
@@ -604,7 +587,7 @@
              ======================================== -->
 
         @if (
-            TempData["TwoFactorMessage"]
+            TempData["TwoFactorSuccess"]
             is string successMessage
         )
         {

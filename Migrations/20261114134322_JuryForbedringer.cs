@@ -1,4 +1,14 @@
-﻿using System;
+﻿/*
+    20261114134322_JuryForbedringer.cs – migrasjon (autogenerert)
+
+    Hva filen gjør: Endring i databasen: aktivitetsloggen (AuditLog) og nye felt på behov: frist
+    og kontaktperson. Up() gjør endringen, Down() angrer den. Kjøres automatisk når appen
+    starter. Trenger ikke forklares linje for linje.
+
+    Oppgavekrav: 1, 7
+*/
+
+using System;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 

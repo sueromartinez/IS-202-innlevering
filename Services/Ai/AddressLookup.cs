@@ -1,52 +1,59 @@
+/*
+    AddressLookup.cs – fra adresse til kartposisjon
+
+    Hva filen gjør: Slår først opp i Kartverkets adresse-API (offisielle norske adresser), og
+    bruker Nominatim/OpenStreetMap som reserve for stedsnavn uten gateadresse.
+
+    På nettsiden: Brukes når Sami registrerer en ressurs ut fra en adresse brukeren skriver i
+    chatten.
+*/
+
 using System.Globalization;
 using System.Text.Json;
 
 namespace FirstWebAppInDocker.Services.Ai;
 
-/// <summary>
-/// Resultatet av et adresseoppslag, delt opp slik
-/// registreringsskjemaet for ressurser vil ha det.
-/// </summary>
+/*
+    Resultatet av et adresseoppslag, delt opp slik
+    registreringsskjemaet for ressurser vil ha det.
+*/
 public record AddressResult(
     string StreetAddress,
     string? PostalLocation,
     string? Municipality,
     double Latitude,
-    double Longitude
-);
+    double Longitude);
 
-
-/// <summary>
-/// Gjør en adresse eller et stedsnavn om til en plassering.
-/// Eget grensesnitt, slik at testene kan bruke et falskt oppslag uten nettverk.
-/// </summary>
+/*
+    Gjør en adresse eller et stedsnavn om til en plassering.
+    Eget grensesnitt, slik at testene kan bruke et falskt oppslag uten nettverk.
+*/
 public interface IAddressLookup
 {
     Task<AddressResult?> LookupAsync(string text, CancellationToken cancellationToken);
 }
 
-
-/// <summary>
-/// Slår opp adresser hos Kartverket, samme tjeneste som adressefeltet
-/// i registreringsskjemaet bruker. Finner Kartverket ingen adresse
-/// (f.eks. bare et stedsnavn som «Grimstad sentrum»), brukes Nominatim.
-/// </summary>
+/*
+    Slår opp adresser hos Kartverket, samme tjeneste som adressefeltet
+    i registreringsskjemaet bruker. Finner Kartverket ingen adresse
+    (f.eks. bare et stedsnavn som «Grimstad sentrum»), brukes Nominatim.
+*/
 public class KartverketAddressLookup : IAddressLookup
 {
+    #region Felt og konstruktør
+
     private readonly HttpClient _httpClient;
 
-    private readonly NominatimGeocoder _nominatim;
+    private readonly NominatimGeocoder _geocoder;
 
     private readonly ILogger<KartverketAddressLookup> _logger;
-
 
     public KartverketAddressLookup(
         HttpClient httpClient,
         NominatimGeocoder nominatim,
-        ILogger<KartverketAddressLookup> logger
-    )
+        ILogger<KartverketAddressLookup> logger)
     {
-        _nominatim = nominatim;
+        _geocoder = nominatim;
         _logger = logger;
 
         _httpClient = httpClient;
@@ -54,6 +61,9 @@ public class KartverketAddressLookup : IAddressLookup
         _httpClient.Timeout = TimeSpan.FromSeconds(10);
     }
 
+    #endregion
+
+    #region Adressesøk
 
     public async Task<AddressResult?> LookupAsync(string text, CancellationToken cancellationToken)
     {
@@ -72,7 +82,7 @@ public class KartverketAddressLookup : IAddressLookup
         }
 
         // Stedsnavn uten gateadresse: bruk Nominatim og behold teksten som adresse.
-        GeocodeResult? place = await _nominatim.GeocodeAsync(query, cancellationToken);
+        GeocodeResult? place = await _geocoder.GeocodeAsync(query, cancellationToken);
 
         if (place is null)
         {
@@ -87,6 +97,9 @@ public class KartverketAddressLookup : IAddressLookup
             place.Longitude);
     }
 
+    #endregion
+
+    #region Hjelpemetoder
 
     private async Task<AddressResult?> SearchKartverketAsync(string query, CancellationToken cancellationToken)
     {
@@ -152,14 +165,12 @@ public class KartverketAddressLookup : IAddressLookup
         }
     }
 
-
     private static string? GetString(JsonElement element, string name)
     {
         return element.TryGetProperty(name, out JsonElement value) && value.ValueKind == JsonValueKind.String
             ? value.GetString()
             : null;
     }
-
 
     private static bool TryGetNumber(JsonElement element, string name, out double number)
     {
@@ -171,10 +182,7 @@ public class KartverketAddressLookup : IAddressLookup
             && double.IsFinite(number);
     }
 
-
-    /// <summary>
-    /// Kartverket skriver kommunenavn med store bokstaver ("GRIMSTAD").
-    /// </summary>
+    // Kartverket skriver kommunenavn med store bokstaver ("GRIMSTAD").
     private static string? ToTitleCase(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -184,4 +192,6 @@ public class KartverketAddressLookup : IAddressLookup
 
         return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(value.ToLowerInvariant());
     }
+
+    #endregion
 }

@@ -1,3 +1,14 @@
+/*
+    resource-address.js – adressesøk i skjemaet
+
+    Hva filen gjør: Mens brukeren skriver, søkes det hos Kartverket og forslag vises. Velger man
+    en adresse, flyttes markøren dit. Klikker man i kartet, slås nærmeste adresse opp.
+
+    På nettsiden: Forslagslisten under adressefeltet i «Registrer ressurs».
+
+    Oppgavekrav: 11, 19
+*/
+
 // Kobler adressefeltene til samme kart og lagrer samlet adresse i det eksisterende feltet.
 function setupResourceAddress(map, onAddressSelected) {
     const street = document.getElementById('StreetAddress');

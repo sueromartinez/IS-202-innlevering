@@ -1,3 +1,14 @@
+/*
+    NotificationController.cs – varsler
+
+    Hva filen gjør: Viser den innloggede brukerens varsler og markerer dem som lest.
+
+    På nettsiden: Siden «Varsler». Nye varsler er uthevet første gang de vises. Tallet på klokka
+    kommer fra NotificationBellViewComponent.
+
+    Oppgavekrav: 10, 18
+*/
+
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -7,31 +18,33 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FirstWebAppInDocker.Controllers;
 
-/// <summary>
-/// Varsellisten bak varselklokken. Alle innloggede brukere har en.
-/// </summary>
+// Varsellisten bak varselklokken. Alle innloggede brukere har en.
 [Authorize]
 public class NotificationController : Controller
 {
+    #region Felt og konstruktør
+
     private readonly ApplicationDbContext _context;
 
     private readonly UserManager<ApplicationUser> _userManager;
 
-
     public NotificationController(
         ApplicationDbContext context,
-        UserManager<ApplicationUser> userManager
-    )
+        UserManager<ApplicationUser> userManager)
     {
         _context = context;
         _userManager = userManager;
     }
 
+    #endregion
 
-    /// <summary>
-    /// Viser de siste varslene. Uleste varsler vises uthevet
-    /// én gang, og markeres deretter som lest.
-    /// </summary>
+    #region Varsler
+
+    /*
+        GET /Notification
+        Viser de siste varslene. Uleste varsler vises uthevet
+        én gang, og markeres deretter som lest.
+    */
     [HttpGet]
     public async Task<IActionResult> Index()
     {
@@ -44,8 +57,10 @@ public class NotificationController : Controller
                 .Take(50)
                 .ToListAsync();
 
-        // Lager en kopi av lest-status før den endres,
-        // slik at visningen kan utheve de som var nye.
+        /*
+            Lager en kopi av lest-status før den endres,
+            slik at visningen kan utheve de som var nye.
+        */
         HashSet<int> unreadIds =
             notifications
                 .Where(notification => !notification.IsRead)
@@ -63,4 +78,6 @@ public class NotificationController : Controller
 
         return View(notifications);
     }
+
+    #endregion
 }

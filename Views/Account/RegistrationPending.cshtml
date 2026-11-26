@@ -1,3 +1,9 @@
+@*
+    RegistrationPending.cshtml – «Sjekk e-posten din»
+
+    Hva filen gjør: Vises etter registrering. JavaScript spør serveren med jevne mellomrom om
+    e-posten er bekreftet, og går videre av seg selv.
+*@
 
 @{
     Layout = null;
@@ -50,9 +56,7 @@
             color: #123047;
         }
 
-        /* ========================================
-           BACKGROUND
-           ======================================== */
+        /* --- Bakgrunn --- */
 
         .background {
             min-height: 100vh;
@@ -106,9 +110,7 @@
             line-height: 1.6;
         }
 
-        /* ========================================
-           MODAL OVERLAY
-           ======================================== */
+        /* --- Dialogbakgrunn --- */
 
         .modal-overlay {
             position: fixed;
@@ -140,9 +142,7 @@
                 0 25px 90px rgba(0, 0, 0, 0.22);
         }
 
-        /* ========================================
-           ICON
-           ======================================== */
+        /* --- Ikon --- */
 
         .icon-container {
             width: 82px;
@@ -165,9 +165,7 @@
             height: 40px;
         }
 
-        /* ========================================
-           TEXT
-           ======================================== */
+        /* --- Tekst --- */
 
         .modal-label {
             display: inline-block;
@@ -203,9 +201,7 @@
             line-height: 1.75;
         }
 
-        /* ========================================
-           WAITING STATUS
-           ======================================== */
+        /* --- Status: venter --- */
 
         .waiting-status {
             margin-top: 28px;
@@ -250,9 +246,7 @@
             line-height: 1.7;
         }
 
-        /* ========================================
-           SUCCESS STATUS
-           ======================================== */
+        /* --- Status: vellykket --- */
 
         .success-info {
             margin-top: 25px;
@@ -272,9 +266,7 @@
             margin-bottom: 5px;
         }
 
-        /* ========================================
-           BUTTONS
-           ======================================== */
+        /* --- Knapper --- */
 
         .primary-button {
             display: block;
@@ -317,9 +309,7 @@
             color: #168169;
         }
 
-        /* ========================================
-           RESPONSIVE
-           ======================================== */
+        /* --- Responsivt --- */
 
         @@media (max-width: 600px) {
             .background-header {
@@ -676,10 +666,12 @@
 
                 } catch (error) {
 
-                    // Nettverksfeil skal ikke
-                    // ødelegge registreringssiden.
-                    //
-                    // Vi forsøker igjen senere.
+                    /*
+                        Nettverksfeil skal ikke
+                        ødelegge registreringssiden.
+
+                        Vi forsøker igjen senere.
+                    */
 
                 } finally {
                     checking = false;

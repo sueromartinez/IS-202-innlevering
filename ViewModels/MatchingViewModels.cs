@@ -1,11 +1,17 @@
+/*
+    MatchingViewModels.cs
+
+    Hva filen gjør: Det matchingsidene viser: behovet, ressursene og forespørslene.
+
+    Oppgavekrav: 18
+*/
+
 using FirstWebAppInDocker.Models;
 using FirstWebAppInDocker.Services.Matching;
 
 namespace FirstWebAppInDocker.ViewModels;
 
-/// <summary>
-/// Siden "Finn ressurser" for ett behov.
-/// </summary>
+// Siden "Finn ressurser" for ett behov.
 public class MatchNeedViewModel
 {
     public Need Need { get; init; } = new();
@@ -17,11 +23,10 @@ public class MatchNeedViewModel
     public List<AssignmentRowViewModel> Assignments { get; init; } = new();
 }
 
-
-/// <summary>
-/// En forespørsel slik den offentlige aktøren ser den,
-/// med kontaktinformasjon til eieren.
-/// </summary>
+/*
+    En forespørsel slik den offentlige aktøren ser den,
+    med kontaktinformasjon til eieren.
+*/
 public class AssignmentRowViewModel
 {
     public int Id { get; init; }
@@ -45,12 +50,11 @@ public class AssignmentRowViewModel
     public DateTime? RespondedAt { get; init; }
 }
 
-
-/// <summary>
-/// En forespørsel slik den frivillige ser den.
-/// Kontaktinfo til den offentlige aktøren vises først
-/// etter at den frivillige har bekreftet.
-/// </summary>
+/*
+    En forespørsel slik den frivillige ser den.
+    Kontaktinfo til den offentlige aktøren vises først
+    etter at den frivillige har bekreftet.
+*/
 public class VolunteerRequestViewModel
 {
     public int Id { get; init; }
@@ -78,10 +82,7 @@ public class VolunteerRequestViewModel
     public DateTime CreatedAt { get; init; }
 }
 
-
-/// <summary>
-/// Siden "Behov jeg kan hjelpe med".
-/// </summary>
+// Siden "Behov jeg kan hjelpe med".
 public class MatchingNeedsViewModel
 {
     public double RadiusKm { get; init; }

@@ -1,3 +1,11 @@
+/*
+    OllamaChatClient.cs – lokal AI-modell
+
+    Hva filen gjør: Samme jobb som ClaudeChatClient, men mot Ollama som kjører på egen maskin
+    (gratis, ingen data sendes ut). Var førstevalget vårt. Vi byttet til Claude fordi den lokale
+    modellen var treg og gjorde flere feil, men beholdt den som alternativ.
+*/
+
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -5,23 +13,21 @@ using Microsoft.Extensions.Options;
 
 namespace FirstWebAppInDocker.Services.Ai;
 
-/// <summary>
-/// Snakker med en lokal språkmodell via Ollama (https://ollama.com).
-/// Gratis, ingen API-nøkkel, og ingen data forlater maskinen.
-///
-/// Bruker Ollamas /api/chat med verktøy (tool calling).
-/// </summary>
+/*
+    Snakker med en lokal språkmodell via Ollama (https://ollama.com).
+    Gratis, ingen API-nøkkel, og ingen data forlater maskinen.
+
+    Bruker Ollamas /api/chat med verktøy (tool calling).
+*/
 public class OllamaChatClient : IChatModelClient
 {
+    #region Felt og konstruktør
+
     private readonly HttpClient _httpClient;
 
     private readonly SamiOptions.OllamaSettings _settings;
 
-
-    public OllamaChatClient(
-        HttpClient httpClient,
-        IOptions<SamiOptions> options
-    )
+    public OllamaChatClient(HttpClient httpClient, IOptions<SamiOptions> options)
     {
         _settings = options.Value.Ollama;
 
@@ -30,15 +36,17 @@ public class OllamaChatClient : IChatModelClient
         _httpClient.Timeout = TimeSpan.FromSeconds(_settings.TimeoutSeconds);
     }
 
+    #endregion
+
+    #region Kall til Ollama
 
     public async Task<ChatModelResponse> CompleteAsync(
         string systemPrompt,
         IReadOnlyList<ChatMessage> messages,
         IReadOnlyList<ChatToolDefinition> tools,
-        CancellationToken cancellationToken
-    )
+        CancellationToken cancellationToken)
     {
-        var body = new JsonObject
+        JsonObject body = new JsonObject
         {
             ["model"] = _settings.Model,
             ["stream"] = false,
@@ -85,7 +93,7 @@ public class OllamaChatClient : IChatModelClient
                 ? content.GetString()
                 : null;
 
-        var toolCalls = new List<ChatToolCall>();
+        List<ChatToolCall> toolCalls = new List<ChatToolCall>();
 
         if (message.TryGetProperty("tool_calls", out JsonElement calls)
             && calls.ValueKind == JsonValueKind.Array)
@@ -111,13 +119,13 @@ public class OllamaChatClient : IChatModelClient
         };
     }
 
+    #endregion
 
-    private static JsonArray BuildMessages(
-        string systemPrompt,
-        IReadOnlyList<ChatMessage> messages
-    )
+    #region Hjelpemetoder
+
+    private static JsonArray BuildMessages(string systemPrompt, IReadOnlyList<ChatMessage> messages)
     {
-        var result = new JsonArray
+        JsonArray result = new JsonArray
         {
             new JsonObject { ["role"] = "system", ["content"] = systemPrompt }
         };
@@ -135,7 +143,7 @@ public class OllamaChatClient : IChatModelClient
                     break;
 
                 case ChatRole.Assistant:
-                    var assistant = new JsonObject
+                    JsonObject assistant = new JsonObject
                     {
                         ["role"] = "assistant",
                         ["content"] = message.Text ?? string.Empty
@@ -143,7 +151,7 @@ public class OllamaChatClient : IChatModelClient
 
                     if (message.ToolCalls.Count > 0)
                     {
-                        var calls = new JsonArray();
+                        JsonArray calls = new JsonArray();
 
                         foreach (ChatToolCall call in message.ToolCalls)
                         {
@@ -177,10 +185,9 @@ public class OllamaChatClient : IChatModelClient
         return result;
     }
 
-
     private static JsonArray BuildTools(IReadOnlyList<ChatToolDefinition> tools)
     {
-        var result = new JsonArray();
+        JsonArray result = new JsonArray();
 
         foreach (ChatToolDefinition tool in tools)
         {
@@ -200,11 +207,10 @@ public class OllamaChatClient : IChatModelClient
         return result;
     }
 
-
-    /// <summary>
-    /// Ollama sender vanligvis argumentene som et objekt,
-    /// men enkelte modeller sender dem som en JSON-tekst.
-    /// </summary>
+    /*
+        Ollama sender vanligvis argumentene som et objekt,
+        men enkelte modeller sender dem som en JSON-tekst.
+    */
     private static JsonElement ReadArguments(JsonElement function)
     {
         if (!function.TryGetProperty("arguments", out JsonElement arguments))
@@ -226,4 +232,6 @@ public class OllamaChatClient : IChatModelClient
 
         return arguments.Clone();
     }
+
+    #endregion
 }

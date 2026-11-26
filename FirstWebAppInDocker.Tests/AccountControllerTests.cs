@@ -1,3 +1,11 @@
+/*
+    AccountControllerTests.cs – automatiske tester
+
+    Hva filen gjør: Tester innlogging, registrering, passord og sletting av konto. Bruker xUnit,
+    en database i minnet (EF Core InMemory) og Moq, så testene kjører raskt uten Docker.
+
+    Oppgavekrav: 6, 15
+*/
 
 using System.Reflection;
 using System.Security.Claims;
@@ -18,16 +26,13 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
-using IdentitySignInResult =
-    Microsoft.AspNetCore.Identity.SignInResult;
+using IdentitySignInResult = Microsoft.AspNetCore.Identity.SignInResult;
 
 namespace FirstWebAppInDocker.Tests;
 
 public class AccountControllerTests
 {
-    // ========================================
-    // HJELPER - TESTSESSION
-    // ========================================
+    // --- Hjelper: testsession ---
 
     private sealed class TestSession : ISession
     {
@@ -39,12 +44,10 @@ public class AccountControllerTests
 
         public void Clear() => _values.Clear();
 
-        public Task CommitAsync(
-            CancellationToken cancellationToken = default)
+        public Task CommitAsync(CancellationToken cancellationToken = default)
             => Task.CompletedTask;
 
-        public Task LoadAsync(
-            CancellationToken cancellationToken = default)
+        public Task LoadAsync(CancellationToken cancellationToken = default)
             => Task.CompletedTask;
 
         public void Remove(string key)
@@ -53,15 +56,11 @@ public class AccountControllerTests
         public void Set(string key, byte[] value)
             => _values[key] = value;
 
-        public bool TryGetValue(
-            string key,
-            out byte[] value)
+        public bool TryGetValue(string key, out byte[] value)
             => _values.TryGetValue(key, out value!);
     }
 
-    // ========================================
-    // HJELPER - TESTMILJØ
-    // ========================================
+    // --- Hjelper: testmiljø ---
 
     private sealed class TestEnvironment
     {
@@ -90,8 +89,7 @@ public class AccountControllerTests
                 null!,
                 null!,
                 null!,
-                null!
-            );
+                null!);
 
             HttpContext = new DefaultHttpContext
             {
@@ -108,20 +106,19 @@ public class AccountControllerTests
                 Options.Create(new IdentityOptions()),
                 NullLogger<SignInManager<ApplicationUser>>.Instance,
                 Mock.Of<IAuthenticationSchemeProvider>(),
-                Mock.Of<IUserConfirmation<ApplicationUser>>()
-            );
+                Mock.Of<IUserConfirmation<ApplicationUser>>());
 
             Emails = new Mock<IEmailCodeSender>();
 
             UrlHelper = new Mock<IUrlHelper>();
 
-            // To ulike bekreftelseslenker:
-            // registrering og endring av e-post.
+            /*
+                To ulike bekreftelseslenker:
+                registrering og endring av e-post.
+            */
 
             UrlHelper.Setup(helper =>
-                helper.Action(
-                    It.IsAny<UrlActionContext>()
-                )
+                helper.Action(It.IsAny<UrlActionContext>())
             ).Returns((UrlActionContext context) =>
                 context.Action == "ConfirmChange"
                     ? "http://localhost:8080/EmailVerification/ConfirmChange?userId=test-user-123&newEmail=ny%40example.com&code=test"
@@ -131,16 +128,14 @@ public class AccountControllerTests
             Controller = new AccountController(
                 Users.Object,
                 SignIn.Object,
-                emailSender: Emails.Object
-            )
+                emailSender: Emails.Object)
             {
                 ControllerContext = new ControllerContext
                 {
                     HttpContext = HttpContext
                 },
 
-                TempData =
-                    new Mock<ITempDataDictionary>().Object,
+                TempData = new Mock<ITempDataDictionary>().Object,
 
                 Url = UrlHelper.Object
             };
@@ -149,30 +144,22 @@ public class AccountControllerTests
         public void SetCurrentUser(ApplicationUser user)
         {
             Users.Setup(manager =>
-                manager.GetUserAsync(
-                    It.IsAny<ClaimsPrincipal>()
-                )
+                manager.GetUserAsync(It.IsAny<ClaimsPrincipal>())
             ).ReturnsAsync(user);
         }
 
         public void AllowProfileUpdate()
         {
             Users.Setup(manager =>
-                manager.UpdateAsync(
-                    It.IsAny<ApplicationUser>()
-                )
+                manager.UpdateAsync(It.IsAny<ApplicationUser>())
             ).ReturnsAsync(IdentityResult.Success);
 
             SignIn.Setup(manager =>
-                manager.RefreshSignInAsync(
-                    It.IsAny<ApplicationUser>()
-                )
+                manager.RefreshSignInAsync(It.IsAny<ApplicationUser>())
             ).Returns(Task.CompletedTask);
         }
 
-        public void AllowEmailChange(
-            ApplicationUser user,
-            string newEmail = "ny@example.com")
+        public void AllowEmailChange(ApplicationUser user, string newEmail = "ny@example.com")
         {
             Users.Setup(manager =>
                 manager.FindByEmailAsync(newEmail)
@@ -183,25 +170,19 @@ public class AccountControllerTests
             ).ReturnsAsync((ApplicationUser?)null);
 
             Users.Setup(manager =>
-                manager.GenerateChangeEmailTokenAsync(
-                    user,
-                    newEmail
-                )
+                manager.GenerateChangeEmailTokenAsync(user, newEmail)
             ).ReturnsAsync("test-change-email-token");
 
             Emails.Setup(sender =>
                 sender.SendConfirmationAsync(
                     newEmail,
                     It.IsAny<string>(),
-                    It.IsAny<CancellationToken>()
-                )
+                    It.IsAny<CancellationToken>())
             ).Returns(Task.CompletedTask);
         }
     }
 
-    // ========================================
-    // HJELPER - TESTBRUKER
-    // ========================================
+    // --- Hjelper: testbruker ---
 
     private static ApplicationUser CreateUser()
     {
@@ -217,9 +198,7 @@ public class AccountControllerTests
         };
     }
 
-    // ========================================
-    // HJELPER - REGISTRERING
-    // ========================================
+    // --- Hjelper: registrering ---
 
     private static RegisterViewModel CreateRegistration()
     {
@@ -231,9 +210,7 @@ public class AccountControllerTests
         };
     }
 
-    // ========================================
-    // HJELPER - INNLOGGING
-    // ========================================
+    // --- Hjelper: innlogging ---
 
     private static LoginViewModel CreateLogin()
     {
@@ -244,9 +221,7 @@ public class AccountControllerTests
         };
     }
 
-    // ========================================
-    // HJELPER - PROFIL
-    // ========================================
+    // --- Hjelper: profil ---
 
     private static ProfileViewModel CreateProfile(
         string name = "Ola Nordmann",
@@ -262,11 +237,11 @@ public class AccountControllerTests
         };
     }
 
-    // ========================================
-    // TEST 1
-    // REGISTRERING GIR RIKTIG ROLLE
-    // OG SENDER E-POSTBEKREFTELSE
-    // ========================================
+    /*
+        TEST 1
+        REGISTRERING GIR RIKTIG ROLLE
+        OG SENDER E-POSTBEKREFTELSE
+    */
 
     [Fact]
     public async Task Register_ShouldAssignResourceProviderRole()
@@ -280,48 +255,30 @@ public class AccountControllerTests
         ).ReturnsAsync((ApplicationUser?)null);
 
         env.Users.Setup(manager =>
-            manager.CreateAsync(
-                It.IsAny<ApplicationUser>(),
-                "TestPassord123!"
-            )
-        )
-        .Callback<ApplicationUser, string>(
-            (user, _) => createdUser = user
-        )
+            manager.CreateAsync(It.IsAny<ApplicationUser>(), "TestPassord123!"))
+        .Callback<ApplicationUser, string>((user, _) => createdUser = user)
         .ReturnsAsync(IdentityResult.Success);
 
         env.Users.Setup(manager =>
-            manager.AddToRoleAsync(
-                It.IsAny<ApplicationUser>(),
-                IdentitySeeder.ResourceProviderRole
-            )
+            manager.AddToRoleAsync(It.IsAny<ApplicationUser>(), IdentitySeeder.ResourceProviderRole)
         ).ReturnsAsync(IdentityResult.Success);
 
         env.Users.Setup(manager =>
-            manager.GenerateEmailConfirmationTokenAsync(
-                It.IsAny<ApplicationUser>()
-            )
+            manager.GenerateEmailConfirmationTokenAsync(It.IsAny<ApplicationUser>())
         ).ReturnsAsync("example-confirmation-token");
 
         env.Emails.Setup(sender =>
             sender.SendConfirmationAsync(
                 "ola@example.com",
                 It.IsAny<string>(),
-                It.IsAny<CancellationToken>()
-            )
+                It.IsAny<CancellationToken>())
         ).Returns(Task.CompletedTask);
 
-        var result = await env.Controller.Register(
-            CreateRegistration()
-        );
+        var result = await env.Controller.Register(CreateRegistration());
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
-        Assert.Equal(
-            "RegistrationPending",
-            redirect.ActionName
-        );
+        Assert.Equal("RegistrationPending", redirect.ActionName);
 
         Assert.NotNull(createdUser);
 
@@ -331,88 +288,57 @@ public class AccountControllerTests
         Assert.False(createdUser.EmailConfirmed);
 
         env.Users.Verify(manager =>
-            manager.AddToRoleAsync(
-                createdUser,
-                IdentitySeeder.ResourceProviderRole
-            ),
-            Times.Once
-        );
+            manager.AddToRoleAsync(createdUser, IdentitySeeder.ResourceProviderRole),
+            Times.Once);
 
-        env.Users.Verify(manager =>
-            manager.GenerateEmailConfirmationTokenAsync(
-                createdUser
-            ),
-            Times.Once
-        );
+        env.Users.Verify(manager => manager.GenerateEmailConfirmationTokenAsync(createdUser),
+            Times.Once);
 
         env.Emails.Verify(sender =>
             sender.SendConfirmationAsync(
                 "ola@example.com",
-                It.Is<string>(url =>
-                    url.Contains("EmailVerification/Confirm")
-                ),
-                It.IsAny<CancellationToken>()
-            ),
-            Times.Once
-        );
+                It.Is<string>(url => url.Contains("EmailVerification/Confirm")),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
 
         // Ingen automatisk innlogging.
 
         env.SignIn.Verify(manager =>
-            manager.SignInAsync(
-                It.IsAny<ApplicationUser>(),
-                It.IsAny<bool>(),
-                It.IsAny<string?>()
-            ),
-            Times.Never
-        );
+            manager.SignInAsync(It.IsAny<ApplicationUser>(), It.IsAny<bool>(), It.IsAny<string?>()),
+            Times.Never);
 
-        Assert.Null(
-            env.HttpContext.Session.GetString("UserEmail")
-        );
+        Assert.Null(env.HttpContext.Session.GetString("UserEmail"));
 
-        Assert.Null(
-            env.HttpContext.Session.GetString("UserRole")
-        );
+        Assert.Null(env.HttpContext.Session.GetString("UserRole"));
     }
 
-    // ========================================
-    // TEST 2
-    // UGYLDIG REGISTRERING AVVISES
-    // ========================================
+    /*
+        TEST 2
+        UGYLDIG REGISTRERING AVVISES
+    */
 
     [Fact]
     public async Task Register_InvalidModel_ShouldNotCreateUser()
     {
         var env = new TestEnvironment();
 
-        env.Controller.ModelState.AddModelError(
-            "Email",
-            "Ugyldig e-postadresse."
-        );
+        env.Controller.ModelState.AddModelError("Email", "Ugyldig e-postadresse.");
 
-        var result = await env.Controller.Register(
-            CreateRegistration()
-        );
+        var result = await env.Controller.Register(CreateRegistration());
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
         Assert.Equal("Index", redirect.ActionName);
 
         env.Users.Verify(manager =>
-            manager.CreateAsync(
-                It.IsAny<ApplicationUser>(),
-                It.IsAny<string>()
-            ),
-            Times.Never
-        );
+            manager.CreateAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()),
+            Times.Never);
     }
 
-    // ========================================
-    // TEST 3
-    // DUPLIKAT E-POST AVVISES
-    // ========================================
+    /*
+        TEST 3
+        DUPLIKAT E-POST AVVISES
+    */
 
     [Fact]
     public async Task Register_DuplicateEmail_ShouldNotCreateUser()
@@ -423,25 +349,19 @@ public class AccountControllerTests
             manager.FindByEmailAsync("ola@example.com")
         ).ReturnsAsync(CreateUser());
 
-        var result = await env.Controller.Register(
-            CreateRegistration()
-        );
+        var result = await env.Controller.Register(CreateRegistration());
 
         Assert.IsType<RedirectToActionResult>(result);
 
         env.Users.Verify(manager =>
-            manager.CreateAsync(
-                It.IsAny<ApplicationUser>(),
-                It.IsAny<string>()
-            ),
-            Times.Never
-        );
+            manager.CreateAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()),
+            Times.Never);
     }
 
-    // ========================================
-    // TEST 4
-    // FEIL VED BRUKEROPPRETTELSE
-    // ========================================
+    /*
+        TEST 4
+        FEIL VED BRUKEROPPRETTELSE
+    */
 
     [Fact]
     public async Task Register_CreateFails_ShouldNotAssignRole()
@@ -449,45 +369,33 @@ public class AccountControllerTests
         var env = new TestEnvironment();
 
         env.Users.Setup(manager =>
-            manager.FindByEmailAsync(
-                It.IsAny<string>()
-            )
+            manager.FindByEmailAsync(It.IsAny<string>())
         ).ReturnsAsync((ApplicationUser?)null);
 
         env.Users.Setup(manager =>
-            manager.CreateAsync(
-                It.IsAny<ApplicationUser>(),
-                It.IsAny<string>()
-            )
+            manager.CreateAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>())
         ).ReturnsAsync(
             IdentityResult.Failed(
                 new IdentityError
                 {
                     Description =
                         "Brukeren kunne ikke opprettes."
-                }
-            )
+                })
         );
 
-        var result = await env.Controller.Register(
-            CreateRegistration()
-        );
+        var result = await env.Controller.Register(CreateRegistration());
 
         Assert.IsType<RedirectToActionResult>(result);
 
         env.Users.Verify(manager =>
-            manager.AddToRoleAsync(
-                It.IsAny<ApplicationUser>(),
-                It.IsAny<string>()
-            ),
-            Times.Never
-        );
+            manager.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()),
+            Times.Never);
     }
 
-    // ========================================
-    // TEST 5
-    // MISLYKKET ROLLETILDELING
-    // ========================================
+    /*
+        TEST 5
+        MISLYKKET ROLLETILDELING
+    */
 
     [Fact]
     public async Task Register_RoleFails_ShouldDeleteCreatedUser()
@@ -495,60 +403,40 @@ public class AccountControllerTests
         var env = new TestEnvironment();
 
         env.Users.Setup(manager =>
-            manager.FindByEmailAsync(
-                It.IsAny<string>()
-            )
+            manager.FindByEmailAsync(It.IsAny<string>())
         ).ReturnsAsync((ApplicationUser?)null);
 
         env.Users.Setup(manager =>
-            manager.CreateAsync(
-                It.IsAny<ApplicationUser>(),
-                It.IsAny<string>()
-            )
+            manager.CreateAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>())
         ).ReturnsAsync(IdentityResult.Success);
 
         env.Users.Setup(manager =>
-            manager.AddToRoleAsync(
-                It.IsAny<ApplicationUser>(),
-                IdentitySeeder.ResourceProviderRole
-            )
+            manager.AddToRoleAsync(It.IsAny<ApplicationUser>(), IdentitySeeder.ResourceProviderRole)
         ).ReturnsAsync(
             IdentityResult.Failed(
                 new IdentityError
                 {
                     Description = "Kunne ikke tildele rolle."
-                }
-            )
+                })
         );
 
         env.Users.Setup(manager =>
-            manager.DeleteAsync(
-                It.IsAny<ApplicationUser>()
-            )
+            manager.DeleteAsync(It.IsAny<ApplicationUser>())
         ).ReturnsAsync(IdentityResult.Success);
 
-        var result = await env.Controller.Register(
-            CreateRegistration()
-        );
+        var result = await env.Controller.Register(CreateRegistration());
 
         Assert.IsType<RedirectToActionResult>(result);
 
-        env.Users.Verify(manager =>
-            manager.DeleteAsync(
-                It.IsAny<ApplicationUser>()
-            ),
-            Times.Once
-        );
+        env.Users.Verify(manager => manager.DeleteAsync(It.IsAny<ApplicationUser>()), Times.Once);
 
-        Assert.Null(
-            env.HttpContext.Session.GetString("UserEmail")
-        );
+        Assert.Null(env.HttpContext.Session.GetString("UserEmail"));
     }
 
-    // ========================================
-    // TEST 6
-    // VELLYKKET INNLOGGING
-    // ========================================
+    /*
+        TEST 6
+        VELLYKKET INNLOGGING
+    */
 
     [Fact]
     public async Task Login_Success_ShouldCreateSession()
@@ -556,17 +444,10 @@ public class AccountControllerTests
         var env = new TestEnvironment();
         var user = CreateUser();
 
-        env.Users.Setup(manager =>
-            manager.FindByEmailAsync("ola@example.com")
-        ).ReturnsAsync(user);
+        env.Users.Setup(manager => manager.FindByEmailAsync("ola@example.com")).ReturnsAsync(user);
 
         env.SignIn.Setup(manager =>
-            manager.PasswordSignInAsync(
-                user,
-                "TestPassord123!",
-                false,
-                true
-            )
+            manager.PasswordSignInAsync(user, "TestPassord123!", false, true)
         ).ReturnsAsync(IdentitySignInResult.Success);
 
         IList<string> roles = new List<string>
@@ -574,49 +455,31 @@ public class AccountControllerTests
             IdentitySeeder.ResourceProviderRole
         };
 
-        env.Users.Setup(manager =>
-            manager.GetRolesAsync(user)
-        ).ReturnsAsync(roles);
+        env.Users.Setup(manager => manager.GetRolesAsync(user)).ReturnsAsync(roles);
 
-        var result = await env.Controller.Login(
-            CreateLogin()
-        );
+        var result = await env.Controller.Login(CreateLogin());
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
         Assert.Equal("Dashboard", redirect.ActionName);
 
-        Assert.Equal(
-            user.Email,
-            env.HttpContext.Session.GetString("UserEmail")
-        );
+        Assert.Equal(user.Email, env.HttpContext.Session.GetString("UserEmail"));
 
-        Assert.Equal(
-            user.Name,
-            env.HttpContext.Session.GetString("UserName")
-        );
+        Assert.Equal(user.Name, env.HttpContext.Session.GetString("UserName"));
 
         Assert.Equal(
             IdentitySeeder.ResourceProviderRole,
-            env.HttpContext.Session.GetString("UserRole")
-        );
+            env.HttpContext.Session.GetString("UserRole"));
 
         env.SignIn.Verify(manager =>
-            manager.PasswordSignInAsync(
-                user,
-                "TestPassord123!",
-                false,
-                true
-            ),
-            Times.Once
-        );
+            manager.PasswordSignInAsync(user, "TestPassord123!", false, true),
+            Times.Once);
     }
 
-    // ========================================
-    // TEST 7
-    // UKJENT E-POST
-    // ========================================
+    /*
+        TEST 7
+        UKJENT E-POST
+    */
 
     [Fact]
     public async Task Login_UnknownEmail_ShouldNotSignIn()
@@ -627,12 +490,9 @@ public class AccountControllerTests
             manager.FindByEmailAsync("ola@example.com")
         ).ReturnsAsync((ApplicationUser?)null);
 
-        var result = await env.Controller.Login(
-            CreateLogin()
-        );
+        var result = await env.Controller.Login(CreateLogin());
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
         Assert.Equal("Index", redirect.ActionName);
 
@@ -641,20 +501,16 @@ public class AccountControllerTests
                 It.IsAny<ApplicationUser>(),
                 It.IsAny<string>(),
                 It.IsAny<bool>(),
-                It.IsAny<bool>()
-            ),
-            Times.Never
-        );
+                It.IsAny<bool>()),
+            Times.Never);
 
-        Assert.Null(
-            env.HttpContext.Session.GetString("UserEmail")
-        );
+        Assert.Null(env.HttpContext.Session.GetString("UserEmail"));
     }
 
-    // ========================================
-    // TEST 8
-    // UBEKREFTET E-POST KAN IKKE LOGGE INN
-    // ========================================
+    /*
+        TEST 8
+        UBEKREFTET E-POST KAN IKKE LOGGE INN
+    */
 
     [Fact]
     public async Task Login_UnconfirmedEmail_ShouldNotSignIn()
@@ -664,16 +520,11 @@ public class AccountControllerTests
 
         user.EmailConfirmed = false;
 
-        env.Users.Setup(manager =>
-            manager.FindByEmailAsync("ola@example.com")
-        ).ReturnsAsync(user);
+        env.Users.Setup(manager => manager.FindByEmailAsync("ola@example.com")).ReturnsAsync(user);
 
-        var result = await env.Controller.Login(
-            CreateLogin()
-        );
+        var result = await env.Controller.Login(CreateLogin());
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
         Assert.Equal("Index", redirect.ActionName);
         Assert.Equal("Home", redirect.ControllerName);
@@ -683,20 +534,16 @@ public class AccountControllerTests
                 It.IsAny<ApplicationUser>(),
                 It.IsAny<string>(),
                 It.IsAny<bool>(),
-                It.IsAny<bool>()
-            ),
-            Times.Never
-        );
+                It.IsAny<bool>()),
+            Times.Never);
 
-        Assert.Null(
-            env.HttpContext.Session.GetString("UserEmail")
-        );
+        Assert.Null(env.HttpContext.Session.GetString("UserEmail"));
     }
 
-    // ========================================
-    // TEST 9
-    // FEIL PASSORD
-    // ========================================
+    /*
+        TEST 9
+        FEIL PASSORD
+    */
 
     [Fact]
     public async Task Login_WrongPassword_ShouldNotCreateSession()
@@ -704,37 +551,25 @@ public class AccountControllerTests
         var env = new TestEnvironment();
         var user = CreateUser();
 
-        env.Users.Setup(manager =>
-            manager.FindByEmailAsync("ola@example.com")
-        ).ReturnsAsync(user);
+        env.Users.Setup(manager => manager.FindByEmailAsync("ola@example.com")).ReturnsAsync(user);
 
         env.SignIn.Setup(manager =>
-            manager.PasswordSignInAsync(
-                user,
-                It.IsAny<string>(),
-                false,
-                true
-            )
+            manager.PasswordSignInAsync(user, It.IsAny<string>(), false, true)
         ).ReturnsAsync(IdentitySignInResult.Failed);
 
-        var result = await env.Controller.Login(
-            CreateLogin()
-        );
+        var result = await env.Controller.Login(CreateLogin());
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
         Assert.Equal("Index", redirect.ActionName);
 
-        Assert.Null(
-            env.HttpContext.Session.GetString("UserEmail")
-        );
+        Assert.Null(env.HttpContext.Session.GetString("UserEmail"));
     }
 
-    // ========================================
-    // TEST 10
-    // TOFAKTOR KREVES
-    // ========================================
+    /*
+        TEST 10
+        TOFAKTOR KREVES
+    */
 
     [Fact]
     public async Task Login_TwoFactorRequired_ShouldNotCreateSession()
@@ -742,51 +577,31 @@ public class AccountControllerTests
         var env = new TestEnvironment();
         var user = CreateUser();
 
-        env.Users.Setup(manager =>
-            manager.FindByEmailAsync("ola@example.com")
-        ).ReturnsAsync(user);
+        env.Users.Setup(manager => manager.FindByEmailAsync("ola@example.com")).ReturnsAsync(user);
 
         env.SignIn.Setup(manager =>
-            manager.PasswordSignInAsync(
-                user,
-                It.IsAny<string>(),
-                false,
-                true
-            )
-        ).ReturnsAsync(
-            IdentitySignInResult.TwoFactorRequired
-        );
+            manager.PasswordSignInAsync(user, It.IsAny<string>(), false, true)
+        ).ReturnsAsync(IdentitySignInResult.TwoFactorRequired);
 
-        var result = await env.Controller.Login(
-            CreateLogin()
-        );
+        var result = await env.Controller.Login(CreateLogin());
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
         Assert.Equal("Login", redirect.ActionName);
         Assert.Equal("TwoFactor", redirect.ControllerName);
 
-        Assert.Null(
-            env.HttpContext.Session.GetString("UserEmail")
-        );
+        Assert.Null(env.HttpContext.Session.GetString("UserEmail"));
 
-        Assert.Null(
-            env.HttpContext.Session.GetString("UserRole")
-        );
+        Assert.Null(env.HttpContext.Session.GetString("UserRole"));
 
-        env.Users.Verify(manager =>
-            manager.GetRolesAsync(
-                It.IsAny<ApplicationUser>()
-            ),
-            Times.Never
-        );
+        env.Users.Verify(manager => manager.GetRolesAsync(It.IsAny<ApplicationUser>()),
+            Times.Never);
     }
 
-    // ========================================
-    // TEST 11
-    // LÅST KONTO
-    // ========================================
+    /*
+        TEST 11
+        LÅST KONTO
+    */
 
     [Fact]
     public async Task Login_LockedOut_ShouldNotCreateSession()
@@ -794,77 +609,53 @@ public class AccountControllerTests
         var env = new TestEnvironment();
         var user = CreateUser();
 
-        env.Users.Setup(manager =>
-            manager.FindByEmailAsync("ola@example.com")
-        ).ReturnsAsync(user);
+        env.Users.Setup(manager => manager.FindByEmailAsync("ola@example.com")).ReturnsAsync(user);
 
         env.SignIn.Setup(manager =>
-            manager.PasswordSignInAsync(
-                user,
-                It.IsAny<string>(),
-                false,
-                true
-            )
+            manager.PasswordSignInAsync(user, It.IsAny<string>(), false, true)
         ).ReturnsAsync(IdentitySignInResult.LockedOut);
 
-        var result = await env.Controller.Login(
-            CreateLogin()
-        );
+        var result = await env.Controller.Login(CreateLogin());
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
         Assert.Equal("Index", redirect.ActionName);
 
-        Assert.Null(
-            env.HttpContext.Session.GetString("UserEmail")
-        );
+        Assert.Null(env.HttpContext.Session.GetString("UserEmail"));
     }
 
-    // ========================================
-    // TEST 12
-    // UTLOGGING
-    // ========================================
+    /*
+        TEST 12
+        UTLOGGING
+    */
 
     [Fact]
     public async Task Logout_ShouldClearSession()
     {
         var env = new TestEnvironment();
 
-        env.HttpContext.Session.SetString(
-            "UserEmail",
-            "ola@example.com"
-        );
+        env.HttpContext.Session.SetString("UserEmail", "ola@example.com");
 
-        env.HttpContext.Session.SetString(
-            "UserRole",
-            IdentitySeeder.ResourceProviderRole
-        );
+        env.HttpContext.Session.SetString("UserRole", IdentitySeeder.ResourceProviderRole);
 
-        env.SignIn.Setup(manager =>
-            manager.SignOutAsync()
-        ).Returns(Task.CompletedTask);
+        env.SignIn.Setup(manager => manager.SignOutAsync()).Returns(Task.CompletedTask);
 
         var result = await env.Controller.Logout();
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
         Assert.Equal("Index", redirect.ActionName);
         Assert.Equal("Home", redirect.ControllerName);
 
-        env.SignIn.Verify(manager =>
-            manager.SignOutAsync(),
-            Times.Once
-        );
+        env.SignIn.Verify(manager => manager.SignOutAsync(), Times.Once);
 
         Assert.Empty(env.HttpContext.Session.Keys);
     }
 
-    // ========================================
-    // TEST 13
-    // PROFIL HENTER BRUKERDATA
-    // ========================================
+    /*
+        TEST 13
+        PROFIL HENTER BRUKERDATA
+    */
 
     [Fact]
     public async Task Profile_Get_ShouldReturnCurrentUser()
@@ -878,8 +669,7 @@ public class AccountControllerTests
 
         var view = Assert.IsType<ViewResult>(result);
 
-        var model =
-            Assert.IsType<ProfileViewModel>(view.Model);
+        var model = Assert.IsType<ProfileViewModel>(view.Model);
 
         Assert.Equal(user.Name, model.Name);
         Assert.Equal(user.Email, model.Email);
@@ -887,10 +677,10 @@ public class AccountControllerTests
         Assert.Equal("12345678", model.PhoneNumber);
     }
 
-    // ========================================
-    // TEST 14
-    // OPPDATERING AV NAVN OG TELEFON
-    // ========================================
+    /*
+        TEST 14
+        OPPDATERING AV NAVN OG TELEFON
+    */
 
     [Fact]
     public async Task Profile_Update_ShouldSaveNameAndPhone()
@@ -903,15 +693,11 @@ public class AccountControllerTests
 
         string originalUserId = user.Id;
 
-        var model = CreateProfile(
-            name: " Kari Nordmann ",
-            phoneNumber: "1234-5678"
-        );
+        var model = CreateProfile(name: " Kari Nordmann ", phoneNumber: "1234-5678");
 
         var result = await env.Controller.Profile(model);
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
         Assert.Equal("Profile", redirect.ActionName);
         Assert.Equal("Kari Nordmann", user.Name);
@@ -919,21 +705,15 @@ public class AccountControllerTests
         Assert.Equal("ola@example.com", user.Email);
         Assert.Equal(originalUserId, user.Id);
 
-        env.Users.Verify(manager =>
-            manager.UpdateAsync(user),
-            Times.Once
-        );
+        env.Users.Verify(manager => manager.UpdateAsync(user), Times.Once);
 
-        env.SignIn.Verify(manager =>
-            manager.RefreshSignInAsync(user),
-            Times.Once
-        );
+        env.SignIn.Verify(manager => manager.RefreshSignInAsync(user), Times.Once);
     }
 
-    // ========================================
-    // TEST 15
-    // E-POSTENDRING KREVER BEKREFTELSE
-    // ========================================
+    /*
+        TEST 15
+        E-POSTENDRING KREVER BEKREFTELSE
+    */
 
     [Fact]
     public async Task Profile_EmailChange_ShouldKeepUserId()
@@ -947,12 +727,9 @@ public class AccountControllerTests
 
         string originalId = user.Id;
 
-        var result = await env.Controller.Profile(
-            CreateProfile(email: "ny@example.com")
-        );
+        var result = await env.Controller.Profile(CreateProfile(email: "ny@example.com"));
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
         Assert.Equal("Profile", redirect.ActionName);
 
@@ -961,69 +738,53 @@ public class AccountControllerTests
         Assert.Equal("ola@example.com", user.Email);
         Assert.Equal("ola@example.com", user.UserName);
 
-        // Identity-ID og bekreftelsesstatus
-        // skal fortsatt være uendret.
+        /*
+            Identity-ID og bekreftelsesstatus
+            skal fortsatt være uendret.
+        */
 
         Assert.Equal(originalId, user.Id);
         Assert.True(user.EmailConfirmed);
 
         // Eksisterende sesjon bruker gammel adresse.
 
-        Assert.Equal(
-            "ola@example.com",
-            env.HttpContext.Session.GetString("UserEmail")
-        );
+        Assert.Equal("ola@example.com", env.HttpContext.Session.GetString("UserEmail"));
 
-        Assert.Equal(
-            "ola@example.com",
-            env.HttpContext.Session.GetString("ContactEmail")
-        );
+        Assert.Equal("ola@example.com", env.HttpContext.Session.GetString("ContactEmail"));
 
         // Bekreftelsestoken for ny e-post.
 
-        env.Users.Verify(manager =>
-            manager.GenerateChangeEmailTokenAsync(
-                user,
-                "ny@example.com"
-            ),
-            Times.Once
-        );
+        env.Users.Verify(manager => manager.GenerateChangeEmailTokenAsync(user, "ny@example.com"),
+            Times.Once);
 
         // E-post sendes til NY adresse.
 
         env.Emails.Verify(sender =>
             sender.SendConfirmationAsync(
                 "ny@example.com",
-                It.Is<string>(url =>
-                    url.Contains("EmailVerification/ConfirmChange")
-                ),
-                It.IsAny<CancellationToken>()
-            ),
-            Times.Once
-        );
+                It.Is<string>(url => url.Contains("EmailVerification/ConfirmChange")),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
 
-        // Den faktiske e-postendringen må
-        // først utføres av bekreftelsescontrolleren.
+        /*
+            Den faktiske e-postendringen må
+            først utføres av bekreftelsescontrolleren.
+        */
 
         env.Users.Verify(manager =>
             manager.ChangeEmailAsync(
                 It.IsAny<ApplicationUser>(),
                 It.IsAny<string>(),
-                It.IsAny<string>()
-            ),
-            Times.Never
-        );
+                It.IsAny<string>()),
+            Times.Never);
 
-        env.Users.Verify(manager =>
-            manager.UpdateAsync(user),
-            Times.Once
-        );
+        env.Users.Verify(manager => manager.UpdateAsync(user), Times.Once);
     }
 
-    // ========================================
-    // TEST 16 - NY
-    // SMTP-FEIL SKAL IKKE ENDRE E-POST
-    // ========================================
+    /*
+        TEST 16 - NY
+        SMTP-FEIL SKAL IKKE ENDRE E-POST
+    */
 
     [Fact]
     public async Task Profile_EmailSendFails_ShouldKeepOldEmail()
@@ -1041,17 +802,10 @@ public class AccountControllerTests
             sender.SendConfirmationAsync(
                 "ny@example.com",
                 It.IsAny<string>(),
-                It.IsAny<CancellationToken>()
-            )
-        ).ThrowsAsync(
-            new InvalidOperationException(
-                "SMTP unavailable"
-            )
-        );
+                It.IsAny<CancellationToken>())
+        ).ThrowsAsync(new InvalidOperationException("SMTP unavailable"));
 
-        var result = await env.Controller.Profile(
-            CreateProfile(email: "ny@example.com")
-        );
+        var result = await env.Controller.Profile(CreateProfile(email: "ny@example.com"));
 
         // Controlleren skal vise en feilmelding.
 
@@ -1065,10 +819,7 @@ public class AccountControllerTests
 
         Assert.True(user.EmailConfirmed);
 
-        Assert.Equal(
-            "ola@example.com",
-            env.HttpContext.Session.GetString("UserEmail")
-        );
+        Assert.Equal("ola@example.com", env.HttpContext.Session.GetString("UserEmail"));
 
         // Ingen faktisk e-postendring.
 
@@ -1076,23 +827,18 @@ public class AccountControllerTests
             manager.ChangeEmailAsync(
                 It.IsAny<ApplicationUser>(),
                 It.IsAny<string>(),
-                It.IsAny<string>()
-            ),
-            Times.Never
-        );
+                It.IsAny<string>()),
+            Times.Never);
 
         // Navn og telefon kan likevel lagres.
 
-        env.Users.Verify(manager =>
-            manager.UpdateAsync(user),
-            Times.Once
-        );
+        env.Users.Verify(manager => manager.UpdateAsync(user), Times.Once);
     }
 
-    // ========================================
-    // TEST 17
-    // OPPTATT E-POST AVVISES
-    // ========================================
+    /*
+        TEST 17
+        OPPTATT E-POST AVVISES
+    */
 
     [Fact]
     public async Task Profile_DuplicateEmail_ShouldNotUpdate()
@@ -1110,34 +856,25 @@ public class AccountControllerTests
         };
 
         env.Users.Setup(manager =>
-            manager.FindByEmailAsync(
-                "opptatt@example.com"
-            )
+            manager.FindByEmailAsync("opptatt@example.com")
         ).ReturnsAsync(otherUser);
 
-        var model = CreateProfile(
-            email: "opptatt@example.com"
-        );
+        var model = CreateProfile(email: "opptatt@example.com");
 
         var result = await env.Controller.Profile(model);
 
         Assert.IsType<ViewResult>(result);
         Assert.False(env.Controller.ModelState.IsValid);
 
-        env.Users.Verify(manager =>
-            manager.UpdateAsync(
-                It.IsAny<ApplicationUser>()
-            ),
-            Times.Never
-        );
+        env.Users.Verify(manager => manager.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
 
         Assert.Equal("ola@example.com", user.Email);
     }
 
-    // ========================================
-    // TEST 18
-    // UGYLDIG PROFIL LAGRES IKKE
-    // ========================================
+    /*
+        TEST 18
+        UGYLDIG PROFIL LAGRES IKKE
+    */
 
     [Fact]
     public async Task Profile_InvalidModelState_ShouldNotUpdate()
@@ -1146,29 +883,19 @@ public class AccountControllerTests
 
         env.SetCurrentUser(CreateUser());
 
-        env.Controller.ModelState.AddModelError(
-            "Name",
-            "Navn er påkrevd."
-        );
+        env.Controller.ModelState.AddModelError("Name", "Navn er påkrevd.");
 
-        var result = await env.Controller.Profile(
-            CreateProfile()
-        );
+        var result = await env.Controller.Profile(CreateProfile());
 
         Assert.IsType<ViewResult>(result);
 
-        env.Users.Verify(manager =>
-            manager.UpdateAsync(
-                It.IsAny<ApplicationUser>()
-            ),
-            Times.Never
-        );
+        env.Users.Verify(manager => manager.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
     }
 
-    // ========================================
-    // TEST 19
-    // MISLYKKET LAGRING OPPDATERER IKKE COOKIE
-    // ========================================
+    /*
+        TEST 19
+        MISLYKKET LAGRING OPPDATERER IKKE COOKIE
+    */
 
     [Fact]
     public async Task Profile_UpdateFails_ShouldNotRefreshSignIn()
@@ -1178,36 +905,27 @@ public class AccountControllerTests
 
         env.SetCurrentUser(user);
 
-        env.Users.Setup(manager =>
-            manager.UpdateAsync(user)
-        ).ReturnsAsync(
+        env.Users.Setup(manager => manager.UpdateAsync(user)).ReturnsAsync(
             IdentityResult.Failed(
                 new IdentityError
                 {
                     Description = "Kunne ikke lagre profilen."
-                }
-            )
+                })
         );
 
-        var result = await env.Controller.Profile(
-            CreateProfile(name: "Nytt navn")
-        );
+        var result = await env.Controller.Profile(CreateProfile(name: "Nytt navn"));
 
         Assert.IsType<ViewResult>(result);
         Assert.False(env.Controller.ModelState.IsValid);
 
-        env.SignIn.Verify(manager =>
-            manager.RefreshSignInAsync(
-                It.IsAny<ApplicationUser>()
-            ),
-            Times.Never
-        );
+        env.SignIn.Verify(manager => manager.RefreshSignInAsync(It.IsAny<ApplicationUser>()),
+            Times.Never);
     }
 
-    // ========================================
-    // TEST 20
-    // AUTORISASJON OG ANTIFORGERY
-    // ========================================
+    /*
+        TEST 20
+        AUTORISASJON OG ANTIFORGERY
+    */
 
     [Fact]
     public void AccountActions_ShouldHaveSecurityAttributes()
@@ -1216,60 +934,41 @@ public class AccountControllerTests
         {
             typeof(AccountController).GetMethod(
                 nameof(AccountController.Login),
-                new[] { typeof(LoginViewModel) }
-            ),
+                new[] { typeof(LoginViewModel) }),
 
             typeof(AccountController).GetMethod(
                 nameof(AccountController.Register),
-                new[] { typeof(RegisterViewModel) }
-            ),
+                new[] { typeof(RegisterViewModel) }),
 
-            typeof(AccountController).GetMethod(
-                nameof(AccountController.Logout),
-                Type.EmptyTypes
-            ),
+            typeof(AccountController).GetMethod(nameof(AccountController.Logout), Type.EmptyTypes),
 
             typeof(AccountController).GetMethod(
                 nameof(AccountController.Profile),
-                new[] { typeof(ProfileViewModel) }
-            )
+                new[] { typeof(ProfileViewModel) })
         };
 
         foreach (var method in postActions)
         {
             Assert.NotNull(method);
 
-            Assert.NotNull(
-                method.GetCustomAttribute<HttpPostAttribute>()
-            );
+            Assert.NotNull(method.GetCustomAttribute<HttpPostAttribute>());
 
-            Assert.NotNull(
-                method.GetCustomAttribute<
-                    ValidateAntiForgeryTokenAttribute>()
-            );
+            Assert.NotNull(method.GetCustomAttribute< ValidateAntiForgeryTokenAttribute>());
         }
 
         var profileGet =
-            typeof(AccountController).GetMethod(
-                nameof(AccountController.Profile),
-                Type.EmptyTypes
-            );
+            typeof(AccountController).GetMethod(nameof(AccountController.Profile), Type.EmptyTypes);
 
         var profilePost =
             typeof(AccountController).GetMethod(
                 nameof(AccountController.Profile),
-                new[] { typeof(ProfileViewModel) }
-            );
+                new[] { typeof(ProfileViewModel) });
 
         Assert.NotNull(profileGet);
         Assert.NotNull(profilePost);
 
-        Assert.NotNull(
-            profileGet.GetCustomAttribute<AuthorizeAttribute>()
-        );
+        Assert.NotNull(profileGet.GetCustomAttribute<AuthorizeAttribute>());
 
-        Assert.NotNull(
-            profilePost.GetCustomAttribute<AuthorizeAttribute>()
-        );
+        Assert.NotNull(profilePost.GetCustomAttribute<AuthorizeAttribute>());
     }
 }

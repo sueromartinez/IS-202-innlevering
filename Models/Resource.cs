@@ -1,66 +1,67 @@
+/*
+    Resource.cs – en ressurs
+
+    Hva filen gjør: Beskriver én ressurs en frivillig har registrert, for eksempel et aggregat,
+    en båt eller en traktor. Blir tabellen Resources i databasen. Attributtene ([Required],
+    [StringLength] ...) gir riktige kolonner i databasen og automatisk sjekk av skjemaet.
+
+    På nettsiden: Det brukeren fyller ut i «Registrer ressurs» havner her. Det vises igjen i
+    ressursoversikten («Ressurser» i menyen), på dashbordet og som markør på kartet.
+
+    Oppgavekrav: 9, 13, 21, 22
+*/
 
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FirstWebAppInDocker.Models;
 
-/// <summary>
-/// Representerer en ressurs registrert av en ressursleverandør
-/// i Beredskapsportalen.
-/// </summary>
-/// <remarks>
-/// Ressursen inneholder informasjon om type, kapasitet,
-/// tilgjengelighet, geografisk plassering og eierskap.
-/// </remarks>
+/*
+    Representerer en ressurs registrert av en ressursleverandør
+    i Beredskapsportalen.
+
+    Ressursen inneholder informasjon om type, kapasitet,
+    tilgjengelighet, geografisk plassering og eierskap.
+*/
 public class Resource
 {
     #region Identifikasjon
 
-    /// <summary>
-    /// Unik identifikator for ressursen.
-    /// </summary>
+    // Unik identifikator for ressursen.
     public int Id { get; set; }
 
     #endregion
 
     #region Ressursinformasjon
 
-    /// <summary>
-    /// Kategorien ressursen tilhører.
-    /// </summary>
+    /*
+        Kategorien (Transport, Drone, Aggregat ...) er en fast liste (enum). Da kan matchingen
+        sammenligne type mot type i stedet for fritekst.
+        På nettsiden: nedtrekkslisten «Type» i skjemaet og ikonet ved hver ressurs.
+    */
     [Required]
     public ResourceType ResourceType { get; set; }
         = ResourceType.Other;
 
-    /// <summary>
-    /// Navnet på ressursen.
-    /// </summary>
+    // Navnet på ressursen.
     [Required]
     [StringLength(100)]
     public string ResourceName { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Beskrivelse av ressursens egenskaper og bruksområder.
-    /// </summary>
+    // Beskrivelse av ressursens egenskaper og bruksområder.
     [Required]
     [StringLength(500)]
     public string Description { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Antall enheter som er registrert.
-    /// </summary>
+    // Antall enheter som er registrert.
     [Range(1, int.MaxValue)]
     public int Quantity { get; set; } = 1;
 
-    /// <summary>
-    /// Ressursens kapasitet, beskrevet ut fra ressurstype.
-    /// </summary>
+    // Ressursens kapasitet, beskrevet ut fra ressurstype.
     [StringLength(200)]
     public string? Capacity { get; set; }
 
-    /// <summary>
-    /// Beskrivelse av når ressursen er tilgjengelig.
-    /// </summary>
+    // Beskrivelse av når ressursen er tilgjengelig.
     [StringLength(200)]
     public string? Availability { get; set; }
 
@@ -68,40 +69,36 @@ public class Resource
 
     #region Geografisk plassering
 
-    /// <summary>
-    /// Ressursens registrerte adresse.
-    /// </summary>
+    // Ressursens registrerte adresse.
     [StringLength(200)]
     public string? Address { get; set; }
 
-    /// <summary>
-    /// Geografisk breddegrad for ressursen.
-    /// </summary>
-    /// <remarks>
-    /// Eksisterende databasefelt beholdes for kompatibilitet
-    /// med EF Core, kartvisninger og matching.
-    /// </remarks>
+    /*
+        Plasseringen fra kartet i skjemaet (breddegrad/lengdegrad).
+        På nettsiden: brukes til markøren på kartene og til å regne ut avstand til behov.
+    */
     public double Latitude { get; set; }
 
-    /// <summary>
-    /// Geografisk lengdegrad for ressursen.
-    /// </summary>
-    /// <remarks>
-    /// Eksisterende databasefelt beholdes for kompatibilitet
-    /// med EF Core, kartvisninger og matching.
-    /// </remarks>
+    /*
+        Geografisk lengdegrad for ressursen.
+
+        Eksisterende databasefelt beholdes for kompatibilitet
+        med EF Core, kartvisninger og matching.
+    */
     public double Longitude { get; set; }
 
-    /// <summary>
-    /// Ressursens geografiske posisjon som Coordinate.
-    /// </summary>
-    /// <remarks>
-    /// Egenskapen bruker de eksisterende koordinatfeltene
-    /// og oppretter ingen ekstra databasekolonner.
-    ///
-    /// Bruk de kartlagte koordinatfeltene i EF Core-spørringer
-    /// inntil datamodellen støtter geografiske databasetyper.
-    /// </remarks>
+    /*
+        [NotMapped] betyr at dette ikke er en kolonne i databasen, bare en hjelpeegenskap i
+        koden.
+
+        Ressursens geografiske posisjon som Coordinate.
+
+        Egenskapen bruker de eksisterende koordinatfeltene
+        og oppretter ingen ekstra databasekolonner.
+
+        Bruk de kartlagte koordinatfeltene i EF Core-spørringer
+        inntil datamodellen støtter geografiske databasetyper.
+    */
     [NotMapped]
     public Coordinate Position
     {
@@ -118,22 +115,16 @@ public class Resource
 
     #region Kontaktinformasjon
 
-    /// <summary>
-    /// E-postadressen til ressursens kontaktperson.
-    /// </summary>
+    // E-postadressen til ressursens kontaktperson.
     [EmailAddress]
     [StringLength(150)]
     public string? ContactEmail { get; set; }
 
-    /// <summary>
-    /// Landskoden til kontaktpersonens telefonnummer.
-    /// </summary>
+    // Landskoden til kontaktpersonens telefonnummer.
     [StringLength(5)]
     public string? ContactPhoneCountryCode { get; set; }
 
-    /// <summary>
-    /// Kontaktpersonens telefonnummer uten landskode.
-    /// </summary>
+    // Kontaktpersonens telefonnummer uten landskode.
     [StringLength(20)]
     public string? ContactPhoneNumber { get; set; }
 
@@ -141,28 +132,23 @@ public class Resource
 
     #region Eierskap
 
-    /// <summary>
-    /// Permanent Identity-ID til brukeren som eier ressursen.
-    /// </summary>
-    /// <remarks>
-    /// Nullable fordi eldre ressurser kan mangle Identity-ID.
-    /// </remarks>
+    /*
+        Hvem som eier ressursen. Brukes til at en frivillig bare ser og kan endre sine egne
+        ressurser.
+    */
     [StringLength(255)]
     public string? OwnerUserId { get; set; }
 
-    /// <summary>
-    /// Navigasjon til Identity-brukeren som eier ressursen.
-    /// </summary>
+    // Navigasjon til Identity-brukeren som eier ressursen.
     [ForeignKey(nameof(OwnerUserId))]
     public ApplicationUser? Owner { get; set; }
 
-    /// <summary>
-    /// E-postadressen som ble registrert som ressurseier.
-    /// </summary>
-    /// <remarks>
-    /// Beholdes av hensyn til eldre data og historikk.
-    /// Permanent eierskap skal kontrolleres gjennom OwnerUserId.
-    /// </remarks>
+    /*
+        E-postadressen som ble registrert som ressurseier.
+
+        Beholdes av hensyn til eldre data og historikk.
+        Permanent eierskap skal kontrolleres gjennom OwnerUserId.
+    */
     [Required]
     [StringLength(150)]
     public string OwnerEmail { get; set; } = string.Empty;
@@ -171,41 +157,36 @@ public class Resource
 
     #region Metadata og status
 
-    /// <summary>
-    /// Tidspunktet ressursen ble registrert, angitt i UTC.
-    /// </summary>
+    // Tidspunktet ressursen ble registrert, angitt i UTC.
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    /// <summary>
-    /// Ressursens tilgjengelighetsstatus.
-    /// </summary>
-    /// <remarks>
-    /// Ressursen blir opptatt ved bekreftet tildeling
-    /// og kan bli tilgjengelig igjen når tildelingen avsluttes.
-    /// </remarks>
+    /*
+        Tilgjengelig, Opptatt eller Utilgjengelig.
+        På nettsiden: den fargede statusmerkelappen. Bare tilgjengelige ressurser foreslås i
+        matchingen.
+    */
     public ResourceStatus Status { get; set; }
         = ResourceStatus.Available;
 
     #endregion
 }
 
-/// <summary>
-/// Angir om en ressurs er tilgjengelig for forespørsler.
-/// </summary>
-/// <remarks>
-/// Tallverdiene beholdes av hensyn til eksisterende data.
-/// </remarks>
+/*
+    Angir om en ressurs er tilgjengelig for forespørsler.
+
+    Tallverdiene beholdes av hensyn til eksisterende data.
+*/
 public enum ResourceStatus
 {
-    /// <summary>Ressursen er tilgjengelig.</summary>
+    // Ressursen er tilgjengelig.
     [Display(Name = "Tilgjengelig")]
     Available = 0,
 
-    /// <summary>Ressursen er opptatt av en tildeling.</summary>
+    // Ressursen er opptatt av en tildeling.
     [Display(Name = "Opptatt")]
     Busy = 1,
 
-    /// <summary>Ressursen er ikke tilgjengelig.</summary>
+    // Ressursen er ikke tilgjengelig.
     [Display(Name = "Utilgjengelig")]
     Unavailable = 2
 }

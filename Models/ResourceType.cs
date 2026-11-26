@@ -1,78 +1,66 @@
+/*
+    ResourceType.cs – listen over kategorier
+
+    Hva filen gjør: Felles kategoriliste for både ressurser og behov. Fordi begge bruker den
+    samme listen, kan matchingen sammenligne dem direkte.
+
+    På nettsiden: Valgene i nedtrekkslisten «Type» i skjemaene, med de norske navnene fra
+    [Display].
+*/
 
 using System.ComponentModel.DataAnnotations;
 
 namespace FirstWebAppInDocker.Models;
 
-/// <summary>
-/// Definerer ressurskategoriene som kan registreres
-/// og brukes til matching mellom behov og ressurser.
-/// </summary>
-/// <remarks>
-/// Tallverdiene er eksplisitte fordi ResourceType lagres
-/// som heltall i eksisterende databaseoppføringer.
-///
-/// Verdiene må ikke endres uten en kontrollert
-/// databasemigrering som oppdaterer eksisterende data.
-/// </remarks>
+/*
+    Definerer ressurskategoriene som kan registreres
+    og brukes til matching mellom behov og ressurser.
+
+    Tallverdiene er eksplisitte fordi ResourceType lagres
+    som heltall i eksisterende databaseoppføringer.
+
+    Verdiene må ikke endres uten en kontrollert
+    databasemigrering som oppdaterer eksisterende data.
+*/
 public enum ResourceType
 {
-    /// <summary>
-    /// Transportressurser.
-    /// </summary>
+    // Transportressurser.
     [Display(Name = "Transport")]
     Transport = 0,
 
-    /// <summary>
-    /// Droner og droneoperatører.
-    /// </summary>
+    // Droner og droneoperatører.
     [Display(Name = "Drone / droneoperatør")]
     Drone = 1,
 
-    /// <summary>
-    /// Strømforsyning og aggregater.
-    /// </summary>
+    // Strømforsyning og aggregater.
     [Display(Name = "Strøm / aggregat")]
     Generator = 2,
 
-    /// <summary>
-    /// Maskiner og maskinelt utstyr.
-    /// </summary>
+    // Maskiner og maskinelt utstyr.
     [Display(Name = "Maskiner")]
     Machinery = 3,
 
-    /// <summary>
-    /// Sambands- og kommunikasjonsutstyr.
-    /// </summary>
+    // Sambands- og kommunikasjonsutstyr.
     [Display(Name = "Sambandsutstyr")]
     CommunicationEquipment = 4,
 
-    /// <summary>
-    /// Mannskap og frivillige.
-    /// </summary>
+    // Mannskap og frivillige.
     [Display(Name = "Mannskap / frivillige")]
     Personnel = 5,
 
-    /// <summary>
-    /// Lokaler og bygninger.
-    /// </summary>
+    // Lokaler og bygninger.
     [Display(Name = "Lokaler")]
     Premises = 6,
 
-    /// <summary>
-    /// Sand, grus og tilsvarende masser.
-    /// </summary>
+    // Sand, grus og tilsvarende masser.
     [Display(Name = "Sand / grus")]
     SandAndGravel = 7,
 
-    /// <summary>
-    /// Båter og maritime ressurser.
-    /// </summary>
+    // Båter og maritime ressurser.
     [Display(Name = "Båt")]
     Boat = 8,
 
-    /// <summary>
-    /// Ressurser som ikke passer i de øvrige kategoriene.
-    /// </summary>
+    // Ressurser som ikke passer i de øvrige kategoriene.
     [Display(Name = "Annet")]
     Other = 9
 }

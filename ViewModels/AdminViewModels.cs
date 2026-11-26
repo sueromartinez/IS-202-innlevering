@@ -1,11 +1,17 @@
+/*
+    AdminViewModels.cs
+
+    Hva filen gjør: Det adminsidene viser (brukerliste, aktivitetslogg, ny offentlig aktør).
+
+    Oppgavekrav: 18
+*/
+
 using System.ComponentModel.DataAnnotations;
 using FirstWebAppInDocker.Models;
 
 namespace FirstWebAppInDocker.ViewModels;
 
-/// <summary>
-/// En rad i brukeroversikten for admin.
-/// </summary>
+// En rad i brukeroversikten for admin.
 public class AdminUserViewModel
 {
     public string Id { get; init; } = string.Empty;
@@ -25,12 +31,11 @@ public class AdminUserViewModel
     public DateTime CreatedAt { get; init; }
 }
 
-
-/// <summary>
-/// Skjema for at admin oppretter en offentlig aktør.
-/// Offentlige aktører kan ikke registrere seg selv,
-/// fordi de får se alle ressurser med kontaktinformasjon.
-/// </summary>
+/*
+    Skjema for at admin oppretter en offentlig aktør.
+    Offentlige aktører kan ikke registrere seg selv,
+    fordi de får se alle ressurser med kontaktinformasjon.
+*/
 public class CreatePublicActorViewModel
 {
     [Required(ErrorMessage = "Navn er påkrevd.")]
@@ -38,13 +43,11 @@ public class CreatePublicActorViewModel
     [Display(Name = "Navn / etat")]
     public string Name { get; set; } = string.Empty;
 
-
     [Required(ErrorMessage = "E-post er påkrevd.")]
     [EmailAddress(ErrorMessage = "Skriv inn en gyldig e-postadresse.")]
     [StringLength(150)]
     [Display(Name = "E-post")]
     public string Email { get; set; } = string.Empty;
-
 
     [Required(ErrorMessage = "Midlertidig passord er påkrevd.")]
     [StringLength(100, MinimumLength = 8, ErrorMessage = "Passordet må være minst 8 tegn.")]
@@ -53,10 +56,7 @@ public class CreatePublicActorViewModel
     public string Password { get; set; } = string.Empty;
 }
 
-
-/// <summary>
-/// Aktivitetsloggen for administrator.
-/// </summary>
+// Aktivitetsloggen for administrator.
 public class AuditLogViewModel
 {
     public List<AuditLogEntry> Entries { get; init; } = new();

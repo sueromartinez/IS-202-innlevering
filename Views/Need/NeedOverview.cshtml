@@ -1,10 +1,21 @@
+@*
+    NeedOverview.cshtml – «Behov»
+
+    Hva filen gjør: Alle registrerte behov med status og prioritet.
+    Eieren kan endre og slette sine egne.
+
+    Oppgavekrav: 10, 12, 21
+*@
+
 @using FirstWebAppInDocker.Models
 @using System.Globalization
 @model List<Need>
 @{
     Layout = null;
-    // Standardvisningen viser kun behov som fortsatt krever oppfølging.
-    // ?showResolved=true åpner historikken uten å endre databasen.
+    /*
+        Standardvisningen viser kun behov som fortsatt krever oppfølging.
+        ?showResolved=true åpner historikken uten å endre databasen.
+    */
     bool showResolved = string.Equals(
         Context.Request.Query["showResolved"].ToString(),
         "true",
@@ -29,7 +40,7 @@
             System.Security.Claims.ClaimTypes.Email
         )?.Value ?? User.Identity?.Name;
     string? message =
-        TempData["NeedMessage"] as string;
+        TempData["NeedSuccess"] as string;
     // Visningsnavn for ressurstypene.
     var typeNames =
         Html.GetEnumSelectList<ResourceType>()
@@ -56,10 +67,10 @@
     <script src="~/js/theme.js"
             asp-append-version="true"></script>
     <style>
-        /* ==========================================
-           REGISTRERTE BEHOV
-           FELLES KARTSTANDARD
-        ========================================== */
+        /*
+            REGISTRERTE BEHOV
+            FELLES KARTSTANDARD
+        */
         .need-overview-page,
         .need-overview-page *,
         .need-overview-page *::before,
@@ -75,9 +86,7 @@
             margin: 0 auto;
             padding: 18px 0 12px;
         }
-        /* ==========================================
-           TOPP
-        ========================================== */
+        /* --- Topp --- */
         .need-overview-top {
             display: flex;
             align-items: flex-end;
@@ -132,7 +141,7 @@
             background: #086d9b;
             border-color: #086d9b;
         }
-        /* BYTT MELLOM AKTIVE BEHOV OG ARKIV */
+        /* --- Bytt mellom aktive behov og arkiv --- */
         .need-overview-top-actions {
             display: flex;
             align-items: center;
@@ -160,9 +169,7 @@
             background: var(--surface-soft, #eaf4ff);
             border-color: #0789c8;
         }
-        /* ==========================================
-           MELDING
-        ========================================== */
+        /* --- Melding --- */
         .need-overview-message {
             margin: 0 0 16px;
             padding: 13px 17px;
@@ -173,10 +180,10 @@
             font-size: .85rem;
             font-weight: 700;
         }
-        /* ==========================================
-           TO KOLONNER
-           33 % LISTE, 67 % KART
-        ========================================== */
+        /*
+            TO KOLONNER
+            33 % LISTE, 67 % KART
+        */
         .need-overview-layout {
             display: grid;
             grid-template-columns:
@@ -199,9 +206,7 @@
             background: var(--surface, white);
             box-shadow: 0 12px 35px rgba(16, 45, 66, .05);
         }
-        /* ==========================================
-           VENSTRE PANEL
-        ========================================== */
+        /* --- Venstre panel --- */
         .need-overview-list-panel {
             display: flex;
             flex-direction: column;
@@ -241,9 +246,7 @@
             font-size: .84rem;
             line-height: 1.5;
         }
-        /* ==========================================
-           SCROLL KUN INNI LISTEN
-        ========================================== */
+        /* --- Scroll kun inni listen --- */
         .need-overview-page #needList {
             display: flex;
             flex-direction: column;
@@ -267,10 +270,10 @@
             border-radius: 999px;
             background: #bdc8d2;
         }
-        /* ==========================================
-           BEHOVSKORT
-           HINDRER AT KORT STIKKER UT
-        ========================================== */
+        /*
+            BEHOVSKORT
+            HINDRER AT KORT STIKKER UT
+        */
         .need-overview-page #needList > .need-overview-entry {
             position: relative;
             display: block;
@@ -315,9 +318,7 @@
             outline: 3px solid #0789c8;
             outline-offset: -3px;
         }
-        /* ==========================================
-           ØVERSTE RAD I BEHOVSKORT
-        ========================================== */
+        /* --- Øverste rad i behovskort --- */
         .need-overview-page .need-overview-entry .entry-top {
             display: flex;
             flex-wrap: wrap;
@@ -369,9 +370,7 @@
         .need-overview-page .urgency-badge {
             line-height: 1.35;
         }
-        /* ==========================================
-           TEKST OG DETALJER
-        ========================================== */
+        /* --- Tekst og detaljer --- */
         .need-overview-page .entry-description {
             margin: 9px 0 11px;
             color: var(--text, #344054);
@@ -397,9 +396,7 @@
             line-height: 1.5;
             overflow-wrap: anywhere;
         }
-        /* ==========================================
-           KNAPPER OG REGISTRERINGSDATO
-        ========================================== */
+        /* --- Knapper og registreringsdato --- */
         .need-overview-page .entry-bottom {
             display: flex;
             flex-direction: column;
@@ -473,9 +470,7 @@
         .need-overview-page .entry-actions .small-button.danger:hover {
             background: #ffe1e1;
         }
-        /* ==========================================
-           TOM LISTE
-        ========================================== */
+        /* --- Tom liste --- */
         .need-overview-empty {
             min-width: 0;
             padding: 20px;
@@ -494,9 +489,7 @@
             font-size: .82rem;
             line-height: 1.5;
         }
-        /* ==========================================
-           HØYRE KARTPANEL
-        ========================================== */
+        /* --- Høyre kartpanel --- */
         .need-overview-map-panel {
             min-width: 0;
             padding: 14px 18px 18px 14px;
@@ -586,9 +579,7 @@
         .need-map-notice[hidden] {
             display: none !important;
         }
-        /* ==========================================
-           TRE INFORMASJONSKORT UNDER KART
-        ========================================== */
+        /* --- Tre informasjonskort under kart --- */
         .need-map-help-grid {
             display: grid;
             grid-template-columns:
@@ -614,9 +605,7 @@
             font-size: .75rem;
             line-height: 1.4;
         }
-        /* ==========================================
-           FULLSKJERMKNAPP
-        ========================================== */
+        /* --- Fullskjermknapp --- */
         .need-map-fullscreen-control button {
             display: grid;
             place-items: center;
@@ -663,9 +652,7 @@
         .need-map-fullscreen-dialog::backdrop {
             background: #17212b;
         }
-        /* ==========================================
-           INFORMASJONSVINDU FOR BEHOV I KARTET
-        ========================================== */
+        /* --- Informasjonsvindu for behov i kartet --- */
         .need-map-popup {
             min-width: 215px;
             max-width: 310px;
@@ -717,10 +704,10 @@
         .need-overview-page .leaflet-popup-content-wrapper {
             border-radius: 12px;
         }
-        /* ==========================================
-           PC: BOKSENE LIKE HØYE
-           VENSTRE LISTE SCROLLER INTERNT
-        ========================================== */
+        /*
+            PC: BOKSENE LIKE HØYE
+            VENSTRE LISTE SCROLLER INTERNT
+        */
         @@media (min-width: 951px) {
             .need-overview-layout > .need-overview-list-panel {
                 height: var(--need-map-panel-height, 800px);
@@ -739,9 +726,7 @@
                 align-self: start;
             }
         }
-        /* ==========================================
-           NETTBRETT
-        ========================================== */
+        /* --- Nettbrett --- */
         @@media (max-width: 950px) {
             .need-overview-layout {
                 grid-template-columns: minmax(0, 1fr);
@@ -760,9 +745,7 @@
                 height: 460px !important;
             }
         }
-        /* ==========================================
-           MOBIL
-        ========================================== */
+        /* --- Mobil --- */
         @@media (max-width: 700px) {
             .need-overview-page {
                 width: calc(100% - 28px);
@@ -794,9 +777,7 @@
                 height: 420px !important;
             }
         }
-        /* ==========================================
-           SØRG FOR AT SIDEN SLUTTER ETTER KARTET
-        ========================================== */
+        /* --- Sørg for at siden slutter etter kartet --- */
         body:has(.need-overview-page) {
             height: auto;
             overflow-x: hidden;
@@ -1135,9 +1116,7 @@
 <script src="~/js/kartverket.js" asp-append-version="true"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        /* ==========================================
-           REFERANSER
-        ========================================== */
+        /* --- Referanser --- */
         const entries = Array.from(
             document.querySelectorAll(
                 "#needList .need-overview-entry"
@@ -1161,9 +1140,7 @@
         ) {
             return;
         }
-        /* ==========================================
-           LIK HØYDE PÅ LISTE OG KART
-        ========================================== */
+        /* --- Lik høyde på liste og kart --- */
         function syncPanelHeight() {
             const height =
                 mapPanel.getBoundingClientRect().height;
@@ -1182,9 +1159,7 @@
                 new ResizeObserver(syncPanelHeight);
             panelObserver.observe(mapPanel);
         }
-        /* ==========================================
-           KONTROLLER KARTBIBLIOTEK
-        ========================================== */
+        /* --- Kontroller kartbibliotek --- */
         if (typeof L === "undefined") {
             mapNotice.hidden = false;
             mapNotice.querySelector("strong").textContent =
@@ -1194,9 +1169,7 @@
                 "kan fortsatt brukes.";
             return;
         }
-        /* ==========================================
-           OPPRETT KART
-        ========================================== */
+        /* --- Opprett kart --- */
         const map = L.map("map")
             .setView([58.1467, 7.9956], 11);
         // Kartlagvelgeren opprettes først.
@@ -1211,9 +1184,7 @@
                 }
             ).addTo(map);
         }
-        /* ==========================================
-           FULLSKJERM
-        ========================================== */
+        /* --- Fullskjerm --- */
         const fullscreenDialog =
             document.createElement("dialog");
         fullscreenDialog.className =
@@ -1351,13 +1322,13 @@
                 return control;
             }
         });
-        // Denne legges til etter kartlagvelgeren.
-        // Dermed vises "Vanlig kart" øverst.
+        /*
+            Denne legges til etter kartlagvelgeren.
+            Dermed vises "Vanlig kart" øverst.
+        */
         new FullscreenControl().addTo(map);
         updateFullscreenControl();
-        /* ==========================================
-           SYMBOLER FOR BEHOV
-        ========================================== */
+        /* --- Symboler for behov --- */
         function symbolFor(type) {
             const icons = {
                 Transport:
@@ -1383,9 +1354,7 @@
             };
             return icons[type] || icons.Other;
         }
-        /* ==========================================
-           LAG KARTMARKØR
-        ========================================== */
+        /* --- Lag kartmarkør --- */
         function createSymbolMarker(color, type, badge) {
             const svg =
                 "<svg xmlns='http://www.w3.org/2000/svg' " +
@@ -1430,9 +1399,7 @@
                 popupAnchor: [0, -54]
             });
         }
-        /* ==========================================
-           KARTMARKØRER FRA BEHOVSLISTEN
-        ========================================== */
+        /* --- Kartmarkører fra behovslisten --- */
         const bounds = [];
         const markers = new Map();
         // Velg riktig kort i listen.
@@ -1449,8 +1416,10 @@
                 );
             });
         }
-        // Scroll bare inni venstrepanelet,
-        // ikke hele nettsiden.
+        /*
+            Scroll bare inni venstrepanelet,
+            ikke hele nettsiden.
+        */
         function scrollToEntry(entry) {
             const listRect =
                 listScroll.getBoundingClientRect();
@@ -1468,13 +1437,13 @@
                 });
             }
         }
-        /* ==========================================
-           BEHOVSINFORMASJON I KARTETS POPUP
+        /*
+            BEHOVSINFORMASJON I KARTETS POPUP
 
-           Innhold hentes fra det eksisterende behovskortet.
-           textContent hindrer at brukerregistrert tekst
-           blir tolket som HTML.
-        ========================================== */
+            Innhold hentes fra det eksisterende behovskortet.
+            textContent hindrer at brukerregistrert tekst
+            blir tolket som HTML.
+        */
         function createNeedPopup(entry) {
             const content = document.createElement("div");
             content.className = "need-map-popup";
@@ -1534,8 +1503,10 @@
                 content.appendChild(registeredElement);
             }
 
-            // Samme handling som på behovskortet:
-            // Finn ressurser for aktive, Se tildeling for løste.
+            /*
+                Samme handling som på behovskortet:
+                Finn ressurser for aktive, Se tildeling for løste.
+            */
             const cardAction = entry.querySelector(".entry-actions a");
             if (cardAction) {
                 const action = document.createElement("a");
@@ -1638,9 +1609,7 @@
                 }
             );
         });
-        /* ==========================================
-           ZOOM SLIK AT ALLE BEHOV VISES
-        ========================================== */
+        /* --- Zoom slik at alle behov vises --- */
         if (bounds.length === 1) {
             map.setView(
                 bounds[0],
@@ -1665,9 +1634,7 @@
                     : "Aktive behov vises her når de blir registrert.";
             }
         }
-        /* ==========================================
-           OPPDATER KARTETS STØRRELSE
-        ========================================== */
+        /* --- Oppdater kartets størrelse --- */
         if (typeof ResizeObserver !== "undefined") {
             const mapObserver =
                 new ResizeObserver(function () {

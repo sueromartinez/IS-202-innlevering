@@ -1,3 +1,15 @@
+@*
+    RegisterResource.cshtml – «Registrer ressurs» og «Endre ressurs»
+
+    Hva filen gjør: Samme side brukes til å registrere og endre. Skjema til venstre, kart til
+    høyre. Man kan søke opp en adresse (Kartverket) eller klikke og dra markøren i kartet.
+    Koordinatene legges i skjulte felt og sendes med skjemaet.
+
+    På nettsiden: Skjemaet med type, navn, antall, adresse, tilgjengelighet og kontaktinfo, og
+    kartet der man setter et punkt.
+
+    Oppgavekrav: 9, 11, 12, 18, 21, 22
+*@
 
 @using FirstWebAppInDocker.Models
 @model FirstWebAppInDocker.ViewModels.RegisterResourceViewModel
@@ -37,9 +49,7 @@
         textarea {
             font: inherit;
         }
-        /* ==========================================
-           SIDE OG OVERSKRIFT
-        ========================================== */
+        /* --- Side og overskrift --- */
         .resource-page {
             width: min(1500px, calc(100% - 40px));
             margin: 0 auto;
@@ -91,9 +101,7 @@
         .back-button:hover {
             background: var(--surface-soft);
         }
-        /* ==========================================
-           KORT OG RUTENETT
-        ========================================== */
+        /* --- Kort og rutenett --- */
         .resource-grid {
             display: grid;
             grid-template-columns: minmax(420px, .8fr) minmax(600px, 1.35fr);
@@ -135,9 +143,7 @@
             color: #667085;
             line-height: 1.55;
         }
-        /* ==========================================
-           SKJEMA
-        ========================================== */
+        /* --- Skjema --- */
         .form-section {
             padding-bottom: 24px;
             margin-bottom: 24px;
@@ -254,9 +260,7 @@
         .submit-button:hover {
             background: #1d704d;
         }
-        /* ==========================================
-           KART
-        ========================================== */
+        /* --- Kart --- */
         .map-card-header {
             display: flex;
             justify-content: space-between;
@@ -312,9 +316,7 @@
             font-size: .75rem;
             line-height: 1.4;
         }
-        /* ==========================================
-           FULLSKJERM
-        ========================================== */
+        /* --- Fullskjerm --- */
         .resource-fullscreen-control button {
             display: grid;
             place-items: center;
@@ -358,9 +360,7 @@
         .resource-fullscreen-dialog::backdrop {
             background: #17212b;
         }
-        /* ==========================================
-           ADRESSEFELT OG ADRESSEFORSLAG
-        ========================================== */
+        /* --- Adressefelt og adresseforslag --- */
         .address-detail-row {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -407,9 +407,7 @@
         [hidden] {
             display: none !important;
         }
-        /* ==========================================
-           PC: INTERN SCROLLING I SKJEMAET
-        ========================================== */
+        /* --- Pc: intern scrolling i skjemaet --- */
         @@media (min-width: 951px) {
             /*
               Litt større kartområde.
@@ -487,9 +485,7 @@
                 height: clamp(470px, 68dvh, 740px);
             }
         }
-        /* ==========================================
-           NETTBRETT OG MOBIL
-        ========================================== */
+        /* --- Nettbrett og mobil --- */
         @@media (max-width: 950px) {
             .resource-grid {
                 grid-template-columns: 1fr;
@@ -571,10 +567,17 @@
                 <h2>Hva kan du bidra med?</h2>
                 <p>Fyll inn informasjonen så presist som mulig.</p>
             </div>
+            @*
+                Skjemaet sendes til RegisterResource eller EditResource, avhengig av om man
+                registrerer eller endrer. Sikkerhetskoden mot CSRF legges inn automatisk.
+            *@
             <form asp-controller="Resource"
                   asp-action="@(isEdit ? "EditResource" : "RegisterResource")"
                   asp-route-id="@editResourceId"
                   method="post">
+                @*
+                    Her vises feil som ikke hører til ett bestemt felt.
+                *@
                 <div asp-validation-summary="ModelOnly"
                      class="validation-summary"></div>
                 <!-- GRUNNINFORMASJON -->
@@ -585,6 +588,11 @@
                             Ressurstype
                             <span class="required-mark">*</span>
                         </label>
+                        @*
+                            asp-for kobler feltet til ViewModel-en: riktig navn, reglene for
+                            feltet, og verdien står der fortsatt hvis skjemaet vises på nytt
+                            etter en feil.
+                        *@
                         <select asp-for="ResourceType"
                                 asp-items="Html.GetEnumSelectList<ResourceType>()"
                                 class="form-control">
@@ -722,6 +730,9 @@
                         Velg et adresseforslag eller plasser markøren selv.
                         Adressen kan korrigeres manuelt.
                     </small>
+                    @*
+                        Skjulte felt som JavaScript fyller med koordinatene fra kartet.
+                    *@
                     <input asp-for="Latitude"
                            type="hidden"
                            id="Latitude" />
@@ -779,6 +790,10 @@
         </section>
     </div>
 </main>
+@*
+    Leaflet er et gratis bibliotek for interaktive kart. Vi valgte det fordi det er lett og
+    fungerer godt med kartene fra Kartverket. Google Maps krever API-nøkkel og betaling.
+*@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="~/js/kartverket.js" asp-append-version="true"></script>
 <script src="~/js/resource-address.js" asp-append-version="true"></script>
@@ -790,15 +805,16 @@
         const positionText = document.getElementById("positionText");
         const defaultLatitude = 58.1467;
         const defaultLongitude = 7.9956;
+        @*
+            Kartet starter over Kristiansand.
+        *@
         const map = L.map("resourceMap").setView(
             [defaultLatitude, defaultLongitude],
             10
         );
         const mapElement = document.getElementById("resourceMap");
 
-        /* ==========================================
-           FULLSKJERM
-        ========================================== */
+        /* --- Fullskjerm --- */
 
         const fullscreenDialog = document.createElement("dialog");
         fullscreenDialog.className = "resource-fullscreen-dialog";
@@ -962,9 +978,7 @@
         new FullscreenControl().addTo(map);
         updateFullscreenControl();
 
-        /* ==========================================
-           KARTLAG OG ADRESSESØK
-        ========================================== */
+        /* --- Kartlag og adressesøk --- */
 
         const addressLookup = setupResourceAddress(
             map,
@@ -983,9 +997,7 @@
             }
         );
 
-        /* ==========================================
-           KARTMARKØR
-        ========================================== */
+        /* --- Kartmarkør --- */
 
         function createResourceMarker(latitude, longitude) {
             return L.marker(
@@ -1053,6 +1065,10 @@
             }
         }
 
+        @*
+            Klikker man i kartet, flyttes markøren dit, koordinatene oppdateres, og nærmeste
+            adresse slås opp hos Kartverket.
+        *@
         map.on("click", function (event) {
             updateResourcePosition(
                 event.latlng.lat,
@@ -1067,9 +1083,7 @@
                 longitude.toFixed(5);
         }
 
-        /* ==========================================
-           SYNKRONISER HØYDEN PÅ SKJEMA OG KART
-        ========================================== */
+        /* --- Synkroniser høyden på skjema og kart --- */
 
         const registerGrid =
             document.querySelector(".resource-grid");
@@ -1231,8 +1245,10 @@
             return;
         }
 
-        // Matcher synlige ressurstype-navn fra enum-listen.
-        // Dermed trenger vi ikke endre modell, controller eller database.
+        /*
+            Matcher synlige ressurstype-navn fra enum-listen.
+            Dermed trenger vi ikke endre modell, controller eller database.
+        */
         const capacityTypes = [
             {
                 keywords: ["aggregat", "generator", "stromforsyning", "power supply"],

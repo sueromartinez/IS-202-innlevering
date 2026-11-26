@@ -1,34 +1,38 @@
+/*
+    EfResourceMatchingRepository.cs – databasespørringene til matchingen
+
+    Hva filen gjør: Steg 1 i matchingen: det grove utvalget som kjøres i MariaDB.
+*/
+
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace FirstWebAppInDocker.Services.Matching;
 
-/// <summary>
-/// Implementerer datatilgang for ressursmatching med
-/// Entity Framework Core og ApplicationDbContext.
-/// </summary>
-/// <remarks>
-/// Repositoryet utfører databasefiltrering.
-/// Eksakte avstander, prioritering og rangering
-/// håndteres av ResourceMatchingService.
-/// </remarks>
+/*
+    Implementerer datatilgang for ressursmatching med
+    Entity Framework Core og ApplicationDbContext.
+
+    Repositoryet utfører databasefiltrering.
+    Eksakte avstander, prioritering og rangering
+    håndteres av ResourceMatchingService.
+*/
 public sealed class EfResourceMatchingRepository
     : IResourceMatchingRepository
 {
+    #region Felt og konstruktør
+
     private readonly ApplicationDbContext _context;
 
-    #region Konstruktør
+    /*
+        Oppretter repositoryet med databasekonteksten
+        som leveres gjennom Dependency Injection.
 
-    /// <summary>
-    /// Oppretter repositoryet med databasekonteksten
-    /// som leveres gjennom Dependency Injection.
-    /// </summary>
-    /// <param name="context">
-    /// EF Core-konteksten for Beredskapsportalen.
-    /// </param>
-    public EfResourceMatchingRepository(
-        ApplicationDbContext context)
+        context:
+        EF Core-konteksten for Beredskapsportalen.
+    */
+    public EfResourceMatchingRepository(ApplicationDbContext context)
     {
         _context = context;
     }
@@ -37,7 +41,6 @@ public sealed class EfResourceMatchingRepository
 
     #region Ressursspørringer
 
-    /// <inheritdoc />
     public async Task<IReadOnlyList<Resource>>
         GetAvailableResourcesNearAsync(
             Coordinate center,
@@ -45,14 +48,16 @@ public sealed class EfResourceMatchingRepository
             IReadOnlyCollection<ResourceType>? types,
             int? excludeRequestedForNeedId)
     {
-        // BBOX reduserer antallet rader som må hentes
-        // før nøyaktig Haversine-avstand beregnes.
-        var box = GeoDistance.BoundingBox(
-            center.Latitude,
-            center.Longitude,
-            radiusKm);
+        /*
+            Regner ut firkanten rundt søkepunktet.
+        */
+        (double MinLatitude, double MaxLatitude, double MinLongitude, double MaxLongitude) box =
+            GeoDistance.BoundingBox(center.Latitude, center.Longitude, radiusKm);
 
-        // Lokale variabler brukes som SQL-parametere.
+        /*
+            Verdiene legges i variabler, slik at EF Core sender dem som parametere til
+            databasen. Det beskytter også mot SQL-injection.
+        */
         double minLatitude = box.MinLatitude;
         double maxLatitude = box.MaxLatitude;
         double minLongitude = box.MinLongitude;
@@ -62,6 +67,10 @@ public sealed class EfResourceMatchingRepository
             _context.Resources
                 .AsNoTracking()
                 .Where(resource =>
+                    /*
+                        Bare ledige ressurser innenfor firkanten. Dette blir en WHERE-del i
+                        SQL-en.
+                    */
                     resource.Status == ResourceStatus.Available
                     && resource.Latitude >= minLatitude
                     && resource.Latitude <= maxLatitude
@@ -72,31 +81,34 @@ public sealed class EfResourceMatchingRepository
         {
             ResourceType[] selectedTypes = types.ToArray();
 
-            query = query.Where(resource =>
-                selectedTypes.Contains(resource.ResourceType));
+            query = query.Where(resource => selectedTypes.Contains(resource.ResourceType));
         }
 
         if (excludeRequestedForNeedId.HasValue)
         {
             int needId = excludeRequestedForNeedId.Value;
 
-            // Ressurser som allerede er forespurt eller
-            // bekreftet for samme behov skal ikke
-            // foreslås på nytt.
+            /*
+                Ressurser som allerede er forespurt eller
+                bekreftet for samme behov skal ikke
+                foreslås på nytt.
+            */
             query = query.Where(resource =>
+                /*
+                    Ressurser som allerede er spurt for dette behovet, tas bort, så de ikke
+                    foreslås to ganger.
+                */
                 !_context.NeedAssignments.Any(assignment =>
                     assignment.NeedId == needId
                     && assignment.ResourceId == resource.Id
                     && (
                         assignment.Status == AssignmentStatus.Requested
-                        || assignment.Status == AssignmentStatus.Confirmed
-                    )));
+                        || assignment.Status == AssignmentStatus.Confirmed)));
         }
 
         return await query.ToListAsync();
     }
 
-    /// <inheritdoc />
     public async Task<IReadOnlyList<Resource>>
         GetAvailableResourcesForProviderAsync(string userId)
     {
@@ -112,10 +124,8 @@ public sealed class EfResourceMatchingRepository
 
     #region Behovsspørringer
 
-    /// <inheritdoc />
     public async Task<IReadOnlyList<Need>>
-        GetOpenNeedsForTypesAsync(
-            IReadOnlyCollection<ResourceType> types)
+        GetOpenNeedsForTypesAsync(IReadOnlyCollection<ResourceType> types)
     {
         if (types.Count == 0)
         {
@@ -127,10 +137,7 @@ public sealed class EfResourceMatchingRepository
         return await _context.Needs
             .AsNoTracking()
             .Where(need =>
-                (
-                    need.Status == NeedStatus.New
-                    || need.Status == NeedStatus.UnderReview
-                )
+                (need.Status == NeedStatus.New || need.Status == NeedStatus.UnderReview)
                 && selectedTypes.Contains(need.ResourceType))
             .ToListAsync();
     }

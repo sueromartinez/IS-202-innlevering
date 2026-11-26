@@ -1,3 +1,13 @@
+/*
+    SamiToolsTests.cs – automatiske tester
+
+    Hva filen gjør: Tester verktøyene til Sami, blant annet at en rolle ikke får bruke andres
+    verktøy. Bruker xUnit, en database i minnet (EF Core InMemory) og Moq, så testene kjører
+    raskt uten Docker.
+
+    Oppgavekrav: 6, 15
+*/
+
 using System.Text.Json;
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
@@ -9,11 +19,11 @@ using Xunit;
 
 namespace FirstWebAppInDocker.Tests;
 
-/// <summary>
-/// Tester at Samis verktøy respekterer roller, ikke lekker
-/// kontaktinformasjon, og at forslag valideres mot databasen.
-/// Testene kaller verktøyene direkte, uten språkmodell.
-/// </summary>
+/*
+    Tester at Samis verktøy respekterer roller, ikke lekker
+    kontaktinformasjon, og at forslag valideres mot databasen.
+    Testene kaller verktøyene direkte, uten språkmodell.
+*/
 public class SamiToolsTests
 {
     private static ApplicationDbContext CreateDatabase()
@@ -26,11 +36,10 @@ public class SamiToolsTests
         return new ApplicationDbContext(options);
     }
 
-
-    /// <summary>
-    /// Falskt adresseoppslag, så testene ikke trenger nettverk.
-    /// Kjenner bare "Storgata 5, Grimstad".
-    /// </summary>
+    /*
+        Falskt adresseoppslag, så testene ikke trenger nettverk.
+        Kjenner bare "Storgata 5, Grimstad".
+    */
     private sealed class FakeAddressLookup : IAddressLookup
     {
         public Task<AddressResult?> LookupAsync(string text, CancellationToken cancellationToken)
@@ -44,7 +53,6 @@ public class SamiToolsTests
         }
     }
 
-
     private static SamiTools CreateTools(ApplicationDbContext database)
     {
         // Geokoderen brukes ikke i disse testene.
@@ -53,7 +61,6 @@ public class SamiToolsTests
         return new SamiTools(database, new ResourceMatchingService(
     new EfResourceMatchingRepository(database)), geocoder, new FakeAddressLookup());
     }
-
 
     private static ChatToolCall Call(string name, string argumentsJson = "{}")
     {
@@ -64,7 +71,6 @@ public class SamiToolsTests
             Arguments = JsonDocument.Parse(argumentsJson).RootElement.Clone()
         };
     }
-
 
     private static (Need Need, Resource Resource) SeedPair(ApplicationDbContext database)
     {
@@ -99,7 +105,6 @@ public class SamiToolsTests
         return (need, resource);
     }
 
-
     [Fact]
     public void Volunteer_DoesNotGetMatchingTools()
     {
@@ -113,7 +118,6 @@ public class SamiToolsTests
         Assert.DoesNotContain("get_statistics", names);
         Assert.Contains("get_registration_rules", names);
     }
-
 
     [Fact]
     public async Task Volunteer_CallingForbiddenTool_GetsError()
@@ -134,7 +138,6 @@ public class SamiToolsTests
         Assert.DoesNotContain("Sjark", result);
     }
 
-
     [Fact]
     public async Task FindNearbyResources_NeverReturnsContactInformation()
     {
@@ -154,7 +157,6 @@ public class SamiToolsTests
         Assert.DoesNotContain("hemmelig@example.com", result);
         Assert.DoesNotContain("99999999", result);
     }
-
 
     [Fact]
     public async Task SuggestMatch_ValidPair_AddsSuggestionWithoutSavingAnything()
@@ -178,7 +180,6 @@ public class SamiToolsTests
         Assert.Empty(database.NeedAssignments);
     }
 
-
     [Fact]
     public async Task SuggestMatch_UnknownResource_IsRejected()
     {
@@ -199,10 +200,7 @@ public class SamiToolsTests
         Assert.Empty(output.Suggestions);
     }
 
-
-    // ========================================
-    // HJELPEARTIKLER
-    // ========================================
+    // --- Hjelpeartikler ---
 
     [Theory]
     [InlineData("Hvordan skrur jeg på dark mode?", "tema")]
@@ -218,7 +216,6 @@ public class SamiToolsTests
         Assert.Equal(expectedId, result[0].Id);
     }
 
-
     [Fact]
     public void HelpSearch_DoesNotShowAdminArticlesToVolunteers()
     {
@@ -226,7 +223,6 @@ public class SamiToolsTests
 
         Assert.DoesNotContain(result, article => article.Id == "admin-brukere");
     }
-
 
     [Fact]
     public async Task SearchHelpTool_ReturnsArticleText()
@@ -243,10 +239,7 @@ public class SamiToolsTests
         Assert.Contains("måne", result);
     }
 
-
-    // ========================================
-    // NIVÅ
-    // ========================================
+    // --- Nivå ---
 
     [Fact]
     public async Task GetMyLevel_TwoResources_IsSilver()
@@ -280,10 +273,7 @@ public class SamiToolsTests
         Assert.Contains("\"points\":200", result);
     }
 
-
-    // ========================================
-    // REGISTRERE RESSURS VIA SAMI
-    // ========================================
+    // --- Registrere ressurs via Sami ---
 
     private const string ValidDraftArguments = """
         {
@@ -295,7 +285,6 @@ public class SamiToolsTests
           "location": "Storgata 5, Grimstad"
         }
         """;
-
 
     [Fact]
     public async Task PrepareResource_ValidInput_CreatesDraftWithoutSaving()
@@ -323,7 +312,6 @@ public class SamiToolsTests
         Assert.Empty(database.Resources);
     }
 
-
     [Fact]
     public async Task PrepareResource_MissingFields_AsksForThem()
     {
@@ -342,7 +330,6 @@ public class SamiToolsTests
         Assert.Contains("adresse", result);
         Assert.Empty(output.ResourceDrafts);
     }
-
 
     [Fact]
     public async Task PrepareResource_InvalidPeriodAndPhone_UsesFormRules()
@@ -372,7 +359,6 @@ public class SamiToolsTests
         Assert.Empty(output.ResourceDrafts);
     }
 
-
     [Fact]
     public async Task PrepareResource_UnknownAddress_IsRejected()
     {
@@ -389,7 +375,6 @@ public class SamiToolsTests
         Assert.Contains("Fant ikke stedet", result);
         Assert.Empty(output.ResourceDrafts);
     }
-
 
     [Fact]
     public async Task PrepareResource_NotAvailableForPublicActor()

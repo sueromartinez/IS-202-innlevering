@@ -1,3 +1,12 @@
+/*
+    ResourceOwnershipTests.cs – automatiske tester
+
+    Hva filen gjør: Tester at man bare kan endre og slette egne ressurser. Bruker xUnit, en
+    database i minnet (EF Core InMemory) og Moq, så testene kjører raskt uten Docker.
+
+    Oppgavekrav: 6, 15
+*/
+
 using System.Security.Claims;
 using FirstWebAppInDocker.Controllers;
 using FirstWebAppInDocker.Data;
@@ -14,31 +23,21 @@ namespace FirstWebAppInDocker.Tests;
 
 public class ResourceOwnershipTests
 {
-    // ========================================
-    // TESTDATABASE
-    // ========================================
+    // --- Testdatabase ---
 
     private static ApplicationDbContext CreateContext()
     {
         var options =
             new DbContextOptionsBuilder<ApplicationDbContext>()
-                .UseInMemoryDatabase(
-                    Guid.NewGuid().ToString()
-                )
+                .UseInMemoryDatabase(Guid.NewGuid().ToString())
                 .Options;
 
         return new ApplicationDbContext(options);
     }
 
+    // --- Testbruker ---
 
-    // ========================================
-    // TESTBRUKER
-    // ========================================
-
-    private static ApplicationUser CreateUser(
-        string id,
-        string email
-    )
+    private static ApplicationUser CreateUser(string id, string email)
     {
         return new ApplicationUser
         {
@@ -50,16 +49,9 @@ public class ResourceOwnershipTests
         };
     }
 
+    // --- Testressurs ---
 
-    // ========================================
-    // TESTRESSURS
-    // ========================================
-
-    private static Resource CreateResource(
-        string name,
-        string ownerUserId,
-        string ownerEmail
-    )
+    private static Resource CreateResource(string name, string ownerUserId, string ownerEmail)
     {
         return new Resource
         {
@@ -79,18 +71,13 @@ public class ResourceOwnershipTests
         };
     }
 
-
-    // ========================================
-    // CONTROLLER MED TESTIDENTITY
-    // ========================================
+    // --- Controller med testidentity ---
 
     private static ResourceController CreateController(
         ApplicationDbContext context,
-        ApplicationUser currentUser
-    )
+        ApplicationUser currentUser)
     {
-        var store =
-            new Mock<IUserStore<ApplicationUser>>();
+        var store = new Mock<IUserStore<ApplicationUser>>();
 
         var userManager =
             new Mock<UserManager<ApplicationUser>>(
@@ -102,38 +89,20 @@ public class ResourceOwnershipTests
                 null!,
                 null!,
                 null!,
-                null!
-            );
+                null!);
 
         userManager
-            .Setup(
-                manager => manager.GetUserAsync(
-                    It.IsAny<ClaimsPrincipal>()
-                )
-            )
+            .Setup(manager => manager.GetUserAsync(It.IsAny<ClaimsPrincipal>()))
             .ReturnsAsync(currentUser);
-
 
         var claims = new[]
         {
-            new Claim(
-                ClaimTypes.NameIdentifier,
-                currentUser.Id
-            ),
+            new Claim(ClaimTypes.NameIdentifier, currentUser.Id),
 
-            new Claim(
-                ClaimTypes.Role,
-                IdentitySeeder.ResourceProviderRole
-            )
+            new Claim(ClaimTypes.Role, IdentitySeeder.ResourceProviderRole)
         };
 
-
-        var identity =
-            new ClaimsIdentity(
-                claims,
-                "TestAuthentication"
-            );
-
+        var identity = new ClaimsIdentity(claims, "TestAuthentication");
 
         var httpContext =
             new DefaultHttpContext
@@ -141,11 +110,7 @@ public class ResourceOwnershipTests
                 User = new ClaimsPrincipal(identity)
             };
 
-
-        return new ResourceController(
-            context,
-            userManager.Object
-        )
+        return new ResourceController(context, userManager.Object)
         {
             ControllerContext =
                 new ControllerContext
@@ -155,188 +120,107 @@ public class ResourceOwnershipTests
         };
     }
 
-
-    // ========================================
-    // TEST 1
-    // BRUKER SER BARE EGNE RESSURSER
-    // ========================================
+    /*
+        TEST 1
+        BRUKER SER BARE EGNE RESSURSER
+    */
 
     [Fact]
     public async Task ResourceOverview_ShouldOnlyShowOwnResources()
     {
         using var context = CreateContext();
 
-        var ola = CreateUser(
-            "user-ola",
-            "ola@example.com"
-        );
+        var ola = CreateUser("user-ola", "ola@example.com");
 
-        var kari = CreateUser(
-            "user-kari",
-            "kari@example.com"
-        );
-
+        var kari = CreateUser("user-kari", "kari@example.com");
 
         context.Resources.AddRange(
-            CreateResource(
-                "Olas aggregat",
-                ola.Id,
-                ola.Email!
-            ),
+            CreateResource("Olas aggregat", ola.Id, ola.Email!),
 
-            CreateResource(
-                "Olas drone",
-                ola.Id,
-                ola.Email!
-            ),
+            CreateResource("Olas drone", ola.Id, ola.Email!),
 
-            CreateResource(
-                "Karis traktor",
-                kari.Id,
-                kari.Email!
-            )
-        );
-
+            CreateResource("Karis traktor", kari.Id, kari.Email!));
 
         await context.SaveChangesAsync();
 
+        var controller = CreateController(context, ola);
 
-        var controller =
-            CreateController(context, ola);
+        var result = await controller.ResourceOverview();
 
+        var view = Assert.IsType<ViewResult>(result);
 
-        var result =
-            await controller.ResourceOverview();
-
-
-        var view =
-            Assert.IsType<ViewResult>(result);
-
-
-        var resources =
-            Assert.IsType<List<ResourceOverviewViewModel>>(
-                view.Model
-            );
-
+        var resources = Assert.IsType<List<ResourceOverviewViewModel>>(view.Model);
 
         Assert.Equal(2, resources.Count);
 
-        Assert.DoesNotContain(
-            resources,
-            resource =>
-                resource.OwnerEmail == kari.Email
-        );
+        Assert.DoesNotContain(resources, resource => resource.OwnerEmail == kari.Email);
     }
 
-
-    // ========================================
-    // TEST 2
-    // RESSURSER BEHOLDES VED E-POSTENDRING
-    // ========================================
+    /*
+        TEST 2
+        RESSURSER BEHOLDES VED E-POSTENDRING
+    */
 
     [Fact]
     public async Task ResourceOverview_ShouldKeepResourcesAfterEmailChange()
     {
         using var context = CreateContext();
 
+        var ola = CreateUser("user-ola", "ola1@example.com");
 
-        var ola = CreateUser(
-            "user-ola",
-            "ola1@example.com"
-        );
+        /*
+            Ressursen ble registrert med
+            den gamle e-postadressen.
 
+            Identity-ID-en er fortsatt lik.
+        */
 
-        // Ressursen ble registrert med
-        // den gamle e-postadressen.
-        //
-        // Identity-ID-en er fortsatt lik.
-
-        context.Resources.Add(
-            CreateResource(
-                "Olas aggregat",
-                ola.Id,
-                "ola@example.com"
-            )
-        );
-
+        context.Resources.Add(CreateResource("Olas aggregat", ola.Id, "ola@example.com"));
 
         await context.SaveChangesAsync();
 
+        var controller = CreateController(context, ola);
 
-        var controller =
-            CreateController(context, ola);
+        var result = await controller.ResourceOverview();
 
+        var view = Assert.IsType<ViewResult>(result);
 
-        var result =
-            await controller.ResourceOverview();
-
-
-        var view =
-            Assert.IsType<ViewResult>(result);
-
-
-        var resources =
-            Assert.IsType<List<ResourceOverviewViewModel>>(
-                view.Model
-            );
-
+        var resources = Assert.IsType<List<ResourceOverviewViewModel>>(view.Model);
 
         Assert.Single(resources);
     }
 
-
-    // ========================================
-    // TEST 3
-    // E-POST GIR IKKE EIERSKAP TIL ANDRES RESSURSER
-    // ========================================
+    /*
+        TEST 3
+        E-POST GIR IKKE EIERSKAP TIL ANDRES RESSURSER
+    */
 
     [Fact]
     public async Task ResourceOverview_ShouldRejectResourcesOwnedByAnotherUser()
     {
         using var context = CreateContext();
 
+        var ola = CreateUser("user-ola", "ola@example.com");
 
-        var ola = CreateUser(
-            "user-ola",
-            "ola@example.com"
-        );
+        /*
+            Ressursen har samme e-postadresse,
+            men tilhører en annen Identity-ID.
 
+            E-post skal ikke overstyre
+            et eksisterende OwnerUserId.
+        */
 
-        // Ressursen har samme e-postadresse,
-        // men tilhører en annen Identity-ID.
-        //
-        // E-post skal ikke overstyre
-        // et eksisterende OwnerUserId.
-
-        context.Resources.Add(
-            CreateResource(
-                "Annen brukers ressurs",
-                "user-other",
-                ola.Email!
-            )
-        );
-
+        context.Resources.Add(CreateResource("Annen brukers ressurs", "user-other", ola.Email!));
 
         await context.SaveChangesAsync();
 
+        var controller = CreateController(context, ola);
 
-        var controller =
-            CreateController(context, ola);
+        var result = await controller.ResourceOverview();
 
+        var view = Assert.IsType<ViewResult>(result);
 
-        var result =
-            await controller.ResourceOverview();
-
-
-        var view =
-            Assert.IsType<ViewResult>(result);
-
-
-        var resources =
-            Assert.IsType<List<ResourceOverviewViewModel>>(
-                view.Model
-            );
-
+        var resources = Assert.IsType<List<ResourceOverviewViewModel>>(view.Model);
 
         Assert.Empty(resources);
     }

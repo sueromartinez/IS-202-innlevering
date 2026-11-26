@@ -1,12 +1,29 @@
-/* =========================================================
-   SAMI – hjelpeassistenten (chat-widget)
+/*
+    sami.js – chatten til Sami i nettleseren
 
-   - Sender samtalen til /Sami/Chat (serveren snakker med modellen).
-   - Samtalen huskes i sessionStorage, så den overlever sidebytte
-     men forsvinner når nettleserfanen lukkes.
-   - All tekst fra modellen escapes før den vises. Bare enkle
-     formateringer (fet skrift, lister og interne lenker) tillates.
-   ========================================================= */
+    Hva filen gjør:
+    - Sender samtalen til /Sami/Chat med fetch, så siden ikke lastes på nytt.
+    - Sender med sikkerhetskoden mot CSRF.
+    - Husker samtalen mens fanen er åpen (sessionStorage).
+    - Viser forslag fra Sami som kort med «Send forespørsel», og ressursutkast med «Registrer
+      ressursen». Brukeren må trykke selv.
+    - Tekst fra AI-modellen gjøres ufarlig før den vises, så den ikke kan inneholde skadelig
+      kode (XSS).
+
+    På nettsiden: Alt som skjer i chatvinduet.
+
+    Oppgavekrav: 19
+*/
+
+/*
+    SAMI – hjelpeassistenten (chat-widget)
+
+    - Sender samtalen til /Sami/Chat (serveren snakker med modellen).
+    - Samtalen huskes i sessionStorage, så den overlever sidebytte
+      men forsvinner når nettleserfanen lukkes.
+    - All tekst fra modellen escapes før den vises. Bare enkle
+      formateringer (fet skrift, lister og interne lenker) tillates.
+*/
 
 (function () {
     "use strict";
@@ -39,10 +56,7 @@
     const openKey = "sami:" + root.dataset.user + ":open";
     const hintKey = "sami:hint-dismissed";
 
-
-    // ---------------------------------------------------------
-    // TEKST PER ROLLE
-    // ---------------------------------------------------------
+    // --- Tekst per rolle ---
 
     const welcome = {
         volunteer:
@@ -76,10 +90,7 @@
         ]
     };
 
-
-    // ---------------------------------------------------------
     // LAGRING (kan feile i privat modus, derfor try/catch)
-    // ---------------------------------------------------------
 
     function load(storage, key, fallback) {
         try {
@@ -106,11 +117,12 @@
 
     let busy = false;
 
+    // --- Trygg formatering av tekst fra modellen ---
 
-    // ---------------------------------------------------------
-    // TRYGG FORMATERING AV TEKST FRA MODELLEN
-    // ---------------------------------------------------------
-
+    /*
+        Gjør < > & og " om til ufarlige tegn før vi legger på enkel formatering (fet skrift,
+        lister).
+    */
     function escapeHtml(text) {
         return String(text)
             .replace(/&/g, "&amp;")
@@ -184,10 +196,7 @@
         return html;
     }
 
-
-    // ---------------------------------------------------------
-    // VISNING
-    // ---------------------------------------------------------
+    // --- Visning ---
 
     function addMessageElement(from, text, isError) {
         const element = document.createElement("div");
@@ -251,8 +260,10 @@
         messagesEl.appendChild(card);
     }
 
-    // Utkast til en ny ressurs. Knappen sender det vanlige registreringsskjemaet,
-    // så serveren validerer og lagrer akkurat som når brukeren fyller det ut selv.
+    /*
+        Utkast til en ny ressurs. Knappen sender det vanlige registreringsskjemaet,
+        så serveren validerer og lagrer akkurat som når brukeren fyller det ut selv.
+    */
     function addResourceDraftCard(draft) {
         const summary = draft.summary || {};
 
@@ -420,10 +431,7 @@
         input.setAttribute("aria-busy", value ? "true" : "false");
     }
 
-
-    // ---------------------------------------------------------
-    // SNAKK MED SERVEREN
-    // ---------------------------------------------------------
+    // --- Snakk med serveren ---
 
     async function readJson(response) {
         const type = response.headers.get("content-type") || "";
@@ -436,6 +444,10 @@
         return response.json();
     }
 
+    /*
+        Kjernen: legg meldingen til samtalen, send den som JSON, og vis svaret og eventuelle
+        forslag.
+    */
     async function sendMessage(text) {
         const message = (text || "").trim();
 
@@ -511,6 +523,10 @@
         }
     }
 
+    /*
+        Når brukeren trykker «Send forespørsel» på et forslag, sendes det til den vanlige
+        MatchController.SendRequest, med de samme reglene som på nettsiden.
+    */
     async function sendResourceRequest(suggestion, button, status) {
         button.disabled = true;
         button.textContent = "Sender …";
@@ -556,10 +572,7 @@
         }
     }
 
-
-    // ---------------------------------------------------------
-    // ÅPNE OG LUKKE
-    // ---------------------------------------------------------
+    // --- Åpne og lukke ---
 
     function open(moveFocus) {
         root.classList.add("is-open");
@@ -592,10 +605,7 @@
         input.style.height = Math.min(input.scrollHeight, 130) + "px";
     }
 
-
-    // ---------------------------------------------------------
-    // HENDELSER
-    // ---------------------------------------------------------
+    // --- Hendelser ---
 
     launcher.addEventListener("click", function () { open(true); });
     closeButton.addEventListener("click", close);
@@ -634,14 +644,12 @@
         }
     });
 
-
-    // ---------------------------------------------------------
-    // START
-    // ---------------------------------------------------------
-    // SPØR SAMI FRA ANDRE SIDER
-    // En knapp hvor som helst på siden med data-sami-ask="spørsmål"
-    // åpner Sami og sender spørsmålet med en gang.
-    // ---------------------------------------------------------
+    /*
+        START
+        SPØR SAMI FRA ANDRE SIDER
+        En knapp hvor som helst på siden med data-sami-ask="spørsmål"
+        åpner Sami og sender spørsmålet med en gang.
+    */
 
     function ask(text) {
         open(false);
@@ -660,8 +668,6 @@
     });
 
     window.Sami = { ask: ask, open: open };
-
-    // ---------------------------------------------------------
 
     renderAll();
 

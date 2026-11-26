@@ -1,9 +1,17 @@
-/* =========================================================
-   KOORDINERING AV ETT BEHOV  (Views/Match/Need.cshtml)
+/*
+    need-coord.css – utseende
 
-   Bruker fargevariablene fra app.css/theme.css, så siden
-   fungerer i lyst og mørkt tema og i fargeblind modus.
-   ========================================================= */
+    Hva filen gjør: Stilark. @media-reglene tilpasser siden til mobil.
+
+    Oppgavekrav: 12
+*/
+
+/*
+    KOORDINERING AV ETT BEHOV  (Views/Match/Need.cshtml)
+
+    Bruker fargevariablene fra app.css/theme.css, så siden
+    fungerer i lyst og mørkt tema og i fargeblind modus.
+*/
 
 .need-coord {
     --nc-acute: #d34b4b;
@@ -35,10 +43,7 @@
     background: var(--surface);
 }
 
-
-/* ---------------------------------------------------------
-   TOPPKORT
---------------------------------------------------------- */
+/* --- Toppkort --- */
 
 .need-coord-hero {
     position: relative;
@@ -206,10 +211,7 @@
     margin: 0;
 }
 
-
-/* ---------------------------------------------------------
-   FREMDRIFT (steg 1–4)
---------------------------------------------------------- */
+/* --- Fremdrift (steg 1–4) --- */
 
 .need-coord-steps {
     display: grid;
@@ -293,10 +295,7 @@
     color: var(--text);
 }
 
-
-/* ---------------------------------------------------------
-   ARBEIDSOMRÅDE MED FANER
---------------------------------------------------------- */
+/* --- Arbeidsområde med faner --- */
 
 .need-coord-workspace {
     padding: 8px 22px 24px;
@@ -382,10 +381,7 @@
     line-height: 1.55;
 }
 
-
-/* ---------------------------------------------------------
-   KNAPPER
---------------------------------------------------------- */
+/* --- Knapper --- */
 
 .need-coord-send,
 .need-coord-secondary,
@@ -458,10 +454,7 @@
     content: "✦";
 }
 
-
-/* ---------------------------------------------------------
-   SØKERADIUS (knapper i stedet for nedtrekksliste)
---------------------------------------------------------- */
+/* --- Søkeradius (knapper i stedet for nedtrekksliste) --- */
 
 .need-coord-radius {
     display: flex;
@@ -508,10 +501,7 @@
     background: var(--primary);
 }
 
-
-/* ---------------------------------------------------------
-   LISTE + KART
---------------------------------------------------------- */
+/* --- Liste + kart --- */
 
 .need-coord-match {
     display: grid;
@@ -604,10 +594,7 @@ body.need-coord-map-open {
     gap: 12px;
 }
 
-
-/* ---------------------------------------------------------
-   RESSURSKORT
---------------------------------------------------------- */
+/* --- Ressurskort --- */
 
 .need-coord-resource {
     padding: 16px 18px;
@@ -754,10 +741,7 @@ body.need-coord-map-open {
     font-size: 0.74rem;
 }
 
-
-/* ---------------------------------------------------------
-   FORESPØRSLER
---------------------------------------------------------- */
+/* --- Forespørsler --- */
 
 .need-coord-request {
     padding: 16px 18px 16px 20px;
@@ -842,10 +826,7 @@ body.need-coord-map-open {
     margin: 0;
 }
 
-
-/* ---------------------------------------------------------
-   TOM LISTE
---------------------------------------------------------- */
+/* --- Tom liste --- */
 
 .need-coord-empty {
     padding: 34px 20px;
@@ -875,10 +856,7 @@ body.need-coord-map-open {
     gap: 8px;
 }
 
-
-/* ---------------------------------------------------------
-   KARTMARKØRER
---------------------------------------------------------- */
+/* --- Kartmarkører --- */
 
 .need-coord-pin {
     display: flex;
@@ -907,10 +885,7 @@ body.need-coord-map-open {
     transform: rotate(-45deg);
 }
 
-
-/* ---------------------------------------------------------
-   MOBIL
---------------------------------------------------------- */
+/* --- Mobil --- */
 
 @media (max-width: 980px) {
     .need-coord-match {

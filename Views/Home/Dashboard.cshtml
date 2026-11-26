@@ -1,3 +1,14 @@
+@*
+    Dashboard.cshtml – startsiden etter innlogging
+
+    Hva filen gjør: Én fil med to helt forskjellige visninger. @if og @foreach velger på
+    serveren hvilken del som blir til HTML.
+
+    På nettsiden: Offentlig aktør og admin: tellere, kart over behov og ressurser, og de siste
+    behovene og ressursene. Frivillig: egne ressurser, nivå og poeng, og snarveier.
+
+    Oppgavekrav: 12, 13, 19, 22
+*@
 
 @model FirstWebAppInDocker.ViewModels.DashboardViewModel
 
@@ -36,7 +47,6 @@
         @ViewData["Title"] - Beredskapsportal
     </title>
 
-
     @if (isOfficial)
     {
         <link
@@ -49,9 +59,7 @@
     <script src="~/js/theme.js" asp-append-version="true"></script>
 </head>
 
-
 <body>
-
 
 @if (isOfficial)
 {
@@ -64,7 +72,6 @@
         <!-- HEADER -->
 
         <partial name="_PortalHeader" />
-
 
         <div class="public-layout">
 
@@ -88,7 +95,6 @@
                     </p>
 
                 </div>
-
 
                 <nav class="public-navigation">
 
@@ -114,7 +120,6 @@
 
                     </a>
 
-
                     <a
                         asp-controller="Need"
                         asp-action="NeedOverview"
@@ -138,7 +143,6 @@
 
                     </a>
 
-
                     <a
                         asp-controller="Resource"
                         asp-action="ResourceOverview"
@@ -161,7 +165,6 @@
                         </span>
 
                     </a>
-
 
                     @if (userRole == "Admin")
                     {
@@ -191,13 +194,11 @@
 
                 </nav>
 
-
                 <section class="quick-actions">
 
                     <span class="eyebrow">
                         HURTIGHANDLINGER
                     </span>
-
 
                     <a
                         asp-controller="Need"
@@ -221,7 +222,6 @@
                         </div>
 
                     </a>
-
 
                     <a
                         asp-controller="Resource"
@@ -248,31 +248,26 @@
 
                 </section>
 
-
                 <section class="sidebar-legend">
 
                     <span class="eyebrow">
                         KARTFORKLARING
                     </span>
 
-
                     <div class="legend-row">
                         <span class="legend-dot urgent"></span>
                         <span>Akutt behov</span>
                     </div>
-
 
                     <div class="legend-row">
                         <span class="legend-dot planned"></span>
                         <span>Planlagt behov</span>
                     </div>
 
-
                     <div class="legend-row">
                         <span class="legend-dot resource"></span>
                         <span>Tilgjengelig ressurs</span>
                     </div>
-
 
                     <div class="legend-row">
                         <span class="legend-dot actor"></span>
@@ -298,7 +293,6 @@
                             Aktive behov
                         </h3>
 
-
                         @if (Model.Needs.Any())
                         {
                             @foreach (
@@ -320,6 +314,12 @@
 
                                     <span class="summary-icon @(acuteNeed ? "urgent" : "planned")"
                                           title="@(acuteNeed ? "Akutt" : "Planlagt")">
+                                        @*
+                                            Html.Raw skriver HTML uten å gjøre den ufarlig. Det
+                                            er trygt her fordi ikonene er faste SVG-bilder fra
+                                            vår egen kode. Tekst fra brukere skrives med @, som
+                                            automatisk gjør den ufarlig (beskytter mot XSS).
+                                        *@
                                         @Html.Raw(FirstWebAppInDocker.Services.ResourceDisplay.Icon(need.ResourceType))
                                     </span>
 
@@ -360,7 +360,6 @@
 
                     </article>
 
-
                     <article class="summary-card">
 
                         <span class="eyebrow">
@@ -370,7 +369,6 @@
                         <h3>
                             Tilgjengelig kapasitet
                         </h3>
-
 
                         @if (Model.Resources.Any())
                         {
@@ -423,7 +421,6 @@
                             </p>
                         }
 
-
                         <a
                             asp-controller="Resource"
                             asp-action="ResourceOverview"
@@ -440,7 +437,6 @@
                 </details>
 
             </aside>
-
 
             <!-- HOVEDOMRÅDE -->
 
@@ -465,11 +461,7 @@
 
                     </div>
 
-
-            
-
                 </div>
-
 
                 <section class="public-status-grid">
 
@@ -495,7 +487,6 @@
 
                     </article>
 
-
                     <article class="public-stat">
 
                         <div class="public-stat-heading">
@@ -517,7 +508,6 @@
                         </small>
 
                     </article>
-
 
                     <article class="public-stat">
 
@@ -543,7 +533,6 @@
 
                 </section>
 
-
                 <section class="situation-card">
 
                     <div class="map-toolbar">
@@ -560,7 +549,6 @@
 
                         </div>
 
-
                         <div class="map-filters">
 
                             <label class="filter-option">
@@ -576,7 +564,6 @@
 
                             </label>
 
-
                             <label class="filter-option">
 
                                 <input
@@ -590,7 +577,6 @@
 
                             </label>
 
-
                             <label class="filter-option">
 
                                 <input
@@ -603,7 +589,6 @@
                                 Planlagte behov
 
                             </label>
-
 
                             <label class="filter-option">
 
@@ -621,7 +606,6 @@
                         </div>
 
                     </div>
-
 
                     <div id="situationMap" aria-label="Operativt kart over behov og ressurser"></div>
 
@@ -642,16 +626,12 @@
 
                 </section>
 
-
-
-
             </main>
 
         </div>
 
     </div>
 }
-
 
 else if (userRole == "ResourceProvider")
 {
@@ -664,7 +644,6 @@ else if (userRole == "ResourceProvider")
         <!-- HEADER -->
 
         <partial name="_PortalHeader" />
-
 
         <!-- MAIN -->
 
@@ -751,7 +730,6 @@ else if (userRole == "ResourceProvider")
 
             </svg>
 
-
             <partial name="_Feiring" />
 
             <section class="provider-hero provider-hero-rank rank-@Model.RankKey">
@@ -825,7 +803,6 @@ else if (userRole == "ResourceProvider")
                         trenger bistand.
                     </p>
 
-
                     <a
                         asp-controller="Resource"
                         asp-action="RegisterResource"
@@ -840,7 +817,6 @@ else if (userRole == "ResourceProvider")
                     </a>
 
                 </div>
-
 
                 <!-- Boks med neste nivå -->
                 <div class="provider-hero-info">
@@ -869,7 +845,6 @@ else if (userRole == "ResourceProvider")
 
             </section>
 
-
             <!-- STATUS -->
 
             <section class="provider-status-grid">
@@ -890,7 +865,6 @@ else if (userRole == "ResourceProvider")
 
                 </article>
 
-
                 <article class="provider-stat">
 
                     <span>
@@ -906,7 +880,6 @@ else if (userRole == "ResourceProvider")
                     </small>
 
                 </article>
-
 
                 <article class="provider-stat">
 
@@ -925,7 +898,6 @@ else if (userRole == "ResourceProvider")
                 </article>
 
             </section>
-
 
             <!-- NIVÅER -->
 
@@ -996,7 +968,6 @@ else if (userRole == "ResourceProvider")
 
             </details>
 
-
             <!-- RESSURSER -->
 
             <section class="provider-resources">
@@ -1020,7 +991,6 @@ else if (userRole == "ResourceProvider")
 
                     </div>
 
-
                     <div class="provider-header-actions">
                         <span>@FirstWebAppInDocker.Services.ResourceDisplay.CountText(Model.ResourceCount, "ressurs", "ressurser")</span>
                         <a asp-controller="Resource" asp-action="RegisterResource" class="provider-add-button">
@@ -1029,7 +999,6 @@ else if (userRole == "ResourceProvider")
                     </div>
 
                 </div>
-
 
                 @if (Model.UnspecifiedCount > 0)
                 {
@@ -1088,11 +1057,6 @@ else if (userRole == "ResourceProvider")
                 </div>
             }
 
-
-
-
-
-
                 <div class="provider-resource-list">
 
                     @if (!Model.Resources.Any())
@@ -1117,7 +1081,6 @@ else if (userRole == "ResourceProvider")
 
                         </div>
                     }
-
 
                     @foreach (var resourceItem in Model.Resources)
                     {
@@ -1154,24 +1117,15 @@ else if (userRole == "ResourceProvider")
                             )
                                 ? "unavailable"
                                 : "unspecified";
-                    
-                
-
-                        
-
-                     
 
                         <article class="provider-resource-card"
 
                             data-search="@(resourceItem.ResourceName + " " + resourceItem.Description + " " + resourceItem.Address + " " + typeName + " " + resourceItem.Capacity + " " + resourceItem.Quantity + " " + status)"
                             data-availability="@availabilityFilterValue">
-                    
-                        
-                                
+
                             <div class="provider-resource-icon">
                                 @Html.Raw(FirstWebAppInDocker.Services.ResourceDisplay.Icon(resourceItem.ResourceType))
                             </div>
-
 
                             <div class="provider-resource-content">
 
@@ -1193,7 +1147,6 @@ else if (userRole == "ResourceProvider")
 
                                     </div>
 
-
                                     <span
                                         class="
                                             provider-resource-status
@@ -1206,11 +1159,9 @@ else if (userRole == "ResourceProvider")
 
                                 </div>
 
-
                                 <p>
                                     @resourceItem.Description
                                 </p>
-
 
                                 <div class="provider-resource-meta">
 
@@ -1225,11 +1176,9 @@ else if (userRole == "ResourceProvider")
                                         </span>
                                     }
 
-
                                     <span>
                                         Antall: @resourceItem.Quantity
                                     </span>
-
 
                                     @if (
                                         !string.IsNullOrWhiteSpace(
@@ -1251,12 +1200,10 @@ else if (userRole == "ResourceProvider")
 
                 </div>
 
-
                 <p class="dashboard-no-results" id="dashboardNoResults" hidden>
                     Ingen ressurser passer søket.
                     <button type="button" id="dashboardResetFilters">Nullstill søket</button>
                 </p>
-
 
                 <a
                     asp-controller="Resource"
@@ -1268,7 +1215,6 @@ else if (userRole == "ResourceProvider")
                 </a>
 
             </section>
-
 
             <!-- HJELP -->
 
@@ -1295,7 +1241,6 @@ else if (userRole == "ResourceProvider")
 
                 </div>
 
-
                 <div class="provider-help-item">
 
                     <span>
@@ -1316,7 +1261,6 @@ else if (userRole == "ResourceProvider")
                     </div>
 
                 </div>
-
 
                 <div class="provider-help-item">
 
@@ -1346,7 +1290,6 @@ else if (userRole == "ResourceProvider")
     </div>
 }
 
-
 else
 {
     <main class="unknown-role">
@@ -1375,13 +1318,9 @@ else
     </main>
 }
 
-
-
 <style>
 
-    /* =========================================
-       FELLES
-       ========================================= */
+    /* --- Felles --- */
 
     :root {
         --navy: #102d43;
@@ -1403,18 +1342,15 @@ else
         --border: #dfe4e8;
     }
 
-
     * {
         box-sizing: border-box;
     }
-
 
     html,
     body {
         margin: 0;
         min-height: 100%;
     }
-
 
     body {
         min-height: 100vh;
@@ -1433,19 +1369,16 @@ else
             sans-serif;
     }
 
-
     a {
         color: inherit;
         text-decoration: none;
     }
-
 
     button,
     input,
     select {
         font: inherit;
     }
-
 
     .brand-icon {
         width: 41px;
@@ -1464,12 +1397,10 @@ else
             rgba(23, 107, 135, 0.08);
     }
 
-
     .brand-icon svg {
         width: 23px;
         height: 23px;
     }
-
 
     .logout-button {
         padding:
@@ -1490,11 +1421,9 @@ else
         cursor: pointer;
     }
 
-
     .logout-button:hover {
         background: var(--surface-soft);
     }
-
 
     .eyebrow,
     .provider-eyebrow {
@@ -1509,7 +1438,6 @@ else
 
         text-transform: uppercase;
     }
-
 
     .demo-badge {
         display: inline-flex;
@@ -1532,17 +1460,13 @@ else
         letter-spacing: 0.07em;
     }
 
-
     .empty-text {
         color: var(--secondary);
 
         font-size: 0.68rem;
     }
 
-
-    /* =========================================
-       OFFENTLIG HEADER
-       ========================================= */
+    /* --- Offentlig header --- */
 
     .public-header {
         height: 72px;
@@ -1565,7 +1489,6 @@ else
         background: var(--surface);
     }
 
-
     .public-brand {
         display: flex;
         align-items: center;
@@ -1575,7 +1498,6 @@ else
         justify-self: start;
     }
 
-
     .public-brand strong {
         display: block;
 
@@ -1583,7 +1505,6 @@ else
 
         font-size: 0.93rem;
     }
-
 
     .public-brand span {
         display: block;
@@ -1598,7 +1519,6 @@ else
         letter-spacing: 0.13em;
     }
 
-
     .public-header-status {
         display: flex;
         align-items: center;
@@ -1610,7 +1530,6 @@ else
         font-size: 0.67rem;
         font-weight: 700;
     }
-
 
     .active-dot {
         width: 8px;
@@ -1625,7 +1544,6 @@ else
             rgba(35, 133, 91, 0.1);
     }
 
-
     .public-user {
         display: flex;
         align-items: center;
@@ -1636,18 +1554,15 @@ else
         justify-self: end;
     }
 
-
     .public-user > div {
         text-align: right;
     }
-
 
     .public-user strong {
         display: block;
 
         font-size: 0.76rem;
     }
-
 
     .public-user span {
         display: block;
@@ -1659,15 +1574,11 @@ else
         font-size: 0.64rem;
     }
 
-
     .public-user form {
         margin: 0;
     }
 
-
-    /* =========================================
-       PUBLIC LAYOUT
-       ========================================= */
+    /* --- Offentlig aktør: oppsett --- */
 
     .public-layout {
         min-height:
@@ -1679,7 +1590,6 @@ else
             310px minmax(0, 1fr);
     }
 
-
     .public-sidebar {
         padding:
             30px 24px;
@@ -1690,12 +1600,10 @@ else
         background: var(--surface);
     }
 
-
     .sidebar-intro {
         padding:
             0 4px 25px;
     }
-
 
     .sidebar-intro h1 {
         margin:
@@ -1708,7 +1616,6 @@ else
         letter-spacing: -0.04em;
     }
 
-
     .sidebar-intro p {
         margin: 0;
 
@@ -1719,7 +1626,6 @@ else
         line-height: 1.55;
     }
 
-
     .public-navigation {
         display: flex;
         flex-direction: column;
@@ -1728,7 +1634,6 @@ else
 
         margin-bottom: 30px;
     }
-
 
     .public-navigation-item {
         width: 100%;
@@ -1756,7 +1661,6 @@ else
         text-align: left;
     }
 
-
     .public-navigation-item.active {
         color: var(--link);
 
@@ -1764,11 +1668,9 @@ else
             rgba(23, 107, 135, 0.08);
     }
 
-
     .public-navigation-item:hover {
         background: var(--surface-soft);
     }
-
 
     .navigation-icon {
         width: 35px;
@@ -1785,7 +1687,6 @@ else
         font-weight: 800;
     }
 
-
     .public-navigation-item strong {
         display: block;
 
@@ -1793,7 +1694,6 @@ else
 
         font-size: 0.7rem;
     }
-
 
     .public-navigation-item small {
         display: block;
@@ -1803,7 +1703,6 @@ else
         font-size: 0.59rem;
     }
 
-
     .quick-actions {
         padding-top: 24px;
 
@@ -1811,11 +1710,9 @@ else
             1px solid #eaecf0;
     }
 
-
     .quick-actions > .eyebrow {
         margin-bottom: 13px;
     }
-
 
     .quick-action {
         width: 100%;
@@ -1842,20 +1739,17 @@ else
         text-align: left;
     }
 
-
     .quick-action > span {
         font-size: 1rem;
 
         text-align: center;
     }
 
-
     .quick-action strong {
         display: block;
 
         font-size: 0.67rem;
     }
-
 
     .quick-action small {
         display: block;
@@ -1864,7 +1758,6 @@ else
 
         font-size: 0.57rem;
     }
-
 
     .quick-action.primary {
         border-color:
@@ -1875,13 +1768,11 @@ else
         background: var(--primary);
     }
 
-
     .quick-action.secondary {
         color: var(--link);
 
         background: var(--surface);
     }
-
 
     .sidebar-legend {
         margin-top: 30px;
@@ -1892,11 +1783,9 @@ else
             1px solid #eaecf0;
     }
 
-
     .sidebar-legend > .eyebrow {
         margin-bottom: 14px;
     }
-
 
     .legend-row {
         display: flex;
@@ -1911,7 +1800,6 @@ else
         font-size: 0.65rem;
     }
 
-
     .legend-dot,
     .status-dot,
     .filter-dot {
@@ -1923,30 +1811,23 @@ else
         border-radius: 50%;
     }
 
-
     .urgent {
         background: var(--red);
     }
-
 
     .planned {
         background: var(--yellow);
     }
 
-
     .resource {
         background: var(--green);
     }
-
 
     .actor {
         background: var(--primary);
     }
 
-
-    /* =========================================
-       PUBLIC WORKSPACE
-       ========================================= */
+    /* --- Offentlig aktør: arbeidsområde --- */
 
     .public-workspace {
         min-width: 0;
@@ -1957,7 +1838,6 @@ else
         background: var(--background);
     }
 
-
     .workspace-heading {
         display: flex;
         align-items: flex-end;
@@ -1967,7 +1847,6 @@ else
 
         margin-bottom: 20px;
     }
-
 
     .workspace-heading h2 {
         margin:
@@ -1980,7 +1859,6 @@ else
         letter-spacing: -0.04em;
     }
 
-
     .workspace-heading p {
         margin: 0;
 
@@ -1990,7 +1868,6 @@ else
 
         line-height: 1.55;
     }
-
 
     .public-status-grid {
         display: grid;
@@ -2002,7 +1879,6 @@ else
 
         margin-bottom: 18px;
     }
-
 
     .public-stat {
         min-width: 0;
@@ -2018,7 +1894,6 @@ else
         background: var(--surface);
     }
 
-
     .public-stat-heading {
         display: flex;
         align-items: center;
@@ -2031,7 +1906,6 @@ else
         font-size: 0.67rem;
     }
 
-
     .public-stat strong {
         display: block;
 
@@ -2043,11 +1917,9 @@ else
         font-size: 1.65rem;
     }
 
-
     .public-stat strong.green-number {
         color: var(--success-text);
     }
-
 
     .public-stat small {
         color: var(--text-secondary);
@@ -2055,10 +1927,7 @@ else
         font-size: 0.59rem;
     }
 
-
-    /* =========================================
-       MAP
-       ========================================= */
+    /* --- Kart --- */
 
     .situation-card {
         overflow: hidden;
@@ -2075,7 +1944,6 @@ else
             rgba(18, 48, 71, 0.04);
     }
 
-
     .map-toolbar {
         display: flex;
         align-items: center;
@@ -2087,7 +1955,6 @@ else
             17px 20px;
     }
 
-
     .map-toolbar h3 {
         margin:
             5px 0 0;
@@ -2097,7 +1964,6 @@ else
         font-size: 1rem;
     }
 
-
     .map-filters {
         display: flex;
         align-items: center;
@@ -2105,7 +1971,6 @@ else
 
         gap: 8px;
     }
-
 
     .filter-option {
         display: flex;
@@ -2130,14 +1995,12 @@ else
         cursor: pointer;
     }
 
-
     .filter-option input {
         width: 13px;
         height: 13px;
 
         margin: 0;
     }
-
 
     #situationMap {
         width: 100%;
@@ -2146,7 +2009,6 @@ else
         border-top:
             1px solid #e8ecee;
     }
-
 
     .public-bottom-grid {
         display: grid;
@@ -2158,7 +2020,6 @@ else
 
         margin-top: 18px;
     }
-
 
     .summary-card {
         padding:
@@ -2172,7 +2033,6 @@ else
         background: var(--surface);
     }
 
-
     .summary-card h3 {
         margin:
             7px 0 17px;
@@ -2181,7 +2041,6 @@ else
 
         font-size: 1rem;
     }
-
 
     .summary-item {
         display: grid;
@@ -2198,7 +2057,6 @@ else
             1px solid #edf0f2;
     }
 
-
     .summary-icon {
         width: 34px;
         height: 34px;
@@ -2214,7 +2072,6 @@ else
         font-weight: 850;
     }
 
-
     .summary-item strong {
         display: block;
 
@@ -2222,7 +2079,6 @@ else
 
         font-size: 0.69rem;
     }
-
 
     .summary-item p {
         margin:
@@ -2235,13 +2091,11 @@ else
         line-height: 1.45;
     }
 
-
     .summary-item small {
         color: var(--text-secondary);
 
         font-size: 0.56rem;
     }
-
 
     .summary-link {
         display: inline-flex;
@@ -2254,17 +2108,13 @@ else
         font-weight: 750;
     }
 
-
-    /* =========================================
-       RESOURCE PROVIDER
-       ========================================= */
+    /* --- Ressursleverandør --- */
 
     .provider-shell {
         min-height: 100vh;
 
         background: var(--background);
     }
-
 
     /*
         Samme headerstruktur som på
@@ -2295,7 +2145,6 @@ else
         background: var(--surface);
     }
 
-
     .provider-brand {
         display: flex;
         align-items: center;
@@ -2307,7 +2156,6 @@ else
         color: inherit;
     }
 
-
     .provider-brand strong {
         display: block;
 
@@ -2315,7 +2163,6 @@ else
 
         font-size: 0.93rem;
     }
-
 
     .provider-brand span {
         display: block;
@@ -2330,10 +2177,7 @@ else
         letter-spacing: 0.13em;
     }
 
-
-    /* =========================================
-       PROVIDER NAVIGATION
-       ========================================= */
+    /* --- Frivillig: navigasjon --- */
 
     .provider-navigation {
         display: flex;
@@ -2343,7 +2187,6 @@ else
 
         justify-self: center;
     }
-
 
     .provider-nav-link {
         min-height: 43px;
@@ -2377,11 +2220,9 @@ else
             border-color 0.2s;
     }
 
-
     .provider-nav-link:hover {
         background: var(--surface-soft);
     }
-
 
     .provider-nav-link.active {
         color: white;
@@ -2389,16 +2230,13 @@ else
         background: var(--primary);
     }
 
-
     .provider-nav-link.active:hover {
         background: var(--primary-dark);
     }
 
-
     .provider-nav-logout {
         margin: 0;
     }
-
 
     .provider-logout-button {
         border-color:
@@ -2407,11 +2245,9 @@ else
         background: var(--surface);
     }
 
-
     .provider-logout-button:hover {
         background: var(--surface-soft);
     }
-
 
     .provider-user {
         display: flex;
@@ -2425,13 +2261,11 @@ else
         text-align: right;
     }
 
-
     .provider-user strong {
         display: block;
 
         font-size: 0.76rem;
     }
-
 
     .provider-user span {
         display: block;
@@ -2442,7 +2276,6 @@ else
 
         font-size: 0.64rem;
     }
-
 
     .provider-main {
         width:
@@ -2458,10 +2291,7 @@ else
             42px 0 60px;
     }
 
-
-    /* =========================================
-       PROVIDER HERO
-       ========================================= */
+    /* --- Frivillig: toppbanner --- */
 
     .provider-hero {
         display: grid;
@@ -2489,11 +2319,9 @@ else
             );
     }
 
-
     .provider-hero .provider-eyebrow {
         color: #8bd7cf;
     }
-
 
     .provider-hero h1 {
         margin:
@@ -2511,7 +2339,6 @@ else
         letter-spacing: -0.05em;
     }
 
-
     .provider-hero-content p {
         max-width: 600px;
 
@@ -2525,7 +2352,6 @@ else
 
         line-height: 1.6;
     }
-
 
     .provider-main-action {
         min-height: 45px;
@@ -2548,7 +2374,6 @@ else
         font-weight: 850;
     }
 
-
     .provider-hero-info {
         display: grid;
 
@@ -2570,7 +2395,6 @@ else
             rgba(255,255,255,0.07);
     }
 
-
     .provider-info-icon {
         width: 38px;
         height: 38px;
@@ -2586,11 +2410,9 @@ else
             rgba(158,225,213,0.12);
     }
 
-
     .provider-hero-info strong {
         font-size: 0.72rem;
     }
-
 
     .provider-hero-info p {
         margin:
@@ -2604,10 +2426,7 @@ else
         line-height: 1.5;
     }
 
-
-    /* =========================================
-       RANGERING (skjold, nivå og poengstolpe)
-       ========================================= */
+    /* --- Rangering (skjold, nivå og poengstolpe) --- */
 
     /* Fargen på skjoldet og stolpen styres av nivået (rank-bronse osv.) */
     .rank-bronse {
@@ -2750,10 +2569,7 @@ else
         }
     }
 
-
-    /* =========================================
-       RANGERING-NIVAER (liste over nivåene)
-       ========================================= */
+    /* --- Rangering-nivaer (liste over nivåene) --- */
 
     .rank-levels {
         margin-bottom: 16px;
@@ -2877,10 +2693,7 @@ else
         line-height: 1.5;
     }
 
-
-    /* =========================================
-       PROVIDER STATUS
-       ========================================= */
+    /* --- Frivillig: status --- */
 
     .provider-status-grid {
         display: grid;
@@ -2894,7 +2707,6 @@ else
             19px 0 28px;
     }
 
-
     .provider-stat {
         padding:
             20px 22px;
@@ -2907,13 +2719,11 @@ else
         background: var(--surface);
     }
 
-
     .provider-stat span {
         color: var(--secondary);
 
         font-size: 0.68rem;
     }
-
 
     .provider-stat strong {
         display: block;
@@ -2924,18 +2734,15 @@ else
         font-size: 1.6rem;
     }
 
-
     .provider-stat-success {
         color: var(--success-text);
     }
-
 
     .provider-stat small {
         color: var(--text-secondary);
 
         font-size: 0.59rem;
     }
-
 
     /* KOMPAKT: mindre toppboks, smalere kort og lukket nivåliste */
     .provider-hero-rank {
@@ -2972,9 +2779,7 @@ else
         text-decoration: none;
     }
 
-    /* =========================================
-       PROVIDER RESOURCES
-       ========================================= */
+    /* --- Frivillig: ressurser --- */
 
     .provider-resources {
         padding:
@@ -2988,7 +2793,6 @@ else
         background: var(--surface);
     }
 
-
     .provider-section-header {
         display: flex;
         align-items: flex-end;
@@ -2998,7 +2802,6 @@ else
 
         margin-bottom: 20px;
     }
-
 
     .provider-section-header h2 {
         margin:
@@ -3011,7 +2814,6 @@ else
         letter-spacing: -0.03em;
     }
 
-
     .provider-section-header p {
         margin: 0;
 
@@ -3019,7 +2821,6 @@ else
 
         font-size: 0.68rem;
     }
-
 
     .availability-warning {
         padding:
@@ -3034,14 +2835,12 @@ else
         font-size: 0.65rem;
     }
 
-
     .provider-resource-list {
         display: flex;
         flex-direction: column;
 
         gap: 12px;
     }
-
 
     .provider-resource-card {
         display: grid;
@@ -3060,7 +2859,6 @@ else
         border-radius: 11px;
     }
 
-
     .provider-resource-icon {
         width: 46px;
         height: 46px;
@@ -3078,7 +2876,6 @@ else
         font-weight: 850;
     }
 
-
     .provider-resource-heading {
         display: flex;
         align-items: flex-start;
@@ -3086,7 +2883,6 @@ else
 
         gap: 20px;
     }
-
 
     .provider-resource-type {
         display: block;
@@ -3099,7 +2895,6 @@ else
         letter-spacing: 0.08em;
     }
 
-
     .provider-resource-heading h3 {
         margin:
             4px 0 0;
@@ -3108,7 +2903,6 @@ else
 
         font-size: 0.85rem;
     }
-
 
     .provider-resource-status {
         padding:
@@ -3120,7 +2914,6 @@ else
         font-weight: 750;
     }
 
-
     .provider-resource-status.available {
         color: var(--success-text);
 
@@ -3128,13 +2921,11 @@ else
             rgba(35,133,91,0.09);
     }
 
-
     .provider-resource-status.unavailable {
         color: var(--text-secondary);
 
         background: var(--surface-soft);
     }
-
 
     .provider-resource-content > p {
         margin:
@@ -3147,7 +2938,6 @@ else
         line-height: 1.5;
     }
 
-
     .provider-resource-meta {
         display: flex;
         flex-wrap: wrap;
@@ -3159,7 +2949,6 @@ else
         font-size: 0.6rem;
     }
 
-
     .provider-overview-link {
         display: inline-flex;
 
@@ -3170,7 +2959,6 @@ else
         font-size: 0.67rem;
         font-weight: 800;
     }
-
 
     .provider-empty {
         padding:
@@ -3186,18 +2974,15 @@ else
         color: var(--secondary);
     }
 
-
     .provider-empty strong {
         display: block;
 
         color: var(--heading);
     }
 
-
     .provider-empty p {
         font-size: 0.68rem;
     }
-
 
     .provider-empty a {
         display: inline-flex;
@@ -3210,10 +2995,7 @@ else
         font-weight: 800;
     }
 
-
-    /* =========================================
-       PROVIDER HELP
-       ========================================= */
+    /* --- Frivillig: hjelp --- */
 
     .provider-help {
         display: grid;
@@ -3237,7 +3019,6 @@ else
             rgba(255,255,255,0.55);
     }
 
-
     .provider-help-item {
         display: grid;
 
@@ -3246,7 +3027,6 @@ else
 
         gap: 11px;
     }
-
 
     .provider-help-item > span {
         width: 34px;
@@ -3266,7 +3046,6 @@ else
         font-weight: 850;
     }
 
-
     .provider-help-item strong {
         display: block;
 
@@ -3274,7 +3053,6 @@ else
 
         font-size: 0.68rem;
     }
-
 
     .provider-help-item p {
         margin: 0;
@@ -3286,10 +3064,7 @@ else
         line-height: 1.45;
     }
 
-
-    /* =========================================
-       UKJENT ROLLE
-       ========================================= */
+    /* --- Ukjent rolle --- */
 
     .unknown-role {
         max-width: 600px;
@@ -3303,10 +3078,7 @@ else
         text-align: center;
     }
 
-
-    /* =========================================
-       RESPONSIVE
-       ========================================= */
+    /* --- Responsivt --- */
 
     @@media (max-width: 1100px) {
 
@@ -3318,11 +3090,9 @@ else
                 12px 24px;
         }
 
-
         .provider-user {
             justify-self: end;
         }
-
 
         .provider-navigation {
             grid-column:
@@ -3335,18 +3105,15 @@ else
             padding-bottom: 8px;
         }
 
-
         .public-layout {
             grid-template-columns:
                 250px minmax(0, 1fr);
         }
 
-
         .public-workspace {
             padding:
                 25px;
         }
-
 
         .provider-hero {
             grid-template-columns:
@@ -3354,7 +3121,6 @@ else
         }
 
     }
-
 
     @@media (max-width: 850px) {
 
@@ -3366,16 +3132,13 @@ else
                 0 18px;
         }
 
-
         .public-header-status {
             display: none;
         }
 
-
         .public-layout {
             display: block;
         }
-
 
         .public-sidebar {
             border-right: 0;
@@ -3384,7 +3147,6 @@ else
                 1px solid var(--border);
         }
 
-
         .public-navigation {
             display: grid;
 
@@ -3392,29 +3154,24 @@ else
                 repeat(3, minmax(0,1fr));
         }
 
-
         .quick-actions,
         .sidebar-legend {
             display: none;
         }
-
 
         .public-status-grid {
             grid-template-columns:
                 1fr;
         }
 
-
         .public-bottom-grid {
             grid-template-columns:
                 1fr;
         }
 
-
         #situationMap {
             height: 460px;
         }
-
 
         .provider-status-grid,
         .provider-help {
@@ -3424,7 +3181,6 @@ else
 
     }
 
-
     @@media (max-width: 650px) {
 
         .public-header {
@@ -3433,34 +3189,28 @@ else
             min-height: 68px;
         }
 
-
         .public-user > div {
             display: none;
         }
 
-
         .public-brand span {
             display: none;
         }
-
 
         .public-sidebar {
             padding:
                 22px 16px;
         }
 
-
         .public-navigation {
             grid-template-columns:
                 1fr;
         }
 
-
         .public-workspace {
             padding:
                 22px 12px;
         }
-
 
         .workspace-heading {
             align-items: flex-start;
@@ -3469,17 +3219,14 @@ else
             gap: 12px;
         }
 
-
         .map-toolbar {
             align-items: flex-start;
             flex-direction: column;
         }
 
-
         .map-filters {
             width: 100%;
         }
-
 
         .filter-option {
             flex:
@@ -3488,11 +3235,9 @@ else
             justify-content: center;
         }
 
-
         #situationMap {
             height: 380px;
         }
-
 
         .provider-header {
             grid-template-columns:
@@ -3502,16 +3247,13 @@ else
                 12px 16px;
         }
 
-
         .provider-brand {
             justify-self: start;
         }
 
-
         .provider-user {
             display: none;
         }
-
 
         .provider-navigation {
             grid-column:
@@ -3528,11 +3270,9 @@ else
             scrollbar-width: none;
         }
 
-
         .provider-navigation::-webkit-scrollbar {
             display: none;
         }
-
 
         .provider-nav-link {
             flex-shrink: 0;
@@ -3543,7 +3283,6 @@ else
                 0 12px;
         }
 
-
         .provider-main {
             width:
                 calc(100% - 24px);
@@ -3552,12 +3291,10 @@ else
                 25px 0 45px;
         }
 
-
         .provider-hero {
             padding:
                 28px 22px;
         }
-
 
         .provider-section-header {
             align-items: flex-start;
@@ -3565,12 +3302,10 @@ else
             flex-direction: column;
         }
 
-
         .provider-resource-card {
             grid-template-columns:
                 1fr;
         }
-
 
         .provider-resource-heading {
             flex-direction: column;
@@ -3583,10 +3318,10 @@ else
     .provider-resource-card[hidden] {
     display: none !important;
 }
-/* =========================================
-   SØK OG FILTER I "MINE REGISTRERTE RESSURSER"
-   Bruker fargene fra theme.css, så de følger mørk modus.
-   ========================================= */
+/*
+    SØK OG FILTER I "MINE REGISTRERTE RESSURSER"
+    Bruker fargene fra theme.css, så de følger mørk modus.
+*/
 .dashboard-resource-filters {
     display: flex;
     flex-wrap: wrap;
@@ -3734,12 +3469,11 @@ else
     }
 }
 
-
-    /* =========================================
-       OFFENTLIG DASHBOARD – FELLES KARTSTANDARD
-       Samme karthøyde og kartkort som Registrer ressurs.
-       Påvirker ikke ressursleverandørens dashboard.
-       ========================================= */
+    /*
+        OFFENTLIG DASHBOARD – FELLES KARTSTANDARD
+        Samme karthøyde og kartkort som Registrer ressurs.
+        Påvirker ikke ressursleverandørens dashboard.
+    */
     .public-shell .public-layout {
         display: grid;
         grid-template-columns: minmax(0, .33fr) minmax(0, .67fr);
@@ -4080,8 +3814,11 @@ else
         src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
     </script>
 
+    @*
+        Kartet bruker Leaflet og vår felles kartverket.js. asp-append-version sørger for at
+        nettleseren henter ny fil når den er endret.
+    *@
     <script src="~/js/kartverket.js" asp-append-version="true"></script>
-
 
     <script>
 
@@ -4101,13 +3838,14 @@ else
                         11
                     );
 
-
                 addKartverketLayers(
                     map
                 );
 
-                // Samme fullskjermfunksjon som på de andre kartsidene.
-                // Kartlagvelgeren er lagt til først og vises øverst.
+                /*
+                    Samme fullskjermfunksjon som på de andre kartsidene.
+                    Kartlagvelgeren er lagt til først og vises øverst.
+                */
                 const mapElement = document.getElementById("situationMap");
                 const publicWorkspace = document.querySelector(".public-workspace");
                 const publicLayout = document.querySelector(".public-layout");
@@ -4225,30 +3963,26 @@ else
                     }).observe(mapElement);
                 }
 
-
-
                 const resourceLayer =
                     L.layerGroup()
                         .addTo(map);
-
 
                 const urgentLayer =
                     L.layerGroup()
                         .addTo(map);
 
-
                 const plannedLayer =
                     L.layerGroup()
                         .addTo(map);
-
 
                 const actorLayer =
                     L.layerGroup()
                         .addTo(map);
 
-
-                                // Kartsymboler: symbolFor() gir SVG-ikonet som passer til typen behov eller ressurs,
-                // og createMarker() tegner kartpinnen med ikonet.
+                                /*
+                                    Kartsymboler: symbolFor() gir SVG-ikonet som passer til typen behov eller ressurs,
+                                    og createMarker() tegner kartpinnen med ikonet.
+                                */
                 function symbolFor(type) {
                     const icons = {
                         Transport: "<path d='M1 3h15v13H1z'/><path d='M16 8h4l3 3v5h-7z'/><circle cx='5.5' cy='18.5' r='2.5'/><circle cx='18.5' cy='18.5' r='2.5'/>",
@@ -4276,8 +4010,13 @@ else
                     });
                 }
 
-
                 const needs =
+                    @*
+                        Data fra C# gjøres om til JSON som JavaScript bruker til å tegne
+                        markørene på kartet.
+                        Plasseringene ble satt i kartet i registreringsskjemaet, og vises altså
+                        her på en annen side.
+                    *@
                     @Json.Serialize(
                         Model.Needs.Select(
                             n => new
@@ -4303,7 +4042,6 @@ else
                         )
                     );
 
-
                 const resources =
                     @Json.Serialize(
                         Model.Resources.Select(
@@ -4327,7 +4065,6 @@ else
                         )
                     );
 
-
                 function escapeHtml(
                     text
                 ) {
@@ -4344,7 +4081,6 @@ else
 
                 }
 
-
                 needs.forEach(
                     function (need) {
 
@@ -4353,12 +4089,10 @@ else
                                 ? urgentLayer
                                 : plannedLayer;
 
-
                         const color =
                             need.acute
                                 ? "#d34b4b"
                                 : "#d99a24";
-
 
                         L.marker(
                             [
@@ -4402,7 +4136,6 @@ else
                     }
                 );
 
-
                 resources.forEach(
                     function (resource) {
 
@@ -4410,7 +4143,6 @@ else
                             resource.name
                             ||
                             resource.type;
-
 
                         L.marker(
                             [
@@ -4444,30 +4176,25 @@ else
                     }
                 );
 
-
                 setupToggle(
                     "showResources",
                     resourceLayer
                 );
-
 
                 setupToggle(
                     "showUrgent",
                     urgentLayer
                 );
 
-
                 setupToggle(
                     "showPlanned",
                     plannedLayer
                 );
 
-
                 setupToggle(
                     "showActors",
                     actorLayer
                 );
-
 
                 function setupToggle(
                     checkboxId,
@@ -4479,12 +4206,10 @@ else
                             checkboxId
                         );
 
-
                     if (!checkbox)
                     {
                         return;
                     }
-
 
                     checkbox.addEventListener(
                         "change",
@@ -4523,7 +4248,6 @@ else
                     );
 
                 }
-
 
                 window.setTimeout(
                     function () {

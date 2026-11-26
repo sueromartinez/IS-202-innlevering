@@ -1,3 +1,14 @@
+@*
+    ResourceOverview.cshtml – «Ressurser»/«Mine ressurser»
+
+    Hva filen gjør: Liste med filtre og et kart over ressursene. Frivillige ser bare sine egne
+    (filtrert i controlleren). Herfra kan man endre status, redigere og slette.
+
+    På nettsiden: Kortene med ressursene, filtrene øverst og kartet med markører for hver
+    ressurs.
+
+    Oppgavekrav: 12, 13, 19, 21, 22
+*@
 
 @using FirstWebAppInDocker.Models
 @using System.Text.Json
@@ -74,6 +85,12 @@
             : $"{resource.ContactPhoneCountryCode} {resource.ContactPhoneNumber}"
     }).ToList();
 
+    /*
+        Ressursene gjøres om til JSON på serveren og skrives inn i siden, så kartet slipper et
+        eget kall.
+        JsonSerializer gjør tegn som < og > ufarlige, så dette er trygt selv om det skrives ut
+        med Html.Raw.
+    */
     string mapResourcesJson = JsonSerializer.Serialize(
         mapResources,
         new JsonSerializerOptions
@@ -109,9 +126,7 @@
             asp-append-version="true"></script>
 
     <style>
-        /* ==========================================
-           GRUNNLEGGENDE DESIGN
-        ========================================== */
+        /* --- Grunnleggende design --- */
 
         :root {
             --overview-navy: #123047;
@@ -160,9 +175,7 @@
             display: none !important;
         }
 
-        /* ==========================================
-           SIDE
-        ========================================== */
+        /* --- Side --- */
 
         .overview-page {
             width: min(1500px, calc(100% - 40px));
@@ -236,9 +249,7 @@
             font-size: 1.1rem;
         }
 
-        /* ==========================================
-           TO KOLONNER – FELLES KARTMAL
-        ========================================== */
+        /* --- To kolonner – felles kartmal --- */
 
         .overview-grid {
             display: grid;
@@ -266,9 +277,7 @@
             box-shadow: 0 12px 35px rgba(16,45,66,.05);
         }
 
-        /* ==========================================
-           VENSTRE RESSURSBOKS
-        ========================================== */
+        /* --- Venstre ressursboks --- */
 
         .resource-list-card {
             display: flex;
@@ -307,10 +316,10 @@
             font-weight: 850;
         }
 
-        /* ==========================================
-           KOMPAKTE STATISTIKKKORT
-           LIGGER NÅ INNI VENSTRE BOKS
-        ========================================== */
+        /*
+            KOMPAKTE STATISTIKKKORT
+            LIGGER NÅ INNI VENSTRE BOKS
+        */
 
         .overview-status {
             display: grid;
@@ -353,9 +362,7 @@
             display: none;
         }
 
-        /* ==========================================
-           UTFELLBARE FILTRE
-        ========================================== */
+        /* --- Utfellbare filtre --- */
 
         .resource-filter-drawer {
             flex: 0 0 auto;
@@ -555,9 +562,7 @@
             outline-offset: 2px;
         }
 
-        /* ==========================================
-           RESSURSLISTE – INTERN SCROLLING
-        ========================================== */
+        /* --- Ressursliste – intern scrolling --- */
 
         .resource-list {
             display: flex;
@@ -583,9 +588,7 @@
             background: #bdc8d2;
         }
 
-        /* ==========================================
-           RESSURSKORT
-        ========================================== */
+        /* --- Ressurskort --- */
 
         .resource-item {
             flex: 0 0 auto;
@@ -670,9 +673,7 @@
             font-weight: 750;
         }
 
-        /* ==========================================
-           RESSURSINFORMASJON
-        ========================================== */
+        /* --- Ressursinformasjon --- */
 
         .resource-meta {
             display: grid;
@@ -720,9 +721,7 @@
             font-weight: 800;
         }
 
-        /* ==========================================
-           VIS I KART
-        ========================================== */
+        /* --- Vis i kart --- */
 
         .map-focus-button {
             display: inline-flex;
@@ -749,9 +748,7 @@
             cursor: not-allowed;
         }
 
-        /* ==========================================
-           RESSURSSTATUS
-        ========================================== */
+        /* --- Ressursstatus --- */
 
         .resource-availability-status {
             display: flex;
@@ -800,9 +797,7 @@
             background: var(--surface-soft, #f6f8f9);
         }
 
-        /* ==========================================
-           ENDRE / SLETT
-        ========================================== */
+        /* --- Endre / slett --- */
 
         .resource-owner-actions {
             display: flex;
@@ -825,9 +820,7 @@
             color: var(--danger-text, #a62f2f);
         }
 
-        /* ==========================================
-           MELDINGER
-        ========================================== */
+        /* --- Meldinger --- */
 
         .resource-flash {
             margin-bottom: 18px;
@@ -851,9 +844,7 @@
             color: #805600;
         }
 
-        /* ==========================================
-           HØYRE KARTBOKS
-        ========================================== */
+        /* --- Høyre kartboks --- */
 
         .map-card {
             position: static;
@@ -904,9 +895,7 @@
             background: var(--overview-green);
         }
 
-        /* ==========================================
-           KART – SAMME HØYDE SOM MALEN
-        ========================================== */
+        /* --- Kart – samme høyde som malen --- */
 
         #resourceOverviewMap {
             width: 100%;
@@ -918,9 +907,7 @@
             z-index: 0;
         }
 
-        /* ==========================================
-           TRE INFORMASJONSKORT
-        ========================================== */
+        /* --- Tre informasjonskort --- */
 
         .map-help {
             display: grid;
@@ -950,9 +937,7 @@
             line-height: 1.4;
         }
 
-        /* ==========================================
-           FULLSKJERMKNAPP
-        ========================================== */
+        /* --- Fullskjermknapp --- */
 
         .resource-fullscreen-control button {
             display: grid;
@@ -1004,9 +989,7 @@
             background: #17212b;
         }
 
-        /* ==========================================
-           KARTPOPUP
-        ========================================== */
+        /* --- Kartpopup --- */
 
         .resource-popup {
             min-width: 190px;
@@ -1049,9 +1032,7 @@
             overflow-wrap: anywhere;
         }
 
-        /* ==========================================
-           TOM RESSURSOVERSIKT
-        ========================================== */
+        /* --- Tom ressursoversikt --- */
 
         .empty-state {
             max-width: 650px;
@@ -1100,9 +1081,7 @@
             font-weight: 800;
         }
 
-        /* ==========================================
-           PC: LIK HØYDE PÅ BOKSENE
-        ========================================== */
+        /* --- Pc: lik høyde på boksene --- */
 
         @@media (min-width: 951px) {
 
@@ -1146,9 +1125,7 @@
             }
         }
 
-        /* ==========================================
-           NETTBRETT
-        ========================================== */
+        /* --- Nettbrett --- */
 
         @@media (max-width: 950px) {
 
@@ -1181,9 +1158,7 @@
             }
         }
 
-        /* ==========================================
-           MOBIL
-        ========================================== */
+        /* --- Mobil --- */
 
         @@media (max-width: 700px) {
 
@@ -1229,9 +1204,7 @@
             }
         }
 
-        /* ==========================================
-           FOKUS OG TILGJENGELIGHET
-        ========================================== */
+        /* --- Fokus og tilgjengelighet --- */
 
         .map-focus-button:focus-visible,
         .resource-state-toggle:focus-visible,
@@ -1436,6 +1409,10 @@
 
                     <div class="resource-filter-content">
 
+                        @*
+                            Filtrene (type, status, søk) virker i nettleseren med JavaScript,
+                            uten at siden lastes på nytt.
+                        *@
                         <form id="resourceFilters"
                               class="resource-filters"
                               role="search"
@@ -1704,6 +1681,10 @@
                                     && resource.Status != ResourceStatus.Busy
                                 )
                                 {
+                                    @*
+                                        Knappene for status er små skjemaer (POST) til
+                                        ResourceController.SetStatus.
+                                    *@
                                     <form asp-controller="Resource"
                                           asp-action="SetStatus"
                                           method="post">
@@ -1748,6 +1729,10 @@
                                         Endre
                                     </a>
 
+                                    @*
+                                        «Slett» er også et skjema (POST) med sikkerhetskode,
+                                        aldri en vanlig lenke.
+                                    *@
                                     <form asp-controller="Resource"
                                           asp-action="DeleteResource"
                                           method="post"
@@ -1863,9 +1848,7 @@
     <script>
         document.addEventListener("DOMContentLoaded", function () {
 
-            /* ==========================================
-               DATA FRA DATABASEN
-            ========================================== */
+            /* --- Data fra databasen --- */
 
             const resources = @Html.Raw(mapResourcesJson);
 
@@ -1906,9 +1889,7 @@
 
             let map = null;
 
-            /* ==========================================
-               NORMALISER TILGJENGELIGHET
-            ========================================== */
+            /* --- Normaliser tilgjengelighet --- */
 
             function availabilityStatus(value) {
 
@@ -1926,9 +1907,7 @@
                 return "unspecified";
             }
 
-            /* ==========================================
-               FILTRER RESSURSER
-            ========================================== */
+            /* --- Filtrer ressurser --- */
 
             function applyFilters() {
 
@@ -2020,9 +1999,7 @@
                 }
             }
 
-            /* ==========================================
-               AKTIVER FILTRE
-            ========================================== */
+            /* --- Aktiver filtre --- */
 
             filterForm.hidden = false;
 
@@ -2068,9 +2045,7 @@
                 }
             );
 
-            /* ==========================================
-               KONTROLLER LEAFLET
-            ========================================== */
+            /* --- Kontroller Leaflet --- */
 
             if (typeof L === "undefined") {
 
@@ -2090,9 +2065,7 @@
                 return;
             }
 
-            /* ==========================================
-               OPPRETT KART
-            ========================================== */
+            /* --- Opprett kart --- */
 
             map = L.map("resourceOverviewMap")
                 .setView([58.1467, 7.9956], 10);
@@ -2100,9 +2073,7 @@
             // Kartlagvelgeren opprettes først.
             addKartverketLayers(map);
 
-            /* ==========================================
-               FULLSKJERM
-            ========================================== */
+            /* --- Fullskjerm --- */
 
             const fullscreenDialog =
                 document.createElement("dialog");
@@ -2319,9 +2290,7 @@
 
             updateFullscreenControl();
 
-            /* ==========================================
-               RESSURSSYMBOLER
-            ========================================== */
+            /* --- Ressurssymboler --- */
 
             function symbolFor(type) {
 
@@ -2361,9 +2330,7 @@
                 return icons[type] || icons.Other;
             }
 
-            /* ==========================================
-               LAG SYMBOLMARKØR
-            ========================================== */
+            /* --- Lag symbolmarkør --- */
 
             function createSymbolMarker(color, type, badge) {
 
@@ -2413,9 +2380,7 @@
                 });
             }
 
-            /* ==========================================
-               OPPRETT MARKØRER FRA DATABASEN
-            ========================================== */
+            /* --- Opprett markører fra databasen --- */
 
             resources.forEach(resource => {
 
@@ -2472,9 +2437,7 @@
                 );
             });
 
-            /* ==========================================
-               VIS RESSURS I KART
-            ========================================== */
+            /* --- Vis ressurs i kart --- */
 
             document.querySelectorAll(
                 ".map-focus-button"
@@ -2510,9 +2473,7 @@
                 );
             });
 
-            /* ==========================================
-               SAMME HØYDE PÅ BEGGE BOKSER
-            ========================================== */
+            /* --- Samme høyde på begge bokser --- */
 
             function syncCardHeight() {
 
@@ -2572,9 +2533,7 @@
                 100
             );
 
-            /* ==========================================
-               START FILTRERING
-            ========================================== */
+            /* --- Start filtrering --- */
 
             applyFilters();
 

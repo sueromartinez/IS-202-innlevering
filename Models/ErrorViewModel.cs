@@ -1,13 +1,15 @@
+/*
+    ErrorViewModel.cs – feilsiden
+
+    Hva filen gjør: Standardfil fra ASP.NET-malen, brukt av feilsiden. Trenger ikke forklares.
+*/
+
 namespace FirstWebAppInDocker.Models;
 
-/// <summary>
-/// Modell for visning av feilinformasjon.
-/// </summary>
+// Modell for visning av feilinformasjon.
 public class ErrorViewModel
 {
     public string? RequestId { get; set; }
 
-
-    public bool ShowRequestId =>
-        !string.IsNullOrEmpty(RequestId);
+    public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
 }

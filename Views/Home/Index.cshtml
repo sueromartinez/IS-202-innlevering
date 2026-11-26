@@ -1,3 +1,13 @@
+@*
+    Index.cshtml – forsiden
+
+    Hva filen gjør: Forsiden med informasjon om portalen og fanene «Logg inn» og «Registrer».
+    Siden har egen HTML og CSS (Layout = null).
+
+    På nettsiden: Det første man ser når man åpner portalen.
+
+    Oppgavekrav: 8, 9, 12, 18, 21
+*@
 
 @model FirstWebAppInDocker.ViewModels.LoginViewModel
 
@@ -66,9 +76,7 @@
 
     <style>
 
-        /* ========================================
-           PASSORDFELT MED ØYEKON
-        ======================================== */
+        /* --- Passordfelt med øyekon --- */
 
         .password-input-wrap {
             position: relative;
@@ -129,9 +137,7 @@
             display: none;
         }
 
-        /* ========================================
-           PASSORDKRAV VED REGISTRERING
-        ======================================== */
+        /* --- Passordkrav ved registrering --- */
 
         .password-requirements {
             margin: 9px 0 0;
@@ -144,9 +150,7 @@
             color: #294a66;
         }
 
-        /* ========================================
-           HUSK MEG / GLEMT PASSORD
-        ======================================== */
+        /* --- Husk meg / glemt passord --- */
 
         .login-options {
             display: flex;
@@ -192,17 +196,13 @@
             outline-offset: 3px;
         }
 
-        /* ========================================
-           FEILMELDINGER
-        ======================================== */
+        /* --- Feilmeldinger --- */
 
         .auth-error {
             scroll-margin-top: 100px;
         }
 
-        /* ========================================
-           TELEFONNUMMER
-        ======================================== */
+        /* --- Telefonnummer --- */
 
         .phone-input-row {
             display: flex;
@@ -835,6 +835,11 @@
                     </div>
                 }
 
+                @*
+                    Innloggingsskjemaet. asp-controller og asp-action lager riktig adresse
+                    (/Account/Login), og skjemaet får automatisk en skjult sikkerhetskode mot
+                    CSRF.
+                *@
                 <form
                     asp-controller="Account"
                     asp-action="Login"
@@ -1039,6 +1044,10 @@
                     </div>
                 }
 
+                @*
+                    Registreringsskjemaet. Sendes til AccountController.Register, som lagrer den
+                    nye brukeren i databasen.
+                *@
                 <form
                     asp-controller="Account"
                     asp-action="Register"
@@ -1387,9 +1396,7 @@
 
 <script>
 
-    // ========================================
-    // INNLOGGING / REGISTRERING
-    // ========================================
+    // --- Innlogging / registrering ---
 
     const authTabs =
         document.querySelectorAll(
@@ -1410,7 +1417,6 @@
         document.getElementById(
             "authCard"
         );
-
 
     function activateAuthTab(tabName)
     {
@@ -1446,10 +1452,7 @@
         });
     }
 
-
-    // ========================================
-    // BYTTE MELLOM FANER
-    // ========================================
+    // --- Bytte mellom faner ---
 
     authTabs.forEach(tab =>
     {
@@ -1464,10 +1467,7 @@
         );
     });
 
-
-    // ========================================
-    // ÅPNE RIKTIG FANE FRA LENKER
-    // ========================================
+    // --- Åpne riktig fane fra lenker ---
 
     document
         .querySelectorAll(
@@ -1486,10 +1486,7 @@
             );
         });
 
-
-    // ========================================
-    // NAVIGERING TIL SEKSJONER
-    // ========================================
+    // --- Navigering til seksjoner ---
 
     document
         .querySelectorAll('a[href^="#"]')
@@ -1530,10 +1527,7 @@
             );
         });
 
-
-    // ========================================
-    // VIS / SKJUL PASSORD
-    // ========================================
+    // --- Vis / skjul passord ---
 
     document
         .querySelectorAll(
@@ -1610,10 +1604,7 @@
             );
         });
 
-
-    // ========================================
-    // AUTOMATISK SCROLL VED FEIL
-    // ========================================
+    // --- Automatisk scroll ved feil ---
 
     const hasLoginErrors =
         @(hasLoginErrors.ToString().ToLowerInvariant());
@@ -1621,10 +1612,7 @@
     const hasRegisterErrors =
         @(hasRegisterErrors.ToString().ToLowerInvariant());
 
-
-    // ========================================
-    // AKTIVER RIKTIG FANE
-    // ========================================
+    // --- Aktiver riktig fane ---
 
     activateAuthTab("login");
 
@@ -1637,10 +1625,7 @@
         activateAuthTab("login");
     }
 
-
-    // ========================================
-    // SCROLL TIL SKJEMAET VED FEIL
-    // ========================================
+    // --- Scroll til skjemaet ved feil ---
 
     if (hasLoginErrors || hasRegisterErrors)
     {

@@ -1,3 +1,11 @@
+# Dockerfile – oppskriften på app-containeren
+#
+# Hva filen gjør: Bygges i to steg: først kompileres koden i et stort SDK-image, så kopieres
+# bare det ferdige resultatet over i et lite runtime-image. Det ferdige imaget blir mindre og
+# har ikke kompilatoren.
+#
+# Oppgavekrav: 1, 7
+
 
 # ========================================
 # ASP.NET CORE 10 - RUNTIME
@@ -45,6 +53,7 @@ RUN mkdir -p /home/app/.aspnet/DataProtection-Keys \
 # ========================================
 
 # Applikasjonen skal ikke kjøre som root.
+# Containeren kjører som vanlig bruker, ikke root.
 USER app
 
 
@@ -62,6 +71,8 @@ ARG configuration=Release
 WORKDIR /src
 
 # Kopierer prosjektfilen.
+# Pakkene hentes før resten av koden kopieres inn, så Docker kan gjenbruke dem og bygget går
+# raskere når bare koden er endret.
 COPY ["FirstWebAppInDocker.csproj", "./"]
 
 # Laster ned nødvendige NuGet-pakker.

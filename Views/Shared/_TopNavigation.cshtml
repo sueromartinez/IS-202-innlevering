@@ -1,3 +1,15 @@
+@*
+    _TopNavigation.cshtml – hovedmenyen
+
+    Hva filen gjør: Viser bare lenkene rollen har tilgang til. Det er bare for brukervennlighet.
+    Den ekte sperren er [Authorize] i controllerne, så skriver man adressen direkte, blir man
+    likevel stoppet.
+
+    På nettsiden: Menylenkene, varselklokka og «Logg ut». På mobil blir menyen en meny man åpner
+    med en knapp.
+
+    Oppgavekrav: 12, 14
+*@
 
 @using FirstWebAppInDocker.Data
 
@@ -14,7 +26,7 @@
     bool isPublicActor = User.IsInRole(IdentitySeeder.PublicActorRole);
     bool isProvider = User.IsInRole(IdentitySeeder.ResourceProviderRole);
 
-    // OFFENTLIG AKTØR OG ADMINISTRATOR
+    // --- Offentlig aktør og administrator ---
 
     if (isPublicActor || isAdmin)
     {
@@ -115,8 +127,15 @@
             </a>
         }
 
+        @*
+            Varselklokka. En View Component er som en liten controller med egen visning: den
+            henter antall uleste varsler fra databasen og tegner klokka.
+        *@
         @await Component.InvokeAsync("NotificationBell")
 
+        @*
+            «Logg ut» er et lite skjema (POST) med sikkerhetskode, ikke en vanlig lenke.
+        *@
         <form
             asp-controller="Account"
             asp-action="Logout"

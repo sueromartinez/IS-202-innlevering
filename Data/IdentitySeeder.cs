@@ -1,3 +1,16 @@
+/*
+    IdentitySeeder.cs – roller og standardbrukere
+
+    Hva filen gjør: Kjøres når appen starter. Lager de tre rollene (Admin, PublicActor,
+    ResourceProvider), en admin-bruker med e-post og passord fra .env, og en testbruker for
+    offentlig aktør. Rollenavnene er konstanter her, så [Authorize(Roles =
+    IdentitySeeder.AdminRole)] i controllerne ikke kan ha skrivefeil.
+
+    På nettsiden: Gjør at sensor kan logge inn som admin eller offentlig aktør med en gang (se
+    readme.md).
+
+    Oppgavekrav: 4, 8
+*/
 
 using System.ComponentModel.DataAnnotations;
 using System.Security.Cryptography;
@@ -8,35 +21,40 @@ using Microsoft.Extensions.Hosting;
 
 namespace FirstWebAppInDocker.Data;
 
-/// <summary>
-/// Oppretter nødvendige Identity-roller og konfigurerte oppstartskontoer.
-/// Testbrukere opprettes kun i utviklingsmiljøet.
-/// </summary>
+/*
+    Oppretter nødvendige Identity-roller og konfigurerte oppstartskontoer.
+    Testbrukere opprettes kun i utviklingsmiljøet.
+*/
 public static class IdentitySeeder
 {
-    /// <summary>Rollen for portalens administratorer.</summary>
+    #region Konstanter og felt
+
+    // Rollen for portalens administratorer.
     public const string AdminRole = "Admin";
 
-    /// <summary>Rollen for offentlige aktører.</summary>
+    // Rollen for offentlige aktører.
     public const string PublicActorRole = "PublicActor";
 
-    /// <summary>Rollen for ressursleverandører.</summary>
+    // Rollen for ressursleverandører.
     public const string ResourceProviderRole = "ResourceProvider";
 
-    /// <summary>
-    /// E-postadressen til den lokale demobrukeren.
-    /// Brukes også av AccountController ved demoinnlogging.
-    /// </summary>
+    /*
+        E-postadressen til den lokale demobrukeren.
+        Brukes også av AccountController ved demoinnlogging.
+    */
     public const string PublicActorEmail = "offentlig@beredskap.no";
+
+    #endregion
 
     #region Oppstart
 
-    /// <summary>
-    /// Oppretter manglende roller, eventuell utviklingsbruker
-    /// og administrator når administrator er konfigurert.
-    /// </summary>
-    /// <param name="services">Applikasjonens tjenesteleverandør.</param>
-    /// <returns>En oppgave som fullføres når oppstartsdata er kontrollert.</returns>
+    /*
+        Oppretter manglende roller, eventuell utviklingsbruker
+        og administrator når administrator er konfigurert.
+
+        services: Applikasjonens tjenesteleverandør.
+        Returnerer: En oppgave som fullføres når oppstartsdata er kontrollert.
+    */
     public static async Task SeedAsync(IServiceProvider services)
     {
         using IServiceScope scope = services.CreateScope();
@@ -73,8 +91,7 @@ public static class IdentitySeeder
         else if (!environment.IsDevelopment())
         {
             // Tidligere oppstartsdata fjernes ikke automatisk.
-            ApplicationUser? oldDemoUser =
-                await userManager.FindByEmailAsync(PublicActorEmail);
+            ApplicationUser? oldDemoUser = await userManager.FindByEmailAsync(PublicActorEmail);
 
             if (oldDemoUser is not null)
             {
@@ -90,16 +107,16 @@ public static class IdentitySeeder
 
     #endregion
 
-    #region Roller
+    #region Roller og brukere
 
-    /// <summary>
-    /// Oppretter de tre faste rollene dersom de mangler.
-    /// Eksisterende roller endres ikke.
-    /// </summary>
-    /// <param name="roleManager">Identity sin rolleadministrator.</param>
-    /// <returns>En oppgave som fullføres når rollene er kontrollert.</returns>
-    private static async Task SeedRolesAsync(
-        RoleManager<IdentityRole> roleManager)
+    /*
+        Oppretter de tre faste rollene dersom de mangler.
+        Eksisterende roller endres ikke.
+
+        roleManager: Identity sin rolleadministrator.
+        Returnerer: En oppgave som fullføres når rollene er kontrollert.
+    */
+    private static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager)
     {
         string[] roles =
         {
@@ -115,8 +132,7 @@ public static class IdentitySeeder
                 continue;
             }
 
-            IdentityResult result = await roleManager.CreateAsync(
-                new IdentityRole(roleName));
+            IdentityResult result = await roleManager.CreateAsync(new IdentityRole(roleName));
 
             if (!result.Succeeded)
             {
@@ -127,32 +143,29 @@ public static class IdentitySeeder
         }
     }
 
-    #endregion
+    /*
+        Oppretter en offentlig demobruker for lokal utvikling.
+        Demoinnloggingen i AccountController trenger ikke passordet.
 
-    #region Utviklingsbruker
-
-    /// <summary>
-    /// Oppretter en offentlig demobruker for lokal utvikling.
-    /// Demoinnloggingen i AccountController trenger ikke passordet.
-    /// </summary>
-    /// <param name="userManager">Identity sin brukeradministrator.</param>
-    /// <param name="configuration">Applikasjonens konfigurasjon.</param>
-    /// <param name="logger">Logger for oppstartshendelser.</param>
-    /// <returns>En oppgave som fullføres når demobrukeren er kontrollert.</returns>
+        userManager: Identity sin brukeradministrator.
+        configuration: Applikasjonens konfigurasjon.
+        logger: Logger for oppstartshendelser.
+        Returnerer: En oppgave som fullføres når demobrukeren er kontrollert.
+    */
     private static async Task SeedPublicActorAsync(
         UserManager<ApplicationUser> userManager,
         IConfiguration configuration,
         ILogger logger)
     {
-        ApplicationUser? publicActor =
-            await userManager.FindByEmailAsync(PublicActorEmail);
+        ApplicationUser? publicActor = await userManager.FindByEmailAsync(PublicActorEmail);
 
         if (publicActor is not null)
         {
-            // Ikke gi en eksisterende ordinær konto en høyere rolle
-            // bare fordi e-postadressen stemmer med demokontoen.
-            if (!await userManager.IsInRoleAsync(
-                publicActor, PublicActorRole))
+            /*
+                Ikke gi en eksisterende ordinær konto en høyere rolle
+                bare fordi e-postadressen stemmer med demokontoen.
+            */
+            if (!await userManager.IsInRoleAsync(publicActor, PublicActorRole))
             {
                 throw new InvalidOperationException(
                     "E-postadressen for offentlig demobruker er allerede i bruk " +
@@ -162,15 +175,17 @@ public static class IdentitySeeder
             return;
         }
 
-        // Ingen kjent standardpassord lagres i kildekoden.
-        // Ved manglende konfigurasjon får demobrukeren et tilfeldig passord.
+        /*
+            Ingen kjent standardpassord lagres i kildekoden.
+            Ved manglende konfigurasjon får demobrukeren et tilfeldig passord.
+        */
         string? configuredPassword = configuration["Seed:PublicActorPassword"];
 
         string password = !string.IsNullOrWhiteSpace(configuredPassword)
             ? configuredPassword
             : Convert.ToBase64String(RandomNumberGenerator.GetBytes(48)) + "Aa1!";
 
-        var user = new ApplicationUser
+        ApplicationUser user = new ApplicationUser
         {
             UserName = PublicActorEmail,
             Email = PublicActorEmail,
@@ -179,8 +194,7 @@ public static class IdentitySeeder
             CreatedAt = DateTime.UtcNow
         };
 
-        IdentityResult createResult =
-            await userManager.CreateAsync(user, password);
+        IdentityResult createResult = await userManager.CreateAsync(user, password);
 
         if (!createResult.Succeeded)
         {
@@ -189,8 +203,7 @@ public static class IdentitySeeder
                 FormatIdentityErrors(createResult));
         }
 
-        IdentityResult roleResult = await userManager.AddToRoleAsync(
-            user, PublicActorRole);
+        IdentityResult roleResult = await userManager.AddToRoleAsync(user, PublicActorRole);
 
         if (!roleResult.Succeeded)
         {
@@ -206,19 +219,16 @@ public static class IdentitySeeder
             user.Id);
     }
 
-    #endregion
+    /*
+        Oppretter en administrator fra konfigurasjon uten standardpassord.
+        Eksisterende administratorers passord endres ikke ved oppstart.
 
-    #region Administrator
-
-    /// <summary>
-    /// Oppretter en administrator fra konfigurasjon uten standardpassord.
-    /// Eksisterende administratorers passord endres ikke ved oppstart.
-    /// </summary>
-    /// <param name="userManager">Identity sin brukeradministrator.</param>
-    /// <param name="configuration">Applikasjonens konfigurasjon.</param>
-    /// <param name="environment">Gjeldende kjøremiljø.</param>
-    /// <param name="logger">Logger for oppstartshendelser.</param>
-    /// <returns>En oppgave som fullføres når administrator er kontrollert.</returns>
+        userManager: Identity sin brukeradministrator.
+        configuration: Applikasjonens konfigurasjon.
+        environment: Gjeldende kjøremiljø.
+        logger: Logger for oppstartshendelser.
+        Returnerer: En oppgave som fullføres når administrator er kontrollert.
+    */
     private static async Task SeedAdminAsync(
         UserManager<ApplicationUser> userManager,
         IConfiguration configuration,
@@ -231,8 +241,7 @@ public static class IdentitySeeder
         if (string.IsNullOrWhiteSpace(configuredEmail)
             && string.IsNullOrWhiteSpace(configuredPassword))
         {
-            logger.LogInformation(
-                "Ingen administrator er konfigurert for automatisk opprettelse.");
+            logger.LogInformation("Ingen administrator er konfigurert for automatisk opprettelse.");
             return;
         }
 
@@ -252,16 +261,17 @@ public static class IdentitySeeder
                 "Seed:AdminEmail inneholder ikke en gyldig e-postadresse.");
         }
 
-        // Et kort oppstartspassord skal aldri godtas i produksjonsmiljø.
-        // I utvikling beholdes eksisterende Docker-oppsett inntil det ryddes.
+        /*
+            Et kort oppstartspassord skal aldri godtas i produksjonsmiljø.
+            I utvikling beholdes eksisterende Docker-oppsett inntil det ryddes.
+        */
         if (!environment.IsDevelopment() && adminPassword.Length < 16)
         {
             throw new InvalidOperationException(
                 "Seed:AdminPassword må være minst 16 tegn i produksjon.");
         }
 
-        ApplicationUser? admin =
-            await userManager.FindByEmailAsync(adminEmail);
+        ApplicationUser? admin = await userManager.FindByEmailAsync(adminEmail);
 
         if (admin is not null)
         {
@@ -284,7 +294,7 @@ public static class IdentitySeeder
             return;
         }
 
-        var newAdmin = new ApplicationUser
+        ApplicationUser newAdmin = new ApplicationUser
         {
             UserName = adminEmail,
             Email = adminEmail,
@@ -293,8 +303,7 @@ public static class IdentitySeeder
             CreatedAt = DateTime.UtcNow
         };
 
-        IdentityResult createResult =
-            await userManager.CreateAsync(newAdmin, adminPassword);
+        IdentityResult createResult = await userManager.CreateAsync(newAdmin, adminPassword);
 
         if (!createResult.Succeeded)
         {
@@ -303,8 +312,7 @@ public static class IdentitySeeder
                 FormatIdentityErrors(createResult));
         }
 
-        IdentityResult roleResult =
-            await userManager.AddToRoleAsync(newAdmin, AdminRole);
+        IdentityResult roleResult = await userManager.AddToRoleAsync(newAdmin, AdminRole);
 
         if (!roleResult.Succeeded)
         {
@@ -316,8 +324,7 @@ public static class IdentitySeeder
         }
 
         // Nye administratorer må bruke portalens e-postbaserte tofaktor.
-        IdentityResult twoFactorResult =
-            await userManager.SetTwoFactorEnabledAsync(newAdmin, true);
+        IdentityResult twoFactorResult = await userManager.SetTwoFactorEnabledAsync(newAdmin, true);
 
         if (!twoFactorResult.Succeeded)
         {
@@ -337,11 +344,12 @@ public static class IdentitySeeder
 
     #region Hjelpemetoder
 
-    /// <summary>
-    /// Samler Identity-feilkoder uten å inkludere passord eller tokener.
-    /// </summary>
-    /// <param name="result">Resultatet fra en Identity-operasjon.</param>
-    /// <returns>En kommaseparert liste over feilkoder.</returns>
+    /*
+        Samler Identity-feilkoder uten å inkludere passord eller tokener.
+
+        result: Resultatet fra en Identity-operasjon.
+        Returnerer: En kommaseparert liste over feilkoder.
+    */
     private static string FormatIdentityErrors(IdentityResult result)
     {
         return string.Join(", ", result.Errors.Select(error => error.Code));

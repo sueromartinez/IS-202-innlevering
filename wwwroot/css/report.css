@@ -1,8 +1,16 @@
-/* =========================================================
-   RAPPORTER – situasjonsrapport og ressursliste.
-   Bruker fargevariablene fra app.css/theme.css, så siden
-   fungerer i både lyst og mørkt tema og blir pen på papir.
-   ========================================================= */
+/*
+    report.css – utseende
+
+    Hva filen gjør: Stilark. @media-reglene tilpasser siden til mobil.
+
+    Oppgavekrav: 12
+*/
+
+/*
+    RAPPORTER – situasjonsrapport og ressursliste.
+    Bruker fargevariablene fra app.css/theme.css, så siden
+    fungerer i både lyst og mørkt tema og blir pen på papir.
+*/
 
 .report-actions {
     display: flex;
@@ -14,10 +22,7 @@
     min-height: 38px;
 }
 
-
-/* -----------------------
-   NØKKELTALL
------------------------ */
+/* --- Nøkkeltall --- */
 
 .report-kpis {
     display: grid;
@@ -64,10 +69,7 @@
     font-size: 0.76rem;
 }
 
-
-/* -----------------------
-   OPPSUMMERING OG SAMI
------------------------ */
+/* --- Oppsummering og Sami --- */
 
 .report-summary-head {
     display: flex;
@@ -137,10 +139,7 @@
     font-size: 0.74rem;
 }
 
-
-/* -----------------------
-   DEKNING
------------------------ */
+/* --- Dekning --- */
 
 .report-grid {
     display: grid;
@@ -300,10 +299,7 @@ html:root[data-theme="navy"] .coverage-bar.resource { background: #3fbf86; }
     font-weight: 700;
 }
 
-
-/* -----------------------
-   RESSURSLISTE
------------------------ */
+/* --- Ressursliste --- */
 
 .report-filter {
     display: flex;
@@ -362,11 +358,10 @@ html:root[data-theme="navy"] .coverage-bar.resource { background: #3fbf86; }
     text-align: center;
 }
 
-
-/* -----------------------
-   UTSKRIFT
-   Skjuler meny, knapper og Sami, og bruker svart på hvitt.
------------------------ */
+/*
+    UTSKRIFT
+    Skjuler meny, knapper og Sami, og bruker svart på hvitt.
+*/
 
 @media print {
     @page {
@@ -436,7 +431,6 @@ html:root[data-theme="navy"] .coverage-bar.resource { background: #3fbf86; }
         print-color-adjust: exact;
     }
 }
-
 
 @media (max-width: 700px) {
     .report-grid {

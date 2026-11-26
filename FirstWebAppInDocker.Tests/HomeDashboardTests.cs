@@ -1,3 +1,11 @@
+/*
+    HomeDashboardTests.cs – automatiske tester
+
+    Hva filen gjør: Tester at dashbordet viser riktige data for hver rolle. Bruker xUnit, en
+    database i minnet (EF Core InMemory) og Moq, så testene kjører raskt uten Docker.
+
+    Oppgavekrav: 6, 15
+*/
 
 using System.Reflection;
 using System.Security.Claims;
@@ -6,9 +14,9 @@ using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
 using FirstWebAppInDocker.ViewModels;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Xunit;
@@ -17,9 +25,7 @@ namespace FirstWebAppInDocker.Tests;
 
 public class HomeDashboardTests
 {
-    // ========================================
-    // HJELPER - MIDLERTIDIG TESTDATABASE
-    // ========================================
+    // --- Hjelper: midlertidig testdatabase ---
 
     private static ApplicationDbContext CreateDatabase()
     {
@@ -31,10 +37,7 @@ public class HomeDashboardTests
         return new ApplicationDbContext(options);
     }
 
-
-    // ========================================
-    // HJELPER - TESTBRUKER
-    // ========================================
+    // --- Hjelper: testbruker ---
 
     private static ApplicationUser CreateUser(
         string id = "user-123",
@@ -51,10 +54,7 @@ public class HomeDashboardTests
         };
     }
 
-
-    // ========================================
-    // HJELPER - TESTRESSURS
-    // ========================================
+    // --- Hjelper: testressurs ---
 
     private static Resource CreateResource(
         string name,
@@ -81,15 +81,9 @@ public class HomeDashboardTests
         };
     }
 
+    // --- Hjelper: testbehov ---
 
-    // ========================================
-    // HJELPER - TESTBEHOV
-    // ========================================
-
-    private static Need CreateNeed(
-        string description,
-        string ownerEmail,
-        DateTime createdAt)
+    private static Need CreateNeed(string description, string ownerEmail, DateTime createdAt)
     {
         return new Need
         {
@@ -106,18 +100,14 @@ public class HomeDashboardTests
         };
     }
 
-
-    // ========================================
-    // HJELPER - CONTROLLER MED IDENTITY
-    // ========================================
+    // --- Hjelper: controller med Identity ---
 
     private static HomeController CreateController(
         ApplicationDbContext database,
         ApplicationUser? currentUser,
         params string[] roles)
     {
-        var store =
-            new Mock<IUserStore<ApplicationUser>>();
+        var store = new Mock<IUserStore<ApplicationUser>>();
 
         var userManager =
             new Mock<UserManager<ApplicationUser>>(
@@ -129,55 +119,36 @@ public class HomeDashboardTests
                 null!,
                 null!,
                 null!,
-                null!
-            );
+                null!);
 
         userManager
-            .Setup(manager =>
-                manager.GetUserAsync(
-                    It.IsAny<ClaimsPrincipal>()
-                )
-            )
+            .Setup(manager => manager.GetUserAsync(It.IsAny<ClaimsPrincipal>()))
             .ReturnsAsync(currentUser);
 
         var claims = new List<Claim>();
 
         if (currentUser != null)
         {
-            claims.Add(
-                new Claim(
-                    ClaimTypes.NameIdentifier,
-                    currentUser.Id
-                )
-            );
+            claims.Add(new Claim(ClaimTypes.NameIdentifier, currentUser.Id));
         }
 
         foreach (string role in roles)
         {
-            claims.Add(
-                new Claim(
-                    ClaimTypes.Role,
-                    role
-                )
-            );
+            claims.Add(new Claim(ClaimTypes.Role, role));
         }
 
         var identity = new ClaimsIdentity(
             claims,
             currentUser == null
                 ? null
-                : "TestAuthentication"
-        );
+                : "TestAuthentication");
 
         var httpContext = new DefaultHttpContext
         {
             User = new ClaimsPrincipal(identity)
         };
 
-        return new HomeController(
-            database,
-            userManager.Object
-        )
+        return new HomeController(database, userManager.Object)
         {
             ControllerContext = new ControllerContext
             {
@@ -186,68 +157,53 @@ public class HomeDashboardTests
         };
     }
 
+    // --- Hjelper: hent dashboardmodell ---
 
-    // ========================================
-    // HJELPER - HENT DASHBOARDMODELL
-    // ========================================
-
-    private static DashboardViewModel GetDashboardModel(
-        IActionResult result)
+    private static DashboardViewModel GetDashboardModel(IActionResult result)
     {
         var view = Assert.IsType<ViewResult>(result);
 
-        return Assert.IsType<DashboardViewModel>(
-            view.Model
-        );
+        return Assert.IsType<DashboardViewModel>(view.Model);
     }
 
-
-    // ========================================
-    // TEST 1
-    // FORSIDEN ER TILGJENGELIG
-    // ========================================
+    /*
+        TEST 1
+        FORSIDEN ER TILGJENGELIG
+    */
 
     [Fact]
     public void Index_ShouldReturnView()
     {
         using var database = CreateDatabase();
 
-        var controller = CreateController(
-            database,
-            null
-        );
+        var controller = CreateController(database, null);
 
         var result = controller.Index();
 
         Assert.IsType<ViewResult>(result);
     }
 
-
-    // ========================================
-    // TEST 2
-    // MANGLENDE IDENTITY-BRUKER AVVISES
-    // ========================================
+    /*
+        TEST 2
+        MANGLENDE IDENTITY-BRUKER AVVISES
+    */
 
     [Fact]
     public async Task Dashboard_WithoutIdentityUser_ShouldChallenge()
     {
         using var database = CreateDatabase();
 
-        var controller = CreateController(
-            database,
-            null
-        );
+        var controller = CreateController(database, null);
 
         var result = await controller.Dashboard();
 
         Assert.IsType<ChallengeResult>(result);
     }
 
-
-    // ========================================
-    // TEST 3
-    // RESSURSLEVERANDØR SER BARE EGNE RESSURSER
-    // ========================================
+    /*
+        TEST 3
+        RESSURSLEVERANDØR SER BARE EGNE RESSURSER
+    */
 
     [Fact]
     public async Task Dashboard_ResourceProvider_ShouldOnlySeeOwnResources()
@@ -257,49 +213,24 @@ public class HomeDashboardTests
         var user = CreateUser();
 
         database.Resources.AddRange(
-            CreateResource(
-                "Mitt aggregat",
-                user.Id,
-                user.Email!
-            ),
+            CreateResource("Mitt aggregat", user.Id, user.Email!),
 
             // Eldre ressurs uten OwnerUserId.
-            CreateResource(
-                "Min gamle ressurs",
-                null,
-                user.Email!
-            ),
+            CreateResource("Min gamle ressurs", null, user.Email!),
 
-            // En annen brukers ressurs med
-            // samme e-post, men annen ID.
-            CreateResource(
-                "Annen brukers aggregat",
-                "other-user",
-                user.Email!
-            ),
+            /*
+                En annen brukers ressurs med
+                samme e-post, men annen ID.
+            */
+            CreateResource("Annen brukers aggregat", "other-user", user.Email!),
 
-            CreateResource(
-                "Karis aggregat",
-                "user-kari",
-                "kari@example.com"
-            )
-        );
+            CreateResource("Karis aggregat", "user-kari", "kari@example.com"));
 
-        database.Needs.Add(
-            CreateNeed(
-                "Offentlig behov",
-                "public@example.com",
-                DateTime.UtcNow
-            )
-        );
+        database.Needs.Add(CreateNeed("Offentlig behov", "public@example.com", DateTime.UtcNow));
 
         await database.SaveChangesAsync();
 
-        var controller = CreateController(
-            database,
-            user,
-            IdentitySeeder.ResourceProviderRole
-        );
+        var controller = CreateController(database, user, IdentitySeeder.ResourceProviderRole);
 
         var result = await controller.Dashboard();
 
@@ -308,76 +239,42 @@ public class HomeDashboardTests
         Assert.Equal(2, model.Resources.Count);
         Assert.Equal(2, model.ResourceCount);
 
-        Assert.Contains(
-            model.Resources,
-            r => r.ResourceName == "Mitt aggregat"
-        );
+        Assert.Contains(model.Resources, r => r.ResourceName == "Mitt aggregat");
 
-        Assert.Contains(
-            model.Resources,
-            r => r.ResourceName == "Min gamle ressurs"
-        );
+        Assert.Contains(model.Resources, r => r.ResourceName == "Min gamle ressurs");
 
-        Assert.DoesNotContain(
-            model.Resources,
-            r => r.ResourceName == "Annen brukers aggregat"
-        );
+        Assert.DoesNotContain(model.Resources, r => r.ResourceName == "Annen brukers aggregat");
 
-        Assert.DoesNotContain(
-            model.Resources,
-            r => r.ResourceName == "Karis aggregat"
-        );
+        Assert.DoesNotContain(model.Resources, r => r.ResourceName == "Karis aggregat");
 
         Assert.Empty(model.Needs);
 
-        Assert.Equal(
-            IdentitySeeder.ResourceProviderRole,
-            (string)controller.ViewBag.UserRole
-        );
+        Assert.Equal(IdentitySeeder.ResourceProviderRole, (string)controller.ViewBag.UserRole);
 
-        Assert.Equal(
-            "Ola Nordmann",
-            (string)controller.ViewBag.UserName
-        );
+        Assert.Equal("Ola Nordmann", (string)controller.ViewBag.UserName);
     }
 
-
-    // ========================================
-    // TEST 4
-    // E-POSTENDRING PÅVIRKER IKKE ID-BASERT
-    // EIERSKAP
-    // ========================================
+    /*
+        TEST 4
+        E-POSTENDRING PÅVIRKER IKKE ID-BASERT
+        EIERSKAP
+    */
 
     [Fact]
     public async Task Dashboard_EmailChange_ShouldKeepOwnResources()
     {
         using var database = CreateDatabase();
 
-        var user = CreateUser(
-            email: "ny@example.com"
-        );
+        var user = CreateUser(email: "ny@example.com");
 
         database.Resources.AddRange(
-            CreateResource(
-                "Mitt aggregat",
-                user.Id,
-                "gammel@example.com"
-            ),
+            CreateResource("Mitt aggregat", user.Id, "gammel@example.com"),
 
-            CreateResource(
-                "Gammel ressurs uten bruker-ID",
-                null,
-                "gammel@example.com"
-            )
-        );
+            CreateResource("Gammel ressurs uten bruker-ID", null, "gammel@example.com"));
 
         await database.SaveChangesAsync();
 
-        var controller = CreateController(
-            database,
-            user,
-            IdentitySeeder.ResourceProviderRole
-        );
+        var controller = CreateController(database, user, IdentitySeeder.ResourceProviderRole);
 
         var result = await controller.Dashboard();
 
@@ -385,17 +282,13 @@ public class HomeDashboardTests
 
         Assert.Single(model.Resources);
 
-        Assert.Equal(
-            "Mitt aggregat",
-            model.Resources[0].ResourceName
-        );
+        Assert.Equal("Mitt aggregat", model.Resources[0].ResourceName);
     }
 
-
-    // ========================================
-    // TEST 5
-    // STATISTIKK FOR RESSURSLEVERANDØR
-    // ========================================
+    /*
+        TEST 5
+        STATISTIKK FOR RESSURSLEVERANDØR
+    */
 
     [Fact]
     public async Task Dashboard_ShouldCalculateResourceStatistics()
@@ -405,49 +298,19 @@ public class HomeDashboardTests
         var user = CreateUser();
 
         database.Resources.AddRange(
-            CreateResource(
-                "Aggregat 1",
-                user.Id,
-                user.Email!,
-                "Tilgjengelig"
-            ),
+            CreateResource("Aggregat 1", user.Id, user.Email!, "Tilgjengelig"),
 
-            CreateResource(
-                "Aggregat 2",
-                user.Id,
-                user.Email!,
-                "Ikke tilgjengelig"
-            ),
+            CreateResource("Aggregat 2", user.Id, user.Email!, "Ikke tilgjengelig"),
 
-            CreateResource(
-                "Aggregat 3",
-                user.Id,
-                user.Email!,
-                null
-            ),
+            CreateResource("Aggregat 3", user.Id, user.Email!, null),
 
-            CreateResource(
-                "Aggregat 4",
-                user.Id,
-                user.Email!,
-                "Ring først"
-            ),
+            CreateResource("Aggregat 4", user.Id, user.Email!, "Ring først"),
 
-            CreateResource(
-                "Karis aggregat",
-                "other-user",
-                "kari@example.com",
-                "Tilgjengelig"
-            )
-        );
+            CreateResource("Karis aggregat", "other-user", "kari@example.com", "Tilgjengelig"));
 
         await database.SaveChangesAsync();
 
-        var controller = CreateController(
-            database,
-            user,
-            IdentitySeeder.ResourceProviderRole
-        );
+        var controller = CreateController(database, user, IdentitySeeder.ResourceProviderRole);
 
         var result = await controller.Dashboard();
 
@@ -459,18 +322,16 @@ public class HomeDashboardTests
         Assert.Equal(2, model.UnspecifiedCount);
     }
 
-
-    // ========================================
-    // TEST 6 OG 7
-    // OFFENTLIG AKTØR OG ADMIN SER HELE
-    // SITUASJONSBILDET
-    // ========================================
+    /*
+        TEST 6 OG 7
+        OFFENTLIG AKTØR OG ADMIN SER HELE
+        SITUASJONSBILDET
+    */
 
     [Theory]
     [InlineData("PublicActor")]
     [InlineData("Admin")]
-    public async Task Dashboard_PublicRoles_ShouldSeeAllData(
-        string role)
+    public async Task Dashboard_PublicRoles_ShouldSeeAllData(string role)
     {
         using var database = CreateDatabase();
 
@@ -480,42 +341,18 @@ public class HomeDashboardTests
         var newerDate = DateTime.UtcNow;
 
         database.Resources.AddRange(
-            CreateResource(
-                "Eldre aggregat",
-                "owner-1",
-                "owner1@example.com",
-                createdAt: olderDate
-            ),
+            CreateResource("Eldre aggregat", "owner-1", "owner1@example.com", createdAt: olderDate),
 
-            CreateResource(
-                "Nyere aggregat",
-                "owner-2",
-                "owner2@example.com",
-                createdAt: newerDate
-            )
-        );
+            CreateResource("Nyere aggregat", "owner-2", "owner2@example.com", createdAt: newerDate));
 
         database.Needs.AddRange(
-            CreateNeed(
-                "Eldre behov",
-                "actor1@example.com",
-                olderDate
-            ),
+            CreateNeed("Eldre behov", "actor1@example.com", olderDate),
 
-            CreateNeed(
-                "Nyere behov",
-                "actor2@example.com",
-                newerDate
-            )
-        );
+            CreateNeed("Nyere behov", "actor2@example.com", newerDate));
 
         await database.SaveChangesAsync();
 
-        var controller = CreateController(
-            database,
-            user,
-            role
-        );
+        var controller = CreateController(database, user, role);
 
         var result = await controller.Dashboard();
 
@@ -524,37 +361,21 @@ public class HomeDashboardTests
         Assert.Equal(2, model.Resources.Count);
         Assert.Equal(2, model.Needs.Count);
 
-        Assert.Equal(
-            "Nyere aggregat",
-            model.Resources[0].ResourceName
-        );
+        Assert.Equal("Nyere aggregat", model.Resources[0].ResourceName);
 
-        Assert.Equal(
-            "Eldre aggregat",
-            model.Resources[1].ResourceName
-        );
+        Assert.Equal("Eldre aggregat", model.Resources[1].ResourceName);
 
-        Assert.Equal(
-            "Nyere behov",
-            model.Needs[0].Description
-        );
+        Assert.Equal("Nyere behov", model.Needs[0].Description);
 
-        Assert.Equal(
-            "Eldre behov",
-            model.Needs[1].Description
-        );
+        Assert.Equal("Eldre behov", model.Needs[1].Description);
 
-        Assert.Equal(
-            role,
-            (string)controller.ViewBag.UserRole
-        );
+        Assert.Equal(role, (string)controller.ViewBag.UserRole);
     }
 
-
-    // ========================================
-    // TEST 8
-    // ADMIN HAR HØYEST ROLLEPRIORITET
-    // ========================================
+    /*
+        TEST 8
+        ADMIN HAR HØYEST ROLLEPRIORITET
+    */
 
     [Fact]
     public async Task Dashboard_AdminRole_ShouldHaveHighestPriority()
@@ -568,25 +389,20 @@ public class HomeDashboardTests
             user,
             IdentitySeeder.ResourceProviderRole,
             IdentitySeeder.PublicActorRole,
-            IdentitySeeder.AdminRole
-        );
+            IdentitySeeder.AdminRole);
 
         var result = await controller.Dashboard();
 
         GetDashboardModel(result);
 
-        Assert.Equal(
-            IdentitySeeder.AdminRole,
-            (string)controller.ViewBag.UserRole
-        );
+        Assert.Equal(IdentitySeeder.AdminRole, (string)controller.ViewBag.UserRole);
     }
 
-
-    // ========================================
-    // TEST 9
-    // PUBLICACTOR PRIORITERES FREMFOR
-    // RESOURCEPROVIDER
-    // ========================================
+    /*
+        TEST 9
+        PUBLICACTOR PRIORITERES FREMFOR
+        RESOURCEPROVIDER
+    */
 
     [Fact]
     public async Task Dashboard_PublicActorRole_ShouldTakePriority()
@@ -599,55 +415,40 @@ public class HomeDashboardTests
             database,
             user,
             IdentitySeeder.ResourceProviderRole,
-            IdentitySeeder.PublicActorRole
-        );
+            IdentitySeeder.PublicActorRole);
 
         var result = await controller.Dashboard();
 
         GetDashboardModel(result);
 
-        Assert.Equal(
-            IdentitySeeder.PublicActorRole,
-            (string)controller.ViewBag.UserRole
-        );
+        Assert.Equal(IdentitySeeder.PublicActorRole, (string)controller.ViewBag.UserRole);
     }
 
-
-    // ========================================
-    // TEST 10
-    // MANGLENDE NAVN BRUKER E-POST I STEDET
-    // ========================================
+    /*
+        TEST 10
+        MANGLENDE NAVN BRUKER E-POST I STEDET
+    */
 
     [Fact]
     public async Task Dashboard_WithoutName_ShouldDisplayEmail()
     {
         using var database = CreateDatabase();
 
-        var user = CreateUser(
-            name: " "
-        );
+        var user = CreateUser(name: " ");
 
-        var controller = CreateController(
-            database,
-            user,
-            IdentitySeeder.ResourceProviderRole
-        );
+        var controller = CreateController(database, user, IdentitySeeder.ResourceProviderRole);
 
         var result = await controller.Dashboard();
 
         GetDashboardModel(result);
 
-        Assert.Equal(
-            user.Email,
-            (string)controller.ViewBag.UserName
-        );
+        Assert.Equal(user.Email, (string)controller.ViewBag.UserName);
     }
 
-
-    // ========================================
-    // TEST 11
-    // DASHBOARD FUNGERER UTEN RESSURSER
-    // ========================================
+    /*
+        TEST 11
+        DASHBOARD FUNGERER UTEN RESSURSER
+    */
 
     [Fact]
     public async Task Dashboard_NoResources_ShouldReturnEmptyOverview()
@@ -656,11 +457,7 @@ public class HomeDashboardTests
 
         var user = CreateUser();
 
-        var controller = CreateController(
-            database,
-            user,
-            IdentitySeeder.ResourceProviderRole
-        );
+        var controller = CreateController(database, user, IdentitySeeder.ResourceProviderRole);
 
         var result = await controller.Dashboard();
 
@@ -674,11 +471,10 @@ public class HomeDashboardTests
         Assert.Equal(0, model.UnavailableCount);
     }
 
-
-    // ========================================
-    // TEST 12
-    // OVERSIKTEN HENTER UT DATA UTEN TRACKING
-    // ========================================
+    /*
+        TEST 12
+        OVERSIKTEN HENTER UT DATA UTEN TRACKING
+    */
 
     [Fact]
     public async Task Dashboard_ShouldNotTrackReadResources()
@@ -687,24 +483,14 @@ public class HomeDashboardTests
 
         var user = CreateUser();
 
-        database.Resources.Add(
-            CreateResource(
-                "Testaggregat",
-                user.Id,
-                user.Email!
-            )
-        );
+        database.Resources.Add(CreateResource("Testaggregat", user.Id, user.Email!));
 
         await database.SaveChangesAsync();
 
         // Fjern tracking fra opprettelsen.
         database.ChangeTracker.Clear();
 
-        var controller = CreateController(
-            database,
-            user,
-            IdentitySeeder.ResourceProviderRole
-        );
+        var controller = CreateController(database, user, IdentitySeeder.ResourceProviderRole);
 
         var result = await controller.Dashboard();
 
@@ -712,66 +498,48 @@ public class HomeDashboardTests
 
         Assert.Single(model.Resources);
 
-        Assert.Empty(
-            database.ChangeTracker.Entries<Resource>()
-        );
+        Assert.Empty(database.ChangeTracker.Entries<Resource>());
     }
 
-
-    // ========================================
-    // TEST 13
-    // FEILSIDE BRUKER REQUEST-ID
-    // ========================================
+    /*
+        TEST 13
+        FEILSIDE BRUKER REQUEST-ID
+    */
 
     [Fact]
     public void Error_ShouldReturnRequestId()
     {
         using var database = CreateDatabase();
 
-        var controller = CreateController(
-            database,
-            null
-        );
+        var controller = CreateController(database, null);
 
-        controller.HttpContext.TraceIdentifier =
-            "test-request-123";
+        controller.HttpContext.TraceIdentifier = "test-request-123";
 
         var result = controller.Error();
 
         var view = Assert.IsType<ViewResult>(result);
 
-        var model = Assert.IsType<ErrorViewModel>(
-            view.Model
-        );
+        var model = Assert.IsType<ErrorViewModel>(view.Model);
 
-        Assert.Equal(
-            "test-request-123",
-            model.RequestId
-        );
+        Assert.Equal("test-request-123", model.RequestId);
     }
 
-
-    // ========================================
-    // TEST 14
-    // DASHBOARD KREVER AUTORISASJON
-    // ========================================
+    /*
+        TEST 14
+        DASHBOARD KREVER AUTORISASJON
+    */
 
     [Fact]
     public void Dashboard_ShouldRequireAuthorization()
     {
         var method = typeof(HomeController).GetMethod(
             nameof(HomeController.Dashboard),
-            Type.EmptyTypes
-        );
+            Type.EmptyTypes);
 
         Assert.NotNull(method);
 
-        Assert.NotNull(
-            method.GetCustomAttribute<AuthorizeAttribute>()
-        );
+        Assert.NotNull(method.GetCustomAttribute<AuthorizeAttribute>());
 
-        Assert.NotNull(
-            method.GetCustomAttribute<HttpGetAttribute>()
-        );
+        Assert.NotNull(method.GetCustomAttribute<HttpGetAttribute>());
     }
 }

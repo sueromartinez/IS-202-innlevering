@@ -1,7 +1,15 @@
-/* =========================================================
-   PORTAL – felles stil for matching, forespørsler,
-   varsler og admin. Bygger på fargene i app.css.
-   ========================================================= */
+/*
+    portal.css – utseende
+
+    Hva filen gjør: Stilark. @media-reglene tilpasser siden til mobil.
+
+    Oppgavekrav: 12
+*/
+
+/*
+    PORTAL – felles stil for matching, forespørsler,
+    varsler og admin. Bygger på fargene i app.css.
+*/
 
 /* Headeren får plass til den lange menyen. */
 .portal-header {
@@ -22,10 +30,7 @@
     margin-bottom: 26px;
 }
 
-
-/* -----------------------
-   KORT OG SEKSJONER
------------------------ */
+/* --- Kort og seksjoner --- */
 
 .portal-section {
     margin-bottom: 22px;
@@ -66,10 +71,7 @@
     font-weight: 600;
 }
 
-
-/* -----------------------
-   TABELLER
------------------------ */
+/* --- Tabeller --- */
 
 .table-wrap {
     overflow-x: auto;
@@ -121,10 +123,7 @@
     margin: 0;
 }
 
-
-/* -----------------------
-   STATUSMERKER
------------------------ */
+/* --- Statusmerker --- */
 
 .status-badge {
     display: inline-flex;
@@ -157,10 +156,7 @@
 .priority-acute { color: #9d2f2f; background: #fbe9e9; }
 .priority-planned { color: #8a5a00; background: #fdf3df; }
 
-
-/* -----------------------
-   KNAPPER
------------------------ */
+/* --- Knapper --- */
 
 .secondary-action,
 .danger-action,
@@ -207,10 +203,7 @@
     outline-offset: 2px;
 }
 
-
-/* -----------------------
-   SKJEMA
------------------------ */
+/* --- Skjema --- */
 
 .form-grid {
     display: grid;
@@ -262,10 +255,7 @@
     margin-top: 20px;
 }
 
-
-/* -----------------------
-   MELDINGER OG TOMME LISTER
------------------------ */
+/* --- Meldinger og tomme lister --- */
 
 .alert {
     margin-bottom: 18px;
@@ -285,10 +275,7 @@
     font-size: 0.9rem;
 }
 
-
-/* -----------------------
-   FORESPØRSLER OG VARSLER (kortlister)
------------------------ */
+/* --- Forespørsler og varsler (kortlister) --- */
 
 .card-list {
     display: grid;
@@ -336,10 +323,7 @@
     font-size: 0.76rem;
 }
 
-
-/* -----------------------
-   RESPONSIVT
------------------------ */
+/* --- Responsivt --- */
 
 @media (max-width: 900px) {
     .portal-header {
@@ -359,10 +343,7 @@
     }
 }
 
-
-/* -----------------------
-   DIVERSE
------------------------ */
+/* --- Diverse --- */
 
 .visually-hidden {
     position: absolute !important;

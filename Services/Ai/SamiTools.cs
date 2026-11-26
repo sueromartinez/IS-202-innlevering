@@ -1,3 +1,20 @@
+/*
+    SamiTools.cs – verktøyene Sami kan bruke
+
+    Hva filen gjør: Hvert verktøy har et navn, en beskrivelse og en liste over hva det trenger
+    (det modellen ser). Når modellen ber om et verktøy, kjører ExecuteAsync riktig C#-metode.
+    Viktigste regel: Sami kan aldri gjøre mer enn brukeren selv har lov til.
+    - Hvilke verktøy Sami får, avhenger av rollen.
+    - Rollen sjekkes på nytt før hvert verktøy kjøres.
+    - Sami sender aldri forespørsler og lagrer aldri ressurser selv. Han lager forslag og utkast
+      som vises som kort med en knapp, og brukeren må trykke selv.
+
+    På nettsiden: Forslagskortene med «Send forespørsel» og ressursutkastene med «Registrer
+    ressursen» i chatten.
+
+    Oppgavekrav: 10, 14
+*/
+
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Text.Encodings.Web;
@@ -18,11 +35,10 @@ public enum SamiRole
     Admin
 }
 
-
-/// <summary>
-/// Hvem Sami snakker med. Rollen bestemmer hvilke verktøy
-/// modellen får se og får lov til å bruke.
-/// </summary>
+/*
+    Hvem Sami snakker med. Rollen bestemmer hvilke verktøy
+    modellen får se og får lov til å bruke.
+*/
 public class SamiContext
 {
     public string UserId { get; init; } = string.Empty;
@@ -32,12 +48,11 @@ public class SamiContext
     public SamiRole Role { get; init; }
 }
 
-
-/// <summary>
-/// Et forslag fra Sami om å koble en ressurs til et behov.
-/// Vises som et kort i chatten med en "Send forespørsel"-knapp.
-/// Ingenting lagres før et menneske trykker på knappen.
-/// </summary>
+/*
+    Et forslag fra Sami om å koble en ressurs til et behov.
+    Vises som et kort i chatten med en "Send forespørsel"-knapp.
+    Ingenting lagres før et menneske trykker på knappen.
+*/
 public class SamiSuggestion
 {
     public int NeedId { get; init; }
@@ -55,14 +70,13 @@ public class SamiSuggestion
     public string Reason { get; init; } = string.Empty;
 }
 
-
-/// <summary>
-/// Et utkast til en ny ressurs som Sami har fylt ut for en frivillig.
-/// Vises som et kort i chatten med knappen "Registrer ressursen".
-/// Knappen sender det vanlige registreringsskjemaet, så ressursen
-/// valideres og lagres akkurat som når brukeren fyller ut skjemaet selv.
-/// Feltnavnene er de samme som i RegisterResourceViewModel.
-/// </summary>
+/*
+    Et utkast til en ny ressurs som Sami har fylt ut for en frivillig.
+    Vises som et kort i chatten med knappen "Registrer ressursen".
+    Knappen sender det vanlige registreringsskjemaet, så ressursen
+    valideres og lagres akkurat som når brukeren fyller ut skjemaet selv.
+    Feltnavnene er de samme som i RegisterResourceViewModel.
+*/
 public class SamiResourceDraft
 {
     public string ResourceType { get; init; } = string.Empty;
@@ -96,11 +110,10 @@ public class SamiResourceDraft
     public string? ContactPhoneNumber { get; init; }
 }
 
-
-/// <summary>
-/// Det Sami har laget i løpet av ett svar, i tillegg til teksten:
-/// forslag til koblinger og utkast til ressurser. Vises som kort i chatten.
-/// </summary>
+/*
+    Det Sami har laget i løpet av ett svar, i tillegg til teksten:
+    forslag til koblinger og utkast til ressurser. Vises som kort i chatten.
+*/
 public class SamiTurnOutput
 {
     public List<SamiSuggestion> Suggestions { get; } = new();
@@ -108,19 +121,20 @@ public class SamiTurnOutput
     public List<SamiResourceDraft> ResourceDrafts { get; } = new();
 }
 
+/*
+    Verktøyene Sami kan bruke. All tilgang til data går gjennom her.
 
-/// <summary>
-/// Verktøyene Sami kan bruke. All tilgang til data går gjennom her.
-///
-/// Sikkerhet:
-/// - Hvert verktøy sjekker rollen på nytt, selv om modellen bare
-///   får se verktøyene den har lov til (forsvar i dybden).
-/// - Ingen verktøy returnerer kontaktinformasjon (e-post/telefon).
-/// - Ingen verktøy endrer data. suggest_match og prepare_resource_registration
-///   lager bare forslag/utkast som brukeren selv må bekrefte.
-/// </summary>
+    Sikkerhet:
+    - Hvert verktøy sjekker rollen på nytt, selv om modellen bare
+      får se verktøyene den har lov til (forsvar i dybden).
+    - Ingen verktøy returnerer kontaktinformasjon (e-post/telefon).
+    - Ingen verktøy endrer data. suggest_match og prepare_resource_registration
+      lager bare forslag/utkast som brukeren selv må bekrefte.
+*/
 public class SamiTools
 {
+    #region Felt og konstruktør
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
@@ -128,34 +142,10 @@ public class SamiTools
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
-
-    private readonly ApplicationDbContext _context;
-
-    private readonly ResourceMatchingService _matching;
-
-    private readonly NominatimGeocoder _geocoder;
-
-    private readonly IAddressLookup _addressLookup;
-
-
-    public SamiTools(
-        ApplicationDbContext context,
-        ResourceMatchingService matching,
-        NominatimGeocoder geocoder,
-        IAddressLookup addressLookup
-    )
-    {
-        _context = context;
-        _matching = matching;
-        _geocoder = geocoder;
-        _addressLookup = addressLookup;
-    }
-
-
-    // =========================================================
-    // VERKTØYDEFINISJONER
-    // =========================================================
-
+    /*
+        Verktøyene. Den siste delen er et JSON-skjema som forteller modellen hvilke opplysninger
+        verktøyet trenger.
+    */
     private static readonly ChatToolDefinition GetPortalPages = Define(
         "get_portal_pages",
         "Lister sidene i portalen som brukeren har tilgang til, med lenke og forklaring. Bruk når brukeren spør hvor noe er eller hvordan de gjør noe.",
@@ -267,7 +257,6 @@ public class SamiTools
         "Gir tall for hele portalen: antall ressurser per type og status, behov per status og antall brukere.",
         """{ "type": "object", "properties": {} }""");
 
-
     private static readonly ChatToolDefinition SearchHelp = Define(
         "search_help",
         "Søker i hjelpeartiklene om hvordan portalen fungerer: innlogging, passord, tofaktor, profil, mørk modus/tema, nivå og poeng, varsler, kart, registrering, forespørsler, koordinering, roller og admin. Bruk dette for ALLE spørsmål om hvordan man gjør noe i portalen.",
@@ -307,10 +296,36 @@ public class SamiTools
         }
         """);
 
+    private readonly ApplicationDbContext _context;
 
-    /// <summary>
-    /// Verktøyene hver rolle får tilgang til.
-    /// </summary>
+    private readonly ResourceMatchingService _matching;
+
+    private readonly NominatimGeocoder _geocoder;
+
+    private readonly IAddressLookup _addressLookup;
+
+    public SamiTools(
+        ApplicationDbContext context,
+        ResourceMatchingService matching,
+        NominatimGeocoder geocoder,
+        IAddressLookup addressLookup)
+    {
+        _context = context;
+        _matching = matching;
+        _geocoder = geocoder;
+        _addressLookup = addressLookup;
+    }
+
+    #endregion
+
+    #region Verktøyliste
+
+    /*
+        Verktøy per rolle. Frivillig: hjelp, egne ressurser, registrere ressurs, behov i
+        nærheten.
+        Offentlig aktør: åpne behov, finne ressurser, foreslå match. Admin: i tillegg
+        statistikk.
+    */
     public IReadOnlyList<ChatToolDefinition> GetDefinitions(SamiRole role)
     {
         return role switch
@@ -337,24 +352,22 @@ public class SamiTools
         };
     }
 
+    #endregion
 
-    // =========================================================
-    // UTFØRING
-    // =========================================================
+    #region Kjør verktøy
 
-    /// <summary>
-    /// Utfører et verktøykall og returnerer resultatet som JSON-tekst
-    /// som sendes tilbake til modellen.
-    /// </summary>
+    /*
+        Utfører et verktøykall og returnerer resultatet som JSON-tekst
+        som sendes tilbake til modellen.
+    */
     public async Task<string> ExecuteAsync(
         ChatToolCall call,
         SamiContext context,
         SamiTurnOutput output,
-        CancellationToken cancellationToken
-    )
+        CancellationToken cancellationToken)
     {
-        bool allowed =
-            GetDefinitions(context.Role).Any(tool => tool.Name == call.Name);
+        // Dobbeltsjekk av tilgang før verktøyet kjøres.
+        bool allowed = GetDefinitions(context.Role).Any(tool => tool.Name == call.Name);
 
         if (!allowed)
         {
@@ -363,6 +376,7 @@ public class SamiTools
 
         try
         {
+            // Sender verktøynavnet videre til riktig metode.
             return call.Name switch
             {
                 "search_help" => Serialize(Help(call.Arguments, context.Role)),
@@ -389,14 +403,13 @@ public class SamiTools
         }
     }
 
+    #endregion
 
-    // =========================================================
-    // NAVIGASJON OG REGISTRERING
-    // =========================================================
+    #region Verktøy: hjelp og portal
 
     private static object PortalPages(SamiRole role)
     {
-        var pages = new List<object>
+        List<object> pages = new List<object>
         {
             new { title = "Oversikt", url = "/Home/Dashboard", description = "Startsiden etter innlogging." }
         };
@@ -431,7 +444,6 @@ public class SamiTools
         return new { pages };
     }
 
-
     private static object ResourceTypes()
     {
         return new
@@ -440,7 +452,6 @@ public class SamiTools
                 .Select(type => new { value = type.ToString(), name = EnumDisplay.Name(type) })
         };
     }
-
 
     private static object RegistrationRules(SamiRole role)
     {
@@ -482,11 +493,6 @@ public class SamiTools
         };
     }
 
-
-    // =========================================================
-    // HJELPEARTIKLER
-    // =========================================================
-
     private static object Help(JsonElement arguments, SamiRole role)
     {
         string? query = GetString(arguments, "query");
@@ -515,15 +521,9 @@ public class SamiTools
         };
     }
 
-
-    // =========================================================
-    // NIVÅ OG POENG
-    // =========================================================
-
     private async Task<string> MyLevelAsync(
         SamiContext context,
-        CancellationToken cancellationToken
-    )
+        CancellationToken cancellationToken)
     {
         string? email =
             await _context.Users
@@ -531,8 +531,10 @@ public class SamiTools
                 .Select(user => user.Email)
                 .FirstOrDefaultAsync(cancellationToken);
 
-        // Samme utvalg som dashboardet: egne ressurser, også eldre
-        // ressurser som bare er koblet via e-post.
+        /*
+            Samme utvalg som dashboardet: egne ressurser, også eldre
+            ressurser som bare er koblet via e-post.
+        */
         List<Resource> resources =
             await _context.Resources
                 .AsNoTracking()
@@ -542,7 +544,7 @@ public class SamiTools
                 .ToListAsync(cancellationToken);
 
         // Gjenbruker utregningen fra dashboardet, så tallene alltid er like.
-        var progress = new DashboardViewModel { Resources = resources };
+        DashboardViewModel progress = new DashboardViewModel { Resources = resources };
 
         return Serialize(new
         {
@@ -563,23 +565,21 @@ public class SamiTools
         });
     }
 
+    #endregion
 
-    // =========================================================
-    // REGISTRERE RESSURS VIA SAMI
-    // =========================================================
+    #region Verktøy: ressurser
 
-    /// <summary>
-    /// Lager et utkast til en ressurs. Slår opp adressen, og sjekker utkastet
-    /// mot nøyaktig de samme reglene som registreringsskjemaet
-    /// (RegisterResourceViewModel). Ingenting lagres her.
-    /// </summary>
+    /*
+        Registrere ressurs via chatten: Sami slår opp adressen hos Kartverket og sjekker feltene
+        med de samme reglene som skjemaet. Resultatet er et utkast. Når brukeren trykker
+        «Registrer ressursen», sendes det til den vanlige RegisterResource-metoden.
+    */
     private async Task<string> PrepareResourceAsync(
         JsonElement arguments,
         SamiTurnOutput output,
-        CancellationToken cancellationToken
-    )
+        CancellationToken cancellationToken)
     {
-        var missing = new List<string>();
+        List<string> missing = new List<string>();
 
         ResourceType? type = ParseResourceType(GetString(arguments, "resource_type"));
         string name = GetString(arguments, "resource_name")?.Trim() ?? string.Empty;
@@ -620,7 +620,7 @@ public class SamiTools
         }
 
         // Bygger samme modell som skjemaet sender, og kjører de samme valideringsreglene.
-        var model = new RegisterResourceViewModel
+        RegisterResourceViewModel model = new RegisterResourceViewModel
         {
             ResourceType = type,
             ResourceName = name,
@@ -637,7 +637,7 @@ public class SamiTools
             ContactPhoneNumber = phoneNumber
         };
 
-        var errors = new List<ValidationResult>();
+        List<ValidationResult> errors = new List<ValidationResult>();
 
         bool valid = Validator.TryValidateObject(
             model,
@@ -661,7 +661,7 @@ public class SamiTools
 
         string availabilityName = ResourceAvailability.Periods[months!.Value];
 
-        var draft = new SamiResourceDraft
+        SamiResourceDraft draft = new SamiResourceDraft
         {
             ResourceType = type!.Value.ToString(),
             ResourceTypeName = EnumDisplay.Name(type.Value),
@@ -698,23 +698,11 @@ public class SamiTools
         });
     }
 
-
-    private static string? NullIfEmpty(string? value)
-    {
-        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-    }
-
-
-    // =========================================================
-    // FRIVILLIG
-    // =========================================================
-
     private async Task<string> MyResourcesAsync(
         SamiContext context,
-        CancellationToken cancellationToken
-    )
+        CancellationToken cancellationToken)
     {
-        var resources =
+        List<Resource> resources =
             await _context.Resources
                 .AsNoTracking()
                 .Where(resource => resource.OwnerUserId == context.UserId)
@@ -735,11 +723,11 @@ public class SamiTools
         });
     }
 
+    #endregion
 
-    private async Task<string> NeedsICanHelpWithAsync(
-        JsonElement arguments,
-        SamiContext context
-    )
+    #region Verktøy: behov og matching
+
+    private async Task<string> NeedsICanHelpWithAsync(JsonElement arguments, SamiContext context)
     {
         double radiusKm = GetDouble(arguments, "radius_km") ?? ResourceMatchingService.DefaultRadiusKm;
 
@@ -763,15 +751,9 @@ public class SamiTools
         });
     }
 
-
-    // =========================================================
-    // OFFENTLIG AKTØR / ADMIN
-    // =========================================================
-
     private async Task<string> OpenNeedsAsync(
         JsonElement arguments,
-        CancellationToken cancellationToken
-    )
+        CancellationToken cancellationToken)
     {
         IQueryable<Need> query =
             _context.Needs
@@ -786,7 +768,7 @@ public class SamiTools
             query = query.Where(need => need.ResourceType == filter);
         }
 
-        var needs =
+        List<Need> needs =
             await query
                 .OrderBy(need => need.Priority)
                 .ThenByDescending(need => need.CreatedAt)
@@ -812,11 +794,9 @@ public class SamiTools
         });
     }
 
-
     private async Task<string> NeedDetailsAsync(
         JsonElement arguments,
-        CancellationToken cancellationToken
-    )
+        CancellationToken cancellationToken)
     {
         int? needId = GetInt(arguments, "need_id");
 
@@ -865,11 +845,9 @@ public class SamiTools
         });
     }
 
-
     private async Task<string> GeocodeAsync(
         JsonElement arguments,
-        CancellationToken cancellationToken
-    )
+        CancellationToken cancellationToken)
     {
         string? place = GetString(arguments, "place");
 
@@ -898,11 +876,9 @@ public class SamiTools
         });
     }
 
-
     private async Task<string> NearbyResourcesAsync(
         JsonElement arguments,
-        CancellationToken cancellationToken
-    )
+        CancellationToken cancellationToken)
     {
         int? needId = GetInt(arguments, "need_id");
         double? latitude = GetDouble(arguments, "latitude");
@@ -981,12 +957,14 @@ public class SamiTools
         });
     }
 
-
+    /*
+        Sami foreslår en match. Vi sjekker selv at behovet og ressursen finnes, er åpne og
+        ledige, og ikke er spurt fra før. Vi stoler ikke blindt på ID-ene modellen sender.
+    */
     private async Task<string> SuggestMatchAsync(
         JsonElement arguments,
         List<SamiSuggestion> suggestions,
-        CancellationToken cancellationToken
-    )
+        CancellationToken cancellationToken)
     {
         int? needId = GetInt(arguments, "need_id");
         int? resourceId = GetInt(arguments, "resource_id");
@@ -1057,6 +1035,9 @@ public class SamiTools
         });
     }
 
+    #endregion
+
+    #region Verktøy: statistikk
 
     private async Task<string> StatisticsAsync(CancellationToken cancellationToken)
     {
@@ -1093,10 +1074,14 @@ public class SamiTools
         });
     }
 
+    #endregion
 
-    // =========================================================
-    // HJELPEMETODER
-    // =========================================================
+    #region Hjelpemetoder
+
+    private static string? NullIfEmpty(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
 
     private static ChatToolDefinition Define(string name, string description, string schemaJson)
     {
@@ -1108,17 +1093,14 @@ public class SamiTools
         };
     }
 
-
     private static string Serialize(object value)
     {
         return JsonSerializer.Serialize(value, JsonOptions);
     }
 
-
-    /// <summary>
-    /// Godtar både "Boat", "boat" og det norske navnet "Båt".
-    /// Små modeller blander ofte disse.
-    /// </summary>
+    /*
+        Godtar både "Boat", "boat" og "Båt", fordi AI-modeller ikke alltid skriver likt.
+    */
     private static ResourceType? ParseResourceType(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -1143,7 +1125,6 @@ public class SamiTools
         return null;
     }
 
-
     private static string? GetString(JsonElement arguments, string name)
     {
         if (arguments.ValueKind != JsonValueKind.Object
@@ -1160,10 +1141,7 @@ public class SamiTools
         };
     }
 
-
-    /// <summary>
-    /// Leser et tall, også når modellen sender det som tekst ("12").
-    /// </summary>
+    // Leser et tall, også når modellen sender det som tekst ("12").
     private static double? GetDouble(JsonElement arguments, string name)
     {
         if (arguments.ValueKind != JsonValueKind.Object
@@ -1191,7 +1169,6 @@ public class SamiTools
         return null;
     }
 
-
     private static int? GetInt(JsonElement arguments, string name)
     {
         double? value = GetDouble(arguments, name);
@@ -1199,10 +1176,9 @@ public class SamiTools
         return value is null ? null : (int)Math.Round(value.Value);
     }
 
-
     private static List<string> GetStringArray(JsonElement arguments, string name)
     {
-        var result = new List<string>();
+        List<string> result = new List<string>();
 
         if (arguments.ValueKind != JsonValueKind.Object
             || !arguments.TryGetProperty(name, out JsonElement value))
@@ -1228,13 +1204,14 @@ public class SamiTools
 
         return result;
     }
+
+    #endregion
 }
 
-
-/// <summary>
-/// Et verktøy feilet (f.eks. databasefeil). Fanges i SamiAssistantService,
-/// som logger detaljene og gir modellen en kort feilmelding.
-/// </summary>
+/*
+    Et verktøy feilet (f.eks. databasefeil). Fanges i SamiAssistantService,
+    som logger detaljene og gir modellen en kort feilmelding.
+*/
 public class SamiToolException : Exception
 {
     public SamiToolException(string toolName, Exception inner)

@@ -1,6 +1,21 @@
-# Beredskapsportal
+# Beredskapsportalen
 
 Beredskapsportalen er en webapplikasjon utviklet som en del av et akademisk prosjekt, støttet av Heimevernet og Kartverket. Løsningen er bygget med ASP.NET Core MVC og bruker MariaDB som database. Entity Framework Core benyttes for kommunikasjon mellom applikasjonen og databasen. Docker brukes for å starte applikasjonen og databasen lokalt.
+
+# Dokumentasjon
+
+| Dokument | Innhold |
+|---|---|
+| [docs/drift.md](docs/drift.md) | Konfigurering, oppstart, brukere, testkjøring og feilsøking (start her) |
+| [docs/arkitektur.md](docs/arkitektur.md) | Systemarkitektur, lag, datamodell og designvalg |
+| [docs/brukerveiledning.md](docs/brukerveiledning.md) | Funksjoner og navigasjon for hver rolle |
+| [docs/sikkerhet.md](docs/sikkerhet.md) | Sikkerhetstiltak og kjente begrensninger |
+| [docs/testing.md](docs/testing.md) | Testscenarier og resultater (enhet, system, sikkerhet, brukervennlighet) |
+| [docs/sami-og-matching.md](docs/sami-og-matching.md) | Hvordan matchingen og AI-assistenten Sami fungerer |
+| [docs/kravoversikt.md](docs/kravoversikt.md) | Hvor hvert krav i oppgaven er oppfylt |
+| [docs/kodestil.md](docs/kodestil.md) | Felles regler for hvordan koden er skrevet og bygd opp |
+
+Hver kodefil starter også med en kort forklaring av hva filen gjør, hva den viser på nettsiden, og hvilke oppgavekrav den dekker.
 
 # Teknologistack
 
@@ -12,7 +27,8 @@ Prosjektet bygger på følgende teknologier:
 - Entity Framework Core
 - ASP.NET Core Identity
 - Docker og Docker Compose
-- xUnit (må bekreftes mot testprosjektet)
+- xUnit, Moq og EF Core InMemory (testing)
+- Leaflet med kart fra Kartverket
 
 # Prosjektstruktur
 
@@ -50,9 +66,9 @@ Prosjektet inneholder også følgende filer for lokal kjøring:
 Følgende programvare må være installert før prosjektet kan kjøres:
 
 - Git
-- .NET SDK 10
 - Docker Desktop
-- Visual Studio Code eller Visual Studio
+- .NET SDK 10 (bare for å kjøre testene eller bygge utenfor Docker)
+- Visual Studio Code eller Visual Studio (for å lese og endre koden)
 
 MariaDB kjøres i en Docker-container. Docker Desktop må derfor være startet før applikasjonen kjøres.
 
@@ -83,7 +99,7 @@ Eksempelfilen kopieres med følgende kommando:
 Copy-Item .env.example .env
 ```
 
-I `.env` kan gruppemedlemmene konfigurere egne lokale passord dersom standardverdiene skal endres.
+Fyll inn `MARIADB_PASSWORD`, `MARIADB_ROOT_PASSWORD` og `ADMIN_PASSWORD` i `.env`. Det finnes ingen standardpassord, så appen starter ikke før disse er satt. Alle variablene er forklart i [docs/drift.md](docs/drift.md).
 
 Passord og andre sensitive opplysninger skal ikke legges direkte inn i Git-repositoryet.
 
@@ -143,7 +159,7 @@ Følgende roller opprettes automatisk ved oppstart:
 - PublicActor
 - ResourceProvider
 
-## Standardbruker offentlig aktør
+## Standardbruker
 
 Ved oppstart opprettes en offentlig testbruker automatisk dersom brukeren ikke allerede finnes.
 
@@ -158,31 +174,7 @@ Testbrukeren opprettes gjennom `IdentitySeeder.cs`.
 
 Passordet er ment for testing og utvikling, og skal ikke brukes i et produksjonsmiljø.
 
-## Standardbruker frivillig
-
-| Felt | Verdi |
-|---|---|
-| E-post | frivillig@beredskap.no |
-| Passord | Test123! |
-| Navn | Kari Frivillig |
-| Rolle | ResourceProvider |
-
-Testbrukeren opprettes gjennom `DemoDataSeeder.cs`.
-
-Passordet er ment for testing og utvikling, og skal ikke brukes i et produksjonsmiljø.
-
-## Standardbruker administrator
-
-| Felt | Verdi |
-|---|---|
-| E-post | admin@beredskap.no |
-| Passord | Admin123! |
-| Navn | Administrator |
-| Rolle | Admin |
-
-Administratorkontoen opprettes gjennom `IdentitySeeder.cs`.
-
-Passordet er ment for testing og utvikling, og skal ikke brukes i et produksjonsmiljø.
+En administratorkonto opprettes også ved oppstart (e-post og passord kan settes i `.env`). Se «Testbrukere» under «Roller».
 
 # Opprette bruker
 
@@ -194,31 +186,6 @@ Nye brukere kan registrere seg gjennom registreringsfunksjonen i applikasjonen.
 4. Brukeren opprettes.
 
 Nye brukere registreres som ressursleverandører.
-
-# Roller
-
-| Rolle | Kan gjøre |
-|---|---|
-| Ressursleverandør / frivillig | Registrere og endre egne ressurser, se forespørsler og bekrefte/avslå, se behov de kan hjelpe med |
-| Offentlig aktør | Registrere behov, se alle ressurser, matche ressurser med behov, markere behov som løst |
-| Admin | Alt en offentlig aktør kan, pluss å opprette offentlige aktører, endre roller og deaktivere brukere |
-
-Offentlige aktører kan ikke registrere seg selv. De opprettes av admin under **Brukere**.
-Brukere deaktiveres i stedet for å slettes, slik at historikken beholdes.
-
-
-# Matching og statusflyt
-
-1. Offentlig aktør trykker **Finn ressurser** på et behov. Systemet viser tilgjengelige ressurser sortert etter avstand (Haversine).
-2. **Send forespørsel** → behovet får status *Vurderes*, og eieren av ressursen får varsel i portalen (klokken), på e-post og simulert SMS.
-3. Eieren bekrefter under **Forespørsler** → behovet blir *Tildelt*, ressursen *Opptatt*.
-4. **Marker behovet som løst** → behovet blir *Løst*, ressursen blir tilgjengelig igjen.
-
-E-post fanges av **Mailpit** og kan leses på http://localhost:8025. SMS logges bare i konsollen.
-
-## Frist og kontaktpunkt
-
-Et behov kan få **frist** og **kontaktpunkt** (kontaktperson og telefon). Kontaktpunktet vises til den frivillige først etter at hen har bekreftet.
 
 # Testing
 
@@ -252,7 +219,43 @@ Før koden pushes bør gruppemedlemmene:
 4. Kontrollere at endringene ikke påvirker eksisterende funksjonalitet.
 5. Opprette en Pull Request for gjennomgang og integrering i `main`.
 
-## Om applikasjonens funksjoner 
+# Roller
+
+| Rolle | Kan gjøre |
+|---|---|
+| Ressursleverandør / frivillig | Registrere og endre egne ressurser, se forespørsler og bekrefte/avslå, se behov de kan hjelpe med |
+| Offentlig aktør | Registrere behov, se alle ressurser, matche ressurser med behov, markere behov som løst |
+| Admin | Alt en offentlig aktør kan, pluss å opprette offentlige aktører, endre roller og deaktivere brukere |
+
+Offentlige aktører kan ikke registrere seg selv. De opprettes av admin under **Brukere**.
+Brukere deaktiveres i stedet for å slettes, slik at historikken beholdes.
+
+## Testbrukere (bare lokalt)
+
+| Rolle | E-post | Passord |
+|---|---|---|
+| Admin | `ADMIN_EMAIL` i `.env` (standard admin@beredskap.no) | `ADMIN_PASSWORD` i `.env` (tofaktorkoden hentes i Mailpit, http://localhost:8025) |
+| Offentlig aktør | offentlig@beredskap.no | Test123! |
+| Frivillig | frivillig@beredskap.no | Test123! |
+| Bedrift | entreprenor@beredskap.no | Test123! |
+
+Frivillig- og bedriftsbrukeren, ressursene og behovene er demodata som opprettes når databasen er tom
+(kun i Development). Slå av med miljøvariabelen `Seed__DemoData=false`.
+
+---
+
+# Matching og statusflyt
+
+1. Offentlig aktør trykker **Finn ressurser** på et behov. Systemet viser tilgjengelige ressurser sortert etter avstand (Haversine).
+2. **Send forespørsel** → behovet får status *Vurderes*, og eieren av ressursen får varsel i portalen (klokken), på e-post og simulert SMS.
+3. Eieren bekrefter under **Forespørsler** → behovet blir *Tildelt*, ressursen *Opptatt*.
+4. **Marker behovet som løst** → behovet blir *Løst*, ressursen blir tilgjengelig igjen.
+
+E-post fanges av **Mailpit** og kan leses på http://localhost:8025. SMS logges bare i konsollen.
+
+## Frist og kontaktpunkt
+
+Et behov kan få **frist** og **kontaktpunkt** (kontaktperson og telefon). Kontaktpunktet vises til den frivillige først etter at hen har bekreftet.
 
 ## Fargeblind modus
 
@@ -314,18 +317,17 @@ Legg dette i `.env` (aldri commit nøkkelen):
 
 ---
 
-# Etter at denne endringen er hentet
+# Endringer i datamodellen (for utviklere)
 
-Datamodellen har fått nye tabeller og felt (frist og kontaktpunkt på behov, og tabellen `AuditLog`).
-Lag migrasjonen én gang før appen startes:
+Alle migrasjoner ligger i `Migrations/` og kjøres automatisk når appen starter. Sensor trenger ikke gjøre noe.
+
+Endrer man en modell, lager man en ny migrasjon med et nytt navn:
 
     dotnet tool install --global dotnet-ef   (hvis du ikke har det)
-    dotnet ef migrations add JuryForbedringer
+    dotnet ef migrations add <NavnPåEndringen>
     dotnet build
     dotnet test FirstWebAppInDocker.Tests
     docker compose up --build
-
-Migrasjonen kjøres automatisk når appen starter.
 
 ---
 

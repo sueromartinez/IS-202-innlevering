@@ -1,3 +1,11 @@
+/*
+    CancellationConcurrencyIntegrationTests.cs – automatiske tester
+
+    Hva filen gjør: Tester at avbryt og bekreft samtidig ikke gir feil booking (mot ekte
+    MariaDB). Kjøres mot en egen MariaDB fra docker-compose.integration.yml.
+
+    Oppgavekrav: 6, 15
+*/
 
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
@@ -13,42 +21,38 @@ using Xunit;
 
 namespace FirstWebAppInDocker.Tests;
 
-/// <summary>
-/// Integrasjonstester for samtidige kanselleringer
-/// og bekreftelser av ressursforespørsler.
-/// </summary>
-/// <remarks>
-/// Testene bruker utelukkende:
-/// 127.0.0.1:3308 / beredskap_test_db.
-///
-/// Integrasjonstester må aktiveres eksplisitt med:
-/// BEREDSKAP_RUN_MARIADB_TESTS=1.
-///
-/// Databasepassordet leses fra:
-/// BEREDSKAP_TEST_DB_PASSWORD.
-///
-/// Eksisterende utviklingsdatabase påvirkes ikke.
-/// </remarks>
+/*
+    Integrasjonstester for samtidige kanselleringer
+    og bekreftelser av ressursforespørsler.
+
+    Testene bruker utelukkende:
+    127.0.0.1:3308 / beredskap_test_db.
+
+    Integrasjonstester må aktiveres eksplisitt med:
+    BEREDSKAP_RUN_MARIADB_TESTS=1.
+
+    Databasepassordet leses fra:
+    BEREDSKAP_TEST_DB_PASSWORD.
+
+    Eksisterende utviklingsdatabase påvirkes ikke.
+*/
 public class CancellationConcurrencyIntegrationTests
 {
     #region Databasekonfigurasjon
 
-    private const string PasswordVariable =
-        "BEREDSKAP_TEST_DB_PASSWORD";
+    private const string PasswordVariable = "BEREDSKAP_TEST_DB_PASSWORD";
 
-    /// <summary>
-    /// Oppretter en tilkobling utelukkende til
-    /// den isolerte MariaDB-testdatabasen.
-    /// </summary>
+    /*
+        Oppretter en tilkobling utelukkende til
+        den isolerte MariaDB-testdatabasen.
+    */
     private static string CreateConnectionString()
     {
-        string? password =
-            Environment.GetEnvironmentVariable(PasswordVariable);
+        string? password = Environment.GetEnvironmentVariable(PasswordVariable);
 
         if (string.IsNullOrWhiteSpace(password))
         {
-            throw new InvalidOperationException(
-                $"Miljøvariabelen {PasswordVariable} mangler.");
+            throw new InvalidOperationException($"Miljøvariabelen {PasswordVariable} mangler.");
         }
 
         var connection = new MySqlConnectionStringBuilder
@@ -63,20 +67,17 @@ public class CancellationConcurrencyIntegrationTests
         return connection.ConnectionString;
     }
 
-    /// <summary>
-    /// Konfigurerer EF Core med samme MariaDB-versjon
-    /// som hovedapplikasjonen.
-    /// </summary>
+    /*
+        Konfigurerer EF Core med samme MariaDB-versjon
+        som hovedapplikasjonen.
+    */
     private static DbContextOptions<ApplicationDbContext> CreateOptions(
         string connectionString,
         IInterceptor? interceptor = null)
     {
-        var builder =
-            new DbContextOptionsBuilder<ApplicationDbContext>();
+        var builder = new DbContextOptionsBuilder<ApplicationDbContext>();
 
-        builder.UseMySql(
-            connectionString,
-            new MariaDbServerVersion(new Version(11, 4, 0)));
+        builder.UseMySql(connectionString, new MariaDbServerVersion(new Version(11, 4, 0)));
 
         if (interceptor is not null)
         {
@@ -90,27 +91,26 @@ public class CancellationConcurrencyIntegrationTests
 
     #region Samtidighetstest
 
-    /// <summary>
-    /// Kontrollerer at samtidig kansellering og bekreftelse
-    /// ikke etterlater en inkonsistent ressursreservasjon.
-    /// </summary>
-    /// <remarks>
-    /// Testen setter kanselleringen på pause rett før
-    /// dens endringer lagres i databasen.
-    ///
-    /// Bekreftelsen får deretter fullføre først.
-    ///
-    /// Når kanselleringen fortsetter, skal den ikke
-    /// kunne overskrive en allerede bekreftet tildeling
-    /// uten korrekt håndtering av ressursstatus.
-    ///
-    /// Forventningen er at bare én av de konkurrerende
-    /// handlingene skal lykkes, og at databasen
-    /// skal ha konsistente sluttstatuser.
-    ///
-    /// Testen er ment å avdekke en mulig feil
-    /// i den nåværende implementasjonen.
-    /// </remarks>
+    /*
+        Kontrollerer at samtidig kansellering og bekreftelse
+        ikke etterlater en inkonsistent ressursreservasjon.
+
+        Testen setter kanselleringen på pause rett før
+        dens endringer lagres i databasen.
+
+        Bekreftelsen får deretter fullføre først.
+
+        Når kanselleringen fortsetter, skal den ikke
+        kunne overskrive en allerede bekreftet tildeling
+        uten korrekt håndtering av ressursstatus.
+
+        Forventningen er at bare én av de konkurrerende
+        handlingene skal lykkes, og at databasen
+        skal ha konsistente sluttstatuser.
+
+        Testen er ment å avdekke en mulig feil
+        i den nåværende implementasjonen.
+    */
     [MariaDbIntegrationFact]
     [Trait("Category", "Integration")]
     public async Task CancelAndConfirmSameRequest_CannotCauseInconsistentBooking()
@@ -199,66 +199,62 @@ public class CancellationConcurrencyIntegrationTests
         {
             #region Gjennomfør konkurrerende operasjoner
 
-            // Setter kanselleringen på pause
-            // etter at den har lest forespørselen,
-            // men før SaveChangesAsync lagrer endringene.
-            var pause =
-                new PauseBeforeCancellationSaveInterceptor();
+            /*
+                Setter kanselleringen på pause
+                etter at den har lest forespørselen,
+                men før SaveChangesAsync lagrer endringene.
+            */
+            var pause = new PauseBeforeCancellationSaveInterceptor();
 
-            var cancellationOptions =
-                CreateOptions(connectionString, pause);
+            var cancellationOptions = CreateOptions(connectionString, pause);
 
-            await using var cancellationContext =
-                new ApplicationDbContext(cancellationOptions);
+            await using var cancellationContext = new ApplicationDbContext(cancellationOptions);
 
-            await using var confirmationContext =
-                new ApplicationDbContext(options);
+            await using var confirmationContext = new ApplicationDbContext(options);
 
-            AssignmentService cancellationService =
-                CreateAssignmentService(cancellationContext);
+            AssignmentService cancellationService = CreateAssignmentService(cancellationContext);
 
-            AssignmentService confirmationService =
-                CreateAssignmentService(confirmationContext);
+            AssignmentService confirmationService = CreateAssignmentService(confirmationContext);
 
             // Start kanselleringen først.
-            Task<ServiceResult> cancellationTask =
-                cancellationService.CancelAsync(assignmentId);
+            Task<ServiceResult> cancellationTask = cancellationService.CancelAsync(assignmentId);
 
             ServiceResult confirmationResult;
 
             try
             {
-                // Vent til kanselleringen er klar
-                // til å skrive til databasen.
+                /*
+                    Vent til kanselleringen er klar
+                    til å skrive til databasen.
+                */
                 await pause.WaitUntilPausedAsync();
 
-                // Bekreft samme forespørsel mens
-                // kanselleringens endringer ennå
-                // ikke er lagret.
+                /*
+                    Bekreft samme forespørsel mens
+                    kanselleringens endringer ennå
+                    ikke er lagret.
+                */
                 confirmationResult =
-                    await confirmationService.RespondAsync(
-                        assignmentId,
-                        ownerId,
-                        accept: true);
+                    await confirmationService.RespondAsync(assignmentId, ownerId, accept: true);
             }
             finally
             {
-                // Slipp alltid kanselleringen videre,
-                // også dersom bekreftelsen feiler.
+                /*
+                    Slipp alltid kanselleringen videre,
+                    også dersom bekreftelsen feiler.
+                */
                 pause.Release();
 
                 await cancellationTask;
             }
 
-            ServiceResult cancellationResult =
-                await cancellationTask;
+            ServiceResult cancellationResult = await cancellationTask;
 
             #endregion
 
             #region Kontroller databasekonsistens
 
-            await using var verification =
-                new ApplicationDbContext(options);
+            await using var verification = new ApplicationDbContext(options);
 
             NeedAssignment finalAssignment =
                 await verification.NeedAssignments
@@ -275,15 +271,19 @@ public class CancellationConcurrencyIntegrationTests
                     .AsNoTracking()
                     .SingleAsync(n => n.Id == needId);
 
-            // Gyldig resultat A:
-            // Bekreftelsen vant.
+            /*
+                Gyldig resultat A:
+                Bekreftelsen vant.
+            */
             bool confirmationWon =
                 finalAssignment.Status == AssignmentStatus.Confirmed
                 && finalResource.Status == ResourceStatus.Busy
                 && finalNeed.Status == NeedStatus.Assigned;
 
-            // Gyldig resultat B:
-            // Kanselleringen vant.
+            /*
+                Gyldig resultat B:
+                Kanselleringen vant.
+            */
             bool cancellationWon =
                 finalAssignment.Status == AssignmentStatus.Cancelled
                 && finalResource.Status == ResourceStatus.Available
@@ -297,8 +297,10 @@ public class CancellationConcurrencyIntegrationTests
                 $"Ressurs: {finalResource.Status}, " +
                 $"Behov: {finalNeed.Status}.");
 
-            // Begge konkurrerende handlinger skal ikke
-            // rapportere at de lykkes med samme forespørsel.
+            /*
+                Begge konkurrerende handlinger skal ikke
+                rapportere at de lykkes med samme forespørsel.
+            */
             Assert.True(
                 confirmationResult.Success != cancellationResult.Success,
                 "Både bekreftelse og kansellering rapporterte " +
@@ -312,10 +314,11 @@ public class CancellationConcurrencyIntegrationTests
         {
             #region Rydd opp i testdata
 
-            // Fjerner bare data med denne testens ID-er.
-            // Ingen database eller Docker-volumer slettes.
-            await using var cleanup =
-                new ApplicationDbContext(options);
+            /*
+                Fjerner bare data med denne testens ID-er.
+                Ingen database eller Docker-volumer slettes.
+            */
+            await using var cleanup = new ApplicationDbContext(options);
 
             var assignments =
                 await cleanup.NeedAssignments
@@ -326,9 +329,7 @@ public class CancellationConcurrencyIntegrationTests
 
             var notifications =
                 await cleanup.Notifications
-                    .Where(n =>
-                        n.UserId == ownerId ||
-                        n.UserId == requesterId)
+                    .Where(n => n.UserId == ownerId || n.UserId == requesterId)
                     .ToListAsync();
 
             cleanup.Notifications.RemoveRange(notifications);
@@ -349,9 +350,7 @@ public class CancellationConcurrencyIntegrationTests
 
             var users =
                 await cleanup.Users
-                    .Where(u =>
-                        u.Id == ownerId ||
-                        u.Id == requesterId)
+                    .Where(u => u.Id == ownerId || u.Id == requesterId)
                     .ToListAsync();
 
             cleanup.Users.RemoveRange(users);
@@ -366,21 +365,17 @@ public class CancellationConcurrencyIntegrationTests
 
     #region Testavhengigheter
 
-    /// <summary>
-    /// Oppretter den ekte AssignmentService uten
-    /// å sende eksterne meldinger.
-    /// </summary>
-    private static AssignmentService CreateAssignmentService(
-        ApplicationDbContext context)
+    /*
+        Oppretter den ekte AssignmentService uten
+        å sende eksterne meldinger.
+    */
+    private static AssignmentService CreateAssignmentService(ApplicationDbContext context)
     {
-        var emailSender =
-            new Mock<IPortalEmailSender>(MockBehavior.Strict);
+        var emailSender = new Mock<IPortalEmailSender>(MockBehavior.Strict);
 
-        var smsSender =
-            new Mock<ISmsSender>(MockBehavior.Strict);
+        var smsSender = new Mock<ISmsSender>(MockBehavior.Strict);
 
-        IConfiguration configuration =
-            new ConfigurationBuilder().Build();
+        IConfiguration configuration = new ConfigurationBuilder().Build();
 
         var notifications = new NotificationService(
             context,
@@ -389,28 +384,25 @@ public class CancellationConcurrencyIntegrationTests
             configuration,
             NullLogger<NotificationService>.Instance);
 
-        return new AssignmentService(
-            context,
-            notifications);
+        return new AssignmentService(context, notifications);
     }
 
     #endregion
 
     #region Synkronisering
 
-    /// <summary>
-    /// Holder kanselleringens første SaveChangesAsync
-    /// tilbake inntil testen tillater lagring.
-    /// </summary>
-    /// <remarks>
-    /// Ved å bruke en SaveChangesInterceptor
-    /// vet vi at kanselleringen allerede har lest
-    /// forespørselen og bestemt hvilken status
-    /// som skal lagres.
-    ///
-    /// Dette gjør testen mer målrettet enn
-    /// å forsøke å treffe en tilfeldig timing.
-    /// </remarks>
+    /*
+        Holder kanselleringens første SaveChangesAsync
+        tilbake inntil testen tillater lagring.
+
+        Ved å bruke en SaveChangesInterceptor
+        vet vi at kanselleringen allerede har lest
+        forespørselen og bestemt hvilken status
+        som skal lagres.
+
+        Dette gjør testen mer målrettet enn
+        å forsøke å treffe en tilfeldig timing.
+    */
     private sealed class PauseBeforeCancellationSaveInterceptor
         : SaveChangesInterceptor
     {
@@ -422,41 +414,32 @@ public class CancellationConcurrencyIntegrationTests
 
         private int _hasPaused;
 
-        /// <summary>
-        /// Venter på at kanselleringen skal nå
-        /// lagringspunktet.
-        /// </summary>
+        /*
+            Venter på at kanselleringen skal nå
+            lagringspunktet.
+        */
         public Task WaitUntilPausedAsync()
         {
-            return _paused.Task.WaitAsync(
-                TimeSpan.FromSeconds(20));
+            return _paused.Task.WaitAsync(TimeSpan.FromSeconds(20));
         }
 
-        /// <summary>
-        /// Lar kanselleringen fortsette.
-        /// </summary>
+        // Lar kanselleringen fortsette.
         public void Release()
         {
             _release.TrySetResult(true);
         }
 
-        /// <inheritdoc />
         public override async ValueTask<InterceptionResult<int>>
             SavingChangesAsync(
                 DbContextEventData eventData,
                 InterceptionResult<int> result,
                 CancellationToken cancellationToken = default)
         {
-            if (Interlocked.CompareExchange(
-                    ref _hasPaused,
-                    1,
-                    0) == 0)
+            if (Interlocked.CompareExchange(ref _hasPaused, 1, 0) == 0)
             {
                 _paused.TrySetResult(true);
 
-                await _release.Task.WaitAsync(
-                    TimeSpan.FromSeconds(20),
-                    cancellationToken);
+                await _release.Task.WaitAsync(TimeSpan.FromSeconds(20), cancellationToken);
             }
 
             return result;

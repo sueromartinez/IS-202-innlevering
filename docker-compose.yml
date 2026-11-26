@@ -1,3 +1,14 @@
+# docker-compose.yml – starter hele systemet med én kommando
+#
+# Hva filen gjør: docker compose up starter: mariadb (databasen), app (nettsiden), ollama
+# (lokal AI-modell), ollama-pull (laster ned modellen) og mailpit (fanger e-post lokalt, se
+# http://localhost:8025).
+# Hvorfor Docker: alle får nøyaktig samme oppsett, og ingen trenger å installere databasen
+# selv.
+# Passord og API-nøkkel hentes fra .env, som ikke ligger i Git.
+#
+# Oppgavekrav: 1, 3, 7
+
 
 # Docker Compose-oppsett for lokal utvikling og demonstrasjon.
 # Passord og andre hemmeligheter hentes fra en lokal .env-fil.
@@ -16,17 +27,22 @@ services:
       MARIADB_USER: beredskap_user
 
       # Krev passord fra .env. Ingen kjente reservepassord.
+      # Mangler variabelen i .env, nekter compose å starte. Det finnes ingen standardpassord i
+      # koden.
       MARIADB_PASSWORD: ${MARIADB_PASSWORD:?Sett MARIADB_PASSWORD i .env}
       MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:?Sett MARIADB_ROOT_PASSWORD i .env}
 
     # Databasen er kun tilgjengelig fra vertsmaskinen.
     ports:
+      # Databasen er bare tilgjengelig fra din egen maskin, ikke fra nettverket.
       - "127.0.0.1:3307:3306"
 
     # Beholder databaseinnhold ved omstart.
     volumes:
       - beredskap-db:/var/lib/mysql
 
+    # Appen venter til databasen faktisk svarer, så tabellene ikke prøves laget før MariaDB er
+    # klar.
     healthcheck:
       test:
         [
@@ -64,6 +80,8 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
 
       # Samme databasepassord brukes av MariaDB og EF Core.
+      # Overstyrer databaseadressen i appsettings.json. Server=mariadb er navnet på tjenesten
+      # over; containerne finner hverandre med navn.
       ConnectionStrings__DefaultConnection: >-
         Server=mariadb;
         Port=3306;
@@ -75,8 +93,11 @@ services:
       # kontoen ikke allerede finnes i databasen.
       Seed__AdminEmail: ${ADMIN_EMAIL:?Sett ADMIN_EMAIL i .env}
       Seed__AdminPassword: ${ADMIN_PASSWORD:?Sett ADMIN_PASSWORD i .env}
+      Seed__PublicActorPassword: ${PUBLIC_ACTOR_PASSWORD:-}
 
       # Sami kan bruke lokal Ollama eller konfigurert Claude.
+      # Hvilken AI-modell Sami bruker. Sett SAMI_PROVIDER=Claude og ANTHROPIC_API_KEY i .env
+      # for Claude.
       Sami__Provider: ${SAMI_PROVIDER:-Ollama}
       Sami__Ollama__BaseUrl: http://ollama:11434
       Sami__Ollama__Model: ${SAMI_OLLAMA_MODEL:-qwen2.5:7b}
@@ -92,6 +113,8 @@ services:
 
     # Behold Identity/Data Protection-nøkler ved omstart.
     volumes:
+      # Nøklene som beskytter innloggingen lagres utenfor containeren, så ingen blir logget ut
+      # når den bygges på nytt.
       - beredskap-dataprotection:/home/app/.aspnet/DataProtection-Keys
 
   #endregion

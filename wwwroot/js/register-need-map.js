@@ -1,3 +1,9 @@
+/*
+    register-need-map.js
+
+    Hva filen gjør: Knapp for å vise kartet i fullskjerm på «Registrer behov».
+*/
+
 // Utvider det eksisterende kartet uten å lage nye kart eller endre behovsmarkørene.
 window.addNeedFullscreenControl = function (map) {
     const mapElement = map.getContainer();

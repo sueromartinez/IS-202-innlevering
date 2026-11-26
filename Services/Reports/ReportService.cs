@@ -1,3 +1,14 @@
+/*
+    ReportService.cs – tallene i rapporten
+
+    Hva filen gjør: Regner ut nøkkeltallene (åpne behov, akutte, ledige ressurser per type ...),
+    lager CSV og JSON til eksport, og teksten Sami får når han skal skrive oppsummeringen.
+
+    På nettsiden: Tallene og listene på «Rapporter»-siden og filene man laster ned.
+
+    Oppgavekrav: 10
+*/
+
 using System.Globalization;
 using System.Text;
 using System.Text.Encodings.Web;
@@ -11,37 +22,56 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FirstWebAppInDocker.Services.Reports;
 
-/// <summary>
-/// Henter data til utskrift, eksport og situasjonsrapport.
-///
-/// All utregning skjer her og ikke i språkmodellen, slik at tallene
-/// alltid stemmer og rapporten virker selv uten AI.
-/// Hjelpemetodene som ikke trenger database er statiske og testbare.
-/// </summary>
+/*
+    Henter data til utskrift, eksport og situasjonsrapport.
+
+    All utregning skjer her og ikke i språkmodellen, slik at tallene
+    alltid stemmer og rapporten virker selv uten AI.
+    Hjelpemetodene som ikke trenger database er statiske og testbare.
+*/
 public class ReportService
 {
-    private readonly ApplicationDbContext _context;
+    #region Felt og konstruktør
 
+    public const string AiSystemPrompt =
+        "Du er Sami, assistenten i Beredskapsportalen for Heimevernet og offentlige aktører. "
+        + "Du skal skrive en kort situasjonsrapport på norsk bokmål til en beredskapsleder. "
+        + "Bruk KUN tallene og opplysningene du får. Ikke finn på tall, steder eller hendelser. "
+        + "Skriv nøkternt og konkret, uten innledning og uten avslutningshilsen. "
+        + "Bruk nøyaktig disse tre overskriftene, hver på egen linje: "
+        + "«Situasjonsbilde» (2–3 setninger), «Viktigste risikoer» (2–4 punkter som starter med «- ») "
+        + "og «Anbefalte tiltak» (3 punkter som starter med «- »). "
+        + "Maks 180 ord totalt. Ikke bruk markdown som ** eller #.";
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        // Skriver æøå som vanlige tegn i stedet for æ.
+        Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
+    };
+
+    private readonly ApplicationDbContext _context;
 
     public ReportService(ApplicationDbContext context)
     {
         _context = context;
     }
 
+    #endregion
 
-    // =========================================================
+    #region Ressursliste og eksport
+
     // RESSURSLISTE (utskrift og eksport)
-    // =========================================================
 
-    /// <summary>
-    /// Alle ressurser, eventuelt filtrert på kommune, type og tilgjengelighet.
-    /// Sortert på kommune og deretter navn.
-    /// </summary>
+    /*
+        Alle ressurser, eventuelt filtrert på kommune, type og tilgjengelighet.
+        Sortert på kommune og deretter navn.
+    */
     public async Task<List<ResourceReportRow>> GetResourceRowsAsync(
         string? municipality,
         ResourceType? type,
-        bool onlyAvailable
-    )
+        bool onlyAvailable)
     {
         DateTime now = DateTime.UtcNow;
 
@@ -57,8 +87,7 @@ public class ReportService
 
         List<Resource> resources = await query.ToListAsync();
 
-        IEnumerable<ResourceReportRow> rows =
-            resources.Select(resource => ToRow(resource, now));
+        IEnumerable<ResourceReportRow> rows = resources.Select(resource => ToRow(resource, now));
 
         if (!string.IsNullOrWhiteSpace(municipality))
         {
@@ -77,10 +106,7 @@ public class ReportService
             .ToList();
     }
 
-
-    /// <summary>
-    /// Alle kommuner som har minst én ressurs (til nedtrekkslisten).
-    /// </summary>
+    // Alle kommuner som har minst én ressurs (til nedtrekkslisten).
     public async Task<List<string>> GetMunicipalitiesAsync()
     {
         List<string?> addresses =
@@ -95,7 +121,6 @@ public class ReportService
             .OrderBy(name => name, StringComparer.Create(CultureInfo.InvariantCulture, true))
             .ToList();
     }
-
 
     public static ResourceReportRow ToRow(Resource resource, DateTime nowUtc)
     {
@@ -130,14 +155,13 @@ public class ReportService
         };
     }
 
-
-    /// <summary>
-    /// CSV med semikolon og UTF-8 BOM, slik at norsk Excel
-    /// åpner filen med riktige kolonner og æøå.
-    /// </summary>
+    /*
+        CSV med semikolon og UTF-8 BOM, slik at norsk Excel
+        åpner filen med riktige kolonner og æøå.
+    */
     public static byte[] ToCsv(IEnumerable<ResourceReportRow> rows)
     {
-        var builder = new StringBuilder();
+        StringBuilder builder = new StringBuilder();
 
         builder.AppendLine(string.Join(';', new[]
         {
@@ -175,11 +199,10 @@ public class ReportService
         return bom.Concat(content).ToArray();
     }
 
-
-    /// <summary>
-    /// Setter felt i anførselstegn når de inneholder skilletegn,
-    /// og stopper formel-injeksjon i Excel (=, +, -, @).
-    /// </summary>
+    /*
+        Setter felt i anførselstegn når de inneholder skilletegn,
+        og stopper formel-injeksjon i Excel (=, +, -, @).
+    */
     public static string Csv(string? value)
     {
         if (string.IsNullOrEmpty(value))
@@ -189,6 +212,10 @@ public class ReportService
 
         string text = value.Replace("\r", " ").Replace("\n", " ");
 
+        /*
+            En celle som starter med = kunne blitt kjørt som en formel i Excel. Vi setter en
+            apostrof foran, så den bare vises som tekst.
+        */
         if (text[0] is '=' or '+' or '-' or '@')
         {
             text = "'" + text;
@@ -201,20 +228,10 @@ public class ReportService
             : text;
     }
 
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        // Skriver æøå som vanlige tegn i stedet for æ.
-        Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
-    };
-
-
-    /// <summary>
-    /// JSON for andre systemer (f.eks. Heimevernets egne verktøy).
-    /// Enum-verdiene skrives som tekst, ikke tall.
-    /// </summary>
+    /*
+        JSON for andre systemer (f.eks. Heimevernets egne verktøy).
+        Enum-verdiene skrives som tekst, ikke tall.
+    */
     public static byte[] ToJson(IEnumerable<ResourceReportRow> rows, DateTime generatedAtUtc)
     {
         var document = new
@@ -248,10 +265,9 @@ public class ReportService
         return JsonSerializer.SerializeToUtf8Bytes(document, JsonOptions);
     }
 
+    #endregion
 
-    // =========================================================
-    // SITUASJONSRAPPORT
-    // =========================================================
+    #region Situasjonsrapport
 
     public async Task<SituationReportViewModel> BuildSituationAsync()
     {
@@ -262,8 +278,7 @@ public class ReportService
                 .AsNoTracking()
                 .ToListAsync();
 
-        List<Need> openNeeds =
-            needs.Where(need => need.Status != NeedStatus.Resolved).ToList();
+        List<Need> openNeeds = needs.Where(need => need.Status != NeedStatus.Resolved).ToList();
 
         Dictionary<int, int> nearby =
             await new NeedCoverageService(_context).CountNearbyResourcesAsync(openNeeds);
@@ -347,7 +362,7 @@ public class ReportService
                 .Where(row => row.NearbyResources == 0 && !row.IsAssigned)
                 .ToList();
 
-        var model = new SituationReportViewModel
+        SituationReportViewModel model = new SituationReportViewModel
         {
             GeneratedAt = now,
             OpenNeeds = openNeeds.Count,
@@ -382,14 +397,13 @@ public class ReportService
         return model;
     }
 
-
-    /// <summary>
-    /// Regelbasert oppsummering, brukt når AI ikke er tilgjengelig
-    /// og som fasit Sami skal holde seg til.
-    /// </summary>
+    /*
+        Regelbasert oppsummering, brukt når AI ikke er tilgjengelig
+        og som fasit Sami skal holde seg til.
+    */
     public static List<string> Summarize(SituationReportViewModel report)
     {
-        var lines = new List<string>();
+        List<string> lines = new List<string>();
 
         if (report.OpenNeeds == 0)
         {
@@ -403,8 +417,7 @@ public class ReportService
                 + $"og {report.AssignedNeeds} allerede tildelt.");
         }
 
-        int acuteUnassigned =
-            report.PriorityNeeds.Count(row => row.IsAcute && !row.IsAssigned);
+        int acuteUnassigned = report.PriorityNeeds.Count(row => row.IsAcute && !row.IsAssigned);
 
         if (acuteUnassigned > 0)
         {
@@ -449,10 +462,7 @@ public class ReportService
         return lines;
     }
 
-
-    /// <summary>
-    /// Fristen gjelder hele dagen, så behovet er passert først dagen etter.
-    /// </summary>
+    // Fristen gjelder hele dagen, så behovet er passert først dagen etter.
     public static bool IsOverdue(Need need, DateTime nowUtc)
     {
         return need.Deadline.HasValue
@@ -460,10 +470,7 @@ public class ReportService
                && need.Deadline.Value.Date.AddDays(1) < nowUtc;
     }
 
-
-    /// <summary>
-    /// «a», «a og b», «a, b og c».
-    /// </summary>
+    // «a», «a og b», «a, b og c».
     public static string JoinNorwegian(IReadOnlyList<string> items)
     {
         return items.Count switch
@@ -474,14 +481,13 @@ public class ReportService
         };
     }
 
-
-    /// <summary>
-    /// Tallgrunnlaget Sami får. Bare tall og korte tekster,
-    /// ingen navn, e-poster eller telefonnumre (personvern).
-    /// </summary>
+    /*
+        Tallgrunnlaget Sami får. Bare tall og korte tekster,
+        ingen navn, e-poster eller telefonnumre (personvern).
+    */
     public static string BuildAiFacts(SituationReportViewModel report)
     {
-        var builder = new StringBuilder();
+        StringBuilder builder = new StringBuilder();
 
         builder.AppendLine($"Tidspunkt (UTC): {report.GeneratedAt:yyyy-MM-dd HH:mm}");
         builder.AppendLine($"Åpne behov: {report.OpenNeeds} (akutte: {report.AcuteOpenNeeds}, tildelt: {report.AssignedNeeds}, passert frist: {report.OverdueNeeds})");
@@ -516,14 +522,5 @@ public class ReportService
         return builder.ToString();
     }
 
-
-    public const string AiSystemPrompt =
-        "Du er Sami, assistenten i Beredskapsportalen for Heimevernet og offentlige aktører. "
-        + "Du skal skrive en kort situasjonsrapport på norsk bokmål til en beredskapsleder. "
-        + "Bruk KUN tallene og opplysningene du får. Ikke finn på tall, steder eller hendelser. "
-        + "Skriv nøkternt og konkret, uten innledning og uten avslutningshilsen. "
-        + "Bruk nøyaktig disse tre overskriftene, hver på egen linje: "
-        + "«Situasjonsbilde» (2–3 setninger), «Viktigste risikoer» (2–4 punkter som starter med «- ») "
-        + "og «Anbefalte tiltak» (3 punkter som starter med «- »). "
-        + "Maks 180 ord totalt. Ikke bruk markdown som ** eller #.";
+    #endregion
 }

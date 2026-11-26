@@ -1,3 +1,12 @@
+/*
+    ResourceAuthorizationTests.cs – automatiske tester
+
+    Hva filen gjør: Tester registrering av ressurs, tilgjengelighetsperioder og rollekravene på
+    ressurssidene. Bruker xUnit, en database i minnet (EF Core InMemory) og Moq, så testene
+    kjører raskt uten Docker.
+
+    Oppgavekrav: 6, 15
+*/
 
 using System.Reflection;
 using System.Security.Claims;
@@ -81,26 +90,19 @@ public class ResourceAuthorizationTests
         Assert.Equal(0, model.UnspecifiedCount);
     }
 
-    // ========================================
-    // HJELPER - TESTDATABASE
-    // ========================================
+    // --- Hjelper: testdatabase ---
 
     private static ApplicationDbContext CreateDatabase()
     {
         var options =
             new DbContextOptionsBuilder<ApplicationDbContext>()
-                .UseInMemoryDatabase(
-                    Guid.NewGuid().ToString()
-                )
+                .UseInMemoryDatabase(Guid.NewGuid().ToString())
                 .Options;
 
         return new ApplicationDbContext(options);
     }
 
-
-    // ========================================
-    // HJELPER - TESTBRUKER
-    // ========================================
+    // --- Hjelper: testbruker ---
 
     private static ApplicationUser CreateUser()
     {
@@ -114,10 +116,7 @@ public class ResourceAuthorizationTests
         };
     }
 
-
-    // ========================================
-    // HJELPER - GYLDIG RESSURS
-    // ========================================
+    // --- Hjelper: gyldig ressurs ---
 
     private static RegisterResourceViewModel CreateResource()
     {
@@ -139,18 +138,13 @@ public class ResourceAuthorizationTests
         };
     }
 
-
-    // ========================================
-    // HJELPER - CONTROLLER MED MOCK IDENTITY
-    // ========================================
+    // --- Hjelper: controller med mock Identity ---
 
     private static ResourceController CreateController(
         ApplicationDbContext database,
-        ApplicationUser? user
-    )
+        ApplicationUser? user)
     {
-        var userStore =
-            new Mock<IUserStore<ApplicationUser>>();
+        var userStore = new Mock<IUserStore<ApplicationUser>>();
 
         var userManager =
             new Mock<UserManager<ApplicationUser>>(
@@ -162,48 +156,29 @@ public class ResourceAuthorizationTests
                 null!,
                 null!,
                 null!,
-                null!
-            );
+                null!);
 
         userManager
-            .Setup(manager =>
-                manager.GetUserAsync(
-                    It.IsAny<ClaimsPrincipal>()
-                )
-            )
+            .Setup(manager => manager.GetUserAsync(It.IsAny<ClaimsPrincipal>()))
             .ReturnsAsync(user);
-
 
         var claims = new List<Claim>
         {
-            new Claim(
-                ClaimTypes.NameIdentifier,
-                user?.Id ?? "test-user"
-            ),
+            new Claim(ClaimTypes.NameIdentifier, user?.Id ?? "test-user"),
 
-            new Claim(
-                ClaimTypes.Role,
-                IdentitySeeder.ResourceProviderRole
-            )
+            new Claim(ClaimTypes.Role, IdentitySeeder.ResourceProviderRole)
         };
 
-        var identity = new ClaimsIdentity(
-            claims,
-            "TestAuthentication"
-        );
+        var identity = new ClaimsIdentity(claims, "TestAuthentication");
 
         var httpContext = new DefaultHttpContext
         {
             User = new ClaimsPrincipal(identity)
         };
 
-        var tempData =
-            new Mock<ITempDataDictionary>();
+        var tempData = new Mock<ITempDataDictionary>();
 
-        return new ResourceController(
-            database,
-            userManager.Object
-        )
+        return new ResourceController(database, userManager.Object)
         {
             ControllerContext = new ControllerContext
             {
@@ -214,11 +189,10 @@ public class ResourceAuthorizationTests
         };
     }
 
-
-    // ========================================
-    // TEST 1
-    // KONTROLLEREN KREVER RIKTIGE ROLLER
-    // ========================================
+    /*
+        TEST 1
+        KONTROLLEREN KREVER RIKTIGE ROLLER
+    */
 
     [Fact]
     public void ResourceController_ShouldRequireAuthorizedRole()
@@ -230,72 +204,49 @@ public class ResourceAuthorizationTests
         Assert.NotNull(attribute);
 
         var roles = attribute.Roles!
-            .Split(
-                ',',
-                StringSplitOptions.RemoveEmptyEntries |
-                StringSplitOptions.TrimEntries
-            );
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-        Assert.Contains(
-            IdentitySeeder.ResourceProviderRole,
-            roles
-        );
+        Assert.Contains(IdentitySeeder.ResourceProviderRole, roles);
 
-        Assert.Contains(
-            IdentitySeeder.PublicActorRole,
-            roles
-        );
+        Assert.Contains(IdentitySeeder.PublicActorRole, roles);
 
-        Assert.Contains(
-            IdentitySeeder.AdminRole,
-            roles
-        );
+        Assert.Contains(IdentitySeeder.AdminRole, roles);
     }
 
-
-    // ========================================
-    // TEST 2
-    // BARE RESSURSLEVERANDØR KAN REGISTRERE
-    // ========================================
+    /*
+        TEST 2
+        BARE RESSURSLEVERANDØR KAN REGISTRERE
+    */
 
     [Fact]
     public void RegisterResource_ShouldRequireResourceProviderRole()
     {
         var method = typeof(ResourceController).GetMethod(
             nameof(ResourceController.RegisterResource),
-            new[] { typeof(RegisterResourceViewModel) }
-        );
+            new[] { typeof(RegisterResourceViewModel) });
 
         Assert.NotNull(method);
 
-        var authorize =
-            method.GetCustomAttribute<AuthorizeAttribute>();
+        var authorize = method.GetCustomAttribute<AuthorizeAttribute>();
 
         Assert.NotNull(authorize);
 
-        Assert.Equal(
-            IdentitySeeder.ResourceProviderRole,
-            authorize.Roles
-        );
+        Assert.Equal(IdentitySeeder.ResourceProviderRole, authorize.Roles);
 
-        Assert.NotNull(
-            method.GetCustomAttribute<HttpPostAttribute>()
-        );
+        Assert.NotNull(method.GetCustomAttribute<HttpPostAttribute>());
     }
 
-
-    // ========================================
-    // TEST 3
-    // REGISTRERING KREVER ANTIFORGERY
-    // ========================================
+    /*
+        TEST 3
+        REGISTRERING KREVER ANTIFORGERY
+    */
 
     [Fact]
     public void RegisterResource_ShouldRequireAntiForgeryToken()
     {
         var method = typeof(ResourceController).GetMethod(
             nameof(ResourceController.RegisterResource),
-            new[] { typeof(RegisterResourceViewModel) }
-        );
+            new[] { typeof(RegisterResourceViewModel) });
 
         Assert.NotNull(method);
 
@@ -307,11 +258,10 @@ public class ResourceAuthorizationTests
         Assert.NotNull(attribute);
     }
 
-
-    // ========================================
-    // TEST 4
-    // RESSURS REGISTRERES PÅ RIKTIG BRUKER
-    // ========================================
+    /*
+        TEST 4
+        RESSURS REGISTRERES PÅ RIKTIG BRUKER
+    */
 
     [Fact]
     public async Task RegisterResource_ShouldSaveCorrectOwnerUserId()
@@ -320,72 +270,47 @@ public class ResourceAuthorizationTests
 
         var user = CreateUser();
 
-        var controller = CreateController(
-            database,
-            user
-        );
+        var controller = CreateController(database, user);
 
         var model = CreateResource();
 
         var result = await controller.RegisterResource(model);
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
-        // Etter registrering sendes brukeren
-        // til Dashboard, hvor registreringen
-        // bekreftes med feiringsanimasjonen.
+        /*
+            Etter registrering sendes brukeren
+            til Dashboard, hvor registreringen
+            bekreftes med feiringsanimasjonen.
+        */
 
-        Assert.Equal(
-            "Dashboard",
-            redirect.ActionName
-        );
+        Assert.Equal("Dashboard", redirect.ActionName);
 
-        Assert.Equal(
-            "Home",
-            redirect.ControllerName
-        );
+        Assert.Equal("Home", redirect.ControllerName);
 
-        var resource =
-            await database.Resources.SingleAsync();
+        var resource = await database.Resources.SingleAsync();
 
-        Assert.Equal(
-            user.Id,
-            resource.OwnerUserId
-        );
+        Assert.Equal(user.Id, resource.OwnerUserId);
 
-        Assert.Equal(
-            user.Email,
-            resource.OwnerEmail
-        );
+        Assert.Equal(user.Email, resource.OwnerEmail);
 
-        Assert.Equal(
-            "Aggregat",
-            resource.ResourceName
-        );
+        Assert.Equal("Aggregat", resource.ResourceName);
 
-        Assert.Equal(
-            2,
-            resource.Quantity
-        );
+        Assert.Equal(2, resource.Quantity);
     }
 
-
-    // ========================================
-    // TEST 5
-    // UINNLOGGET ELLER UKJENT BRUKER
-    // SKAL IKKE FÅ LAGRET RESSURS
-    // ========================================
+    /*
+        TEST 5
+        UINNLOGGET ELLER UKJENT BRUKER
+        SKAL IKKE FÅ LAGRET RESSURS
+    */
 
     [Fact]
     public async Task RegisterResource_WithoutIdentityUser_ShouldNotSave()
     {
         using var database = CreateDatabase();
 
-        var controller = CreateController(
-            database,
-            null
-        );
+        var controller = CreateController(database, null);
 
         var model = CreateResource();
 
@@ -393,33 +318,24 @@ public class ResourceAuthorizationTests
 
         Assert.IsType<ChallengeResult>(result);
 
-        Assert.Empty(
-            await database.Resources.ToListAsync()
-        );
+        Assert.Empty(await database.Resources.ToListAsync());
     }
 
-
-    // ========================================
-    // TEST 6
-    // UGYLDIG MODELSTATE SKAL IKKE LAGRES
-    // ========================================
+    /*
+        TEST 6
+        UGYLDIG MODELSTATE SKAL IKKE LAGRES
+    */
 
     [Fact]
     public async Task RegisterResource_InvalidModel_ShouldNotSave()
     {
         using var database = CreateDatabase();
 
-        var controller = CreateController(
-            database,
-            CreateUser()
-        );
+        var controller = CreateController(database, CreateUser());
 
         var model = CreateResource();
 
-        controller.ModelState.AddModelError(
-            "ResourceName",
-            "Ressursnavn mangler."
-        );
+        controller.ModelState.AddModelError("ResourceName", "Ressursnavn mangler.");
 
         var result = await controller.RegisterResource(model);
 
@@ -427,26 +343,20 @@ public class ResourceAuthorizationTests
 
         Assert.Same(model, view.Model);
 
-        Assert.Empty(
-            await database.Resources.ToListAsync()
-        );
+        Assert.Empty(await database.Resources.ToListAsync());
     }
 
-
-    // ========================================
-    // TEST 7
-    // MANGLENDE RESSURSTYPE SKAL IKKE LAGRES
-    // ========================================
+    /*
+        TEST 7
+        MANGLENDE RESSURSTYPE SKAL IKKE LAGRES
+    */
 
     [Fact]
     public async Task RegisterResource_WithoutResourceType_ShouldNotSave()
     {
         using var database = CreateDatabase();
 
-        var controller = CreateController(
-            database,
-            CreateUser()
-        );
+        var controller = CreateController(database, CreateUser());
 
         var model = CreateResource();
 
@@ -458,12 +368,8 @@ public class ResourceAuthorizationTests
 
         Assert.False(controller.ModelState.IsValid);
 
-        Assert.True(
-            controller.ModelState.ContainsKey("ResourceType")
-        );
+        Assert.True(controller.ModelState.ContainsKey("ResourceType"));
 
-        Assert.Empty(
-            await database.Resources.ToListAsync()
-        );
+        Assert.Empty(await database.Resources.ToListAsync());
     }
 }

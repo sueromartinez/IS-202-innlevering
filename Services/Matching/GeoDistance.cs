@@ -1,26 +1,35 @@
+/*
+    GeoDistance.cs – avstand mellom to punkter på kartet
+
+    Hva filen gjør: HaversineKm regner ut avstanden i luftlinje, der jorda regnes som en kule
+    med radius 6371 km.
+    Det er nøyaktig nok til å finne hvilken ressurs som er nærmest. BoundingBox lager firkanten
+    rundt et punkt som brukes til det grove utvalget i databasen.
+
+    På nettsiden: Avstanden "X km unna" på matchingsidene.
+
+    Oppgavekrav: 10, 22
+*/
+
 namespace FirstWebAppInDocker.Services.Matching;
 
-/// <summary>
-/// Avstandsberegning mellom to punkter på jorden.
-///
-/// Dette gjøres deterministisk i C#, ikke av språkmodellen.
-/// Sami får ferdig beregnede avstander og skal bare forklare
-/// og rangere dem.
-/// </summary>
+/*
+    Avstandsberegning mellom to punkter på jorden.
+
+    Dette gjøres deterministisk i C#, ikke av språkmodellen.
+    Sami får ferdig beregnede avstander og skal bare forklare
+    og rangere dem.
+*/
 public static class GeoDistance
 {
     private const double EarthRadiusKm = 6371.0;
 
-
-    /// <summary>
-    /// Haversine-formelen: avstand i luftlinje (km) mellom to koordinater.
-    /// </summary>
+    // Haversine-formelen: avstand i luftlinje (km) mellom to koordinater.
     public static double HaversineKm(
         double latitude1,
         double longitude1,
         double latitude2,
-        double longitude2
-    )
+        double longitude2)
     {
         double deltaLatitude = ToRadians(latitude2 - latitude1);
         double deltaLongitude = ToRadians(longitude2 - longitude1);
@@ -36,12 +45,11 @@ public static class GeoDistance
         return EarthRadiusKm * c;
     }
 
-
-    /// <summary>
-    /// Et grovt rektangel rundt et punkt. Brukes til å filtrere i
-    /// databasen før den nøyaktige Haversine-beregningen, slik at
-    /// vi slipper å hente alle ressurser i landet.
-    /// </summary>
+    /*
+        Et grovt rektangel rundt et punkt. Brukes til å filtrere i
+        databasen før den nøyaktige Haversine-beregningen, slik at
+        vi slipper å hente alle ressurser i landet.
+    */
     public static (double MinLatitude, double MaxLatitude, double MinLongitude, double MaxLongitude)
         BoundingBox(double latitude, double longitude, double radiusKm)
     {
@@ -55,10 +63,8 @@ public static class GeoDistance
             latitude - latitudeDelta,
             latitude + latitudeDelta,
             longitude - longitudeDelta,
-            longitude + longitudeDelta
-        );
+            longitude + longitudeDelta);
     }
-
 
     private static double ToRadians(double degrees)
     {

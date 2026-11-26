@@ -1,4 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿/*
+    20261105124052_AddNeedOwnerUserId.cs – migrasjon (autogenerert)
+
+    Hva filen gjør: Endring i databasen: kobler behov til eieren med OwnerUserId. Up() gjør
+    endringen, Down() angrer den. Kjøres automatisk når appen starter. Trenger ikke forklares
+    linje for linje.
+
+    Oppgavekrav: 1, 7
+*/
+
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 

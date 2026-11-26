@@ -1,3 +1,10 @@
+# docker-compose.integration.yml
+#
+# Hva filen gjør: En egen MariaDB bare for integrasjonstestene, så testene ikke rører
+# utviklingsdatabasen.
+#
+# Oppgavekrav: 15
+
 
 # Egen MariaDB-container for integrasjonstester.
 # Bruker ikke produksjons-/utviklingsdatabasen.

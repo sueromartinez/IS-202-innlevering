@@ -1,3 +1,18 @@
+/*
+    UniqueEmailTokenProvider.cs – engangskodene på e-post
+
+    Hva filen gjør: Lager tofaktorkodene. Hvorfor vår egen: standardversjonen kan gi samme kode
+    to ganger på rad.
+    Vår versjon:
+    - lager koden med en sikker tilfeldighetsgenerator
+    - lagrer den kryptert på serveren i 5 minutter, aldri i nettleseren
+    - gjør gamle koder ugyldige hvis passordet byttes
+    - sletter koden når den er brukt.
+
+    På nettsiden: Den 6-sifrede koden i e-posten ved innlogging.
+
+    Oppgavekrav: 14
+*/
 
 using System.Globalization;
 using System.Security.Cryptography;
@@ -9,29 +24,30 @@ using Microsoft.Extensions.Caching.Distributed;
 
 namespace FirstWebAppInDocker.Services;
 
-/// <summary>
-/// Genererer tilfeldige, sekssifrede
-/// engangskoder for e-postbasert tofaktor.
-///
-/// I motsetning til Identity sin standard
-/// EmailTokenProvider brukes ikke tidsbasert
-/// kodegenerering.
-///
-/// Hver ny kode erstatter den gamle.
-/// Koden utløper etter fem minutter.
-/// Riktig kode fjernes etter verifisering.
-/// </summary>
+/*
+    Genererer tilfeldige, sekssifrede
+    engangskoder for e-postbasert tofaktor.
+
+    I motsetning til Identity sin standard
+    EmailTokenProvider brukes ikke tidsbasert
+    kodegenerering.
+
+    Hver ny kode erstatter den gamle.
+    Koden utløper etter fem minutter.
+    Riktig kode fjernes etter verifisering.
+*/
 public class UniqueEmailTokenProvider
     : IUserTwoFactorTokenProvider<ApplicationUser>
 {
+    #region Felt og konstruktør
+
+    private static readonly TimeSpan CodeLifetime = TimeSpan.FromMinutes(5);
+
+    private static readonly TimeSpan PreviousCodeLifetime = TimeSpan.FromHours(24);
+
     private readonly IDistributedCache _cache;
+
     private readonly IDataProtector _protector;
-
-    private static readonly TimeSpan CodeLifetime =
-        TimeSpan.FromMinutes(5);
-
-    private static readonly TimeSpan PreviousCodeLifetime =
-        TimeSpan.FromHours(24);
 
     public UniqueEmailTokenProvider(
         IDistributedCache cache,
@@ -39,20 +55,18 @@ public class UniqueEmailTokenProvider
     {
         _cache = cache;
 
-        _protector = dataProtectionProvider.CreateProtector(
-            "Beredskapsportalen.EmailTwoFactor.v1");
+        _protector = dataProtectionProvider.CreateProtector("Beredskapsportalen.EmailTwoFactor.v1");
     }
 
-    // ========================================
-    // KONTROLLER OM E-POSTKODE KAN BRUKES
-    // ========================================
+    #endregion
+
+    #region Lag og sjekk koder
 
     public async Task<bool> CanGenerateTwoFactorTokenAsync(
         UserManager<ApplicationUser> manager,
         ApplicationUser user)
     {
-        string? email =
-            await manager.GetEmailAsync(user);
+        string? email = await manager.GetEmailAsync(user);
 
         if (string.IsNullOrWhiteSpace(email))
         {
@@ -62,10 +76,6 @@ public class UniqueEmailTokenProvider
         return await manager.IsEmailConfirmedAsync(user);
     }
 
-    // ========================================
-    // GENERER NY SEKSSIFRET KODE
-    // ========================================
-
     public async Task<string> GenerateAsync(
         string purpose,
         UserManager<ApplicationUser> manager,
@@ -73,30 +83,25 @@ public class UniqueEmailTokenProvider
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(purpose);
 
-        string userId =
-            await manager.GetUserIdAsync(user);
+        string userId = await manager.GetUserIdAsync(user);
 
-        string keySuffix =
-            CreateKeySuffix(userId, purpose);
+        string keySuffix = CreateKeySuffix(userId, purpose);
 
-        string activeKey =
-            $"TwoFactor:Active:{keySuffix}";
+        string activeKey = $"TwoFactor:Active:{keySuffix}";
 
-        string previousKey =
-            $"TwoFactor:Previous:{keySuffix}";
+        string previousKey = $"TwoFactor:Previous:{keySuffix}";
 
-        // ========================================
-        // FINN SISTE GENERERTE KODE
-        // ========================================
-        //
-        // Sist brukte kode beholdes midlertidig
-        // også etter at brukeren har logget ut.
-        //
-        // Dermed unngår vi å sende samme kode
-        // ved to innlogginger rett etter hverandre.
+        /*
+            FINN SISTE GENERERTE KODE
 
-        string? previousProtected =
-            await _cache.GetStringAsync(previousKey);
+            Sist brukte kode beholdes midlertidig
+            også etter at brukeren har logget ut.
+
+            Dermed unngår vi å sende samme kode
+            ved to innlogginger rett etter hverandre.
+        */
+
+        string? previousProtected = await _cache.GetStringAsync(previousKey);
 
         string? previousCode = null;
 
@@ -104,75 +109,70 @@ public class UniqueEmailTokenProvider
         {
             try
             {
-                previousCode =
-                    _protector.Unprotect(previousProtected);
+                previousCode = _protector.Unprotect(previousProtected);
             }
             catch (CryptographicException)
             {
-                // Tidligere kode kan ikke leses.
-                // Vi genererer en ny tilfeldig kode.
+                /*
+                    Tidligere kode kan ikke leses.
+                    Vi genererer en ny tilfeldig kode.
+                */
             }
         }
 
-        // ========================================
-        // GENERER KRYPTOGRAFISK TILFELDIG KODE
-        // ========================================
-        //
-        // RandomNumberGenerator bruker en
-        // kryptografisk sikker tilfeldig generator.
-        //
-        // Koden kan være fra 000000 til 999999.
-        //
-        // Vi sammenligner med den forrige koden
-        // og genererer på nytt ved likhet.
+        /*
+            GENERER KRYPTOGRAFISK TILFELDIG KODE
+
+            RandomNumberGenerator bruker en
+            kryptografisk sikker tilfeldig generator.
+
+            Koden kan være fra 000000 til 999999.
+
+            Vi sammenligner med den forrige koden
+            og genererer på nytt ved likhet.
+        */
 
         string code;
 
         do
         {
-            code = RandomNumberGenerator.GetInt32(
-                    0,
-                    1_000_000)
-                .ToString(
-                    "D6",
-                    CultureInfo.InvariantCulture);
+            code = RandomNumberGenerator.GetInt32(0, 1_000_000)
+                .ToString("D6", CultureInfo.InvariantCulture);
         }
         while (code == previousCode);
 
-        // ========================================
-        // KNYTT KODEN TIL BRUKERENS SECURITY STAMP
-        // ========================================
-        //
-        // Dersom sikkerhetsstempelet endres,
-        // eksempelvis ved tilbakestilling av
-        // passord, skal koden ikke lenger
-        // være gyldig.
+        /*
+            KNYTT KODEN TIL BRUKERENS SECURITY STAMP
+
+            Dersom sikkerhetsstempelet endres,
+            eksempelvis ved tilbakestilling av
+            passord, skal koden ikke lenger
+            være gyldig.
+        */
 
         string securityStamp =
             manager.SupportsUserSecurityStamp
                 ? await manager.GetSecurityStampAsync(user)
                 : string.Empty;
 
-        // ========================================
-        // BESKYTT KODEN FØR LAGRING
-        // ========================================
-        //
-        // Koden lagres kryptert i serverens
-        // distribuerte cache.
-        //
-        // Den ligger ikke i brukerens
-        // nettleser eller vanlig Session.
+        /*
+            BESKYTT KODEN FØR LAGRING
 
-        string protectedCode =
-            _protector.Protect(
-                $"{securityStamp}\n{code}");
+            Koden lagres kryptert i serverens
+            distribuerte cache.
 
-        // ========================================
-        // LAGRE AKTIV KODE I FEM MINUTTER
-        // ========================================
-        //
-        // En ny utsending erstatter den
-        // tidligere aktive koden.
+            Den ligger ikke i brukerens
+            nettleser eller vanlig Session.
+        */
+
+        string protectedCode = _protector.Protect($"{securityStamp}\n{code}");
+
+        /*
+            LAGRE AKTIV KODE I FEM MINUTTER
+
+            En ny utsending erstatter den
+            tidligere aktive koden.
+        */
 
         await _cache.SetStringAsync(
             activeKey,
@@ -183,14 +183,14 @@ public class UniqueEmailTokenProvider
                     CodeLifetime
             });
 
-        // ========================================
-        // HUSK SISTE KODE FOR Å UNNGÅ GJENTAKELSE
-        // ========================================
-        //
-        // Denne verdien brukes bare til å sikre
-        // at neste genererte kode blir forskjellig.
-        //
-        // Den gir IKKE tilgang til innlogging.
+        /*
+            HUSK SISTE KODE FOR Å UNNGÅ GJENTAKELSE
+
+            Denne verdien brukes bare til å sikre
+            at neste genererte kode blir forskjellig.
+
+            Den gir IKKE tilgang til innlogging.
+        */
 
         await _cache.SetStringAsync(
             previousKey,
@@ -203,10 +203,6 @@ public class UniqueEmailTokenProvider
 
         return code;
     }
-
-    // ========================================
-    // KONTROLLER ENGANGSKODEN
-    // ========================================
 
     public async Task<bool> ValidateAsync(
         string purpose,
@@ -231,21 +227,15 @@ public class UniqueEmailTokenProvider
             }
         }
 
-        string userId =
-            await manager.GetUserIdAsync(user);
+        string userId = await manager.GetUserIdAsync(user);
 
-        string keySuffix =
-            CreateKeySuffix(userId, purpose);
+        string keySuffix = CreateKeySuffix(userId, purpose);
 
-        string activeKey =
-            $"TwoFactor:Active:{keySuffix}";
+        string activeKey = $"TwoFactor:Active:{keySuffix}";
 
-        // ========================================
-        // HENT AKTIV KODE
-        // ========================================
+        // --- Hent aktiv kode ---
 
-        string? protectedCode =
-            await _cache.GetStringAsync(activeKey);
+        string? protectedCode = await _cache.GetStringAsync(activeKey);
 
         if (string.IsNullOrWhiteSpace(protectedCode))
         {
@@ -257,45 +247,34 @@ public class UniqueEmailTokenProvider
 
         try
         {
-            storedValue =
-                _protector.Unprotect(protectedCode);
+            storedValue = _protector.Unprotect(protectedCode);
         }
         catch (CryptographicException)
         {
             return false;
         }
 
-        // ========================================
-        // LES SECURITY STAMP OG KODE
-        // ========================================
+        // --- Les security stamp og kode ---
 
-        int separatorIndex =
-            storedValue.LastIndexOf('\n');
+        int separatorIndex = storedValue.LastIndexOf('\n');
 
         if (separatorIndex < 0)
         {
             return false;
         }
 
-        string storedSecurityStamp =
-            storedValue[..separatorIndex];
+        string storedSecurityStamp = storedValue[..separatorIndex];
 
-        string expectedCode =
-            storedValue[(separatorIndex + 1)..];
+        string expectedCode = storedValue[(separatorIndex + 1)..];
 
-        // ========================================
-        // KONTROLLER SECURITY STAMP
-        // ========================================
+        // --- Kontroller security stamp ---
 
         string currentSecurityStamp =
             manager.SupportsUserSecurityStamp
                 ? await manager.GetSecurityStampAsync(user)
                 : string.Empty;
 
-        if (!string.Equals(
-                storedSecurityStamp,
-                currentSecurityStamp,
-                StringComparison.Ordinal))
+        if (!string.Equals(storedSecurityStamp, currentSecurityStamp, StringComparison.Ordinal))
         {
             return false;
         }
@@ -305,64 +284,60 @@ public class UniqueEmailTokenProvider
             return false;
         }
 
-        // ========================================
-        // SAMMENLIGN KODENE
-        // ========================================
-        //
-        // FixedTimeEquals brukes for å unngå
-        // at sammenligningstiden avslører
-        // hvor mange tegn som er riktige.
+        /*
+            SAMMENLIGN KODENE
 
-        byte[] submittedBytes =
-            Encoding.ASCII.GetBytes(token);
+            FixedTimeEquals brukes for å unngå
+            at sammenligningstiden avslører
+            hvor mange tegn som er riktige.
+        */
 
-        byte[] expectedBytes =
-            Encoding.ASCII.GetBytes(expectedCode);
+        byte[] submittedBytes = Encoding.ASCII.GetBytes(token);
 
-        bool valid =
-            CryptographicOperations.FixedTimeEquals(
-                submittedBytes,
-                expectedBytes);
+        byte[] expectedBytes = Encoding.ASCII.GetBytes(expectedCode);
+
+        bool valid = CryptographicOperations.FixedTimeEquals(submittedBytes, expectedBytes);
 
         if (!valid)
         {
             return false;
         }
 
-        // ========================================
-        // KODEN ER BRUKT - FJERN DEN
-        // ========================================
-        //
-        // Ved neste innlogging må Identity
-        // generere en helt ny kode.
-        //
-        // Forrige kode beholdes bare i
-        // PreviousKey for å hindre gjentakelse.
+        /*
+            KODEN ER BRUKT - FJERN DEN
+
+            Ved neste innlogging må Identity
+            generere en helt ny kode.
+
+            Forrige kode beholdes bare i
+            PreviousKey for å hindre gjentakelse.
+        */
 
         await _cache.RemoveAsync(activeKey);
 
         return true;
     }
 
-    // ========================================
-    // HJELPEMETODE - CACHE-NØKKEL
-    // ========================================
-    //
-    // Bruker-ID og formål hashes slik at
-    // personidentifikatorer ikke inngår
-    // direkte i cache-nøkkelen.
+    #endregion
 
-    private static string CreateKeySuffix(
-        string userId,
-        string purpose)
+    #region Hjelpemetoder
+
+    /*
+        HJELPEMETODE - CACHE-NØKKEL
+
+        Bruker-ID og formål hashes slik at
+        personidentifikatorer ikke inngår
+        direkte i cache-nøkkelen.
+    */
+
+    private static string CreateKeySuffix(string userId, string purpose)
     {
-        byte[] input =
-            Encoding.UTF8.GetBytes(
-                $"{userId}:{purpose}");
+        byte[] input = Encoding.UTF8.GetBytes($"{userId}:{purpose}");
 
-        byte[] hash =
-            SHA256.HashData(input);
+        byte[] hash = SHA256.HashData(input);
 
         return Convert.ToHexString(hash);
     }
+
+    #endregion
 }

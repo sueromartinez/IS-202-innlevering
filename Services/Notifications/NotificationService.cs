@@ -1,20 +1,33 @@
+/*
+    NotificationService.cs – sender varsler
+
+    Hva filen gjør: Ett kall gjør tre ting: lagrer varselet i databasen (varselklokka), sender
+    e-post, og sender SMS hvis brukeren har telefonnummer (SMS er foreløpig simulert).
+
+    På nettsiden: Tallet på varselklokka, listen under «Varsler», og e-posten brukeren får.
+
+    Oppgavekrav: 10, 19
+*/
+
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace FirstWebAppInDocker.Services.Notifications;
 
-/// <summary>
-/// Varsler en bruker på tre måter:
-/// 1. Varsel i portalen (varselklokken) – fungerer alltid.
-/// 2. E-post – via SMTP/Mailpit.
-/// 3. SMS – simulert i prototypen.
-///
-/// Feil ved e-post eller SMS stopper ikke resten av flyten;
-/// varselet i portalen er det som alltid lagres.
-/// </summary>
+/*
+    Varsler en bruker på tre måter:
+    1. Varsel i portalen (varselklokken) – fungerer alltid.
+    2. E-post – via SMTP/Mailpit.
+    3. SMS – simulert i prototypen.
+
+    Feil ved e-post eller SMS stopper ikke resten av flyten;
+    varselet i portalen er det som alltid lagres.
+*/
 public class NotificationService
 {
+    #region Felt og konstruktør
+
     private readonly ApplicationDbContext _context;
 
     private readonly IPortalEmailSender _emailSender;
@@ -25,14 +38,12 @@ public class NotificationService
 
     private readonly ILogger<NotificationService> _logger;
 
-
     public NotificationService(
         ApplicationDbContext context,
         IPortalEmailSender emailSender,
         ISmsSender smsSender,
         IConfiguration configuration,
-        ILogger<NotificationService> logger
-    )
+        ILogger<NotificationService> logger)
     {
         _context = context;
         _emailSender = emailSender;
@@ -41,21 +52,25 @@ public class NotificationService
         _logger = logger;
     }
 
+    #endregion
 
-    /// <summary>
-    /// Lagrer et varsel og sender det på e-post (og SMS hvis
-    /// telefonnummer er oppgitt).
-    /// </summary>
-    /// <param name="link">Relativ lenke i portalen, f.eks. "/Request".</param>
-    /// <param name="phoneNumber">Telefonnummer med landkode, eller null.</param>
+    #region Send varsel
+
+    /*
+        Lagrer et varsel og sender det på e-post (og SMS hvis
+        telefonnummer er oppgitt).
+
+        link: Relativ lenke i portalen, f.eks. "/Request".
+        phoneNumber: Telefonnummer med landkode, eller null.
+    */
     public async Task NotifyAsync(
         string userId,
         string title,
         string message,
         string? link = null,
-        string? phoneNumber = null
-    )
+        string? phoneNumber = null)
     {
+        // Først lagres varselet i portalen. Det er den sikreste kanalen.
         _context.Notifications.Add(new Notification
         {
             UserId = userId,
@@ -67,7 +82,6 @@ public class NotificationService
 
         await _context.SaveChangesAsync();
 
-
         string? email =
             await _context.Users
                 .Where(user => user.Id == userId)
@@ -78,10 +92,12 @@ public class NotificationService
             (_configuration["App:BaseUrl"] ?? "http://localhost:8080")
                 .TrimEnd('/');
 
-        string fullLink =
-            link is null ? baseUrl : baseUrl + link;
+        string fullLink = link is null ? baseUrl : baseUrl + link;
 
-
+        /*
+            Er e-postserveren nede, skal ikke hele handlingen feile. Feilen logges, og varselet
+            finnes uansett i portalen.
+        */
         if (!string.IsNullOrWhiteSpace(email))
         {
             try
@@ -98,7 +114,6 @@ public class NotificationService
             }
         }
 
-
         if (!string.IsNullOrWhiteSpace(phoneNumber))
         {
             try
@@ -114,6 +129,9 @@ public class NotificationService
         }
     }
 
+    #endregion
+
+    #region Hjelpemetoder
 
     private static string Truncate(string value, int maxLength)
     {
@@ -121,4 +139,6 @@ public class NotificationService
             ? value
             : value[..(maxLength - 1)] + "…";
     }
+
+    #endregion
 }

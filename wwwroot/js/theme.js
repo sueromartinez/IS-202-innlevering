@@ -1,6 +1,19 @@
-// theme.js
-// Bytter mellom lyseblått (standard) og marineblått (mørk modus) tema,
-// og slår fargeblind modus av og på. Husker begge valgene i nettleseren.
+/*
+    theme.js – lyst/mørkt tema og fargeblind modus
+
+    Hva filen gjør: Valget huskes i nettleseren (localStorage) og settes før siden tegnes, så
+    den ikke blinker.
+
+    På nettsiden: Tema-knappen i menyen.
+
+    Oppgavekrav: 12
+*/
+
+/*
+    theme.js
+    Bytter mellom lyseblått (standard) og marineblått (mørk modus) tema,
+    og slår fargeblind modus av og på. Husker begge valgene i nettleseren.
+*/
 
 (function () {
 
@@ -27,22 +40,21 @@
         document.documentElement.setAttribute("data-colorblind", "on");
     }
 
+    /*
+        FARGEBLIND MODUS: BYTT UT ALLE RØDE OG GRØNNE FARGER
 
-    // =====================================================================
-    // FARGEBLIND MODUS: BYTT UT ALLE RØDE OG GRØNNE FARGER
-    //
-    // De viktigste fargene (akutt, planlagt, ressurs, status) har faste
-    // fargeblindvennlige farger i theme.css. Men mange sider har egne
-    // farger skrevet rett inn i stilen sin. For at ALT rødt og grønt skal
-    // byttes, går vi gjennom alle CSS-reglene på siden og lager en kopi
-    // av reglene som bruker rødt eller grønt:
-    //   - rødt  -> oransje (samme lyshet, litt mørkere)
-    //   - grønt -> blått   (samme lyshet)
-    // Lyse bakgrunner forblir lyse og mørk tekst forblir mørk, så
-    // kontrasten blir omtrent som før. Det samme gjøres med farger som er
-    // skrevet direkte i HTML-en (style="..."), f.eks. kartmarkørene.
-    // Når modusen slås av, fjernes kopien og alt blir som før.
-    // =====================================================================
+        De viktigste fargene (akutt, planlagt, ressurs, status) har faste
+        fargeblindvennlige farger i theme.css. Men mange sider har egne
+        farger skrevet rett inn i stilen sin. For at ALT rødt og grønt skal
+        byttes, går vi gjennom alle CSS-reglene på siden og lager en kopi
+        av reglene som bruker rødt eller grønt:
+          - rødt  -> oransje (samme lyshet, litt mørkere)
+          - grønt -> blått   (samme lyshet)
+        Lyse bakgrunner forblir lyse og mørk tekst forblir mørk, så
+        kontrasten blir omtrent som før. Det samme gjøres med farger som er
+        skrevet direkte i HTML-en (style="..."), f.eks. kartmarkørene.
+        Når modusen slås av, fjernes kopien og alt blir som før.
+    */
 
     var CB_PREFIX = '[data-colorblind="on"]';
 
@@ -141,8 +153,10 @@
             : "rgba(" + c.r + ", " + c.g + ", " + c.b + ", " + Math.round(c.a * 1000) / 1000 + ")";
     }
 
-    // Heksfarger må ikke etterfølges av bokstav eller bindestrek, ellers ville
-    // f.eks. «url(#face-bronse)» (en henvisning i SVG) blitt tolket som fargen #face.
+    /*
+        Heksfarger må ikke etterfølges av bokstav eller bindestrek, ellers ville
+        f.eks. «url(#face-bronse)» (en henvisning i SVG) blitt tolket som fargen #face.
+    */
     var FARGE_REGEX = new RegExp(
         "#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})(?![\\w-])" +
         "|rgba?\\(\\s*\\d+(?:\\.\\d+)?%?\\s*[, ]\\s*\\d+(?:\\.\\d+)?%?\\s*[, ]\\s*\\d+(?:\\.\\d+)?%?\\s*(?:[,/]\\s*[\\d.]+%?\\s*)?\\)" +
@@ -368,7 +382,6 @@
     // Lar andre skript slå modusen av og på (brukes ikke ennå, men nyttig for tester).
     window.fargeblindModus = { start: startFargeblind, stopp: stoppFargeblind, byttVerdi: byttVerdi };
 
-
     // Ikoner: måne (vises i lyst tema, trykk for mørkt) og sol (vises i mørkt tema)
     var SOL =
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
@@ -380,8 +393,10 @@
         'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
         '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
 
-    // Ikon for fargeblind modus: et øye der regnbuehinnen er halvt fylt,
-    // som viser at det handler om syn og farger.
+    /*
+        Ikon for fargeblind modus: et øye der regnbuehinnen er halvt fylt,
+        som viser at det handler om syn og farger.
+    */
     var OYE =
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
         'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
@@ -420,8 +435,10 @@
 
         oppdaterKnapp();
 
-        // 5. Plassering: rett før "Logg ut"-knappen eller "Logg inn"-knappen i menyen.
-        //    Finnes ingen av dem, ligger knappen fast øverst til høyre.
+        /*
+            5. Plassering: rett før "Logg ut"-knappen eller "Logg inn"-knappen i menyen.
+               Finnes ingen av dem, ligger knappen fast øverst til høyre.
+        */
         var anker = document.querySelector(
             'header form[action*="Logout"], header .header-login, header .nav-login-button, header .header-actions'
         );

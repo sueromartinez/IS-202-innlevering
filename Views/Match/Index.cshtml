@@ -1,3 +1,14 @@
+@*
+    Match/Index.cshtml – «Koordinering»
+
+    Hva filen gjør: Tavle med tre kolonner for aktive behov: trenger ressurser (ingen
+    forespørsler), venter på svar, og bekreftet. Løste behov vises for seg. Tallene kommer fra
+    MatchController.Index.
+
+    På nettsiden: Oversikten der offentlig aktør ser med en gang hva som mangler.
+
+    Oppgavekrav: 10, 12
+*@
 
 @model List<FirstWebAppInDocker.Models.Need>
 
@@ -70,8 +81,10 @@
             _ => need.Status.ToString()
         };
 
-    // Ett behov plasseres bare i én kolonne.
-    // Bekreftet har høyest prioritet.
+    /*
+        Ett behov plasseres bare i én kolonne.
+        Bekreftet har høyest prioritet.
+    */
     var matchingNeeds = Model
         .Where(n => Confirmed(n.Id) == 0 && Pending(n.Id) == 0)
         .ToList();
@@ -124,9 +137,7 @@
 }
 
 <style>
-    /* ========================================
-       HOVEDDESIGN
-    ======================================== */
+    /* --- Hoveddesign --- */
 
     .coord-page {
         color: #173954;
@@ -188,9 +199,7 @@
         color: #fff;
     }
 
-    /* ========================================
-       STATISTIKK
-    ======================================== */
+    /* --- Statistikk --- */
 
     .coord-stats {
         display: grid;
@@ -241,9 +250,7 @@
         font-size: 12px;
     }
 
-    /* ========================================
-       FANER
-    ======================================== */
+    /* --- Faner --- */
 
     .coord-workspace {
         padding: 22px;
@@ -294,9 +301,7 @@
         display: none !important;
     }
 
-    /* ========================================
-       TAVLEVERKTØY
-    ======================================== */
+    /* --- Tavleverktøy --- */
 
     .coord-toolbar {
         display: flex;
@@ -330,9 +335,7 @@
         outline-offset: 2px;
     }
 
-    /* ========================================
-       KANBAN
-    ======================================== */
+    /* --- Kanban --- */
 
     .coord-board {
         display: grid;
@@ -404,9 +407,7 @@
         gap: 12px;
     }
 
-    /* ========================================
-       BEHOVSKORT
-    ======================================== */
+    /* --- Behovskort --- */
 
     .coord-card {
         min-width: 0;
@@ -537,9 +538,7 @@
         display: none;
     }
 
-    /* ========================================
-       FORESPØRSLER OG HISTORIKK
-    ======================================== */
+    /* --- Forespørsler og historikk --- */
 
     .coord-list {
         display: grid;
@@ -607,9 +606,7 @@
         line-height: 1.6;
     }
 
-    /* ========================================
-       DETALJPANEL
-    ======================================== */
+    /* --- Detaljpanel --- */
 
     .coord-dialog {
         width: min(480px, calc(100% - 30px));
@@ -693,9 +690,7 @@
         outline-offset: 3px;
     }
 
-    /* ========================================
-       RESPONSIVE
-    ======================================== */
+    /* --- Responsivt --- */
 
     @@media (max-width: 1050px) {
         .coord-board {
@@ -1358,9 +1353,7 @@
 <script>
     document.addEventListener("DOMContentLoaded", function () {
 
-        // ====================================
-        // FANER
-        // ====================================
+        // --- Faner ---
 
         const tabs =
             document.querySelectorAll("[data-coord-tab]");
@@ -1392,9 +1385,7 @@
             });
         });
 
-        // ====================================
-        // SØK I KANBAN-TAVLEN
-        // ====================================
+        // --- Søk i kanban-tavlen ---
 
         const search =
             document.getElementById("coord-search");
@@ -1439,9 +1430,7 @@
             });
         }
 
-        // ====================================
-        // DETALJPANEL
-        // ====================================
+        // --- Detaljpanel ---
 
         const dialog =
             document.getElementById("coord-need-dialog");

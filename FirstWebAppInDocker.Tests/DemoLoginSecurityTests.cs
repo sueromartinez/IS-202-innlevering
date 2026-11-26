@@ -1,3 +1,11 @@
+/*
+    DemoLoginSecurityTests.cs – automatiske tester
+
+    Hva filen gjør: Tester at demo-innloggingen er sperret utenfor utviklingsmiljøet. Bruker
+    xUnit, en database i minnet (EF Core InMemory) og Moq, så testene kjører raskt uten Docker.
+
+    Oppgavekrav: 6, 15
+*/
 
 using FirstWebAppInDocker.Controllers;
 using FirstWebAppInDocker.Data;
@@ -17,9 +25,7 @@ namespace FirstWebAppInDocker.Tests;
 
 public class DemoLoginSecurityTests
 {
-    // ========================================
-    // HJELPER - TESTSESSION
-    // ========================================
+    // --- Hjelper: testsession ---
 
     private sealed class TestSession : ISession
     {
@@ -33,14 +39,12 @@ public class DemoLoginSecurityTests
 
         public void Clear() => _values.Clear();
 
-        public Task CommitAsync(
-            CancellationToken cancellationToken = default)
+        public Task CommitAsync(CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
         }
 
-        public Task LoadAsync(
-            CancellationToken cancellationToken = default)
+        public Task LoadAsync(CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
         }
@@ -55,18 +59,13 @@ public class DemoLoginSecurityTests
             _values[key] = value;
         }
 
-        public bool TryGetValue(
-            string key,
-            out byte[] value)
+        public bool TryGetValue(string key, out byte[] value)
         {
             return _values.TryGetValue(key, out value!);
         }
     }
 
-
-    // ========================================
-    // HJELPER - TESTMILJØ
-    // ========================================
+    // --- Hjelper: testmiljø ---
 
     private sealed class DemoTestEnvironment
     {
@@ -80,8 +79,7 @@ public class DemoLoginSecurityTests
 
         public DemoTestEnvironment(string environmentName)
         {
-            var store =
-                new Mock<IUserStore<ApplicationUser>>();
+            var store = new Mock<IUserStore<ApplicationUser>>();
 
             Users = new Mock<UserManager<ApplicationUser>>(
                 store.Object,
@@ -92,8 +90,7 @@ public class DemoLoginSecurityTests
                 null!,
                 null!,
                 null!,
-                null!
-            );
+                null!);
 
             HttpContext = new DefaultHttpContext
             {
@@ -114,12 +111,10 @@ public class DemoLoginSecurityTests
                     SignInManager<ApplicationUser>
                 >.Instance,
                 Mock.Of<IAuthenticationSchemeProvider>(),
-                Mock.Of<IUserConfirmation<ApplicationUser>>()
-            );
+                Mock.Of<IUserConfirmation<ApplicationUser>>());
 
             // Simuler ønsket ASP.NET Core-miljø.
-            var hostingEnvironment =
-                new Mock<IWebHostEnvironment>();
+            var hostingEnvironment = new Mock<IWebHostEnvironment>();
 
             hostingEnvironment
                 .SetupGet(env => env.EnvironmentName)
@@ -128,8 +123,7 @@ public class DemoLoginSecurityTests
             Controller = new AccountController(
                 Users.Object,
                 SignIn.Object,
-                hostingEnvironment.Object
-            )
+                hostingEnvironment.Object)
             {
                 ControllerContext = new ControllerContext
                 {
@@ -142,10 +136,7 @@ public class DemoLoginSecurityTests
         }
     }
 
-
-    // ========================================
-    // HJELPER - OFFENTLIG DEMOBRUKER
-    // ========================================
+    // --- Hjelper: offentlig demobruker ---
 
     private static ApplicationUser CreateDemoUser()
     {
@@ -159,11 +150,10 @@ public class DemoLoginSecurityTests
         };
     }
 
-
-    // ========================================
-    // TEST 1
-    // DEVELOPMENT TILLATER DEMOINNLOGGING
-    // ========================================
+    /*
+        TEST 1
+        DEVELOPMENT TILLATER DEMOINNLOGGING
+    */
 
     [Fact]
     public async Task DemoLogin_Development_ShouldSucceed()
@@ -177,117 +167,71 @@ public class DemoLoginSecurityTests
             .Returns(Task.CompletedTask);
 
         env.Users
-            .Setup(manager =>
-                manager.FindByEmailAsync(
-                    IdentitySeeder.PublicActorEmail
-                )
-            )
+            .Setup(manager => manager.FindByEmailAsync(IdentitySeeder.PublicActorEmail))
             .ReturnsAsync(publicActor);
 
         env.Users
-            .Setup(manager =>
-                manager.IsInRoleAsync(
-                    publicActor,
-                    IdentitySeeder.PublicActorRole
-                )
-            )
+            .Setup(manager => manager.IsInRoleAsync(publicActor, IdentitySeeder.PublicActorRole))
             .ReturnsAsync(true);
 
         env.SignIn
-            .Setup(manager =>
-                manager.SignInAsync(
-                    publicActor,
-                    false,
-                    null
-                )
-            )
+            .Setup(manager => manager.SignInAsync(publicActor, false, null))
             .Returns(Task.CompletedTask);
 
-        var result =
-            await env.Controller.DemoPublicActorLogin();
+        var result = await env.Controller.DemoPublicActorLogin();
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
         Assert.Equal("Dashboard", redirect.ActionName);
 
         Assert.Equal("Home", redirect.ControllerName);
 
-        Assert.Equal(
-            publicActor.Email,
-            env.HttpContext.Session.GetString("UserEmail")
-        );
+        Assert.Equal(publicActor.Email, env.HttpContext.Session.GetString("UserEmail"));
 
-        Assert.Equal(
-            IdentitySeeder.PublicActorRole,
-            env.HttpContext.Session.GetString("UserRole")
-        );
+        Assert.Equal(IdentitySeeder.PublicActorRole, env.HttpContext.Session.GetString("UserRole"));
 
-        env.SignIn.Verify(
-            manager => manager.SignOutAsync(),
-            Times.Once
-        );
+        env.SignIn.Verify(manager => manager.SignOutAsync(), Times.Once);
 
-        env.SignIn.Verify(
-            manager =>
-                manager.SignInAsync(
-                    publicActor,
-                    false,
-                    null
-                ),
-            Times.Once
-        );
+        env.SignIn.Verify(manager => manager.SignInAsync(publicActor, false, null), Times.Once);
     }
 
-
-    // ========================================
-    // TEST 2
-    // PRODUCTION BLOKKERER DEMOINNLOGGING
-    // ========================================
+    /*
+        TEST 2
+        PRODUCTION BLOKKERER DEMOINNLOGGING
+    */
 
     [Fact]
     public async Task DemoLogin_Production_ShouldReturnNotFound()
     {
         var env = new DemoTestEnvironment("Production");
 
-        var result =
-            await env.Controller.DemoPublicActorLogin();
+        var result = await env.Controller.DemoPublicActorLogin();
 
         Assert.IsType<NotFoundResult>(result);
 
-        // Eksisterende autentisering må ikke
-        // påvirkes av et avvist demoforsøk.
-        env.SignIn.Verify(
-            manager => manager.SignOutAsync(),
-            Times.Never
-        );
+        /*
+            Eksisterende autentisering må ikke
+            påvirkes av et avvist demoforsøk.
+        */
+        env.SignIn.Verify(manager => manager.SignOutAsync(), Times.Never);
 
         env.SignIn.Verify(
             manager =>
                 manager.SignInAsync(
                     It.IsAny<ApplicationUser>(),
                     It.IsAny<bool>(),
-                    It.IsAny<string?>()
-                ),
-            Times.Never
-        );
+                    It.IsAny<string?>()),
+            Times.Never);
 
         // Ikke engang demobrukeren skal hentes.
-        env.Users.Verify(
-            manager =>
-                manager.FindByEmailAsync(
-                    It.IsAny<string>()
-                ),
-            Times.Never
-        );
+        env.Users.Verify(manager => manager.FindByEmailAsync(It.IsAny<string>()), Times.Never);
     }
 
-
-    // ========================================
-    // TEST 3
-    // BLOKKERT DEMOINNLOGGING SKAL IKKE
-    // LOGGE UT EN EKSISTERENDE BRUKER
-    // ========================================
+    /*
+        TEST 3
+        BLOKKERT DEMOINNLOGGING SKAL IKKE
+        LOGGE UT EN EKSISTERENDE BRUKER
+    */
 
     [Fact]
     public async Task DemoLogin_Staging_ShouldPreserveExistingSession()
@@ -295,47 +239,33 @@ public class DemoLoginSecurityTests
         var env = new DemoTestEnvironment("Staging");
 
         // Simuler en bruker som allerede er innlogget.
-        env.HttpContext.Session.SetString(
-            "UserEmail",
-            "existing@example.com"
-        );
+        env.HttpContext.Session.SetString("UserEmail", "existing@example.com");
 
-        env.HttpContext.Session.SetString(
-            "UserRole",
-            IdentitySeeder.ResourceProviderRole
-        );
+        env.HttpContext.Session.SetString("UserRole", IdentitySeeder.ResourceProviderRole);
 
-        var result =
-            await env.Controller.DemoPublicActorLogin();
+        var result = await env.Controller.DemoPublicActorLogin();
 
         Assert.IsType<NotFoundResult>(result);
 
         // Session skal være helt uendret.
-        Assert.Equal(
-            "existing@example.com",
-            env.HttpContext.Session.GetString("UserEmail")
-        );
+        Assert.Equal("existing@example.com", env.HttpContext.Session.GetString("UserEmail"));
 
         Assert.Equal(
             IdentitySeeder.ResourceProviderRole,
-            env.HttpContext.Session.GetString("UserRole")
-        );
+            env.HttpContext.Session.GetString("UserRole"));
 
-        // Den eksisterende Identity-innloggingen
-        // skal heller ikke avsluttes.
-        env.SignIn.Verify(
-            manager => manager.SignOutAsync(),
-            Times.Never
-        );
+        /*
+            Den eksisterende Identity-innloggingen
+            skal heller ikke avsluttes.
+        */
+        env.SignIn.Verify(manager => manager.SignOutAsync(), Times.Never);
 
         env.SignIn.Verify(
             manager =>
                 manager.SignInAsync(
                     It.IsAny<ApplicationUser>(),
                     It.IsAny<bool>(),
-                    It.IsAny<string?>()
-                ),
-            Times.Never
-        );
+                    It.IsAny<string?>()),
+            Times.Never);
     }
 }

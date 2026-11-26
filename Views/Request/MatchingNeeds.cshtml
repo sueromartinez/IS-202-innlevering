@@ -1,3 +1,12 @@
+@*
+    MatchingNeeds.cshtml – «Behov jeg kan hjelpe med»
+
+    Hva filen gjør: Åpne behov i nærheten av den frivilliges ressurser, med knappen «Tilby
+    hjelp».
+
+    Oppgavekrav: 10, 12
+*@
+
 @model FirstWebAppInDocker.ViewModels.MatchingNeedsViewModel
 @using FirstWebAppInDocker.Services
 @using FirstWebAppInDocker.Models
@@ -30,8 +39,10 @@
             .ToList();
     }
 
-    // Finner koordinater uavhengig av om modellen bruker
-    // direkte Latitude/Longitude eller et Position-objekt.
+    /*
+        Finner koordinater uavhengig av om modellen bruker
+        direkte Latitude/Longitude eller et Position-objekt.
+    */
     double? GetCoordinate(object resource, bool latitude)
     {
         string[] names = latitude
@@ -190,9 +201,7 @@
         line-height: 1.5;
     }
 
-    /* ==========================================
-       SIDE
-    ========================================== */
+    /* --- Side --- */
 
     .matching-needs-page,
     .matching-needs-page *,
@@ -211,9 +220,7 @@
         padding: 18px 0 12px !important;
     }
 
-    /* ==========================================
-       TOPP
-    ========================================== */
+    /* --- Topp --- */
 
     .matching-needs-page .page-top {
         display: flex;
@@ -267,9 +274,7 @@
         cursor: pointer;
     }
 
-    /* ==========================================
-       HOVEDOPPSETT
-    ========================================== */
+    /* --- Hovedoppsett --- */
 
     .matching-map-grid {
         display: grid;
@@ -294,9 +299,7 @@
         box-shadow: 0 12px 35px rgba(16, 45, 66, .05);
     }
 
-    /* ==========================================
-       VENSTRE BOKS
-    ========================================== */
+    /* --- Venstre boks --- */
 
     .matching-list-card {
         display: flex;
@@ -359,9 +362,7 @@
         background: #bdc8d2;
     }
 
-    /* ==========================================
-       BEHOVSKORT
-    ========================================== */
+    /* --- Behovskort --- */
 
     .matching-need-item {
         flex: 0 0 auto;
@@ -477,9 +478,7 @@
         text-decoration: underline;
     }
 
-    /* ==========================================
-       HØYRE KARTBOKS
-    ========================================== */
+    /* --- Høyre kartboks --- */
 
     .matching-map-card {
         position: static !important;
@@ -562,9 +561,7 @@
         line-height: 1.5;
     }
 
-    /* ==========================================
-       TRE INFORMASJONSFELTER
-    ========================================== */
+    /* --- Tre informasjonsfelter --- */
 
     .matching-map-help {
         display: grid;
@@ -595,9 +592,7 @@
         line-height: 1.4;
     }
 
-    /* ==========================================
-       FULLSKJERM
-    ========================================== */
+    /* --- Fullskjerm --- */
 
     .matching-fullscreen-control button {
         display: grid;
@@ -649,9 +644,7 @@
         background: #17212b;
     }
 
-    /* ==========================================
-       KARTPOPUP
-    ========================================== */
+    /* --- Kartpopup --- */
 
     .matching-resource-popup strong {
         display: block;
@@ -667,9 +660,7 @@
         line-height: 1.4;
     }
 
-    /* ==========================================
-       PC: INTERN SCROLLING
-    ========================================== */
+    /* --- Pc: intern scrolling --- */
 
     @@media (min-width: 951px) {
 
@@ -697,9 +688,7 @@
         }
     }
 
-    /* ==========================================
-       NETTBRETT
-    ========================================== */
+    /* --- Nettbrett --- */
 
     @@media (max-width: 950px) {
 
@@ -723,9 +712,7 @@
         }
     }
 
-    /* ==========================================
-       MOBIL
-    ========================================== */
+    /* --- Mobil --- */
 
     @@media (max-width: 700px) {
 
@@ -765,12 +752,12 @@
         }
     }
 
-    /* ==========================================
-       FJERN EKSTRA HØYDE FRA FELLES LAYOUT
+    /*
+        FJERN EKSTRA HØYDE FRA FELLES LAYOUT
 
-       Gjelder kun denne siden.
-       Påvirker ikke andre sider i portalen.
-    ========================================== */
+        Gjelder kun denne siden.
+        Påvirker ikke andre sider i portalen.
+    */
 
     body:has(.matching-needs-page) main:has(.matching-needs-page) {
         min-height: 0 !important;
@@ -857,7 +844,7 @@
          MELDINGER
     ========================================== -->
 
-    @if (TempData["RequestMessage"] is string message)
+    @if (TempData["RequestSuccess"] is string message)
     {
         <div class="alert alert-success" role="status">
             @message
@@ -1095,8 +1082,10 @@
 <script>
     document.addEventListener("DOMContentLoaded", function () {
 
-        // Ressursene kommer fra MariaDB.
-        // Bare innlogget brukers ressurser er inkludert.
+        /*
+            Ressursene kommer fra MariaDB.
+            Bare innlogget brukers ressurser er inkludert.
+        */
         const resourcePoints = @Html.Raw(resourcePointsJson);
         const needPoints = @Html.Raw(needPointsJson);
 
@@ -1119,12 +1108,12 @@
             return;
         }
 
-        /* ==========================================
-           FJERN EKSTRA HØYDE FRA LAYOUT
+        /*
+            FJERN EKSTRA HØYDE FRA LAYOUT
 
-           Gjelder bare beholderne på denne siden.
-           Påvirker ikke andre sider i portalen.
-        ========================================== */
+            Gjelder bare beholderne på denne siden.
+            Påvirker ikke andre sider i portalen.
+        */
 
         function removeExtraLayoutSpace() {
             if (!matchingPage) {
@@ -1162,9 +1151,7 @@
 
         removeExtraLayoutSpace();
 
-        /* ==========================================
-           SAMME HØYDE PÅ BEGGE BOKSER
-        ========================================== */
+        /* --- Samme høyde på begge bokser --- */
 
         function syncCardHeight() {
             const height =
@@ -1193,9 +1180,7 @@
             cardObserver.observe(mapCard);
         }
 
-        /* ==========================================
-           KONTROLLER LEAFLET
-        ========================================== */
+        /* --- Kontroller Leaflet --- */
 
         if (typeof L === "undefined") {
             mapNotice.hidden = false;
@@ -1210,9 +1195,7 @@
             return;
         }
 
-        /* ==========================================
-           OPPRETT KART
-        ========================================== */
+        /* --- Opprett kart --- */
 
         const map = L.map("matchingNeedsMap")
             .setView([64.2, 10.0], 5);
@@ -1230,9 +1213,7 @@
             ).addTo(map);
         }
 
-        /* ==========================================
-           FULLSKJERMFUNKSJON
-        ========================================== */
+        /* --- Fullskjermfunksjon --- */
 
         const fullscreenDialog =
             document.createElement("dialog");
@@ -1412,11 +1393,11 @@
         new FullscreenControl().addTo(map);
         updateFullscreenControl();
 
-        /* ==========================================
-           SYMBOLER FOR RESSURSER OG BEHOV
+        /*
+            SYMBOLER FOR RESSURSER OG BEHOV
 
-           Samme symboler som på ressursoversikten.
-        ========================================== */
+            Samme symboler som på ressursoversikten.
+        */
 
         function symbolFor(type) {
             const icons = {
@@ -1454,11 +1435,11 @@
             return icons[type] || icons.Other;
         }
 
-        /* ==========================================
-           LAG SYMBOLMARKØR
+        /*
+            LAG SYMBOLMARKØR
 
-           Samme kartpinne som på ressursoversikten.
-        ========================================== */
+            Samme kartpinne som på ressursoversikten.
+        */
 
         function createSymbolMarker(color, type, badge) {
             const svg =
@@ -1506,9 +1487,7 @@
             });
         }
 
-        /* ==========================================
-           RESSURSER FRA DATABASEN
-        ========================================== */
+        /* --- Ressurser fra databasen --- */
 
         const markers = new Map();
         const needMarkers = new Map();
@@ -1569,9 +1548,7 @@
             markerBounds.push([latitude, longitude]);
         });
 
-        /* ==========================================
-           BEHOV FRA DATABASEN
-        ========================================== */
+        /* --- Behov fra databasen --- */
 
         const plannedBadge =
             "<svg width='12' height='12' viewBox='0 0 24 24' " +
@@ -1623,9 +1600,7 @@
             markerBounds.push([need.latitude, need.longitude]);
         });
 
-        /* ==========================================
-           VIS FORBINDELSE OG AVSTAND
-        ========================================== */
+        /* --- Vis forbindelse og avstand --- */
 
         function showConnection(needId, focus = true) {
             const need = needPoints.find(
@@ -1677,9 +1652,7 @@
             }
         }
 
-        /* ==========================================
-           STARTVISNING
-        ========================================== */
+        /* --- Startvisning --- */
 
         // Start med både behov og ressurser synlige i kartet.
         if (markerBounds.length > 0) {
@@ -1702,9 +1675,7 @@
                 "Ingen behov med kartposisjon å vise innen valgt radius.";
         }
 
-        /* ==========================================
-           KNAPPER I BEHOVSLISTEN
-        ========================================== */
+        /* --- Knapper i behovslisten --- */
 
         document.querySelectorAll(
             ".matching-focus-button"
@@ -1719,9 +1690,7 @@
             });
         });
 
-        /* ==========================================
-           OPPDATER KARTSTØRRELSE
-        ========================================== */
+        /* --- Oppdater kartstørrelse --- */
 
         if (typeof ResizeObserver !== "undefined") {
             const mapObserver = new ResizeObserver(

@@ -1,14 +1,21 @@
+/*
+    SamiPrompts.cs – reglene Sami følger
+
+    Hva filen gjør: Felles regler (svar på norsk, bruk verktøy for fakta, ikke finn på tall,
+    ikke si at noe er sendt) pluss egne instrukser for hver rolle og dagens dato.
+*/
+
 using System.Globalization;
 
 namespace FirstWebAppInDocker.Services.Ai;
 
-/// <summary>
-/// Systemprompter for Sami, én per rolle.
-///
-/// Systemprompten er instruksjonene modellen alltid får først.
-/// Den forteller hvem Sami er, hva den kan og ikke kan,
-/// og hvordan verktøyene skal brukes.
-/// </summary>
+/*
+    Systemprompter for Sami, én per rolle.
+
+    Systemprompten er instruksjonene modellen alltid får først.
+    Den forteller hvem Sami er, hva den kan og ikke kan,
+    og hvordan verktøyene skal brukes.
+*/
 public static class SamiPrompts
 {
     private const string Common = """
@@ -42,7 +49,6 @@ public static class SamiPrompts
         - Hvis et verktøy gir feil eller ingen treff, si det ærlig og foreslå neste steg.
         """;
 
-
     private const string Volunteer = """
         Du snakker med en frivillig / ressursleverandør som tilbyr ressurser.
 
@@ -71,7 +77,6 @@ public static class SamiPrompts
         plassering av behov. Ikke forsøk å finne slik informasjon.
         """;
 
-
     private const string PublicActor = """
         Du snakker med en offentlig aktør (kriseledelse) som registrerer behov og matcher dem med ressurser.
 
@@ -94,14 +99,12 @@ public static class SamiPrompts
         - Hele oversikten med kontaktinformasjon finnes på [Ressurser](/Resource/ResourceOverview).
         """;
 
-
     private const string Admin = """
 
         Brukeren er også administrator. I tillegg kan du gi tall for hele portalen med get_statistics,
         og vise vei til [Brukere](/Admin/Users) for brukeradministrasjon. Du kan ikke opprette, endre
         eller deaktivere brukere selv; det gjøres i skjemaene på admin-sidene.
         """;
-
 
     public static string For(SamiContext context)
     {
@@ -113,8 +116,7 @@ public static class SamiPrompts
         };
 
         // ISO-format, fordi Docker-imaget ikke nødvendigvis har norsk kultur installert.
-        string today =
-            DateTime.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        string today = DateTime.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
         return $"""
             {Common}

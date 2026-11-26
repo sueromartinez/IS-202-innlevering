@@ -1,3 +1,11 @@
+/*
+    ResourceConcurrencyIntegrationTests.cs – automatiske tester
+
+    Hva filen gjør: Tester at to samtidige bekreftelser av samme ressurs ikke begge lykkes (mot
+    ekte MariaDB). Kjøres mot en egen MariaDB fra docker-compose.integration.yml.
+
+    Oppgavekrav: 6, 15
+*/
 
 using System.Data.Common;
 using FirstWebAppInDocker.Data;
@@ -14,47 +22,43 @@ using Xunit;
 
 namespace FirstWebAppInDocker.Tests;
 
-/// <summary>
-/// Tester samtidig bekreftelse av samme ressurs
-/// mot en separat MariaDB-testdatabase.
-/// </summary>
-/// <remarks>
-/// Testen bruker kun:
-/// 127.0.0.1:3308 / beredskap_test_db.
-///
-/// Krever miljøvariablene:
-/// BEREDSKAP_RUN_MARIADB_TESTS=1
-/// BEREDSKAP_TEST_DB_PASSWORD
-///
-/// Ved vanlig dotnet test hoppes testen over
-/// dersom integrasjonstester ikke er aktivert.
-/// </remarks>
+/*
+    Tester samtidig bekreftelse av samme ressurs
+    mot en separat MariaDB-testdatabase.
+
+    Testen bruker kun:
+    127.0.0.1:3308 / beredskap_test_db.
+
+    Krever miljøvariablene:
+    BEREDSKAP_RUN_MARIADB_TESTS=1
+    BEREDSKAP_TEST_DB_PASSWORD
+
+    Ved vanlig dotnet test hoppes testen over
+    dersom integrasjonstester ikke er aktivert.
+*/
 public class ResourceConcurrencyIntegrationTests
 {
     #region Testkonfigurasjon
 
-    private const string PasswordVariable =
-        "BEREDSKAP_TEST_DB_PASSWORD";
+    private const string PasswordVariable = "BEREDSKAP_TEST_DB_PASSWORD";
 
-    /// <summary>
-    /// Oppretter en tilkoblingsstreng med faste,
-    /// isolerte tilkoblingsverdier.
-    ///
-    /// Ingen miljøvariabel kan endre server,
-    /// port, database eller brukernavn.
-    /// </summary>
-    /// <returns>
-    /// Tilkoblingsstrengen til MariaDB-testdatabasen.
-    /// </returns>
+    /*
+        Oppretter en tilkoblingsstreng med faste,
+        isolerte tilkoblingsverdier.
+
+        Ingen miljøvariabel kan endre server,
+        port, database eller brukernavn.
+
+        Returnerer:
+        Tilkoblingsstrengen til MariaDB-testdatabasen.
+    */
     private static string CreateConnectionString()
     {
-        string? password =
-            Environment.GetEnvironmentVariable(PasswordVariable);
+        string? password = Environment.GetEnvironmentVariable(PasswordVariable);
 
         if (string.IsNullOrWhiteSpace(password))
         {
-            throw new InvalidOperationException(
-                $"Miljøvariabelen {PasswordVariable} mangler.");
+            throw new InvalidOperationException($"Miljøvariabelen {PasswordVariable} mangler.");
         }
 
         var connection = new MySqlConnectionStringBuilder
@@ -69,29 +73,26 @@ public class ResourceConcurrencyIntegrationTests
         return connection.ConnectionString;
     }
 
-    /// <summary>
-    /// Oppretter EF Core-innstillinger for MariaDB 11.4.
-    /// </summary>
-    /// <param name="connectionString">
-    /// Tilkoblingsstrengen til testdatabasen.
-    /// </param>
-    /// <param name="interceptor">
-    /// Valgfri interceptor for synkronisering
-    /// av databaseoperasjoner.
-    /// </param>
-    /// <returns>
-    /// Konfigurerte innstillinger for ApplicationDbContext.
-    /// </returns>
+    /*
+        Oppretter EF Core-innstillinger for MariaDB 11.4.
+
+        connectionString:
+        Tilkoblingsstrengen til testdatabasen.
+
+        interceptor:
+        Valgfri interceptor for synkronisering
+        av databaseoperasjoner.
+
+        Returnerer:
+        Konfigurerte innstillinger for ApplicationDbContext.
+    */
     private static DbContextOptions<ApplicationDbContext> CreateOptions(
         string connectionString,
         IInterceptor? interceptor = null)
     {
-        var builder =
-            new DbContextOptionsBuilder<ApplicationDbContext>();
+        var builder = new DbContextOptionsBuilder<ApplicationDbContext>();
 
-        builder.UseMySql(
-            connectionString,
-            new MariaDbServerVersion(new Version(11, 4, 0)));
+        builder.UseMySql(connectionString, new MariaDbServerVersion(new Version(11, 4, 0)));
 
         if (interceptor is not null)
         {
@@ -105,25 +106,24 @@ public class ResourceConcurrencyIntegrationTests
 
     #region Integrasjonstest
 
-    /// <summary>
-    /// Verifiserer at to samtidige bekreftelser
-    /// av samme ressurs ikke kan lykkes begge to.
-    /// </summary>
-    /// <remarks>
-    /// Testen benytter to forskjellige ApplicationDbContext-
-    /// instanser for å etterligne samtidige forespørsler
-    /// fra separate databaseforbindelser.
-    ///
-    /// Begge forsøker å bekrefte samme ressurs.
-    ///
-    /// Forventet resultat:
-    /// - Nøyaktig én bekreftelse lykkes.
-    /// - Den andre forespørselen forblir ubesvart.
-    /// - Ressursen får status Busy.
-    /// - Nøyaktig ett behov får status Assigned.
-    ///
-    /// Testdata slettes etter gjennomføringen.
-    /// </remarks>
+    /*
+        Verifiserer at to samtidige bekreftelser
+        av samme ressurs ikke kan lykkes begge to.
+
+        Testen benytter to forskjellige ApplicationDbContext-
+        instanser for å etterligne samtidige forespørsler
+        fra separate databaseforbindelser.
+
+        Begge forsøker å bekrefte samme ressurs.
+
+        Forventet resultat:
+        - Nøyaktig én bekreftelse lykkes.
+        - Den andre forespørselen forblir ubesvart.
+        - Ressursen får status Busy.
+        - Nøyaktig ett behov får status Assigned.
+
+        Testdata slettes etter gjennomføringen.
+    */
     [MariaDbIntegrationFact]
     [Trait("Category", "Integration")]
     public async Task ConcurrentConfirmations_OnlyOneCanSucceed()
@@ -147,8 +147,10 @@ public class ResourceConcurrencyIntegrationTests
 
         await using (var setup = new ApplicationDbContext(normalOptions))
         {
-            // Opprett bare databaseskjemaet.
-            // Ikke start nettsiden eller demodataseederne.
+            /*
+                Opprett bare databaseskjemaet.
+                Ikke start nettsiden eller demodataseederne.
+            */
             await setup.Database.MigrateAsync();
 
             setup.Users.AddRange(
@@ -223,9 +225,7 @@ public class ResourceConcurrencyIntegrationTests
                 Status = AssignmentStatus.Requested
             };
 
-            setup.NeedAssignments.AddRange(
-                firstAssignment,
-                secondAssignment);
+            setup.NeedAssignments.AddRange(firstAssignment, secondAssignment);
 
             await setup.SaveChangesAsync();
 
@@ -239,82 +239,67 @@ public class ResourceConcurrencyIntegrationTests
         {
             #region Kjør samtidige bekreftelser
 
-            // Begge forespørsler skal ha lest
-            // tildelingen og ressursen før de
-            // får fortsette mot bekreftelsen.
-            var synchronization =
-                new AssignmentReadBarrierInterceptor();
+            /*
+                Begge forespørsler skal ha lest
+                tildelingen og ressursen før de
+                får fortsette mot bekreftelsen.
+            */
+            var synchronization = new AssignmentReadBarrierInterceptor();
 
-            var concurrentOptions = CreateOptions(
-                connectionString,
-                synchronization);
+            var concurrentOptions = CreateOptions(connectionString, synchronization);
 
-            await using var firstContext =
-                new ApplicationDbContext(concurrentOptions);
+            await using var firstContext = new ApplicationDbContext(concurrentOptions);
 
-            await using var secondContext =
-                new ApplicationDbContext(concurrentOptions);
+            await using var secondContext = new ApplicationDbContext(concurrentOptions);
 
-            AssignmentService firstService =
-                CreateAssignmentService(firstContext);
+            AssignmentService firstService = CreateAssignmentService(firstContext);
 
-            AssignmentService secondService =
-                CreateAssignmentService(secondContext);
+            AssignmentService secondService = CreateAssignmentService(secondContext);
 
             // Separate tjenester og separate DbContexts.
             Task<ServiceResult> firstTask =
-                firstService.RespondAsync(
-                    firstAssignmentId,
-                    ownerId,
-                    accept: true);
+                firstService.RespondAsync(firstAssignmentId, ownerId, accept: true);
 
             Task<ServiceResult> secondTask =
-                secondService.RespondAsync(
-                    secondAssignmentId,
-                    ownerId,
-                    accept: true);
+                secondService.RespondAsync(secondAssignmentId, ownerId, accept: true);
 
-            ServiceResult[] results =
-                await Task.WhenAll(firstTask, secondTask);
+            ServiceResult[] results = await Task.WhenAll(firstTask, secondTask);
 
-            // Kontroller at minst to databaseoppslag
-            // nådde synkroniseringspunktet.
-            //
-            // Interceptoren kan registrere flere treff
-            // dersom EF Core utfører ekstra SQL-oppslag.
+            /*
+                Kontroller at minst to databaseoppslag
+                nådde synkroniseringspunktet.
+
+                Interceptoren kan registrere flere treff
+                dersom EF Core utfører ekstra SQL-oppslag.
+            */
             Assert.True(
                 synchronization.Arrivals >= 2,
                 "Forventet minst to synkroniserte SQL-oppslag, " +
                 $"men registrerte {synchronization.Arrivals}.");
 
-            // Nøyaktig én bekreftelse skal lykkes.
-            //
-            // Bruk Assert.Single med predikat
-            // for å unngå xUnit2031-advarsler.
-            Assert.Single(
-                results,
-                result => result.Success);
+            /*
+                Nøyaktig én bekreftelse skal lykkes.
+
+                Bruk Assert.Single med predikat
+                for å unngå xUnit2031-advarsler.
+            */
+            Assert.Single(results, result => result.Success);
 
             // Nøyaktig én bekreftelse skal avvises.
-            Assert.Single(
-                results,
-                result => !result.Success);
+            Assert.Single(results, result => !result.Success);
 
             #endregion
 
             #region Verifiser tilstanden i MariaDB
 
-            await using var verification =
-                new ApplicationDbContext(normalOptions);
+            await using var verification = new ApplicationDbContext(normalOptions);
 
             // Ressursen skal være opptatt.
             Resource resource = await verification.Resources
                 .AsNoTracking()
                 .SingleAsync(r => r.Id == resourceId);
 
-            Assert.Equal(
-                ResourceStatus.Busy,
-                resource.Status);
+            Assert.Equal(ResourceStatus.Busy, resource.Status);
 
             // Hent begge forespørslene.
             int[] assignmentIds =
@@ -332,14 +317,10 @@ public class ResourceConcurrencyIntegrationTests
             Assert.Equal(2, assignments.Count);
 
             // Bare én forespørsel kan være bekreftet.
-            Assert.Single(
-                assignments,
-                a => a.Status == AssignmentStatus.Confirmed);
+            Assert.Single(assignments, a => a.Status == AssignmentStatus.Confirmed);
 
             // Den andre skal fortsatt vente på svar.
-            Assert.Single(
-                assignments,
-                a => a.Status == AssignmentStatus.Requested);
+            Assert.Single(assignments, a => a.Status == AssignmentStatus.Requested);
 
             // Hent begge behovene.
             int[] needIds =
@@ -356,14 +337,10 @@ public class ResourceConcurrencyIntegrationTests
             Assert.Equal(2, needs.Count);
 
             // Bare ett behov skal være tildelt.
-            Assert.Single(
-                needs,
-                n => n.Status == NeedStatus.Assigned);
+            Assert.Single(needs, n => n.Status == NeedStatus.Assigned);
 
             // Det andre behovet skal fortsatt vurderes.
-            Assert.Single(
-                needs,
-                n => n.Status == NeedStatus.UnderReview);
+            Assert.Single(needs, n => n.Status == NeedStatus.UnderReview);
 
             #endregion
         }
@@ -371,10 +348,11 @@ public class ResourceConcurrencyIntegrationTests
         {
             #region Rydd opp i testdata
 
-            // Slett bare data opprettet i denne testen.
-            // Databaseskjemaet og øvrige data beholdes.
-            await using var cleanup =
-                new ApplicationDbContext(normalOptions);
+            /*
+                Slett bare data opprettet i denne testen.
+                Databaseskjemaet og øvrige data beholdes.
+            */
+            await using var cleanup = new ApplicationDbContext(normalOptions);
 
             int[] assignmentIds =
             [
@@ -391,9 +369,7 @@ public class ResourceConcurrencyIntegrationTests
 
             // Fjern varsler som testen har opprettet.
             var notifications = await cleanup.Notifications
-                .Where(n =>
-                    n.UserId == ownerId ||
-                    n.UserId == requesterId)
+                .Where(n => n.UserId == ownerId || n.UserId == requesterId)
                 .ToListAsync();
 
             cleanup.Notifications.RemoveRange(notifications);
@@ -422,9 +398,7 @@ public class ResourceConcurrencyIntegrationTests
 
             // Fjern testbrukerne.
             var users = await cleanup.Users
-                .Where(u =>
-                    u.Id == ownerId ||
-                    u.Id == requesterId)
+                .Where(u => u.Id == ownerId || u.Id == requesterId)
                 .ToListAsync();
 
             cleanup.Users.RemoveRange(users);
@@ -439,30 +413,26 @@ public class ResourceConcurrencyIntegrationTests
 
     #region Testavhengigheter
 
-    /// <summary>
-    /// Oppretter den ekte AssignmentService.
-    ///
-    /// E-post og SMS erstattes av strenge mocks.
-    /// Testbrukerne har ingen e-postadresse eller
-    /// telefonnummer, så ingen eksterne meldinger sendes.
-    /// </summary>
-    /// <param name="context">
-    /// Databasekonteksten for denne testoperasjonen.
-    /// </param>
-    /// <returns>
-    /// En AssignmentService med isolerte testavhengigheter.
-    /// </returns>
-    private static AssignmentService CreateAssignmentService(
-        ApplicationDbContext context)
+    /*
+        Oppretter den ekte AssignmentService.
+
+        E-post og SMS erstattes av strenge mocks.
+        Testbrukerne har ingen e-postadresse eller
+        telefonnummer, så ingen eksterne meldinger sendes.
+
+        context:
+        Databasekonteksten for denne testoperasjonen.
+
+        Returnerer:
+        En AssignmentService med isolerte testavhengigheter.
+    */
+    private static AssignmentService CreateAssignmentService(ApplicationDbContext context)
     {
-        var emailSender =
-            new Mock<IPortalEmailSender>(MockBehavior.Strict);
+        var emailSender = new Mock<IPortalEmailSender>(MockBehavior.Strict);
 
-        var smsSender =
-            new Mock<ISmsSender>(MockBehavior.Strict);
+        var smsSender = new Mock<ISmsSender>(MockBehavior.Strict);
 
-        var configuration =
-            new ConfigurationBuilder().Build();
+        var configuration = new ConfigurationBuilder().Build();
 
         var notifications = new NotificationService(
             context,
@@ -478,17 +448,17 @@ public class ResourceConcurrencyIntegrationTests
 
     #region Synkronisering av samtidige operasjoner
 
-    /// <summary>
-    /// Synkroniserer de to første databaseoppslagene
-    /// som henter en forespørsel med tilhørende
-    /// behov og ressurs.
-    ///
-    /// Dermed får begge operasjoner mulighet til
-    /// å observere ressursen som tilgjengelig før
-    /// bekreftelsene fortsetter.
-    ///
-    /// Brukes kun i denne integrasjonstesten.
-    /// </summary>
+    /*
+        Synkroniserer de to første databaseoppslagene
+        som henter en forespørsel med tilhørende
+        behov og ressurs.
+
+        Dermed får begge operasjoner mulighet til
+        å observere ressursen som tilgjengelig før
+        bekreftelsene fortsetter.
+
+        Brukes kun i denne integrasjonstesten.
+    */
     private sealed class AssignmentReadBarrierInterceptor
         : DbCommandInterceptor
     {
@@ -497,16 +467,16 @@ public class ResourceConcurrencyIntegrationTests
 
         private int _arrivals;
 
-        /// <summary>
-        /// Antall relevante SQL-oppslag registrert
-        /// av interceptoren.
-        /// </summary>
+        /*
+            Antall relevante SQL-oppslag registrert
+            av interceptoren.
+        */
         public int Arrivals => Volatile.Read(ref _arrivals);
 
-        /// <summary>
-        /// Holder de første relevante SQL-oppslagene
-        /// tilbake til begge operasjonene er klare.
-        /// </summary>
+        /*
+            Holder de første relevante SQL-oppslagene
+            tilbake til begge operasjonene er klare.
+        */
         public override async ValueTask<DbDataReader>
             ReaderExecutedAsync(
                 DbCommand command,
@@ -517,34 +487,25 @@ public class ResourceConcurrencyIntegrationTests
             string sql = command.CommandText;
 
             bool isAssignmentLookup =
-                sql.Contains(
-                    "SELECT",
-                    StringComparison.OrdinalIgnoreCase)
-                && sql.Contains(
-                    "NeedAssignments",
-                    StringComparison.OrdinalIgnoreCase)
-                && sql.Contains(
-                    "Resources",
-                    StringComparison.OrdinalIgnoreCase)
-                && sql.Contains(
-                    "Needs",
-                    StringComparison.OrdinalIgnoreCase);
+                sql.Contains("SELECT", StringComparison.OrdinalIgnoreCase)
+                && sql.Contains("NeedAssignments", StringComparison.OrdinalIgnoreCase)
+                && sql.Contains("Resources", StringComparison.OrdinalIgnoreCase)
+                && sql.Contains("Needs", StringComparison.OrdinalIgnoreCase);
 
             if (isAssignmentLookup)
             {
-                int arrivals =
-                    Interlocked.Increment(ref _arrivals);
+                int arrivals = Interlocked.Increment(ref _arrivals);
 
                 if (arrivals == 2)
                 {
                     _bothReady.TrySetResult(true);
                 }
 
-                // Hindrer at en hengende test
-                // venter uendelig.
-                await _bothReady.Task.WaitAsync(
-                    TimeSpan.FromSeconds(20),
-                    cancellationToken);
+                /*
+                    Hindrer at en hengende test
+                    venter uendelig.
+                */
+                await _bothReady.Task.WaitAsync(TimeSpan.FromSeconds(20), cancellationToken);
             }
 
             return result;
@@ -554,22 +515,21 @@ public class ResourceConcurrencyIntegrationTests
     #endregion
 }
 
-/// <summary>
-/// Aktiverer MariaDB-integrasjonstester bare
-/// når de er eksplisitt slått på.
-///
-/// Vanlige enhetstester trenger dermed ikke Docker.
-/// </summary>
+/*
+    Aktiverer MariaDB-integrasjonstester bare
+    når de er eksplisitt slått på.
+
+    Vanlige enhetstester trenger dermed ikke Docker.
+*/
 public sealed class MariaDbIntegrationFactAttribute : FactAttribute
 {
-    /// <summary>
-    /// Kontrollerer om MariaDB-integrasjonstester
-    /// er aktivert gjennom en miljøvariabel.
-    /// </summary>
+    /*
+        Kontrollerer om MariaDB-integrasjonstester
+        er aktivert gjennom en miljøvariabel.
+    */
     public MariaDbIntegrationFactAttribute()
     {
-        if (Environment.GetEnvironmentVariable(
-                "BEREDSKAP_RUN_MARIADB_TESTS") != "1")
+        if (Environment.GetEnvironmentVariable("BEREDSKAP_RUN_MARIADB_TESTS") != "1")
         {
             Skip =
                 "MariaDB-integrasjonstest. " +

@@ -1,3 +1,12 @@
+/*
+    ProfileViewModelTests.cs – automatiske tester
+
+    Hva filen gjør: Tester reglene i profilskjemaet. Bruker xUnit, en database i minnet (EF Core
+    InMemory) og Moq, så testene kjører raskt uten Docker.
+
+    Oppgavekrav: 6, 15
+*/
+
 using System.ComponentModel.DataAnnotations;
 using FirstWebAppInDocker.ViewModels;
 using Xunit;
@@ -6,16 +15,13 @@ namespace FirstWebAppInDocker.Tests;
 
 public class ProfileViewModelTests
 {
-    // ========================================
-    // HELPER - GYLDIG PROFIL
-    // ========================================
+    // --- Hjelper: gyldig profil ---
 
     private static ProfileViewModel CreateProfile(
         string name = "Ola Nordmann",
         string email = "ola@example.com",
         string countryCode = "+47",
-        string? phoneNumber = "12345678"
-    )
+        string? phoneNumber = "12345678")
     {
         return new ProfileViewModel
         {
@@ -26,14 +32,9 @@ public class ProfileViewModelTests
         };
     }
 
+    // --- Hjelper: validering ---
 
-    // ========================================
-    // HELPER - VALIDERING
-    // ========================================
-
-    private static List<ValidationResult> Validate(
-        ProfileViewModel model
-    )
+    private static List<ValidationResult> Validate(ProfileViewModel model)
     {
         var results = new List<ValidationResult>();
 
@@ -41,16 +42,12 @@ public class ProfileViewModelTests
             model,
             new ValidationContext(model),
             results,
-            validateAllProperties: true
-        );
+            validateAllProperties: true);
 
         return results;
     }
 
-
-    // ========================================
-    // TEST 1 - GYLDIG PROFIL
-    // ========================================
+    // --- Test 1: gyldig profil ---
 
     [Fact]
     public void ValidProfile_ShouldPassValidation()
@@ -62,130 +59,83 @@ public class ProfileViewModelTests
         Assert.Empty(results);
     }
 
-
-    // ========================================
-    // TEST 2 - MANGLENDE NAVN
-    // ========================================
+    // --- Test 2: manglende navn ---
 
     [Fact]
     public void MissingName_ShouldFailValidation()
     {
-        var model = CreateProfile(
-            name: ""
-        );
+        var model = CreateProfile(name: "");
 
         var results = Validate(model);
 
         Assert.Contains(
             results,
-            result => result.MemberNames.Contains(
-                nameof(ProfileViewModel.Name)
-            )
-        );
+            result => result.MemberNames.Contains(nameof(ProfileViewModel.Name)));
     }
 
-
-    // ========================================
-    // TEST 3 - UGYLDIG E-POST
-    // ========================================
+    // --- Test 3: ugyldig e-post ---
 
     [Fact]
     public void InvalidEmail_ShouldFailValidation()
     {
-        var model = CreateProfile(
-            email: "ugyldig-epost"
-        );
+        var model = CreateProfile(email: "ugyldig-epost");
 
         var results = Validate(model);
 
         Assert.Contains(
             results,
-            result => result.MemberNames.Contains(
-                nameof(ProfileViewModel.Email)
-            )
-        );
+            result => result.MemberNames.Contains(nameof(ProfileViewModel.Email)));
     }
 
-
-    // ========================================
-    // TEST 4 - UGYLDIG NORSK TELEFONNUMMER
-    // ========================================
+    // --- Test 4: ugyldig norsk telefonnummer ---
 
     [Fact]
     public void NorwegianPhoneWithSevenDigits_ShouldFailValidation()
     {
-        var model = CreateProfile(
-            countryCode: "+47",
-            phoneNumber: "1234567"
-        );
+        var model = CreateProfile(countryCode: "+47", phoneNumber: "1234567");
 
         var results = Validate(model);
 
         Assert.Contains(
             results,
-            result => result.MemberNames.Contains(
-                nameof(ProfileViewModel.PhoneNumber)
-            )
-        );
+            result => result.MemberNames.Contains(nameof(ProfileViewModel.PhoneNumber)));
     }
 
-
-    // ========================================
-    // TEST 5 - UGYLDIGE TEGN I TELEFONNUMMER
-    // ========================================
+    // --- Test 5: ugyldige tegn i telefonnummer ---
 
     [Fact]
     public void PhoneWithLetters_ShouldFailValidation()
     {
-        var model = CreateProfile(
-            phoneNumber: "1234ABCD"
-        );
+        var model = CreateProfile(phoneNumber: "1234ABCD");
 
         var results = Validate(model);
 
         Assert.Contains(
             results,
-            result => result.MemberNames.Contains(
-                nameof(ProfileViewModel.PhoneNumber)
-            )
-        );
+            result => result.MemberNames.Contains(nameof(ProfileViewModel.PhoneNumber)));
     }
 
-
-    // ========================================
-    // TEST 6 - TELEFONNUMMER ER VALGFRITT
-    // ========================================
+    // --- Test 6: telefonnummer er valgfritt ---
 
     [Fact]
     public void ProfileWithoutPhone_ShouldPassValidation()
     {
-        var model = CreateProfile(
-            phoneNumber: null
-        );
+        var model = CreateProfile(phoneNumber: null);
 
         var results = Validate(model);
 
         Assert.Empty(results);
     }
 
-
-    // ========================================
-    // TEST 7 - GYLDIGE LANDSKODER OG NUMRE
-    // ========================================
+    // --- Test 7: gyldige landskoder og numre ---
 
     [Theory]
     [InlineData("+47", "12345678")]
     [InlineData("+45", "12345678")]
     [InlineData("+46", "123456789")]
-    public void ValidInternationalPhone_ShouldPassValidation(
-        string countryCode,
-        string phoneNumber
-    )
+    public void ValidInternationalPhone_ShouldPassValidation(string countryCode, string phoneNumber)
     {
-        var model = CreateProfile(
-            countryCode: countryCode,
-            phoneNumber: phoneNumber
-        );
+        var model = CreateProfile(countryCode: countryCode, phoneNumber: phoneNumber);
 
         var results = Validate(model);
 

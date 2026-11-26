@@ -1,3 +1,12 @@
+@*
+    _Layout.cshtml – standardlayouten
+
+    Hva filen gjør: Layouten fra ASP.NET-malen, med meny som viser forskjellige lenker for hver
+    rolle. Brukes av sider som ikke velger en annen layout.
+
+    Oppgavekrav: 12, 18
+*@
+
 @{
     string? userEmail =
         Context.Session.GetString("UserEmail");
@@ -26,7 +35,6 @@
         @ViewData["Title"] - Beredskapsportal
     </title>
 
-
     <!-- Felles design fra recovered 8080-versjonen -->
     <link
         rel="stylesheet"
@@ -44,7 +52,6 @@
     <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
     <script src="~/js/theme.js" asp-append-version="true"></script>
 </head>
-
 
 <body>
 
@@ -87,7 +94,6 @@
 
                 </span>
 
-
                 <span class="site-logo-text">
 
                     <strong>
@@ -101,7 +107,6 @@
                 </span>
 
             </a>
-
 
             <!-- OFFENTLIG NAVIGASJON -->
             @if (!isLoggedIn)
@@ -125,7 +130,6 @@
                 </nav>
             }
 
-
             <!-- INNLOGGET NAVIGASJON -->
             @if (isLoggedIn)
             {
@@ -140,7 +144,6 @@
                         Oversikt
 
                     </a>
-
 
                     @if (userRole == "ResourceProvider")
                     {
@@ -169,7 +172,6 @@
                         </a>
                     }
 
-
                     @if (userRole == "PublicActor")
                     {
                         <a
@@ -180,7 +182,6 @@
 
                         </a>
                     }
-
 
                     <form
                         asp-controller="Account"
@@ -204,19 +205,16 @@
 
     </header>
 
-
     <main>
 
         @RenderBody()
 
     </main>
 
-
     <script
         src="~/js/site.js"
         asp-append-version="true">
     </script>
-
 
     @await RenderSectionAsync(
         "Scripts",

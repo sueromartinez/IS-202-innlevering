@@ -1,3 +1,13 @@
+/*
+    ReportAndCoverageTests.cs – automatiske tester
+
+    Hva filen gjør: Tester situasjonsrapporten, CSV/JSON-eksport, dekning, aktivitetsloggen og
+    sletting/endring av ressurser. Bruker xUnit, en database i minnet (EF Core InMemory) og Moq,
+    så testene kjører raskt uten Docker.
+
+    Oppgavekrav: 6, 15
+*/
+
 using System.Security.Claims;
 using System.Text;
 using FirstWebAppInDocker.Controllers;
@@ -19,18 +29,15 @@ using Xunit;
 
 namespace FirstWebAppInDocker.Tests;
 
-/// <summary>
-/// Tester for dekning, visningshjelpere, rapporter/eksport,
-/// audit-logg og at frivillige kan endre og slette egne ressurser.
-/// </summary>
+/*
+    Tester for dekning, visningshjelpere, rapporter/eksport,
+    audit-logg og at frivillige kan endre og slette egne ressurser.
+*/
 public class ReportAndCoverageTests
 {
     private static readonly DateTime Now = new(2026, 11, 14, 12, 0, 0, DateTimeKind.Utc);
 
-
-    // =========================================================
-    // DEKNING OG FRIST
-    // =========================================================
+    // --- Dekning og frist ---
 
     [Fact]
     public async Task CoverageService_CountsOnlyNearbyAvailableResourcesOfSameType()
@@ -68,10 +75,7 @@ public class ReportAndCoverageTests
         Assert.False(ReportService.IsOverdue(noDeadline, Now));
     }
 
-
-    // =========================================================
-    // VISNINGSHJELPERE
-    // =========================================================
+    // --- Visningshjelpere ---
 
     [Theory]
     [InlineData("Stålveien 9, 4629, KRISTIANSAND S – KRISTIANSAND kommune", "Stålveien 9, 4629, Kristiansand S – Kristiansand kommune")]
@@ -112,10 +116,7 @@ public class ReportAndCoverageTests
         }
     }
 
-
-    // =========================================================
-    // EKSPORT
-    // =========================================================
+    // --- Eksport ---
 
     [Theory]
     [InlineData("Vanlig tekst", "Vanlig tekst")]
@@ -199,10 +200,7 @@ public class ReportAndCoverageTests
         Assert.Equal(new[] { "Bergen", "Kristiansand" }, municipalities);
     }
 
-
-    // =========================================================
-    // SITUASJONSRAPPORT
-    // =========================================================
+    // --- Situasjonsrapport ---
 
     [Fact]
     public async Task SituationReport_FindsGapsAndSummarizesWithoutAi()
@@ -262,10 +260,7 @@ public class ReportAndCoverageTests
         Assert.DoesNotContain(IdentitySeeder.ResourceProviderRole, attribute.Roles);
     }
 
-
-    // =========================================================
-    // AUDIT-LOGG
-    // =========================================================
+    // --- Audit-logg ---
 
     [Fact]
     public async Task AuditService_SavesEntryWithUserAndTruncatesDetails()
@@ -303,10 +298,7 @@ public class ReportAndCoverageTests
         Assert.Empty(await database.AuditLog.ToListAsync());
     }
 
-
-    // =========================================================
-    // ENDRE OG SLETTE EGNE RESSURSER
-    // =========================================================
+    // --- Endre og slette egne ressurser ---
 
     [Fact]
     public async Task DeleteResource_RemovesOwnResourceWithoutHistory()
@@ -390,10 +382,7 @@ public class ReportAndCoverageTests
         Assert.Equal(3, model.AvailabilityMonths);
     }
 
-
-    // =========================================================
-    // HJELPERE
-    // =========================================================
+    // --- Hjelpere ---
 
     private static ApplicationDbContext CreateDatabase()
     {

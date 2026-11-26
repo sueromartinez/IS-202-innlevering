@@ -1,3 +1,16 @@
+/*
+    SamiController.cs – adressen chatten til Sami snakker med
+
+    Hva filen gjør: Chatvinduet (wwwroot/js/sami.js) sender samtalen hit som JSON. Controlleren
+    rydder i det som kom inn, finner ut hvem brukeren er, og sender alt videre til
+    SamiAssistantService. Svaret går tilbake som JSON: tekst, eventuelle forslag til match og
+    utkast til ressurs.
+
+    På nettsiden: Chatboblen nede i hjørnet. Svarene kommer uten at siden lastes på nytt.
+
+    Oppgavekrav: 10, 14, 19, 20
+*/
+
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
 using FirstWebAppInDocker.Services.Ai;
@@ -7,10 +20,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FirstWebAppInDocker.Controllers;
 
-/// <summary>
-/// En melding i chatten slik nettleseren sender den.
-/// Bare tekst fra bruker og Sami; verktøykall skjer kun på serveren.
-/// </summary>
+/*
+    En enkel klasse som bare beskriver hvordan JSON-meldingene ser ut.
+*/
 public class SamiChatMessageDto
 {
     public string Role { get; set; } = "user";
@@ -18,28 +30,34 @@ public class SamiChatMessageDto
     public string Text { get; set; } = string.Empty;
 }
 
-
 public class SamiChatRequestDto
 {
     public List<SamiChatMessageDto> Messages { get; set; } = new();
 }
 
+/*
+    Bare innloggede brukere kan bruke Sami, både fordi hvert kall koster penger og fordi Sami
+    har tilgang til data.
 
-/// <summary>
-/// Endepunktet chat-widgeten snakker med: POST /Sami/Chat.
-///
-/// - Krever innlogging og antiforgery-token (sendes i headeren
-///   RequestVerificationToken fra widgeten).
-/// - Rollen hentes fra Identity, aldri fra nettleseren.
-/// - API-nøkkel og modell finnes bare på serveren.
-/// </summary>
+    Endepunktet chat-widgeten snakker med: POST /Sami/Chat.
+
+    - Krever innlogging og antiforgery-token (sendes i headeren
+      RequestVerificationToken fra widgeten).
+    - Rollen hentes fra Identity, aldri fra nettleseren.
+    - API-nøkkel og modell finnes bare på serveren.
+*/
 [Authorize]
 public class SamiController : Controller
 {
+    #region Felt og konstruktør
+
+    /*
+        Grenser: maks 20 meldinger og 2000 tegn per melding. Holder kostnadene nede og hindrer
+        misbruk.
+    */
     private const int MaxMessages = 20;
 
     private const int MaxMessageLength = 2000;
-
 
     private readonly SamiAssistantService _sami;
 
@@ -47,28 +65,34 @@ public class SamiController : Controller
 
     private readonly ILogger<SamiController> _logger;
 
-
     public SamiController(
         SamiAssistantService sami,
         UserManager<ApplicationUser> userManager,
-        ILogger<SamiController> logger
-    )
+        ILogger<SamiController> logger)
     {
         _sami = sami;
         _userManager = userManager;
         _logger = logger;
     }
 
+    #endregion
 
+    #region Chat
+
+    /*
+        POST /Sami/Chat
+        Også chatten sender med sikkerhetskoden mot CSRF (i en header fra sami.js).
+    */
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Chat(
         [FromBody] SamiChatRequestDto request,
-        CancellationToken cancellationToken
-    )
+        CancellationToken cancellationToken)
     {
-        // Bare de siste meldingene sendes til modellen,
-        // slik at lange samtaler ikke blir trege eller dyre.
+        /*
+            Bare de siste meldingene sendes til modellen,
+            slik at lange samtaler ikke blir trege eller dyre.
+        */
         List<SamiChatMessageDto> recent =
             (request.Messages ?? new List<SamiChatMessageDto>())
                 .Where(message => !string.IsNullOrWhiteSpace(message.Text))
@@ -104,7 +128,12 @@ public class SamiController : Controller
             return Unauthorized();
         }
 
-        var context = new SamiContext
+        /*
+            Forteller Sami hvem som spør og hvilken rolle hen har. Rollen bestemmer hvilke
+            verktøy Sami får bruke. Rollen kommer fra serveren, aldri fra det brukeren skriver,
+            så man kan ikke lure Sami til å tro at man er admin.
+        */
+        SamiContext context = new SamiContext
         {
             UserId = user.Id,
             UserName = string.IsNullOrWhiteSpace(user.Name) ? "bruker" : user.Name,
@@ -116,6 +145,7 @@ public class SamiController : Controller
 
         try
         {
+            // Selve AI-kallet (se Services/Ai/SamiAssistantService.cs).
             SamiReply reply = await _sami.RunAsync(context, history, cancellationToken);
 
             return Json(new
@@ -131,8 +161,10 @@ public class SamiController : Controller
                     distanceKm = suggestion.DistanceKm,
                     reason = suggestion.Reason
                 }),
-                // Utkast til ressurs. Feltnavnene er de samme som i registreringsskjemaet,
-                // så widgeten kan sende dem rett til /Resource/RegisterResource.
+                /*
+                    Utkast til ressurs. Feltnavnene er de samme som i registreringsskjemaet,
+                    så widgeten kan sende dem rett til /Resource/RegisterResource.
+                */
                 resourceDrafts = reply.ResourceDrafts.Select(draft => new
                 {
                     fields = new Dictionary<string, string?>
@@ -168,6 +200,10 @@ public class SamiController : Controller
                 })
             });
         }
+        /*
+            Er AI-tjenesten nede, får brukeren en vennlig melding. Resten av portalen virker som
+            vanlig.
+        */
         catch (ChatModelUnavailableException exception)
         {
             _logger.LogWarning(exception, "Sami er ikke tilgjengelig");
@@ -185,8 +221,10 @@ public class SamiController : Controller
         }
         catch (Exception exception)
         {
-            // Uventet feil (f.eks. et svar fra modellen vi ikke forstod).
-            // Svarer med JSON, slik at widgeten kan vise en forståelig melding.
+            /*
+                Uventet feil (f.eks. et svar fra modellen vi ikke forstod).
+                Svarer med JSON, slik at widgeten kan vise en forståelig melding.
+            */
             _logger.LogError(exception, "Uventet feil i Sami");
 
             return StatusCode(500, new
@@ -195,4 +233,6 @@ public class SamiController : Controller
             });
         }
     }
+
+    #endregion
 }

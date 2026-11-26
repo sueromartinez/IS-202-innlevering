@@ -1,3 +1,11 @@
+/*
+    app.css – utseende
+
+    Hva filen gjør: Stilark. @media-reglene tilpasser siden til mobil.
+
+    Oppgavekrav: 12
+*/
+
 :root {
     --navy: #123047;
     --navy-dark: #0d2639;
@@ -20,10 +28,7 @@
     --obstacle: #59636e;
 }
 
-
-/* -----------------------
-   BASE
------------------------ */
+/* --- Grunnoppsett --- */
 
 * {
     box-sizing: border-box;
@@ -48,10 +53,7 @@ body {
     background: var(--background);
 }
 
-
-/* -----------------------
-   HEADER
------------------------ */
+/* --- Topp --- */
 
 .app-header {
     min-height: 72px;
@@ -80,7 +82,6 @@ body {
         1px solid var(--border);
 }
 
-
 .app-brand {
     width: max-content;
 
@@ -93,7 +94,6 @@ body {
 
     text-decoration: none;
 }
-
 
 .app-brand-icon {
     width: 40px;
@@ -110,19 +110,16 @@ body {
         rgba(23, 107, 135, 0.08);
 }
 
-
 .app-brand-icon svg {
     width: 23px;
     height: 23px;
 }
-
 
 .app-brand strong {
     display: block;
 
     font-size: 0.9rem;
 }
-
 
 .app-brand span {
     display: block;
@@ -139,17 +136,13 @@ body {
     text-transform: uppercase;
 }
 
-
-/* -----------------------
-   NAVIGATION
------------------------ */
+/* --- Navigasjon --- */
 
 .app-navigation {
     display: flex;
 
     gap: 5px;
 }
-
 
 .app-navigation a {
     padding:
@@ -165,7 +158,6 @@ body {
     font-weight: 650;
 }
 
-
 .app-navigation a:hover {
     color: var(--link);
 
@@ -173,10 +165,7 @@ body {
         rgba(23, 107, 135, 0.07);
 }
 
-
-/* -----------------------
-   LOGOUT
------------------------ */
+/* --- Utlogging --- */
 
 .app-logout {
     justify-self: end;
@@ -199,15 +188,11 @@ body {
     font-weight: 700;
 }
 
-
 .app-logout:hover {
     background: var(--surface-soft);
 }
 
-
-/* -----------------------
-   MAIN
------------------------ */
+/* --- Hovedinnhold --- */
 
 .app-main {
     width:
@@ -222,10 +207,7 @@ body {
         35px 0 70px;
 }
 
-
-/* -----------------------
-   PAGE HEADINGS
------------------------ */
+/* --- Sideoverskrifter --- */
 
 .page-eyebrow {
     display: block;
@@ -242,7 +224,6 @@ body {
     text-transform: uppercase;
 }
 
-
 .page-heading {
     margin:
         0 0 7px;
@@ -253,7 +234,6 @@ body {
     letter-spacing: -0.035em;
 }
 
-
 .page-description {
     margin: 0;
 
@@ -262,10 +242,7 @@ body {
     line-height: 1.6;
 }
 
-
-/* -----------------------
-   BUTTON
------------------------ */
+/* --- Knapp --- */
 
 .primary-action {
     min-height: 46px;
@@ -295,15 +272,11 @@ body {
     text-decoration: none;
 }
 
-
 .primary-action:hover {
     background: var(--primary-dark);
 }
 
-
-/* -----------------------
-   CARDS
------------------------ */
+/* --- Kort --- */
 
 .app-card {
     overflow: hidden;
@@ -320,10 +293,7 @@ body {
         rgba(16, 24, 40, 0.045);
 }
 
-
-/* -----------------------
-   RESPONSIVE
------------------------ */
+/* --- Responsivt --- */
 
 @media (max-width: 800px) {
 
@@ -335,11 +305,9 @@ body {
             12px 16px;
     }
 
-
     .app-navigation {
         display: none;
     }
-
 
     .app-main {
         width:
@@ -348,7 +316,6 @@ body {
         padding:
             24px 0 50px;
     }
-
 
     .app-brand span {
         display: none;

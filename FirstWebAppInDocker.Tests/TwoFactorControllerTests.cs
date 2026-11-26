@@ -1,3 +1,11 @@
+/*
+    TwoFactorControllerTests.cs – automatiske tester
+
+    Hva filen gjør: Tester tofaktor-innloggingen (koder, låsing, gjentatte utsendinger). Bruker
+    xUnit, en database i minnet (EF Core InMemory) og Moq, så testene kjører raskt uten Docker.
+
+    Oppgavekrav: 6, 15
+*/
 
 using System.Reflection;
 using FirstWebAppInDocker.Controllers;
@@ -16,16 +24,13 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
-using IdentitySignInResult =
-    Microsoft.AspNetCore.Identity.SignInResult;
+using IdentitySignInResult = Microsoft.AspNetCore.Identity.SignInResult;
 
 namespace FirstWebAppInDocker.Tests;
 
 public class TwoFactorControllerTests
 {
-    // ========================================
-    // HJELPER - TESTSESSION
-    // ========================================
+    // --- Hjelper: testsession ---
 
     private sealed class TestSession : ISession
     {
@@ -42,14 +47,12 @@ public class TwoFactorControllerTests
             _values.Clear();
         }
 
-        public Task CommitAsync(
-            CancellationToken cancellationToken = default)
+        public Task CommitAsync(CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
         }
 
-        public Task LoadAsync(
-            CancellationToken cancellationToken = default)
+        public Task LoadAsync(CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
         }
@@ -64,17 +67,13 @@ public class TwoFactorControllerTests
             _values[key] = value;
         }
 
-        public bool TryGetValue(
-            string key,
-            out byte[] value)
+        public bool TryGetValue(string key, out byte[] value)
         {
             return _values.TryGetValue(key, out value!);
         }
     }
 
-    // ========================================
-    // HJELPER - TESTMILJØ
-    // ========================================
+    // --- Hjelper: testmiljø ---
 
     private sealed class TestEnvironment
     {
@@ -90,8 +89,7 @@ public class TwoFactorControllerTests
 
         public TestEnvironment()
         {
-            var store =
-                new Mock<IUserStore<ApplicationUser>>();
+            var store = new Mock<IUserStore<ApplicationUser>>();
 
             Users = new Mock<UserManager<ApplicationUser>>(
                 store.Object,
@@ -102,8 +100,7 @@ public class TwoFactorControllerTests
                 null!,
                 null!,
                 null!,
-                null!
-            );
+                null!);
 
             HttpContext = new DefaultHttpContext
             {
@@ -121,8 +118,7 @@ public class TwoFactorControllerTests
                 Options.Create(new IdentityOptions()),
                 NullLogger<SignInManager<ApplicationUser>>.Instance,
                 Mock.Of<IAuthenticationSchemeProvider>(),
-                Mock.Of<IUserConfirmation<ApplicationUser>>()
-            );
+                Mock.Of<IUserConfirmation<ApplicationUser>>());
 
             Emails = new Mock<IEmailCodeSender>();
 
@@ -130,8 +126,7 @@ public class TwoFactorControllerTests
                 Users.Object,
                 SignIn.Object,
                 Emails.Object,
-                NullLogger<TwoFactorController>.Instance
-            )
+                NullLogger<TwoFactorController>.Instance)
             {
                 ControllerContext = new ControllerContext
                 {
@@ -143,8 +138,10 @@ public class TwoFactorControllerTests
             };
         }
 
-        // Brukeren som har skrevet riktig passord,
-        // og nå venter på tofaktor.
+        /*
+            Brukeren som har skrevet riktig passord,
+            og nå venter på tofaktor.
+        */
 
         public void SetPendingUser(ApplicationUser user)
         {
@@ -153,37 +150,30 @@ public class TwoFactorControllerTests
             ).ReturnsAsync(user);
         }
 
-        // Klargjør Identity og e-posttjenesten
-        // for en vellykket utsending.
+        /*
+            Klargjør Identity og e-posttjenesten
+            for en vellykket utsending.
+        */
 
         public void AllowEmailCode(ApplicationUser user)
         {
-            Users.Setup(manager =>
-                manager.GetEmailAsync(user)
-            ).ReturnsAsync(user.Email);
+            Users.Setup(manager => manager.GetEmailAsync(user)).ReturnsAsync(user.Email);
+
+            Users.Setup(manager => manager.IsEmailConfirmedAsync(user)).ReturnsAsync(true);
 
             Users.Setup(manager =>
-                manager.IsEmailConfirmedAsync(user)
-            ).ReturnsAsync(true);
-
-            Users.Setup(manager =>
-                manager.GenerateTwoFactorTokenAsync(
-                    user,
-                    TokenOptions.DefaultEmailProvider
-                )
+                manager.GenerateTwoFactorTokenAsync(user, TokenOptions.DefaultEmailProvider)
             ).ReturnsAsync("123456");
 
             Emails.Setup(sender =>
-                sender.SendCodeAsync(
-                    user.Email!,
-                    "123456",
-                    It.IsAny<CancellationToken>()
-                )
+                sender.SendCodeAsync(user.Email!, "123456", It.IsAny<CancellationToken>())
             ).Returns(Task.CompletedTask);
         }
 
-        // Gjør det mulig å opprette vanlig
-        // Session etter godkjent tofaktor.
+        /*
+            Gjør det mulig å opprette vanlig
+            Session etter godkjent tofaktor.
+        */
 
         public void AllowLegacySession(ApplicationUser user)
         {
@@ -192,15 +182,11 @@ public class TwoFactorControllerTests
                 IdentitySeeder.ResourceProviderRole
             };
 
-            Users.Setup(manager =>
-                manager.GetRolesAsync(user)
-            ).ReturnsAsync(roles);
+            Users.Setup(manager => manager.GetRolesAsync(user)).ReturnsAsync(roles);
         }
     }
 
-    // ========================================
-    // HJELPER - TESTBRUKER
-    // ========================================
+    // --- Hjelper: testbruker ---
 
     private static ApplicationUser CreateUser()
     {
@@ -217,12 +203,9 @@ public class TwoFactorControllerTests
         };
     }
 
-    // ========================================
-    // HJELPER - LOGIN MODEL
-    // ========================================
+    // --- Hjelper: innloggingsmodell ---
 
-    private static TwoFactorLoginViewModel CreateLoginModel(
-        string code = "123456")
+    private static TwoFactorLoginViewModel CreateLoginModel(string code = "123456")
     {
         return new TwoFactorLoginViewModel
         {
@@ -230,10 +213,10 @@ public class TwoFactorControllerTests
         };
     }
 
-    // ========================================
-    // TEST 1
-    // INGEN VENTENDE TOFAKTORBRUKER
-    // ========================================
+    /*
+        TEST 1
+        INGEN VENTENDE TOFAKTORBRUKER
+    */
 
     [Fact]
     public async Task LoginGet_WithoutPendingUser_ShouldRedirect()
@@ -246,8 +229,7 @@ public class TwoFactorControllerTests
 
         var result = await env.Controller.Login();
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
         Assert.Equal("Index", redirect.ActionName);
         Assert.Equal("Home", redirect.ControllerName);
@@ -256,16 +238,14 @@ public class TwoFactorControllerTests
             sender.SendCodeAsync(
                 It.IsAny<string>(),
                 It.IsAny<string>(),
-                It.IsAny<CancellationToken>()
-            ),
-            Times.Never
-        );
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
-    // ========================================
-    // TEST 2
-    // KODE SENDES AUTOMATISK
-    // ========================================
+    /*
+        TEST 2
+        KODE SENDES AUTOMATISK
+    */
 
     [Fact]
     public async Task LoginGet_ConfirmedEmail_ShouldSendCode()
@@ -285,50 +265,30 @@ public class TwoFactorControllerTests
         // Identity skal generere e-postkode.
 
         env.Users.Verify(manager =>
-            manager.GenerateTwoFactorTokenAsync(
-                user,
-                TokenOptions.DefaultEmailProvider
-            ),
-            Times.Once
-        );
+            manager.GenerateTwoFactorTokenAsync(user, TokenOptions.DefaultEmailProvider),
+            Times.Once);
 
         // Koden sendes til brukerens e-post.
 
         env.Emails.Verify(sender =>
-            sender.SendCodeAsync(
-                "ola@example.com",
-                "123456",
-                It.IsAny<CancellationToken>()
-            ),
-            Times.Once
-        );
+            sender.SendCodeAsync("ola@example.com", "123456", It.IsAny<CancellationToken>()),
+            Times.Once);
 
         // Registrer at koden er sendt.
 
-        Assert.Equal(
-            user.Id,
-            env.HttpContext.Session.GetString(
-                "TwoFactorEmailSentToUser"
-            )
-        );
+        Assert.Equal(user.Id, env.HttpContext.Session.GetString("TwoFactorEmailSentToUser"));
 
-        Assert.NotNull(
-            env.HttpContext.Session.GetString(
-                "TwoFactorEmailLastSentUtc"
-            )
-        );
+        Assert.NotNull(env.HttpContext.Session.GetString("TwoFactorEmailLastSentUtc"));
 
         // Vanlig innlogging er ikke fullført.
 
-        Assert.Null(
-            env.HttpContext.Session.GetString("UserEmail")
-        );
+        Assert.Null(env.HttpContext.Session.GetString("UserEmail"));
     }
 
-    // ========================================
-    // TEST 3
-    // OPPDATERING AV SIDEN SENDER IKKE NY KODE
-    // ========================================
+    /*
+        TEST 3
+        OPPDATERING AV SIDEN SENDER IKKE NY KODE
+    */
 
     [Fact]
     public async Task LoginGet_AlreadySent_ShouldNotSendAgain()
@@ -341,37 +301,28 @@ public class TwoFactorControllerTests
 
         // Samme bruker har allerede fått kode.
 
-        env.HttpContext.Session.SetString(
-            "TwoFactorEmailSentToUser",
-            user.Id
-        );
+        env.HttpContext.Session.SetString("TwoFactorEmailSentToUser", user.Id);
 
         var result = await env.Controller.Login();
 
         Assert.IsType<ViewResult>(result);
 
         env.Users.Verify(manager =>
-            manager.GenerateTwoFactorTokenAsync(
-                It.IsAny<ApplicationUser>(),
-                It.IsAny<string>()
-            ),
-            Times.Never
-        );
+            manager.GenerateTwoFactorTokenAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()),
+            Times.Never);
 
         env.Emails.Verify(sender =>
             sender.SendCodeAsync(
                 It.IsAny<string>(),
                 It.IsAny<string>(),
-                It.IsAny<CancellationToken>()
-            ),
-            Times.Never
-        );
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
-    // ========================================
-    // TEST 4
-    // UBEKREFTET E-POST FÅR IKKE KODE
-    // ========================================
+    /*
+        TEST 4
+        UBEKREFTET E-POST FÅR IKKE KODE
+    */
 
     [Fact]
     public async Task LoginGet_UnconfirmedEmail_ShouldNotSend()
@@ -383,13 +334,9 @@ public class TwoFactorControllerTests
 
         env.SetPendingUser(user);
 
-        env.Users.Setup(manager =>
-            manager.GetEmailAsync(user)
-        ).ReturnsAsync(user.Email);
+        env.Users.Setup(manager => manager.GetEmailAsync(user)).ReturnsAsync(user.Email);
 
-        env.Users.Setup(manager =>
-            manager.IsEmailConfirmedAsync(user)
-        ).ReturnsAsync(false);
+        env.Users.Setup(manager => manager.IsEmailConfirmedAsync(user)).ReturnsAsync(false);
 
         var result = await env.Controller.Login();
 
@@ -398,27 +345,21 @@ public class TwoFactorControllerTests
         Assert.False(env.Controller.ModelState.IsValid);
 
         env.Users.Verify(manager =>
-            manager.GenerateTwoFactorTokenAsync(
-                It.IsAny<ApplicationUser>(),
-                It.IsAny<string>()
-            ),
-            Times.Never
-        );
+            manager.GenerateTwoFactorTokenAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()),
+            Times.Never);
 
         env.Emails.Verify(sender =>
             sender.SendCodeAsync(
                 It.IsAny<string>(),
                 It.IsAny<string>(),
-                It.IsAny<CancellationToken>()
-            ),
-            Times.Never
-        );
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
-    // ========================================
-    // TEST 5
-    // MANGLENDE E-POSTADRESSE
-    // ========================================
+    /*
+        TEST 5
+        MANGLENDE E-POSTADRESSE
+    */
 
     [Fact]
     public async Task LoginGet_MissingEmail_ShouldNotSend()
@@ -428,9 +369,7 @@ public class TwoFactorControllerTests
 
         env.SetPendingUser(user);
 
-        env.Users.Setup(manager =>
-            manager.GetEmailAsync(user)
-        ).ReturnsAsync((string?)null);
+        env.Users.Setup(manager => manager.GetEmailAsync(user)).ReturnsAsync((string?)null);
 
         var result = await env.Controller.Login();
 
@@ -442,16 +381,14 @@ public class TwoFactorControllerTests
             sender.SendCodeAsync(
                 It.IsAny<string>(),
                 It.IsAny<string>(),
-                It.IsAny<CancellationToken>()
-            ),
-            Times.Never
-        );
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
-    // ========================================
-    // TEST 6
-    // KODEGENERERING MISLYKKES
-    // ========================================
+    /*
+        TEST 6
+        KODEGENERERING MISLYKKES
+    */
 
     [Fact]
     public async Task LoginGet_NoGeneratedCode_ShouldNotSend()
@@ -463,10 +400,7 @@ public class TwoFactorControllerTests
         env.AllowEmailCode(user);
 
         env.Users.Setup(manager =>
-            manager.GenerateTwoFactorTokenAsync(
-                user,
-                TokenOptions.DefaultEmailProvider
-            )
+            manager.GenerateTwoFactorTokenAsync(user, TokenOptions.DefaultEmailProvider)
         ).ReturnsAsync(string.Empty);
 
         var result = await env.Controller.Login();
@@ -479,22 +413,16 @@ public class TwoFactorControllerTests
             sender.SendCodeAsync(
                 It.IsAny<string>(),
                 It.IsAny<string>(),
-                It.IsAny<CancellationToken>()
-            ),
-            Times.Never
-        );
+                It.IsAny<CancellationToken>()),
+            Times.Never);
 
-        Assert.Null(
-            env.HttpContext.Session.GetString(
-                "TwoFactorEmailSentToUser"
-            )
-        );
+        Assert.Null(env.HttpContext.Session.GetString("TwoFactorEmailSentToUser"));
     }
 
-    // ========================================
-    // TEST 7
-    // SMTP-FEIL HÅNDTERES
-    // ========================================
+    /*
+        TEST 7
+        SMTP-FEIL HÅNDTERES
+    */
 
     [Fact]
     public async Task LoginGet_EmailSendFails_ShouldShowError()
@@ -508,16 +436,8 @@ public class TwoFactorControllerTests
         // Simuler SMTP-feil.
 
         env.Emails.Setup(sender =>
-            sender.SendCodeAsync(
-                "ola@example.com",
-                "123456",
-                It.IsAny<CancellationToken>()
-            )
-        ).ThrowsAsync(
-            new InvalidOperationException(
-                "SMTP unavailable"
-            )
-        );
+            sender.SendCodeAsync("ola@example.com", "123456", It.IsAny<CancellationToken>())
+        ).ThrowsAsync(new InvalidOperationException("SMTP unavailable"));
 
         var result = await env.Controller.Login();
 
@@ -527,21 +447,15 @@ public class TwoFactorControllerTests
 
         // Ikke registrer en mislykket utsending.
 
-        Assert.Null(
-            env.HttpContext.Session.GetString(
-                "TwoFactorEmailSentToUser"
-            )
-        );
+        Assert.Null(env.HttpContext.Session.GetString("TwoFactorEmailSentToUser"));
 
-        Assert.Null(
-            env.HttpContext.Session.GetString("UserEmail")
-        );
+        Assert.Null(env.HttpContext.Session.GetString("UserEmail"));
     }
 
-    // ========================================
-    // TEST 8
-    // POST UTEN VENTENDE BRUKER
-    // ========================================
+    /*
+        TEST 8
+        POST UTEN VENTENDE BRUKER
+    */
 
     [Fact]
     public async Task LoginPost_WithoutPendingUser_ShouldRedirect()
@@ -552,12 +466,9 @@ public class TwoFactorControllerTests
             manager.GetTwoFactorAuthenticationUserAsync()
         ).ReturnsAsync((ApplicationUser?)null);
 
-        var result = await env.Controller.Login(
-            CreateLoginModel()
-        );
+        var result = await env.Controller.Login(CreateLoginModel());
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
         Assert.Equal("Index", redirect.ActionName);
         Assert.Equal("Home", redirect.ControllerName);
@@ -567,16 +478,14 @@ public class TwoFactorControllerTests
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<bool>(),
-                It.IsAny<bool>()
-            ),
-            Times.Never
-        );
+                It.IsAny<bool>()),
+            Times.Never);
     }
 
-    // ========================================
-    // TEST 9
-    // UGYLDIG MODELL AVVISES
-    // ========================================
+    /*
+        TEST 9
+        UGYLDIG MODELL AVVISES
+    */
 
     [Fact]
     public async Task LoginPost_InvalidModel_ShouldNotVerify()
@@ -588,12 +497,9 @@ public class TwoFactorControllerTests
 
         env.Controller.ModelState.AddModelError(
             nameof(TwoFactorLoginViewModel.Code),
-            "Koden må inneholde seks sifre."
-        );
+            "Koden må inneholde seks sifre.");
 
-        var result = await env.Controller.Login(
-            CreateLoginModel("123")
-        );
+        var result = await env.Controller.Login(CreateLoginModel("123"));
 
         Assert.IsType<ViewResult>(result);
 
@@ -602,18 +508,16 @@ public class TwoFactorControllerTests
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<bool>(),
-                It.IsAny<bool>()
-            ),
-            Times.Never
-        );
+                It.IsAny<bool>()),
+            Times.Never);
 
         Assert.Empty(env.HttpContext.Session.Keys);
     }
 
-    // ========================================
-    // TEST 10
-    // UBEKREFTET E-POST KAN IKKE VERIFISERES
-    // ========================================
+    /*
+        TEST 10
+        UBEKREFTET E-POST KAN IKKE VERIFISERES
+    */
 
     [Fact]
     public async Task LoginPost_UnconfirmedEmail_ShouldNotSignIn()
@@ -623,13 +527,9 @@ public class TwoFactorControllerTests
 
         env.SetPendingUser(user);
 
-        env.Users.Setup(manager =>
-            manager.IsEmailConfirmedAsync(user)
-        ).ReturnsAsync(false);
+        env.Users.Setup(manager => manager.IsEmailConfirmedAsync(user)).ReturnsAsync(false);
 
-        var result = await env.Controller.Login(
-            CreateLoginModel()
-        );
+        var result = await env.Controller.Login(CreateLoginModel());
 
         Assert.IsType<ViewResult>(result);
 
@@ -640,20 +540,16 @@ public class TwoFactorControllerTests
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 It.IsAny<bool>(),
-                It.IsAny<bool>()
-            ),
-            Times.Never
-        );
+                It.IsAny<bool>()),
+            Times.Never);
 
-        Assert.Null(
-            env.HttpContext.Session.GetString("UserEmail")
-        );
+        Assert.Null(env.HttpContext.Session.GetString("UserEmail"));
     }
 
-    // ========================================
-    // TEST 11
-    // FEIL E-POSTKODE GIR IKKE INNLOGGING
-    // ========================================
+    /*
+        TEST 11
+        FEIL E-POSTKODE GIR IKKE INNLOGGING
+    */
 
     [Fact]
     public async Task LoginPost_WrongCode_ShouldNotCreateSession()
@@ -663,47 +559,30 @@ public class TwoFactorControllerTests
 
         env.SetPendingUser(user);
 
-        env.Users.Setup(manager =>
-            manager.IsEmailConfirmedAsync(user)
-        ).ReturnsAsync(true);
+        env.Users.Setup(manager => manager.IsEmailConfirmedAsync(user)).ReturnsAsync(true);
 
         env.SignIn.Setup(manager =>
-            manager.TwoFactorSignInAsync(
-                TokenOptions.DefaultEmailProvider,
-                "123456",
-                false,
-                false
-            )
+            manager.TwoFactorSignInAsync(TokenOptions.DefaultEmailProvider, "123456", false, false)
         ).ReturnsAsync(IdentitySignInResult.Failed);
 
-        var result = await env.Controller.Login(
-            CreateLoginModel()
-        );
+        var result = await env.Controller.Login(CreateLoginModel());
 
         Assert.IsType<ViewResult>(result);
 
         Assert.False(env.Controller.ModelState.IsValid);
 
-        Assert.Null(
-            env.HttpContext.Session.GetString("UserEmail")
-        );
+        Assert.Null(env.HttpContext.Session.GetString("UserEmail"));
 
-        Assert.Null(
-            env.HttpContext.Session.GetString("UserRole")
-        );
+        Assert.Null(env.HttpContext.Session.GetString("UserRole"));
 
-        env.Users.Verify(manager =>
-            manager.GetRolesAsync(
-                It.IsAny<ApplicationUser>()
-            ),
-            Times.Never
-        );
+        env.Users.Verify(manager => manager.GetRolesAsync(It.IsAny<ApplicationUser>()),
+            Times.Never);
     }
 
-    // ========================================
-    // TEST 12
-    // LÅST KONTO GIR IKKE INNLOGGING
-    // ========================================
+    /*
+        TEST 12
+        LÅST KONTO GIR IKKE INNLOGGING
+    */
 
     [Fact]
     public async Task LoginPost_LockedOut_ShouldNotCreateSession()
@@ -713,22 +592,13 @@ public class TwoFactorControllerTests
 
         env.SetPendingUser(user);
 
-        env.Users.Setup(manager =>
-            manager.IsEmailConfirmedAsync(user)
-        ).ReturnsAsync(true);
+        env.Users.Setup(manager => manager.IsEmailConfirmedAsync(user)).ReturnsAsync(true);
 
         env.SignIn.Setup(manager =>
-            manager.TwoFactorSignInAsync(
-                TokenOptions.DefaultEmailProvider,
-                "123456",
-                false,
-                false
-            )
+            manager.TwoFactorSignInAsync(TokenOptions.DefaultEmailProvider, "123456", false, false)
         ).ReturnsAsync(IdentitySignInResult.LockedOut);
 
-        var result = await env.Controller.Login(
-            CreateLoginModel()
-        );
+        var result = await env.Controller.Login(CreateLoginModel());
 
         Assert.IsType<ViewResult>(result);
 
@@ -737,10 +607,10 @@ public class TwoFactorControllerTests
         Assert.Empty(env.HttpContext.Session.Keys);
     }
 
-    // ========================================
-    // TEST 13
-    // RIKTIG E-POSTKODE GIR INNLOGGING
-    // ========================================
+    /*
+        TEST 13
+        RIKTIG E-POSTKODE GIR INNLOGGING
+    */
 
     [Fact]
     public async Task LoginPost_ValidCode_ShouldCreateSession()
@@ -751,64 +621,43 @@ public class TwoFactorControllerTests
         env.SetPendingUser(user);
         env.AllowLegacySession(user);
 
-        env.Users.Setup(manager =>
-            manager.IsEmailConfirmedAsync(user)
-        ).ReturnsAsync(true);
+        env.Users.Setup(manager => manager.IsEmailConfirmedAsync(user)).ReturnsAsync(true);
 
         env.SignIn.Setup(manager =>
-            manager.TwoFactorSignInAsync(
-                TokenOptions.DefaultEmailProvider,
-                "123456",
-                false,
-                false
-            )
+            manager.TwoFactorSignInAsync(TokenOptions.DefaultEmailProvider, "123456", false, false)
         ).ReturnsAsync(IdentitySignInResult.Success);
 
-        // Kontroller også at mellomrom rundt
-        // innsendt kode blir fjernet.
+        /*
+            Kontroller også at mellomrom rundt
+            innsendt kode blir fjernet.
+        */
 
-        var result = await env.Controller.Login(
-            CreateLoginModel(" 123456 ")
-        );
+        var result = await env.Controller.Login(CreateLoginModel(" 123456 "));
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
         Assert.Equal("Dashboard", redirect.ActionName);
         Assert.Equal("Home", redirect.ControllerName);
 
         // Innlogging er nå fullført.
 
-        Assert.Equal(
-            user.Email,
-            env.HttpContext.Session.GetString("UserEmail")
-        );
+        Assert.Equal(user.Email, env.HttpContext.Session.GetString("UserEmail"));
 
-        Assert.Equal(
-            user.Name,
-            env.HttpContext.Session.GetString("UserName")
-        );
+        Assert.Equal(user.Name, env.HttpContext.Session.GetString("UserName"));
 
         Assert.Equal(
             IdentitySeeder.ResourceProviderRole,
-            env.HttpContext.Session.GetString("UserRole")
-        );
+            env.HttpContext.Session.GetString("UserRole"));
 
         env.SignIn.Verify(manager =>
-            manager.TwoFactorSignInAsync(
-                TokenOptions.DefaultEmailProvider,
-                "123456",
-                false,
-                false
-            ),
-            Times.Once
-        );
+            manager.TwoFactorSignInAsync(TokenOptions.DefaultEmailProvider, "123456", false, false),
+            Times.Once);
     }
 
-    // ========================================
-    // TEST 14
-    // SEND NY KODE UTEN VENTENDE BRUKER
-    // ========================================
+    /*
+        TEST 14
+        SEND NY KODE UTEN VENTENDE BRUKER
+    */
 
     [Fact]
     public async Task ResendCode_WithoutPendingUser_ShouldRedirect()
@@ -821,8 +670,7 @@ public class TwoFactorControllerTests
 
         var result = await env.Controller.ResendCode();
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
         Assert.Equal("Index", redirect.ActionName);
         Assert.Equal("Home", redirect.ControllerName);
@@ -831,16 +679,14 @@ public class TwoFactorControllerTests
             sender.SendCodeAsync(
                 It.IsAny<string>(),
                 It.IsAny<string>(),
-                It.IsAny<CancellationToken>()
-            ),
-            Times.Never
-        );
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
-    // ========================================
-    // TEST 15
-    // VENTETID HINDRER FOR HYPPIG UTSENDING
-    // ========================================
+    /*
+        TEST 15
+        VENTETID HINDRER FOR HYPPIG UTSENDING
+    */
 
     [Fact]
     public async Task ResendCode_WithinCooldown_ShouldNotSend()
@@ -851,17 +697,13 @@ public class TwoFactorControllerTests
         env.SetPendingUser(user);
         env.AllowEmailCode(user);
 
-        env.HttpContext.Session.SetString(
-            "TwoFactorEmailSentToUser",
-            user.Id
-        );
+        env.HttpContext.Session.SetString("TwoFactorEmailSentToUser", user.Id);
 
         env.HttpContext.Session.SetString(
             "TwoFactorEmailLastSentUtc",
             DateTimeOffset.UtcNow
                 .ToUnixTimeSeconds()
-                .ToString()
-        );
+                .ToString());
 
         var result = await env.Controller.ResendCode();
 
@@ -874,12 +716,8 @@ public class TwoFactorControllerTests
         // Ingen ny kode skal genereres.
 
         env.Users.Verify(manager =>
-            manager.GenerateTwoFactorTokenAsync(
-                It.IsAny<ApplicationUser>(),
-                It.IsAny<string>()
-            ),
-            Times.Never
-        );
+            manager.GenerateTwoFactorTokenAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()),
+            Times.Never);
 
         // Ingen ny e-post skal sendes.
 
@@ -887,16 +725,14 @@ public class TwoFactorControllerTests
             sender.SendCodeAsync(
                 It.IsAny<string>(),
                 It.IsAny<string>(),
-                It.IsAny<CancellationToken>()
-            ),
-            Times.Never
-        );
+                It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
-    // ========================================
-    // TEST 16
-    // KODE KAN SENDES ETTER VENTETID
-    // ========================================
+    /*
+        TEST 16
+        KODE KAN SENDES ETTER VENTETID
+    */
 
     [Fact]
     public async Task ResendCode_AfterCooldown_ShouldSend()
@@ -907,65 +743,46 @@ public class TwoFactorControllerTests
         env.SetPendingUser(user);
         env.AllowEmailCode(user);
 
-        // Simuler at forrige kode ble
-        // sendt mer enn 60 sekunder siden.
+        /*
+            Simuler at forrige kode ble
+            sendt mer enn 60 sekunder siden.
+        */
 
         long previousSendTime =
             DateTimeOffset.UtcNow
                 .ToUnixTimeSeconds() - 120;
 
-        env.HttpContext.Session.SetString(
-            "TwoFactorEmailSentToUser",
-            user.Id
-        );
+        env.HttpContext.Session.SetString("TwoFactorEmailSentToUser", user.Id);
 
-        env.HttpContext.Session.SetString(
-            "TwoFactorEmailLastSentUtc",
-            previousSendTime.ToString()
-        );
+        env.HttpContext.Session.SetString("TwoFactorEmailLastSentUtc", previousSendTime.ToString());
 
         var result = await env.Controller.ResendCode();
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
         Assert.Equal("Login", redirect.ActionName);
 
         env.Users.Verify(manager =>
-            manager.GenerateTwoFactorTokenAsync(
-                user,
-                TokenOptions.DefaultEmailProvider
-            ),
-            Times.Once
-        );
+            manager.GenerateTwoFactorTokenAsync(user, TokenOptions.DefaultEmailProvider),
+            Times.Once);
 
         env.Emails.Verify(sender =>
-            sender.SendCodeAsync(
-                "ola@example.com",
-                "123456",
-                It.IsAny<CancellationToken>()
-            ),
-            Times.Once
-        );
+            sender.SendCodeAsync("ola@example.com", "123456", It.IsAny<CancellationToken>()),
+            Times.Once);
 
         // Tidspunktet skal være oppdatert.
 
-        string? newTime =
-            env.HttpContext.Session.GetString(
-                "TwoFactorEmailLastSentUtc"
-            );
+        string? newTime = env.HttpContext.Session.GetString("TwoFactorEmailLastSentUtc");
 
         Assert.NotNull(newTime);
 
-        Assert.True(
-            long.Parse(newTime) > previousSendTime
-        );
+        Assert.True(long.Parse(newTime) > previousSendTime);
     }
 
-    // ========================================
-    // TEST 17
-    // SMTP-FEIL VED NY KODE
-    // ========================================
+    /*
+        TEST 17
+        SMTP-FEIL VED NY KODE
+    */
 
     [Fact]
     public async Task ResendCode_EmailFailure_ShouldShowError()
@@ -977,16 +794,8 @@ public class TwoFactorControllerTests
         env.AllowEmailCode(user);
 
         env.Emails.Setup(sender =>
-            sender.SendCodeAsync(
-                "ola@example.com",
-                "123456",
-                It.IsAny<CancellationToken>()
-            )
-        ).ThrowsAsync(
-            new InvalidOperationException(
-                "SMTP unavailable"
-            )
-        );
+            sender.SendCodeAsync("ola@example.com", "123456", It.IsAny<CancellationToken>())
+        ).ThrowsAsync(new InvalidOperationException("SMTP unavailable"));
 
         var result = await env.Controller.ResendCode();
 
@@ -998,23 +807,17 @@ public class TwoFactorControllerTests
 
         // Ikke marker meldingen som sendt.
 
-        Assert.Null(
-            env.HttpContext.Session.GetString(
-                "TwoFactorEmailSentToUser"
-            )
-        );
+        Assert.Null(env.HttpContext.Session.GetString("TwoFactorEmailSentToUser"));
 
         // Ingen vanlig innlogging.
 
-        Assert.Null(
-            env.HttpContext.Session.GetString("UserEmail")
-        );
+        Assert.Null(env.HttpContext.Session.GetString("UserEmail"));
     }
 
-    // ========================================
-    // TEST 18
-    // VELLYKKET NY UTSENDING
-    // ========================================
+    /*
+        TEST 18
+        VELLYKKET NY UTSENDING
+    */
 
     [Fact]
     public async Task ResendCode_Success_ShouldRedirectToLogin()
@@ -1027,36 +830,23 @@ public class TwoFactorControllerTests
 
         var result = await env.Controller.ResendCode();
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
         Assert.Equal("Login", redirect.ActionName);
 
         env.Emails.Verify(sender =>
-            sender.SendCodeAsync(
-                "ola@example.com",
-                "123456",
-                It.IsAny<CancellationToken>()
-            ),
-            Times.Once
-        );
+            sender.SendCodeAsync("ola@example.com", "123456", It.IsAny<CancellationToken>()),
+            Times.Once);
 
-        Assert.Equal(
-            user.Id,
-            env.HttpContext.Session.GetString(
-                "TwoFactorEmailSentToUser"
-            )
-        );
+        Assert.Equal(user.Id, env.HttpContext.Session.GetString("TwoFactorEmailSentToUser"));
 
-        Assert.Null(
-            env.HttpContext.Session.GetString("UserEmail")
-        );
+        Assert.Null(env.HttpContext.Session.GetString("UserEmail"));
     }
 
-    // ========================================
-    // TEST 19
-    // SIKKERHETSATTRIBUTTER
-    // ========================================
+    /*
+        TEST 19
+        SIKKERHETSATTRIBUTTER
+    */
 
     [Fact]
     public void TwoFactorActions_ShouldHaveSecurityAttributes()
@@ -1064,8 +854,7 @@ public class TwoFactorControllerTests
         var loginGet =
             typeof(TwoFactorController).GetMethod(
                 nameof(TwoFactorController.Login),
-                Type.EmptyTypes
-            );
+                Type.EmptyTypes);
 
         var loginPost =
             typeof(TwoFactorController).GetMethod(
@@ -1073,50 +862,36 @@ public class TwoFactorControllerTests
                 new[]
                 {
                     typeof(TwoFactorLoginViewModel)
-                }
-            );
+                });
 
         var resendPost =
             typeof(TwoFactorController).GetMethod(
                 nameof(TwoFactorController.ResendCode),
-                Type.EmptyTypes
-            );
+                Type.EmptyTypes);
 
         Assert.NotNull(loginGet);
         Assert.NotNull(loginPost);
         Assert.NotNull(resendPost);
 
-        // Innloggingssidene er tilgjengelige
-        // før brukeren har fullført tofaktor.
+        /*
+            Innloggingssidene er tilgjengelige
+            før brukeren har fullført tofaktor.
+        */
 
-        Assert.NotNull(
-            loginGet.GetCustomAttribute<
-                AllowAnonymousAttribute
-            >()
-        );
+        Assert.NotNull(loginGet.GetCustomAttribute< AllowAnonymousAttribute >());
 
-        Assert.NotNull(
-            loginPost.GetCustomAttribute<
-                AllowAnonymousAttribute
-            >()
-        );
+        Assert.NotNull(loginPost.GetCustomAttribute< AllowAnonymousAttribute >());
 
-        Assert.NotNull(
-            resendPost.GetCustomAttribute<
-                AllowAnonymousAttribute
-            >()
-        );
+        Assert.NotNull(resendPost.GetCustomAttribute< AllowAnonymousAttribute >());
 
         // GET skal bare lese informasjon.
 
-        Assert.NotNull(
-            loginGet.GetCustomAttribute<
-                HttpGetAttribute
-            >()
-        );
+        Assert.NotNull(loginGet.GetCustomAttribute< HttpGetAttribute >());
 
-        // POST-handlingene må være beskyttet
-        // med antiforgery.
+        /*
+            POST-handlingene må være beskyttet
+            med antiforgery.
+        */
 
         foreach (var method in new[]
         {
@@ -1124,37 +899,17 @@ public class TwoFactorControllerTests
             resendPost
         })
         {
-            Assert.NotNull(
-                method.GetCustomAttribute<
-                    HttpPostAttribute
-                >()
-            );
+            Assert.NotNull(method.GetCustomAttribute< HttpPostAttribute >());
 
-            Assert.NotNull(
-                method.GetCustomAttribute<
-                    ValidateAntiForgeryTokenAttribute
-                >()
-            );
+            Assert.NotNull(method.GetCustomAttribute< ValidateAntiForgeryTokenAttribute >());
         }
 
         // Kodesiden skal ikke caches.
 
-        Assert.NotNull(
-            loginGet.GetCustomAttribute<
-                ResponseCacheAttribute
-            >()
-        );
+        Assert.NotNull(loginGet.GetCustomAttribute< ResponseCacheAttribute >());
 
-        Assert.NotNull(
-            loginPost.GetCustomAttribute<
-                ResponseCacheAttribute
-            >()
-        );
+        Assert.NotNull(loginPost.GetCustomAttribute< ResponseCacheAttribute >());
 
-        Assert.NotNull(
-            resendPost.GetCustomAttribute<
-                ResponseCacheAttribute
-            >()
-        );
+        Assert.NotNull(resendPost.GetCustomAttribute< ResponseCacheAttribute >());
     }
 }

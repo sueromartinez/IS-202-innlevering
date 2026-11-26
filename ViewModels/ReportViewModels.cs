@@ -1,12 +1,20 @@
+/*
+    ReportViewModels.cs
+
+    Hva filen gjør: Det rapportsidene viser.
+
+    Oppgavekrav: 18
+*/
+
 using FirstWebAppInDocker.Models;
 
 namespace FirstWebAppInDocker.ViewModels;
 
-/// <summary>
-/// Én ressurs i utskrift og eksport.
-/// Feltene er flate og ferdig oversatt, slik at CSV og JSON
-/// blir lette å lese for andre systemer og i Excel.
-/// </summary>
+/*
+    Én ressurs i utskrift og eksport.
+    Feltene er flate og ferdig oversatt, slik at CSV og JSON
+    blir lette å lese for andre systemer og i Excel.
+*/
 public class ResourceReportRow
 {
     public int Id { get; init; }
@@ -46,10 +54,7 @@ public class ResourceReportRow
     public DateTime RegisteredAt { get; init; }
 }
 
-
-/// <summary>
-/// Utskriftsvennlig ressursliste per kommune.
-/// </summary>
+// Utskriftsvennlig ressursliste per kommune.
 public class ResourceReportViewModel
 {
     public string? Municipality { get; init; }
@@ -67,7 +72,6 @@ public class ResourceReportViewModel
     public DateTime GeneratedAt { get; init; }
 }
 
-
 public class ResourceReportGroup
 {
     public string Municipality { get; init; } = string.Empty;
@@ -75,11 +79,10 @@ public class ResourceReportGroup
     public List<ResourceReportRow> Resources { get; init; } = new();
 }
 
-
-/// <summary>
-/// Dekning per ressurstype: hvor mange åpne behov,
-/// og hvor mange tilgjengelige ressurser som finnes.
-/// </summary>
+/*
+    Dekning per ressurstype: hvor mange åpne behov,
+    og hvor mange tilgjengelige ressurser som finnes.
+*/
 public class TypeCoverageRow
 {
     public ResourceType Type { get; init; }
@@ -95,10 +98,7 @@ public class TypeCoverageRow
     public bool IsTight => OpenNeeds > 0 && AvailableResources > 0 && AvailableResources < OpenNeeds;
 }
 
-
-/// <summary>
-/// Et åpent behov i situasjonsrapporten.
-/// </summary>
+// Et åpent behov i situasjonsrapporten.
 public class OpenNeedRow
 {
     public int Id { get; init; }
@@ -123,12 +123,9 @@ public class OpenNeedRow
 
     public DateTime CreatedAt { get; init; }
 
-    /// <summary>
-    /// Tilgjengelige ressurser av riktig type innen 50 km.
-    /// </summary>
+    // Tilgjengelige ressurser av riktig type innen 50 km.
     public int NearbyResources { get; init; }
 }
-
 
 public class MunicipalityRow
 {
@@ -139,11 +136,10 @@ public class MunicipalityRow
     public int Total { get; init; }
 }
 
-
-/// <summary>
-/// Situasjonsrapporten. Tallene regnes ut direkte fra databasen,
-/// så rapporten virker også når språkmodellen er nede.
-/// </summary>
+/*
+    Situasjonsrapporten. Tallene regnes ut direkte fra databasen,
+    så rapporten virker også når språkmodellen er nede.
+*/
 public class SituationReportViewModel
 {
     public DateTime GeneratedAt { get; init; }
@@ -158,9 +154,7 @@ public class SituationReportViewModel
 
     public int ResolvedNeeds { get; init; }
 
-    /// <summary>
-    /// Åpne, ikke tildelte behov uten passende ressurs innen 50 km.
-    /// </summary>
+    // Åpne, ikke tildelte behov uten passende ressurs innen 50 km.
     public int UncoveredNeeds { get; init; }
 
     public int AvailableResources { get; init; }
@@ -175,17 +169,13 @@ public class SituationReportViewModel
 
     public List<TypeCoverageRow> Coverage { get; init; } = new();
 
-    /// <summary>
-    /// Åpne behov sortert: ikke tildelte først, så akutte, så frist, så eldste.
-    /// </summary>
+    // Åpne behov sortert: ikke tildelte først, så akutte, så frist, så eldste.
     public List<OpenNeedRow> PriorityNeeds { get; init; } = new();
 
     public List<OpenNeedRow> Uncovered { get; init; } = new();
 
     public List<MunicipalityRow> Municipalities { get; init; } = new();
 
-    /// <summary>
-    /// Kort oppsummering laget uten AI (regelbasert).
-    /// </summary>
+    // Kort oppsummering laget uten AI (regelbasert).
     public List<string> AutomaticSummary { get; set; } = new();
 }

@@ -1,3 +1,15 @@
+/*
+    AuditLog.cs – aktivitetsloggen
+
+    Hva filen gjør: AuditActions er faste navn på handlinger. AuditService skriver én rad i
+    loggen.
+    AuditControllerExtensions gjør at controllerne bare trenger å skrive this.AuditAsync(...).
+
+    På nettsiden: Siden «Aktivitetslogg» for admin.
+
+    Oppgavekrav: 14
+*/
+
 using System.Security.Claims;
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
@@ -5,9 +17,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FirstWebAppInDocker.Services;
 
-/// <summary>
-/// Kodene for handlingene som logges, med norsk visningsnavn.
-/// </summary>
+// Kodene for handlingene som logges, med norsk visningsnavn.
 public static class AuditActions
 {
     public const string Login = "Login";
@@ -30,7 +40,6 @@ public static class AuditActions
     public const string UserReactivated = "UserReactivated";
     public const string Export = "Export";
     public const string ReportGenerated = "ReportGenerated";
-
 
     public static readonly IReadOnlyDictionary<string, string> Names = new Dictionary<string, string>
     {
@@ -56,34 +65,33 @@ public static class AuditActions
         [ReportGenerated] = "Situasjonsrapport"
     };
 
-
     public static string NameOf(string action)
     {
         return Names.TryGetValue(action, out string? name) ? name : action;
     }
 }
 
-
-/// <summary>
-/// Skriver linjer til audit-loggen.
-/// Feil ved logging skal aldri stoppe selve handlingen, så de logges bare som advarsel.
-/// </summary>
+/*
+    Skriver linjer til audit-loggen.
+    Feil ved logging skal aldri stoppe selve handlingen, så de logges bare som advarsel.
+*/
 public class AuditService
 {
+    #region Felt og konstruktør
+
     private readonly ApplicationDbContext _context;
 
     private readonly ILogger<AuditService> _logger;
 
-
-    public AuditService(
-        ApplicationDbContext context,
-        ILogger<AuditService> logger
-    )
+    public AuditService(ApplicationDbContext context, ILogger<AuditService> logger)
     {
         _context = context;
         _logger = logger;
     }
 
+    #endregion
+
+    #region Skriv til loggen
 
     public async Task LogAsync(
         ClaimsPrincipal? user,
@@ -91,15 +99,13 @@ public class AuditService
         string details,
         string? ipAddress = null,
         string? userIdOverride = null,
-        string? userEmailOverride = null
-    )
+        string? userEmailOverride = null)
     {
         AuditLogEntry? entry = null;
 
         try
         {
-            string? userId =
-                userIdOverride ?? user?.FindFirstValue(ClaimTypes.NameIdentifier);
+            string? userId = userIdOverride ?? user?.FindFirstValue(ClaimTypes.NameIdentifier);
 
             string? userEmail =
                 userEmailOverride
@@ -120,6 +126,10 @@ public class AuditService
 
             await _context.SaveChangesAsync();
         }
+        /*
+            Feiler loggingen, skal ikke brukerens handling feile. Vi logger en advarsel i
+            stedet.
+        */
         catch (Exception exception)
         {
             _logger.LogWarning(exception, "Kunne ikke skrive til audit-loggen ({Action})", action);
@@ -132,6 +142,9 @@ public class AuditService
         }
     }
 
+    #endregion
+
+    #region Hjelpemetoder
 
     private static string? Truncate(string? value, int maxLength)
     {
@@ -142,25 +155,26 @@ public class AuditService
 
         return value.Length <= maxLength ? value : value[..maxLength];
     }
+
+    #endregion
 }
 
+/*
+    Gjør det enkelt å logge fra en controller: await this.AuditAsync(...).
 
-/// <summary>
-/// Gjør det enkelt å logge fra en controller: await this.AuditAsync(...).
-///
-/// Tjenesten hentes fra forespørselen i stedet for konstruktøren,
-/// slik at eksisterende controllere og tester ikke må endres.
-/// I enhetstester finnes ingen tjenester, og da gjøres ingenting.
-/// </summary>
+    Tjenesten hentes fra forespørselen i stedet for konstruktøren,
+    slik at eksisterende controllere og tester ikke må endres.
+    I enhetstester finnes ingen tjenester, og da gjøres ingenting.
+*/
 public static class AuditControllerExtensions
 {
+    // Henter innlogget bruker og IP-adresse automatisk, så controllerne slipper å gjøre det.
     public static async Task AuditAsync(
         this ControllerBase controller,
         string action,
         string details,
         string? userIdOverride = null,
-        string? userEmailOverride = null
-    )
+        string? userEmailOverride = null)
     {
         HttpContext? httpContext = controller.HttpContext;
 

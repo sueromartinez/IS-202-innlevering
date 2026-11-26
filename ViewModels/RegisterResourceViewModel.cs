@@ -1,94 +1,61 @@
+/*
+    RegisterResourceViewModel.cs – skjemaet «Registrer ressurs»
+
+    Hva filen gjør: Feltene i skjemaet, med regler som [Required] og [StringLength] og norske
+    feilmeldinger. Validate() sjekker regler som gjelder flere felt samtidig (gyldig periode,
+    adresselengde, koordinater).
+    Hvorfor egen ViewModel: skjemaet har andre felt enn tabellen (adressen i tre deler, periode
+    i måneder), og brukeren kan ikke sende inn felt som eieren.
+
+    Oppgavekrav: 9, 18, 21
+*/
+
 using System.ComponentModel.DataAnnotations;
 using FirstWebAppInDocker.Models;
 
 namespace FirstWebAppInDocker.ViewModels;
 
-/// <summary>
-/// ViewModel for registrering av en ressurs.
-///
-/// Inneholder kun data som brukeren selv
-/// skal kunne sende inn fra registreringsskjemaet.
-///
-/// Eierskap som OwnerUserId og OwnerEmail
-/// settes på serversiden i ResourceController.
-/// </summary>
+/*
+    ViewModel for registrering av en ressurs.
+
+    Inneholder kun data som brukeren selv
+    skal kunne sende inn fra registreringsskjemaet.
+
+    Eierskap som OwnerUserId og OwnerEmail
+    settes på serversiden i ResourceController.
+*/
 public class RegisterResourceViewModel
     : IValidatableObject
 {
-    // =========================
-    // RESOURCE INFORMATION
-    // =========================
+    // --- Ressursinformasjon ---
 
-    [Required(
-        ErrorMessage = "Velg type ressurs."
-    )]
-    [Display(
-        Name = "Ressurstype"
-    )]
+    [Required(ErrorMessage = "Velg type ressurs.")]
+    [Display(Name = "Ressurstype")]
     public ResourceType? ResourceType { get; set; }
 
-
-    [Required(
-        ErrorMessage = "Navn på ressursen er påkrevd."
-    )]
-    [StringLength(
-        100,
-        ErrorMessage =
-            "Ressursnavnet kan maksimalt være 100 tegn."
-    )]
-    [Display(
-        Name = "Navn på ressurs"
-    )]
+    [Required(ErrorMessage = "Navn på ressursen er påkrevd.")]
+    [StringLength(100, ErrorMessage = "Ressursnavnet kan maksimalt være 100 tegn.")]
+    [Display(Name = "Navn på ressurs")]
     public string ResourceName { get; set; }
         = string.Empty;
 
-
-    [Required(
-        ErrorMessage = "Beskrivelse er påkrevd."
-    )]
-    [StringLength(
-        500,
-        ErrorMessage =
-            "Beskrivelsen kan maksimalt være 500 tegn."
-    )]
-    [Display(
-        Name = "Beskrivelse"
-    )]
+    [Required(ErrorMessage = "Beskrivelse er påkrevd.")]
+    [StringLength(500, ErrorMessage = "Beskrivelsen kan maksimalt være 500 tegn.")]
+    [Display(Name = "Beskrivelse")]
     public string Description { get; set; }
         = string.Empty;
 
-
-    [Range(
-        1,
-        100000,
-        ErrorMessage = "Antall må være minst 1."
-    )]
-    [Display(
-        Name = "Antall"
-    )]
+    [Range(1, 100000, ErrorMessage = "Antall må være minst 1.")]
+    [Display(Name = "Antall")]
     public int Quantity { get; set; }
         = 1;
 
-
-    [StringLength(
-        200,
-        ErrorMessage =
-            "Kapasitet kan maksimalt være 200 tegn."
-    )]
-    [Display(
-        Name = "Kapasitet"
-    )]
+    [StringLength(200, ErrorMessage = "Kapasitet kan maksimalt være 200 tegn.")]
+    [Display(Name = "Kapasitet")]
     public string? Capacity { get; set; }
 
-
-    [StringLength(
-        200,
-        ErrorMessage =
-            "Tilgjengelighet kan maksimalt være 200 tegn."
-    )]
-    [Display(
-        Name = "Tilgjengelighet"
-    )]
+    [StringLength(200, ErrorMessage = "Tilgjengelighet kan maksimalt være 200 tegn.")]
+    [Display(Name = "Tilgjengelighet")]
     public string? Availability { get; set; }
 
     // Perioden må være ett av de eksisterende valgene og valideres også på serveren.
@@ -96,19 +63,10 @@ public class RegisterResourceViewModel
     [Display(Name = "Hvor lenge skal ressursen være tilgjengelig?")]
     public int? AvailabilityMonths { get; set; }
 
+    // --- Plassering ---
 
-    // =========================
-    // LOCATION
-    // =========================
-
-    [StringLength(
-        200,
-        ErrorMessage =
-            "Adresse kan maksimalt være 200 tegn."
-    )]
-    [Display(
-        Name = "Adresse / område"
-    )]
+    [StringLength(200, ErrorMessage = "Adresse kan maksimalt være 200 tegn.")]
+    [Display(Name = "Adresse / område")]
     public string? Address { get; set; }
 
     // Tre skjemafelt samles i det eksisterende adressefeltet ved lagring.
@@ -134,88 +92,38 @@ public class RegisterResourceViewModel
             .Where(value => !string.IsNullOrWhiteSpace(value)));
     }
 
-
-    /// <summary>
-    /// Breddegrad valgt i Leaflet-kartet.
-    /// </summary>
-    [Range(
-        -90,
-        90,
-        ErrorMessage =
-            "Breddegrad må være mellom -90 og 90."
-    )]
+    // Breddegrad valgt i Leaflet-kartet.
+    [Range(-90, 90, ErrorMessage = "Breddegrad må være mellom -90 og 90.")]
     public double Latitude { get; set; }
 
-
-    /// <summary>
-    /// Lengdegrad valgt i Leaflet-kartet.
-    /// </summary>
-    [Range(
-        -180,
-        180,
-        ErrorMessage =
-            "Lengdegrad må være mellom -180 og 180."
-    )]
+    // Lengdegrad valgt i Leaflet-kartet.
+    [Range(-180, 180, ErrorMessage = "Lengdegrad må være mellom -180 og 180.")]
     public double Longitude { get; set; }
 
+    // --- Kontaktinformasjon ---
 
-    // =========================
-    // CONTACT INFORMATION
-    // =========================
-
-    [EmailAddress(
-        ErrorMessage =
-            "Skriv inn en gyldig e-postadresse."
-    )]
-    [StringLength(
-        150,
-        ErrorMessage =
-            "E-postadressen kan maksimalt være 150 tegn."
-    )]
-    [Display(
-        Name = "Kontakt-e-post"
-    )]
+    [EmailAddress(ErrorMessage = "Skriv inn en gyldig e-postadresse.")]
+    [StringLength(150, ErrorMessage = "E-postadressen kan maksimalt være 150 tegn.")]
+    [Display(Name = "Kontakt-e-post")]
     public string? ContactEmail { get; set; }
 
-
-    [StringLength(
-        5,
-        ErrorMessage =
-            "Landkoden kan maksimalt være 5 tegn."
-    )]
-    [Display(
-        Name = "Landkode"
-    )]
+    [StringLength(5, ErrorMessage = "Landkoden kan maksimalt være 5 tegn.")]
+    [Display(Name = "Landkode")]
     public string? ContactPhoneCountryCode { get; set; }
         = "+47";
 
-
-    [StringLength(
-        20,
-        ErrorMessage =
-            "Telefonnummeret kan maksimalt være 20 tegn."
-    )]
-    [Phone(
-        ErrorMessage =
-            "Skriv inn et gyldig telefonnummer."
-    )]
-    [Display(
-        Name = "Telefonnummer"
-    )]
+    [StringLength(20, ErrorMessage = "Telefonnummeret kan maksimalt være 20 tegn.")]
+    [Phone(ErrorMessage = "Skriv inn et gyldig telefonnummer.")]
+    [Display(Name = "Telefonnummer")]
     public string? ContactPhoneNumber { get; set; }
 
+    // --- Custom validation ---
 
-    // =========================
-    // CUSTOM VALIDATION
-    // =========================
-
-    /// <summary>
-    /// Utfører validering som avhenger av flere felt,
-    /// blant annet kartplassering og telefonnummer.
-    /// </summary>
-    public IEnumerable<ValidationResult> Validate(
-        ValidationContext validationContext
-    )
+    /*
+        Utfører validering som avhenger av flere felt,
+        blant annet kartplassering og telefonnummer.
+    */
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         // Avviser ugyldige perioder og adresser som er for lange etter sammenslåing.
         if (AvailabilityMonths.HasValue
@@ -227,9 +135,7 @@ public class RegisterResourceViewModel
         {
             yield return new ValidationResult("Samlet adresse kan maksimalt være 200 tegn.", new[] { nameof(StreetAddress) });
         }
-        // =========================
-        // MAP POSITION
-        // =========================
+        // --- Kartposisjon ---
 
         if (
             !double.IsFinite(Latitude)
@@ -242,8 +148,7 @@ public class RegisterResourceViewModel
             ||
             Longitude < -180
             ||
-            Longitude > 180
-        )
+            Longitude > 180)
         {
             yield return new ValidationResult(
                 "Velg en gyldig plassering i kartet.",
@@ -251,22 +156,18 @@ public class RegisterResourceViewModel
                 {
                     nameof(Latitude),
                     nameof(Longitude)
-                }
-            );
+                });
         }
 
+        /*
+            0,0 brukes som standardverdi dersom
+            brukeren ikke har klikket i kartet.
 
-        // 0,0 brukes som standardverdi dersom
-        // brukeren ikke har klikket i kartet.
-        //
-        // Et punkt på 0,0 er teknisk gyldig geografisk,
-        // men er ikke en realistisk norsk ressursplassering
-        // i denne applikasjonen.
-        if (
-            Latitude == 0
-            &&
-            Longitude == 0
-        )
+            Et punkt på 0,0 er teknisk gyldig geografisk,
+            men er ikke en realistisk norsk ressursplassering
+            i denne applikasjonen.
+        */
+        if (Latitude == 0 && Longitude == 0)
         {
             yield return new ValidationResult(
                 "Velg plassering for ressursen i kartet.",
@@ -274,36 +175,19 @@ public class RegisterResourceViewModel
                 {
                     nameof(Latitude),
                     nameof(Longitude)
-                }
-            );
+                });
         }
 
+        // --- Telefonnummer ---
 
-        // =========================
-        // PHONE NUMBER
-        // =========================
-
-        if (
-            string.IsNullOrWhiteSpace(
-                ContactPhoneNumber
-            )
-        )
+        if (string.IsNullOrWhiteSpace(ContactPhoneNumber))
         {
             yield break;
         }
 
+        string phoneNumber = new string(ContactPhoneNumber.Where(char.IsDigit).ToArray());
 
-        string phoneNumber =
-            new string(
-                ContactPhoneNumber
-                    .Where(char.IsDigit)
-                    .ToArray()
-            );
-
-
-        switch (
-            ContactPhoneCountryCode
-        )
+        switch (ContactPhoneCountryCode)
         {
             case "+47":
 
@@ -314,12 +198,10 @@ public class RegisterResourceViewModel
                         new[]
                         {
                             nameof(ContactPhoneNumber)
-                        }
-                    );
+                        });
                 }
 
                 break;
-
 
             case "+45":
 
@@ -330,32 +212,24 @@ public class RegisterResourceViewModel
                         new[]
                         {
                             nameof(ContactPhoneNumber)
-                        }
-                    );
+                        });
                 }
 
                 break;
 
-
             case "+46":
 
-                if (
-                    phoneNumber.Length < 7
-                    ||
-                    phoneNumber.Length > 10
-                )
+                if (phoneNumber.Length < 7 || phoneNumber.Length > 10)
                 {
                     yield return new ValidationResult(
                         "Svenske telefonnummer må inneholde mellom 7 og 10 sifre.",
                         new[]
                         {
                             nameof(ContactPhoneNumber)
-                        }
-                    );
+                        });
                 }
 
                 break;
-
 
             default:
 
@@ -364,8 +238,7 @@ public class RegisterResourceViewModel
                     new[]
                     {
                         nameof(ContactPhoneCountryCode)
-                    }
-                );
+                    });
 
                 break;
         }

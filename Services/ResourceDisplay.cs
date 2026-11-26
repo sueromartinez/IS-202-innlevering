@@ -1,19 +1,28 @@
+/*
+    ResourceDisplay.cs – hjelp til visning
+
+    Hva filen gjør: Ikon per ressurstype, pen adresse, kommunenavn og riktig entall/flertall.
+    Ingen regler, bare visning.
+
+    På nettsiden: Ikonene og adressene på kortene i oversiktene.
+*/
+
 using System.Globalization;
 using FirstWebAppInDocker.Models;
 
 namespace FirstWebAppInDocker.Services;
 
-/// <summary>
-/// Felles hjelpere for å vise ressurser pent i sidene:
-/// ikon per ressurstype, adresse uten store bokstaver og riktig entall/flertall.
-/// </summary>
+/*
+    Felles hjelpere for å vise ressurser pent i sidene:
+    ikon per ressurstype, adresse uten store bokstaver og riktig entall/flertall.
+*/
 public static class ResourceDisplay
 {
-    /// <summary>
-    /// Et enkelt SVG-ikon for ressurstypen. Bruker currentColor,
-    /// så ikonet får fargen fra elementet det står i (fungerer også i mørk modus).
-    /// Brukes med @Html.Raw(ResourceDisplay.Icon(type)).
-    /// </summary>
+    /*
+        Et enkelt SVG-ikon for ressurstypen. Bruker currentColor,
+        så ikonet får fargen fra elementet det står i (fungerer også i mørk modus).
+        Brukes med @Html.Raw(ResourceDisplay.Icon(type)).
+    */
     public static string Icon(ResourceType type)
     {
         string paths = type switch
@@ -27,8 +36,7 @@ public static class ResourceDisplay
                 "<rect x=\"9\" y=\"9\" width=\"6\" height=\"6\" rx=\"1.5\"/><path d=\"M9 9 6 6M15 9l3-3M9 15l-3 3M15 15l3 3\"/><circle cx=\"5\" cy=\"5\" r=\"2\"/><circle cx=\"19\" cy=\"5\" r=\"2\"/><circle cx=\"5\" cy=\"19\" r=\"2\"/><circle cx=\"19\" cy=\"19\" r=\"2\"/>",
 
             // Lyn
-            ResourceType.Generator =>
-                "<path d=\"M13 2 4 14h7l-1 8 9-12h-7z\"/>",
+            ResourceType.Generator => "<path d=\"M13 2 4 14h7l-1 8 9-12h-7z\"/>",
 
             // Tannhjul
             ResourceType.Machinery =>
@@ -65,13 +73,12 @@ public static class ResourceDisplay
                + "</svg>";
     }
 
-
-    /// <summary>
-    /// Kartverket skriver poststed og kommune med store bokstaver
-    /// («4611, KRISTIANSAND S – KRISTIANSAND kommune»). Her gjøres ord
-    /// som bare består av store bokstaver om til vanlig skrivemåte
-    /// («Kristiansand S»). Enkeltbokstaver som «S» beholdes.
-    /// </summary>
+    /*
+        Kartverket skriver poststed og kommune med store bokstaver
+        («4611, KRISTIANSAND S – KRISTIANSAND kommune»). Her gjøres ord
+        som bare består av store bokstaver om til vanlig skrivemåte
+        («Kristiansand S»). Enkeltbokstaver som «S» beholdes.
+    */
     public static string? PrettyAddress(string? address)
     {
         if (string.IsNullOrWhiteSpace(address))
@@ -98,12 +105,11 @@ public static class ResourceDisplay
         return string.Join(' ', words);
     }
 
-
-    /// <summary>
-    /// Henter kommunen fra en adresse på formen
-    /// «gate, postnummer poststed – kommune kommune».
-    /// Returnerer «Ukjent kommune» for eldre adresser uten kommune.
-    /// </summary>
+    /*
+        Henter kommunen fra en adresse på formen
+        «gate, postnummer poststed – kommune kommune».
+        Returnerer «Ukjent kommune» for eldre adresser uten kommune.
+    */
     public static string Municipality(string? address)
     {
         const string unknown = "Ukjent kommune";
@@ -132,10 +138,7 @@ public static class ResourceDisplay
             : PrettyAddress(municipality)!;
     }
 
-
-    /// <summary>
-    /// «1 ressurs», «2 ressurser».
-    /// </summary>
+    // «1 ressurs», «2 ressurser».
     public static string CountText(int count, string singular, string plural)
     {
         return count + " " + (count == 1 ? singular : plural);

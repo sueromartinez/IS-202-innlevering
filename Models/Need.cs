@@ -1,51 +1,52 @@
+/*
+    Need.cs – et behov
+
+    Hva filen gjør: Beskriver et behov en offentlig aktør har registrert, for eksempel "3
+    aggregater i Vennesla, akutt". Ligner Resource med vilje (type, antall, plassering), slik at
+    et behov kan sammenlignes med ressurser av samme type i nærheten.
+
+    På nettsiden: Det som fylles ut i «Registrer behov», og som vises i behovsoversikten
+    («Behov» i menyen) og på Koordinering.
+
+    Oppgavekrav: 10, 21, 22
+*/
 
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FirstWebAppInDocker.Models;
 
-/// <summary>
-/// Representerer et behov registrert av en offentlig aktør.
-/// Behovet kan matches med tilgjengelige ressurser basert
-/// på ressurstype, plassering og andre kriterier.
-/// </summary>
-/// <remarks>
-/// Eierskap håndteres gjennom ASP.NET Core Identity.
-/// Eldre behov kan fremdeles være knyttet til e-postadresse.
-/// </remarks>
+/*
+    Representerer et behov registrert av en offentlig aktør.
+    Behovet kan matches med tilgjengelige ressurser basert
+    på ressurstype, plassering og andre kriterier.
+
+    Eierskap håndteres gjennom ASP.NET Core Identity.
+    Eldre behov kan fremdeles være knyttet til e-postadresse.
+*/
 public class Need
 {
     #region Identifikasjon
 
-    /// <summary>
-    /// Unik identifikator for behovet.
-    /// </summary>
+    // Unik identifikator for behovet.
     public int Id { get; init; }
 
     #endregion
 
     #region Behovsinformasjon
 
-    /// <summary>
-    /// Ressurstypen som kreves for å dekke behovet.
-    /// </summary>
+    // Ressurstypen som kreves for å dekke behovet.
     public ResourceType ResourceType { get; set; }
         = ResourceType.Other;
 
-    /// <summary>
-    /// Angir om behovet er akutt eller planlagt.
-    /// </summary>
+    // Akutt eller Planlagt. På nettsiden vises akutte behov først og med rød merkelapp.
     public NeedPriority Priority { get; set; }
         = NeedPriority.Acute;
 
-    /// <summary>
-    /// Antall ressurser som etterspørres.
-    /// </summary>
+    // Antall ressurser som etterspørres.
     public int Quantity { get; set; } = 1;
 
-    /// <summary>
-    /// Beskrivelse av behovet og hva ressursen skal brukes til.
-    /// </summary>
+    // Beskrivelse av behovet og hva ressursen skal brukes til.
     [StringLength(500)]
     public string Description { get; set; } = string.Empty;
 
@@ -53,35 +54,32 @@ public class Need
 
     #region Geografisk plassering
 
-    /// <summary>
-    /// Geografisk breddegrad for behovet.
-    /// </summary>
-    /// <remarks>
-    /// Beholdes som databasefelt for kompatibilitet med
-    /// eksisterende migrasjoner og EF Core-spørringer.
-    /// </remarks>
+    /*
+        Geografisk breddegrad for behovet.
+
+        Beholdes som databasefelt for kompatibilitet med
+        eksisterende migrasjoner og EF Core-spørringer.
+    */
     public double Latitude { get; set; }
 
-    /// <summary>
-    /// Geografisk lengdegrad for behovet.
-    /// </summary>
-    /// <remarks>
-    /// Beholdes som databasefelt for kompatibilitet med
-    /// eksisterende migrasjoner og EF Core-spørringer.
-    /// </remarks>
+    /*
+        Geografisk lengdegrad for behovet.
+
+        Beholdes som databasefelt for kompatibilitet med
+        eksisterende migrasjoner og EF Core-spørringer.
+    */
     public double Longitude { get; set; }
 
-    /// <summary>
-    /// Samlet geografisk posisjon representert som Coordinate.
-    /// </summary>
-    /// <remarks>
-    /// Egenskapen er ikke kartlagt til en egen databasekolonne.
-    /// Den leser og oppdaterer de eksisterende koordinatfeltene.
-    ///
-    /// Bruk Latitude og Longitude i databaseoversatte
-    /// LINQ-spørringer inntil geografisk databasemapping
-    /// er implementert.
-    /// </remarks>
+    /*
+        Samlet geografisk posisjon representert som Coordinate.
+
+        Egenskapen er ikke kartlagt til en egen databasekolonne.
+        Den leser og oppdaterer de eksisterende koordinatfeltene.
+
+        Bruk Latitude og Longitude i databaseoversatte
+        LINQ-spørringer inntil geografisk databasemapping
+        er implementert.
+    */
     [NotMapped]
     public Coordinate Position
     {
@@ -98,21 +96,17 @@ public class Need
 
     #region Frist og kontaktinformasjon
 
-    /// <summary>
-    /// Datoen behovet senest bør være dekket.
-    /// Null betyr at ingen frist er registrert.
-    /// </summary>
+    /*
+        Datoen behovet senest bør være dekket.
+        Null betyr at ingen frist er registrert.
+    */
     public DateTime? Deadline { get; set; }
 
-    /// <summary>
-    /// Navnet på kontaktpersonen for behovet.
-    /// </summary>
+    // Navnet på kontaktpersonen for behovet.
     [StringLength(100)]
     public string? ContactName { get; set; }
 
-    /// <summary>
-    /// Telefonnummeret til kontaktpersonen.
-    /// </summary>
+    // Telefonnummeret til kontaktpersonen.
     [StringLength(30)]
     public string? ContactPhone { get; set; }
 
@@ -120,28 +114,22 @@ public class Need
 
     #region Eierskap
 
-    /// <summary>
-    /// Permanent Identity-ID til brukeren som eier behovet.
-    /// </summary>
-    /// <remarks>
-    /// Nullable for å støtte eldre behov som ble registrert
-    /// før permanent eierskap gjennom Identity ble innført.
-    /// </remarks>
+    /*
+        Hvilken offentlig aktør som eier behovet. Bare eieren (eller admin) kan endre eller
+        slette det.
+    */
     public string? OwnerUserId { get; set; }
 
-    /// <summary>
-    /// Navigasjon til Identity-brukeren som eier behovet.
-    /// </summary>
+    // Navigasjon til Identity-brukeren som eier behovet.
     [ForeignKey(nameof(OwnerUserId))]
     public ApplicationUser? OwnerUser { get; set; }
 
-    /// <summary>
-    /// E-postadressen som ble registrert som behovets eier.
-    /// </summary>
-    /// <remarks>
-    /// Beholdes for bakoverkompatibilitet med eldre behov.
-    /// Nye eierskapskontroller skal bruke OwnerUserId.
-    /// </remarks>
+    /*
+        E-postadressen som ble registrert som behovets eier.
+
+        Beholdes for bakoverkompatibilitet med eldre behov.
+        Nye eierskapskontroller skal bruke OwnerUserId.
+    */
     [StringLength(150)]
     public string OwnerEmail { get; init; } = string.Empty;
 
@@ -149,65 +137,53 @@ public class Need
 
     #region Metadata og status
 
-    /// <summary>
-    /// Tidspunktet behovet ble registrert, angitt i UTC.
-    /// </summary>
+    // Tidspunktet behovet ble registrert, angitt i UTC.
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 
-    /// <summary>
-    /// Gjeldende status i behovets behandlingsflyt.
-    /// </summary>
+    /*
+        Gangen i et behov: Nytt → Til vurdering → Tildelt → Løst. Vises som kolonnene på
+        Koordinering-siden.
+    */
     public NeedStatus Status { get; set; } = NeedStatus.New;
 
     #endregion
 }
 
-/// <summary>
-/// Angir hvor raskt et behov må dekkes.
-/// </summary>
-/// <remarks>
-/// Tallverdiene er eksplisitte for å bevare kompatibilitet
-/// med eksisterende databaseoppføringer.
-/// </remarks>
+/*
+    [Display(Name = ...)] gir norske navn på nettsiden, mens koden bruker engelske navn.
+*/
 public enum NeedPriority
 {
-    /// <summary>Behov som krever rask oppfølging.</summary>
+    // Behov som krever rask oppfølging.
     [Display(Name = "Akutt")]
     Acute = 0,
 
-    /// <summary>Behov som kan planlegges på forhånd.</summary>
+    // Behov som kan planlegges på forhånd.
     [Display(Name = "Planlagt")]
     Planned = 1
 }
 
-/// <summary>
-/// Representerer statusflyten for et registrert behov.
-/// </summary>
-/// <remarks>
-/// Eksisterende tallverdier beholdes fordi statusene
-/// allerede kan være lagret som heltall i databasen.
-/// </remarks>
+/*
+    Representerer statusflyten for et registrert behov.
+
+    Eksisterende tallverdier beholdes fordi statusene
+    allerede kan være lagret som heltall i databasen.
+*/
 public enum NeedStatus
 {
-    /// <summary>Behovet er opprettet.</summary>
+    // Behovet er opprettet.
     [Display(Name = "Ny")]
     New = 0,
 
-    /// <summary>
-    /// Minst én ressurs er forespurt, og behovet vurderes.
-    /// </summary>
+    // Minst én ressurs er forespurt, og behovet vurderes.
     [Display(Name = "Vurderes")]
     UnderReview = 1,
 
-    /// <summary>
-    /// En ressurs har bekreftet en tildeling.
-    /// </summary>
+    // En ressurs har bekreftet en tildeling.
     [Display(Name = "Tildelt")]
     Assigned = 2,
 
-    /// <summary>
-    /// Behovet er ferdig behandlet og løst.
-    /// </summary>
+    // Behovet er ferdig behandlet og løst.
     [Display(Name = "Løst")]
     Resolved = 3
 }

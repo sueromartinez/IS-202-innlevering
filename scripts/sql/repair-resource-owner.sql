@@ -1,3 +1,8 @@
+-- repair-resource-owner.sql
+--
+-- Hva filen gjør: Engangsskript som kobler gamle ressurser til eieren sin. Ikke en del av
+-- vanlig kjøring.
+
 -- Repairs existing local databases created before the Identity ownership migration.
 -- Mirrors the Resources changes in 20261104083254_LinkResourceToIdentityUser.
 -- Does not mark EF migrations as applied; migration history needs a separate baseline.

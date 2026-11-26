@@ -1,59 +1,65 @@
+/*
+    IResourceMatchingRepository.cs – hvilke data matchingen trenger
+
+    Hva filen gjør: Et interface som sier HVA matchingen trenger av data, men ikke HVORDAN de
+    hentes. Den ekte versjonen er EfResourceMatchingRepository (EF Core og MariaDB). Fordi
+    matchingen bare kjenner interfacet, kan datatilgangen byttes ut uten å endre matchingen.
+*/
+
 using FirstWebAppInDocker.Models;
 
 namespace FirstWebAppInDocker.Services.Matching;
 
-/// <summary>
-/// Definerer datatilgangen som ressursmatching trenger.
-/// Skjuler databaseimplementasjonen fra matchinglogikken.
-/// </summary>
-/// <remarks>
-/// Grensesnittet gjør det mulig å erstatte EF Core med
-/// en annen datatilgangsimplementasjon uten å endre
-/// ResourceMatchingService.
-/// </remarks>
+/*
+    Definerer datatilgangen som ressursmatching trenger.
+    Skjuler databaseimplementasjonen fra matchinglogikken.
+
+    Grensesnittet gjør det mulig å erstatte EF Core med
+    en annen datatilgangsimplementasjon uten å endre
+    ResourceMatchingService.
+*/
 public interface IResourceMatchingRepository
 {
-    /// <summary>
-    /// Henter tilgjengelige ressurser innenfor et geografisk
-    /// søkeområde og filtrerer på eventuelle ressurstyper
-    /// og eksisterende forespørsler.
-    /// </summary>
-    /// <param name="center">Søkeområdets midtpunkt.</param>
-    /// <param name="radiusKm">Søkeradius i kilometer.</param>
-    /// <param name="types">
-    /// Ressurstyper som skal inkluderes. Null eller tom
-    /// samling betyr alle typer.
-    /// </param>
-    /// <param name="excludeRequestedForNeedId">
-    /// Behovet som allerede forespurte eller bekreftede
-    /// ressurser skal ekskluderes for.
-    /// </param>
-    /// <returns>
-    /// Tilgjengelige ressurser som passer databasefiltrene.
-    /// </returns>
+    /*
+        Henter tilgjengelige ressurser innenfor et geografisk
+        søkeområde og filtrerer på eventuelle ressurstyper
+        og eksisterende forespørsler.
+
+        center: Søkeområdets midtpunkt.
+        radiusKm: Søkeradius i kilometer.
+        types:
+        Ressurstyper som skal inkluderes. Null eller tom
+        samling betyr alle typer.
+
+        excludeRequestedForNeedId:
+        Behovet som allerede forespurte eller bekreftede
+        ressurser skal ekskluderes for.
+
+        Returnerer:
+        Tilgjengelige ressurser som passer databasefiltrene.
+    */
     Task<IReadOnlyList<Resource>> GetAvailableResourcesNearAsync(
         Coordinate center,
         double radiusKm,
         IReadOnlyCollection<ResourceType>? types,
         int? excludeRequestedForNeedId);
 
-    /// <summary>
-    /// Henter alle tilgjengelige ressurser som tilhører
-    /// en bestemt ressursleverandør.
-    /// </summary>
-    /// <param name="userId">Eierens Identity-ID.</param>
-    /// <returns>Brukerens tilgjengelige ressurser.</returns>
-    Task<IReadOnlyList<Resource>> GetAvailableResourcesForProviderAsync(
-        string userId);
+    /*
+        Henter alle tilgjengelige ressurser som tilhører
+        en bestemt ressursleverandør.
 
-    /// <summary>
-    /// Henter åpne behov som samsvarer med de oppgitte
-    /// ressurskategoriene.
-    /// </summary>
-    /// <param name="types">Aktuelle ressurskategorier.</param>
-    /// <returns>
-    /// Behov med status Ny eller Vurderes.
-    /// </returns>
-    Task<IReadOnlyList<Need>> GetOpenNeedsForTypesAsync(
-        IReadOnlyCollection<ResourceType> types);
+        userId: Eierens Identity-ID.
+        Returnerer: Brukerens tilgjengelige ressurser.
+    */
+    Task<IReadOnlyList<Resource>> GetAvailableResourcesForProviderAsync(string userId);
+
+    /*
+        Henter åpne behov som samsvarer med de oppgitte
+        ressurskategoriene.
+
+        types: Aktuelle ressurskategorier.
+        Returnerer:
+        Behov med status Ny eller Vurderes.
+    */
+    Task<IReadOnlyList<Need>> GetOpenNeedsForTypesAsync(IReadOnlyCollection<ResourceType> types);
 }

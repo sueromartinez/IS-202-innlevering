@@ -1,3 +1,11 @@
+/*
+    portal-header.css – utseende
+
+    Hva filen gjør: Stilark. @media-reglene tilpasser siden til mobil.
+
+    Oppgavekrav: 12
+*/
+
 /* Felles toppmeny: lik størrelse og plassering på alle sider */
 .pv-header {
     display: flex;

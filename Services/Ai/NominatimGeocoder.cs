@@ -1,3 +1,10 @@
+/*
+    NominatimGeocoder.cs – reserve for adressesøk
+
+    Hva filen gjør: Slår opp stedsnavn hos OpenStreetMap (Nominatim) når Kartverket ikke finner
+    noe, for eksempel "Kjevik flyplass".
+*/
+
 using System.Globalization;
 using System.Text.Json;
 
@@ -5,25 +12,22 @@ namespace FirstWebAppInDocker.Services.Ai;
 
 public record GeocodeResult(double Latitude, double Longitude, string DisplayName);
 
+/*
+    Gjør et stedsnavn ("Grimstad sentrum") om til koordinater
+    via Nominatim (OpenStreetMap), samme tjeneste som kartet bruker.
 
-/// <summary>
-/// Gjør et stedsnavn ("Grimstad sentrum") om til koordinater
-/// via Nominatim (OpenStreetMap), samme tjeneste som kartet bruker.
-///
-/// Kalles fra serveren, ikke fra modellen direkte. Nominatim krever
-/// en beskrivende User-Agent og maks ett kall i sekundet.
-/// </summary>
+    Kalles fra serveren, ikke fra modellen direkte. Nominatim krever
+    en beskrivende User-Agent og maks ett kall i sekundet.
+*/
 public class NominatimGeocoder
 {
+    #region Felt og konstruktør
+
     private readonly HttpClient _httpClient;
 
     private readonly ILogger<NominatimGeocoder> _logger;
 
-
-    public NominatimGeocoder(
-        HttpClient httpClient,
-        ILogger<NominatimGeocoder> logger
-    )
+    public NominatimGeocoder(HttpClient httpClient, ILogger<NominatimGeocoder> logger)
     {
         _logger = logger;
 
@@ -34,15 +38,17 @@ public class NominatimGeocoder
             "Beredskapsportal-studentprosjekt/1.0");
     }
 
+    #endregion
 
-    /// <summary>
-    /// Returnerer null hvis stedet ikke finnes eller tjenesten ikke svarer.
-    /// Søket begrenses til Norge.
-    /// </summary>
+    #region Adressesøk
+
+    /*
+        Returnerer null hvis stedet ikke finnes eller tjenesten ikke svarer.
+        Søket begrenses til Norge.
+    */
     public async Task<GeocodeResult?> GeocodeAsync(
         string place,
-        CancellationToken cancellationToken
-    )
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(place))
         {
@@ -55,8 +61,7 @@ public class NominatimGeocoder
 
         try
         {
-            using HttpResponseMessage response =
-                await _httpClient.GetAsync(url, cancellationToken);
+            using HttpResponseMessage response = await _httpClient.GetAsync(url, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -98,4 +103,6 @@ public class NominatimGeocoder
             return null;
         }
     }
+
+    #endregion
 }

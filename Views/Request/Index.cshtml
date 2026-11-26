@@ -1,3 +1,12 @@
+@*
+    Request/Index.cshtml – «Forespørsler»
+
+    Hva filen gjør: Forespørsler til den frivilliges ressurser, med knappene Bekreft og Avslå.
+    Kontaktinfo til den som spør vises først etter bekreftelse.
+
+    Oppgavekrav: 10, 12
+*@
+
 @model List<FirstWebAppInDocker.ViewModels.VolunteerRequestViewModel>
 @using FirstWebAppInDocker.Services
 @{
@@ -29,7 +38,7 @@
     <a asp-action="MatchingNeeds" class="secondary-action">Se behov jeg kan hjelpe med</a>
 </div>
 
-@if (TempData["RequestMessage"] is string message)
+@if (TempData["RequestSuccess"] is string message)
 {
     <div class="alert alert-success" role="status">@message</div>
 }

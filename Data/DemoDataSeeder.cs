@@ -1,37 +1,74 @@
+/*
+    DemoDataSeeder.cs – eksempeldata
+
+    Hva filen gjør: Fyller en tom database med oppdiktede ressurser, behov og testbrukere.
+    Kjøres bare i utviklingsmiljøet.
+
+    På nettsiden: Gjør at kart, lister og dashbord har innhold første gang man åpner portalen.
+
+    Oppgavekrav: 4
+*/
+
 using FirstWebAppInDocker.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace FirstWebAppInDocker.Data;
 
-/// <summary>
-/// Fyller en tom database med falske data for demo (EXPO):
-/// to ressursleverandører med ressurser rundt Grimstad, Arendal,
-/// Lillesand og Kristiansand, og noen behov fra den offentlige testbrukeren.
-///
-/// Gjør ingenting hvis det allerede finnes ressurser eller behov.
-/// Alle personer, firma og telefonnummer er oppdiktet.
-/// </summary>
+/*
+    Fyller en tom database med falske data for demo (EXPO):
+    to ressursleverandører med ressurser rundt Grimstad, Arendal,
+    Lillesand og Kristiansand, og noen behov fra den offentlige testbrukeren.
+
+    Gjør ingenting hvis det allerede finnes ressurser eller behov.
+    Alle personer, firma og telefonnummer er oppdiktet.
+*/
 public static class DemoDataSeeder
 {
+    #region Konstanter og felt
+
     public const string VolunteerEmail = "frivillig@beredskap.no";
 
     public const string CompanyEmail = "entreprenor@beredskap.no";
 
     private const string DemoPassword = "Test123!";
 
+    /*
+        Eldre versjoner av demodataene hadde adresser i fritekst
+        («Arendal», «Lillesand» ...) uten kommune. Rapportene viste dem da
+        som «Ukjent kommune». Her byttes de til samme format som skjemaet
+        lager: «sted, postnummer poststed – kommune kommune».
+        Bare demoressurser endres, og bare hvis adressen er helt lik den gamle.
+    */
+    private static readonly Dictionary<string, string> LegacyDemoAddresses = new()
+    {
+        ["Grimstad gjestehavn"] = "Grimstad gjestehavn, 4876, Grimstad – Grimstad kommune",
+        ["Fevik"] = "Fevik, 4870, Fevik – Grimstad kommune",
+        ["Grimstad"] = "Grimstad sentrum, 4876, Grimstad – Grimstad kommune",
+        ["Arendal industriområde"] = "Arendal industriområde, 4848, Arendal – Arendal kommune",
+        ["Lillesand"] = "Lillesand sentrum, 4790, Lillesand – Lillesand kommune",
+        ["Kristiansand øst"] = "Kristiansand øst, 4630, Kristiansand S – Kristiansand kommune",
+        ["Arendal"] = "Arendal sentrum, 4836, Arendal – Arendal kommune",
+        ["Landvik"] = "Landvik, 4885, Grimstad – Grimstad kommune"
+    };
+
+    #endregion
+
+    #region Oppstart
 
     public static async Task SeedAsync(IServiceProvider services)
     {
         using IServiceScope scope = services.CreateScope();
 
-        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        ApplicationDbContext context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        UserManager<ApplicationUser> userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
         if (await context.Resources.AnyAsync() || await context.Needs.AnyAsync())
         {
-            // Databasen er allerede fylt. Retter bare gamle demoadresser,
-            // så demoressursene havner i riktig kommune i rapportene.
+            /*
+                Databasen er allerede fylt. Retter bare gamle demoadresser,
+                så demoressursene havner i riktig kommune i rapportene.
+            */
             await FixLegacyDemoAddressesAsync(context);
             return;
         }
@@ -45,7 +82,6 @@ public static class DemoDataSeeder
 
         ApplicationUser company =
             await EnsureUserAsync(userManager, CompanyEmail, "Sørlandet Maskin AS (demo)");
-
 
         context.Resources.AddRange(
             CreateResource(volunteer, ResourceType.Boat, "Sjark med påhengsmotor",
@@ -78,9 +114,7 @@ public static class DemoDataSeeder
 
             CreateResource(volunteer, ResourceType.Premises, "Grendehus med kjøkken",
                 "Oppvarmet lokale som kan brukes til evakuerte.", 1, "60 personer",
-                "Hele døgnet", "Landvik, 4885, Grimstad – Grimstad kommune", 58.3570, 8.5170, "90000001")
-        );
-
+                "Hele døgnet", "Landvik, 4885, Grimstad – Grimstad kommune", 58.3570, 8.5170, "90000001"));
 
         context.Needs.AddRange(
             CreateNeed(publicActor?.Id, ResourceType.SandAndGravel, NeedPriority.Acute, 200,
@@ -93,32 +127,14 @@ public static class DemoDataSeeder
                 "Reservestrøm til sykehjem i Arendal ved varslet uvær.", 58.4630, 8.7660),
 
             CreateNeed(publicActor?.Id, ResourceType.Drone, NeedPriority.Planned, 1,
-                "Oversiktsbilder av flomområdet langs Nidelva.", 58.4300, 8.7100)
-        );
+                "Oversiktsbilder av flomområdet langs Nidelva.", 58.4300, 8.7100));
 
         await context.SaveChangesAsync();
     }
 
+    #endregion
 
-    /// <summary>
-    /// Eldre versjoner av demodataene hadde adresser i fritekst
-    /// («Arendal», «Lillesand» ...) uten kommune. Rapportene viste dem da
-    /// som «Ukjent kommune». Her byttes de til samme format som skjemaet
-    /// lager: «sted, postnummer poststed – kommune kommune».
-    /// Bare demoressurser endres, og bare hvis adressen er helt lik den gamle.
-    /// </summary>
-    private static readonly Dictionary<string, string> LegacyDemoAddresses = new()
-    {
-        ["Grimstad gjestehavn"] = "Grimstad gjestehavn, 4876, Grimstad – Grimstad kommune",
-        ["Fevik"] = "Fevik, 4870, Fevik – Grimstad kommune",
-        ["Grimstad"] = "Grimstad sentrum, 4876, Grimstad – Grimstad kommune",
-        ["Arendal industriområde"] = "Arendal industriområde, 4848, Arendal – Arendal kommune",
-        ["Lillesand"] = "Lillesand sentrum, 4790, Lillesand – Lillesand kommune",
-        ["Kristiansand øst"] = "Kristiansand øst, 4630, Kristiansand S – Kristiansand kommune",
-        ["Arendal"] = "Arendal sentrum, 4836, Arendal – Arendal kommune",
-        ["Landvik"] = "Landvik, 4885, Grimstad – Grimstad kommune"
-    };
-
+    #region Hjelpemetoder
 
     private static async Task FixLegacyDemoAddressesAsync(ApplicationDbContext context)
     {
@@ -145,12 +161,10 @@ public static class DemoDataSeeder
         await context.SaveChangesAsync();
     }
 
-
     private static async Task<ApplicationUser> EnsureUserAsync(
         UserManager<ApplicationUser> userManager,
         string email,
-        string name
-    )
+        string name)
     {
         ApplicationUser? user = await userManager.FindByEmailAsync(email);
 
@@ -181,7 +195,6 @@ public static class DemoDataSeeder
         return user;
     }
 
-
     private static Resource CreateResource(
         ApplicationUser owner,
         ResourceType type,
@@ -193,8 +206,7 @@ public static class DemoDataSeeder
         string address,
         double latitude,
         double longitude,
-        string phone
-    )
+        string phone)
     {
         return new Resource
         {
@@ -217,7 +229,6 @@ public static class DemoDataSeeder
         };
     }
 
-
     private static Need CreateNeed(
         string? ownerUserId,
         ResourceType type,
@@ -225,8 +236,7 @@ public static class DemoDataSeeder
         int quantity,
         string description,
         double latitude,
-        double longitude
-    )
+        double longitude)
     {
         return new Need
         {
@@ -242,4 +252,6 @@ public static class DemoDataSeeder
             Status = NeedStatus.New
         };
     }
+
+    #endregion
 }

@@ -1,4 +1,14 @@
-﻿using System;
+﻿/*
+    20261105133604_AddMatchingNotificationsAndSami.cs – migrasjon (autogenerert)
+
+    Hva filen gjør: Endring i databasen: tabellene for forespørsler (NeedAssignments) og
+    varsler. Up() gjør endringen, Down() angrer den. Kjøres automatisk når appen starter.
+    Trenger ikke forklares linje for linje.
+
+    Oppgavekrav: 1, 7
+*/
+
+using System;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 

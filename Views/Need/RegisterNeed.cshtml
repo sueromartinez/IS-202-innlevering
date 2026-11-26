@@ -1,3 +1,15 @@
+@*
+    RegisterNeed.cshtml – «Registrer behov»
+
+    Hva filen gjør: Offentlig aktør kan legge til ett eller flere behov i samme skjema, hvert
+    med eget punkt i kartet.
+    Feltene heter Needs[0].Description, Needs[1].Description osv., slik at ASP.NET gjør dem om
+    til en liste.
+
+    På nettsiden: Skjemaet med knappen «Legg til behov» og et kart for hvert behov.
+
+    Oppgavekrav: 10, 11, 12, 18, 21, 22
+*@
 
 @using FirstWebAppInDocker.Models
 @model FirstWebAppInDocker.ViewModels.RegisterNeedsViewModel
@@ -37,9 +49,7 @@
           asp-append-version="true" />
 
     <style>
-        /* ==========================================
-           REGISTRER BEHOV – FELLES KARTMAL
-        ========================================== */
+        /* --- Registrer behov – felles kartmal --- */
 
         body.need-registration-page,
         body.need-registration-page *,
@@ -63,9 +73,7 @@
             padding: 18px 0 12px !important;
         }
 
-        /* ==========================================
-           TOPP
-        ========================================== */
+        /* --- Topp --- */
 
         .register-need-page .page-header {
             display: flex;
@@ -129,9 +137,7 @@
             background: var(--surface-soft, #eef5fb);
         }
 
-        /* ==========================================
-           TO KOLONNER
-        ========================================== */
+        /* --- To kolonner --- */
 
         body.need-registration-page .register-need-page .register-need-grid {
             display: grid !important;
@@ -158,9 +164,7 @@
             box-shadow: 0 12px 35px rgba(16,45,66,.05);
         }
 
-        /* ==========================================
-           VENSTRE SKJEMABOKS
-        ========================================== */
+        /* --- Venstre skjemaboks --- */
 
         .register-need-page .register-need-form-panel {
             display: flex;
@@ -224,9 +228,7 @@
             max-width: 100%;
         }
 
-        /* ==========================================
-           INTERN SCROLLING
-        ========================================== */
+        /* --- Intern scrolling --- */
 
         .register-need-page #needList {
             display: flex;
@@ -254,10 +256,10 @@
             background: #bdc8d2;
         }
 
-        /* ==========================================
-           BEHOVSKORT
-           HINDRER AT KORT STIKKER UT
-        ========================================== */
+        /*
+            BEHOVSKORT
+            HINDRER AT KORT STIKKER UT
+        */
 
         body.need-registration-page .register-need-page #needList > .need {
             position: relative;
@@ -301,9 +303,7 @@
 body.need-registration-page .register-need-page #needList > .need.active.planned {
     border-left-color: #d99a24;
 }
-        /* ==========================================
-           TOPP PÅ BEHOVSKORT
-        ========================================== */
+        /* --- Topp på behovskort --- */
 
         .register-need-page .need-top {
             display: flex;
@@ -382,9 +382,7 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
             display: none !important;
         }
 
-        /* ==========================================
-           INPUTFELTER
-        ========================================== */
+        /* --- Inputfelter --- */
 
         .register-need-page .need-row {
             display: grid;
@@ -453,10 +451,10 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
             overflow-wrap: anywhere;
         }
 
-        /* ==========================================
-           KNAPPENE LIGGER FAST NEDERST
-           I VENSTREBOKSEN
-        ========================================== */
+        /*
+            KNAPPENE LIGGER FAST NEDERST
+            I VENSTREBOKSEN
+        */
 
         .register-need-form-actions {
             display: flex;
@@ -512,9 +510,7 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
             background: #086d9b;
         }
 
-        /* ==========================================
-           HØYRE KARTBOKS
-        ========================================== */
+        /* --- Høyre kartboks --- */
 
         .register-need-page .register-need-map-panel {
             min-width: 0;
@@ -569,9 +565,7 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
             border-radius: 50%;
         }
 
-        /* ==========================================
-           KARTET – SAMME HØYDE SOM MALEN
-        ========================================== */
+        /* --- Kartet – samme høyde som malen --- */
 
         .register-need-map-frame {
             position: relative;
@@ -607,9 +601,7 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
             line-height: 1.5;
         }
 
-        /* ==========================================
-           TRE INFORMASJONSKORT UNDER KARTET
-        ========================================== */
+        /* --- Tre informasjonskort under kartet --- */
 
         .register-need-map-help-grid {
             display: grid;
@@ -640,11 +632,11 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
             line-height: 1.45;
         }
 
-        /* ==========================================
-           FULLSKJERM
-           Styringen ligger fortsatt i
-           register-need-map.js.
-        ========================================== */
+        /*
+            FULLSKJERM
+            Styringen ligger fortsatt i
+            register-need-map.js.
+        */
 
         #map:fullscreen,
         .register-need-fullscreen-dialog #map,
@@ -657,9 +649,7 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
             border-radius: 0 !important;
         }
 
-        /* ==========================================
-           PC: SAMME HØYDE PÅ BEGGE BOKSER
-        ========================================== */
+        /* --- Pc: samme høyde på begge bokser --- */
 
         @@media (min-width: 951px) {
 
@@ -695,9 +685,7 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
             }
         }
 
-        /* ==========================================
-           SMAL PC / NETTBRETT
-        ========================================== */
+        /* --- Smal pc / nettbrett --- */
 
         @@media (max-width: 1200px) and (min-width: 951px) {
 
@@ -740,9 +728,7 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
             }
         }
 
-        /* ==========================================
-           MOBIL
-        ========================================== */
+        /* --- Mobil --- */
 
         @@media (max-width: 700px) {
 
@@ -799,9 +785,7 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
             }
         }
 
-        /* ==========================================
-           FJERN UNØDVENDIG HØYDE UNDER SIDEN
-        ========================================== */
+        /* --- Fjern unødvendig høyde under siden --- */
 
         body.need-registration-page main.page.register-need-page {
             min-height: 0 !important;
@@ -883,6 +867,9 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
                 Du kan legge til flere behov.
             </p>
 
+            @*
+                Hele listen med behov sendes til NeedController.RegisterNeed.
+            *@
             <form asp-controller="Need"
                   asp-action="RegisterNeed"
                   method="post"
@@ -1177,9 +1164,7 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
         asp-append-version="true"></script>
 
 <script>
-    /* ==========================================
-       REFERANSER
-    ========================================== */
+    /* --- Referanser --- */
 
     const needList =
         document.getElementById("needList");
@@ -1205,9 +1190,7 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
     const mapElement =
         document.getElementById("map");
 
-    /* ==========================================
-       LIK HØYDE PÅ BEGGE BOKSER
-    ========================================== */
+    /* --- Lik høyde på begge bokser --- */
 
     function syncRegisterNeedHeight() {
 
@@ -1234,9 +1217,7 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
         panelObserver.observe(mapPanel);
     }
 
-    /* ==========================================
-       OPPRETT KART
-    ========================================== */
+    /* --- Opprett kart --- */
 
     const map = L.map("map")
         .setView([58.1467, 7.9956], 11);
@@ -1244,17 +1225,17 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
     // Kartlagvelgeren opprettes først.
     addKartverketLayers(map);
 
-    // Beholder den eksisterende fullskjermkontrollen.
-    // Den bruker samme kart og samme behovsmarkører.
+    /*
+        Beholder den eksisterende fullskjermkontrollen.
+        Den bruker samme kart og samme behovsmarkører.
+    */
     addNeedFullscreenControl(map);
 
     const markers = new Map();
 
     let activeNeed = null;
 
-    /* ==========================================
-       HENT ALLE BEHOV
-    ========================================== */
+    /* --- Hent alle behov --- */
 
     function allNeeds() {
 
@@ -1263,9 +1244,7 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
         );
     }
 
-    /* ==========================================
-       KONTROLLER PRIORITET
-    ========================================== */
+    /* --- Kontroller prioritet --- */
 
     // Verdi 0 = Akutt, verdi 1 = Planlagt.
     function isPlanned(need) {
@@ -1275,9 +1254,7 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
         ).value === "1";
     }
 
-    /* ==========================================
-       HENT KARTPOSISJON
-    ========================================== */
+    /* --- Hent kartposisjon --- */
 
     function getPosition(need) {
 
@@ -1297,9 +1274,7 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
             : null;
     }
 
-    /* ==========================================
-       SCROLL TIL AKTIVT BEHOV
-    ========================================== */
+    /* --- Scroll til aktivt behov --- */
 
     function scrollToNeed(need) {
 
@@ -1329,9 +1304,7 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
         }
     }
 
-    /* ==========================================
-       OPPDATER BEHOVSKORT OG MARKØRER
-    ========================================== */
+    /* --- Oppdater behovskort og markører --- */
 
     function refresh() {
 
@@ -1339,8 +1312,10 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
 
         needs.forEach(function (need, index) {
 
-            // ASP.NET må få riktig indeks:
-            // Needs[0], Needs[1], Needs[2] osv.
+            /*
+                ASP.NET må få riktig indeks:
+                Needs[0], Needs[1], Needs[2] osv.
+            */
             need.querySelectorAll(
                 "[name], [data-valmsg-for]"
             ).forEach(function (field) {
@@ -1471,9 +1446,7 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
         }
     }
 
-    /* ==========================================
-       SETT POSISJON
-    ========================================== */
+    /* --- Sett posisjon --- */
 
     function setPosition(need, lat, lng) {
 
@@ -1510,9 +1483,7 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
         }
     }
 
-    /* ==========================================
-       KLIKK I KARTET
-    ========================================== */
+    /* --- Klikk i kartet --- */
 
     map.on("click", function (event) {
 
@@ -1529,9 +1500,7 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
         refresh();
     });
 
-    /* ==========================================
-       LEGG TIL NYTT BEHOV
-    ========================================== */
+    /* --- Legg til nytt behov --- */
 
     addButton.addEventListener(
         "click",
@@ -1594,8 +1563,10 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
                 "[data-deadline]"
             ).value = "";
 
-            // Kontaktperson og telefon beholdes.
-            // De kommer fra første behov.
+            /*
+                Kontaktperson og telefon beholdes.
+                De kommer fra første behov.
+            */
 
             // Fjern gamle valideringsmeldinger.
             newNeed.querySelectorAll(
@@ -1638,9 +1609,7 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
         }
     );
 
-    /* ==========================================
-       VELG ELLER FJERN BEHOV
-    ========================================== */
+    /* --- Velg eller fjern behov --- */
 
     needList.addEventListener(
         "click",
@@ -1686,18 +1655,14 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
         }
     );
 
-    /* ==========================================
-       PRIORITET OG FELTENDRINGER
-    ========================================== */
+    /* --- Prioritet og feltendringer --- */
 
     needList.addEventListener(
         "change",
         refresh
     );
 
-    /* ==========================================
-       HENT POSISJONER ETTER VALIDERINGSFEIL
-    ========================================== */
+    /* --- Hent posisjoner etter valideringsfeil --- */
 
     allNeeds().forEach(function (need) {
 
@@ -1714,9 +1679,7 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
         }
     });
 
-    /* ==========================================
-       VELG FØRSTE BEHOV SOM MANGLER POSISJON
-    ========================================== */
+    /* --- Velg første behov som mangler posisjon --- */
 
     activeNeed =
         allNeeds().find(
@@ -1725,9 +1688,7 @@ body.need-registration-page .register-need-page #needList > .need.active.planned
 
     refresh();
 
-    /* ==========================================
-       KARTSTØRRELSE OG BOKSHØYDE
-    ========================================== */
+    /* --- Kartstørrelse og bokshøyde --- */
 
     window.addEventListener(
         "resize",

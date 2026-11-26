@@ -1,25 +1,46 @@
+/*
+    ResourceMatchingService.cs – finner ressurser til et behov (og behov til en ressurs)
+
+    Hva filen gjør: Kjernen i matchingen. Brukes av «Finn ressurser», «Behov jeg kan hjelpe med»
+    og Sami, så alle tre gir samme svar.
+    Slik fungerer søket, i to steg:
+    1) Databasen gjør et grovt utvalg: samme type, tilgjengelig, og innenfor en firkant rundt
+       punktet.
+    2) C# regner ut nøyaktig avstand (Haversine-formelen), tar bort det som er utenfor radiusen,
+       og sorterer nærmest først.
+    Hvorfor to steg: den nøyaktige formelen kan ikke kjøres i databasen, og å hente alle
+    ressurser hver gang ville blitt tregt. Firkanten fjerner det meste før vi regner.
+
+    På nettsiden: Listen «Passende ressurser» med "X km unna", sortert nærmest først, og
+    markørene på kartet.
+
+    Oppgavekrav: 10, 22
+*/
+
 using FirstWebAppInDocker.Models;
 
 namespace FirstWebAppInDocker.Services.Matching;
 
-/// <summary>
-/// Representerer en ressurs som passer et registrert behov,
-/// med ferdig beregnet avstand i kilometer.
-/// </summary>
-/// <remarks>
-/// Resultatet utelater telefonnummer og e-postadresse.
-/// Address beholdes for eksisterende funksjonalitet,
-/// men må vurderes før data sendes til en ekstern AI-tjeneste.
-/// </remarks>
-/// <param name="ResourceId">Ressursens identifikator.</param>
-/// <param name="ResourceType">Ressursens kategori.</param>
-/// <param name="ResourceName">Navnet på ressursen.</param>
-/// <param name="Description">Beskrivelse av ressursen.</param>
-/// <param name="Quantity">Antall tilgjengelige enheter.</param>
-/// <param name="Capacity">Oppgitt kapasitet.</param>
-/// <param name="Availability">Oppgitt tilgjengelighet.</param>
-/// <param name="Address">Ressursens registrerte adresse.</param>
-/// <param name="DistanceKm">Avstand i kilometer, avrundet til én desimal.</param>
+/*
+    Et søkeresultat: ressursen og avstanden i km.
+
+    Representerer en ressurs som passer et registrert behov,
+    med ferdig beregnet avstand i kilometer.
+
+    Resultatet utelater telefonnummer og e-postadresse.
+    Address beholdes for eksisterende funksjonalitet,
+    men må vurderes før data sendes til en ekstern AI-tjeneste.
+
+    ResourceId: Ressursens identifikator.
+    ResourceType: Ressursens kategori.
+    ResourceName: Navnet på ressursen.
+    Description: Beskrivelse av ressursen.
+    Quantity: Antall tilgjengelige enheter.
+    Capacity: Oppgitt kapasitet.
+    Availability: Oppgitt tilgjengelighet.
+    Address: Ressursens registrerte adresse.
+    DistanceKm: Avstand i kilometer, avrundet til én desimal.
+*/
 public record ResourceCandidate(
     int ResourceId,
     ResourceType ResourceType,
@@ -29,32 +50,30 @@ public record ResourceCandidate(
     string? Capacity,
     string? Availability,
     string? Address,
-    double DistanceKm
-);
+    double DistanceKm);
 
-/// <summary>
-/// Representerer et åpent behov som en ressursleverandør
-/// kan bidra til å dekke.
-/// </summary>
-/// <remarks>
-/// Kandidaten inneholder beregnet avstand, men ikke
-/// behovets eksakte koordinater eller registrerte eier.
-/// Beskrivelsen kan likevel inneholde brukerregistrerte
-/// opplysninger og skal håndteres deretter.
-/// </remarks>
-/// <param name="NeedId">Behovets identifikator.</param>
-/// <param name="ResourceType">Ressurstypen som etterspørres.</param>
-/// <param name="Priority">Behovets prioritet.</param>
-/// <param name="Status">Behovets gjeldende status.</param>
-/// <param name="Quantity">Etterspurt antall.</param>
-/// <param name="Description">Beskrivelsen av behovet.</param>
-/// <param name="DistanceKm">Avstand til nærmeste passende ressurs.</param>
-/// <param name="MatchingResourceId">
-/// Identifikatoren til ressursleverandørens nærmeste passende ressurs.
-/// </param>
-/// <param name="MatchingResourceName">
-/// Navnet på ressursleverandørens nærmeste passende ressurs.
-/// </param>
+/*
+    Representerer et åpent behov som en ressursleverandør
+    kan bidra til å dekke.
+
+    Kandidaten inneholder beregnet avstand, men ikke
+    behovets eksakte koordinater eller registrerte eier.
+    Beskrivelsen kan likevel inneholde brukerregistrerte
+    opplysninger og skal håndteres deretter.
+
+    NeedId: Behovets identifikator.
+    ResourceType: Ressurstypen som etterspørres.
+    Priority: Behovets prioritet.
+    Status: Behovets gjeldende status.
+    Quantity: Etterspurt antall.
+    Description: Beskrivelsen av behovet.
+    DistanceKm: Avstand til nærmeste passende ressurs.
+    MatchingResourceId:
+    Identifikatoren til ressursleverandørens nærmeste passende ressurs.
+
+    MatchingResourceName:
+    Navnet på ressursleverandørens nærmeste passende ressurs.
+*/
 public record NeedCandidate(
     int NeedId,
     ResourceType ResourceType,
@@ -64,75 +83,76 @@ public record NeedCandidate(
     string Description,
     double DistanceKm,
     int MatchingResourceId,
-    string MatchingResourceName
-);
+    string MatchingResourceName);
 
-/// <summary>
-/// Utfører deterministisk matching mellom registrerte
-/// behov og tilgjengelige ressurser.
-/// </summary>
-/// <remarks>
-/// Databaseoperasjoner utføres gjennom
-/// IResourceMatchingRepository.
-///
-/// Geografiske avstander beregnes med GeoDistance
-/// og Coordinate, uavhengig av AI-assistenten Sami.
-/// </remarks>
+/*
+    Utfører deterministisk matching mellom registrerte
+    behov og tilgjengelige ressurser.
+
+    Databaseoperasjoner utføres gjennom
+    IResourceMatchingRepository.
+
+    Geografiske avstander beregnes med GeoDistance
+    og Coordinate, uavhengig av AI-assistenten Sami.
+*/
 public class ResourceMatchingService
 {
-    #region Konstanter og avhengigheter
+    #region Felt og konstruktør
 
-    /// <summary>
-    /// Standard søkeradius i kilometer.
-    /// </summary>
+    /*
+        Standard søkeradius er 50 km. Radiusen holdes mellom 1 og 500 km, og vi viser maks 25
+        treff.
+    */
     public const double DefaultRadiusKm = 50;
 
     private const double MinRadiusKm = 1;
+
     private const double MaxRadiusKm = 500;
+
     private const int MaxResultsLimit = 25;
 
     private readonly IResourceMatchingRepository _repository;
 
-    #endregion
+    /*
+        Tjenesten kjenner bare interfacet, ikke EF Core. I testene (MatchingTests.cs) kjøres den
+        mot en database i minnet, uten MariaDB.
 
-    #region Konstruktør
+        Oppretter matchingservicen med datatilgang gjennom
+        et repository-interface.
 
-    /// <summary>
-    /// Oppretter matchingservicen med datatilgang gjennom
-    /// et repository-interface.
-    /// </summary>
-    /// <param name="repository">
-    /// Repositoryet som henter behov og ressurser.
-    /// </param>
-    public ResourceMatchingService(
-        IResourceMatchingRepository repository)
+        repository:
+        Repositoryet som henter behov og ressurser.
+    */
+    public ResourceMatchingService(IResourceMatchingRepository repository)
     {
         _repository = repository;
     }
 
     #endregion
 
-    #region Matching av ressurser til behov
+    #region Ressurser til et behov
 
-    /// <summary>
-    /// Finner tilgjengelige ressurser i nærheten av en
-    /// geografisk posisjon, sortert etter avstand.
-    /// </summary>
-    /// <param name="latitude">Søkepunktets breddegrad.</param>
-    /// <param name="longitude">Søkepunktets lengdegrad.</param>
-    /// <param name="radiusKm">Maksimal søkeavstand i kilometer.</param>
-    /// <param name="types">
-    /// Ressurskategorier som skal inkluderes.
-    /// Null eller tom samling betyr alle kategorier.
-    /// </param>
-    /// <param name="maxResults">Maksimalt antall resultater.</param>
-    /// <param name="excludeRequestedForNeedId">
-    /// Ekskluderer ressurser som allerede er forespurt
-    /// eller bekreftet for det oppgitte behovet.
-    /// </param>
-    /// <returns>
-    /// Tilgjengelige ressurskandidater innenfor radius.
-    /// </returns>
+    /*
+        Ressurser til ett behov: gitt en plassering og en type, finn nærmeste ledige ressurser.
+
+        Finner tilgjengelige ressurser i nærheten av en
+        geografisk posisjon, sortert etter avstand.
+
+        latitude: Søkepunktets breddegrad.
+        longitude: Søkepunktets lengdegrad.
+        radiusKm: Maksimal søkeavstand i kilometer.
+        types:
+        Ressurskategorier som skal inkluderes.
+        Null eller tom samling betyr alle kategorier.
+
+        maxResults: Maksimalt antall resultater.
+        excludeRequestedForNeedId:
+        Ekskluderer ressurser som allerede er forespurt
+        eller bekreftet for det oppgitte behovet.
+
+        Returnerer:
+        Tilgjengelige ressurskandidater innenfor radius.
+    */
     public async Task<List<ResourceCandidate>> FindNearbyResourcesAsync(
         double latitude,
         double longitude,
@@ -144,9 +164,7 @@ public class ResourceMatchingService
         radiusKm = NormalizeRadius(radiusKm);
         maxResults = Math.Clamp(maxResults, 1, MaxResultsLimit);
 
-        Coordinate searchPosition = new(
-            latitude,
-            longitude);
+        Coordinate searchPosition = new(latitude, longitude);
 
         IReadOnlyList<Resource> resources =
             await _repository.GetAvailableResourcesNearAsync(
@@ -155,23 +173,30 @@ public class ResourceMatchingService
                 types,
                 excludeRequestedForNeedId);
 
-        // Databasefiltreringen er grov.
-        // Den nøyaktige avstanden beregnes etterpå.
-        //
-        // Filtrering skjer på uavrundet avstand, slik at
-        // en ressurs like utenfor radius ikke blir inkludert
-        // fordi visningsavstanden rundes ned.
+        /*
+            Databasefiltreringen er grov.
+            Den nøyaktige avstanden beregnes etterpå.
+
+            Filtrering skjer på uavrundet avstand, slik at
+            en ressurs like utenfor radius ikke blir inkludert
+            fordi visningsavstanden rundes ned.
+        */
         List<ResourceCandidate> candidates = resources
             .Select(resource => new
             {
                 Resource = resource,
-                DistanceKm = CalculateDistanceKm(
-                    searchPosition,
-                    resource.Position)
+                DistanceKm = CalculateDistanceKm(searchPosition, resource.Position)
             })
-            .Where(item =>
-                double.IsFinite(item.DistanceKm)
-                && item.DistanceKm <= radiusKm)
+            /*
+                Steg 2: den nøyaktige avstanden. Vi sammenligner med den uavrundede avstanden og
+                runder først av når den skal vises, ellers kunne en ressurs 50,04 km unna kommet
+                med i et 50 km-søk.
+            */
+            .Where(item => double.IsFinite(item.DistanceKm) && item.DistanceKm <= radiusKm)
+            /*
+                Nærmest først. Er to like langt unna, sorteres de på ID, så rekkefølgen alltid
+                er den samme.
+            */
             .OrderBy(item => item.DistanceKm)
             .ThenBy(item => item.Resource.Id)
             .Take(maxResults)
@@ -192,33 +217,35 @@ public class ResourceMatchingService
 
     #endregion
 
-    #region Matching av behov til ressursleverandør
+    #region Behov til en frivillig
 
-    /// <summary>
-    /// Finner åpne behov som samsvarer med en
-    /// ressursleverandørs tilgjengelige ressurser.
-    /// </summary>
-    /// <remarks>
-    /// Behovet matches mot den nærmeste tilgjengelige
-    /// ressursen av samme kategori.
-    ///
-    /// Akutte behov prioriteres foran planlagte behov.
-    /// Innenfor samme prioritet sorteres etter avstand.
-    ///
-    /// Returtypen utelater behovets geografiske koordinater.
-    /// </remarks>
-    /// <param name="userId">
-    /// Identity-ID til ressursleverandøren.
-    /// </param>
-    /// <param name="radiusKm">
-    /// Maksimal avstand mellom behov og ressurs.
-    /// </param>
-    /// <param name="maxResults">
-    /// Maksimalt antall behov som returneres.
-    /// </param>
-    /// <returns>
-    /// Åpne behov som kan dekkes av leverandørens ressurser.
-    /// </returns>
+    /*
+        Motsatt vei, for frivillige: ta mine ledige ressurser, finn åpne behov av samme type, og
+        regn avstanden fra hvert behov til min nærmeste passende ressurs.
+
+        Finner åpne behov som samsvarer med en
+        ressursleverandørs tilgjengelige ressurser.
+
+        Behovet matches mot den nærmeste tilgjengelige
+        ressursen av samme kategori.
+
+        Akutte behov prioriteres foran planlagte behov.
+        Innenfor samme prioritet sorteres etter avstand.
+
+        Returtypen utelater behovets geografiske koordinater.
+
+        userId:
+        Identity-ID til ressursleverandøren.
+
+        radiusKm:
+        Maksimal avstand mellom behov og ressurs.
+
+        maxResults:
+        Maksimalt antall behov som returneres.
+
+        Returnerer:
+        Åpne behov som kan dekkes av leverandørens ressurser.
+    */
     public async Task<List<NeedCandidate>> FindNeedsForProviderAsync(
         string userId,
         double radiusKm = DefaultRadiusKm,
@@ -233,8 +260,7 @@ public class ResourceMatchingService
         maxResults = Math.Clamp(maxResults, 1, MaxResultsLimit);
 
         IReadOnlyList<Resource> ownResources =
-            await _repository.GetAvailableResourcesForProviderAsync(
-                userId);
+            await _repository.GetAvailableResourcesForProviderAsync(userId);
 
         if (ownResources.Count == 0)
         {
@@ -246,36 +272,31 @@ public class ResourceMatchingService
             .Distinct()
             .ToList();
 
-        IReadOnlyList<Need> openNeeds =
-            await _repository.GetOpenNeedsForTypesAsync(
-                ownTypes);
+        IReadOnlyList<Need> openNeeds = await _repository.GetOpenNeedsForTypesAsync(ownTypes);
 
-        var result = new List<NeedCandidate>();
+        List<NeedCandidate> result = new List<NeedCandidate>();
 
         foreach (Need need in openNeeds)
         {
             Coordinate needPosition = need.Position;
 
-            // Finn leverandørens nærmeste tilgjengelige
-            // ressurs av samme kategori som behovet.
+            /*
+                Finn leverandørens nærmeste tilgjengelige
+                ressurs av samme kategori som behovet.
+            */
             var closest = ownResources
-                .Where(resource =>
-                    resource.ResourceType == need.ResourceType)
+                .Where(resource => resource.ResourceType == need.ResourceType)
                 .Select(resource => new
                 {
                     Resource = resource,
-                    DistanceKm = CalculateDistanceKm(
-                        needPosition,
-                        resource.Position)
+                    DistanceKm = CalculateDistanceKm(needPosition, resource.Position)
                 })
-                .Where(item =>
-                    double.IsFinite(item.DistanceKm))
+                .Where(item => double.IsFinite(item.DistanceKm))
                 .OrderBy(item => item.DistanceKm)
                 .ThenBy(item => item.Resource.Id)
                 .FirstOrDefault();
 
-            if (closest is null ||
-                closest.DistanceKm > radiusKm)
+            if (closest is null || closest.DistanceKm > radiusKm)
             {
                 continue;
             }
@@ -293,10 +314,8 @@ public class ResourceMatchingService
         }
 
         return result
-            .OrderBy(candidate =>
-                candidate.Priority == NeedPriority.Acute
-                    ? 0
-                    : 1)
+            // Akutte behov først, så de nærmeste, så de eldste.
+            .OrderBy(candidate => candidate.Priority == NeedPriority.Acute ? 0 : 1)
             .ThenBy(candidate => candidate.DistanceKm)
             .ThenBy(candidate => candidate.NeedId)
             .Take(maxResults)
@@ -305,35 +324,33 @@ public class ResourceMatchingService
 
     #endregion
 
-    #region Geografiske hjelpemetoder
+    #region Hjelpemetoder
 
-    /// <summary>
-    /// Beregner luftlinjeavstanden mellom to posisjoner.
-    /// </summary>
-    /// <param name="from">Startposisjon.</param>
-    /// <param name="to">Sluttposisjon.</param>
-    /// <returns>Avstanden i kilometer.</returns>
-    private static double CalculateDistanceKm(
-        Coordinate from,
-        Coordinate to)
+    /*
+        Beregner luftlinjeavstanden mellom to posisjoner.
+
+        from: Startposisjon.
+        to: Sluttposisjon.
+        Returnerer: Avstanden i kilometer.
+    */
+    private static double CalculateDistanceKm(Coordinate from, Coordinate to)
     {
-        // GeoDistance beholder sin eksisterende signatur.
-        // Coordinate gjør at koordinatpar håndteres samlet
-        // i matchinglogikken.
-        return GeoDistance.HaversineKm(
-            from.Latitude,
-            from.Longitude,
-            to.Latitude,
-            to.Longitude);
+        /*
+            GeoDistance beholder sin eksisterende signatur.
+            Coordinate gjør at koordinatpar håndteres samlet
+            i matchinglogikken.
+        */
+        return GeoDistance.HaversineKm(from.Latitude, from.Longitude, to.Latitude, to.Longitude);
     }
 
-    /// <summary>
-    /// Begrens søkeradius til portalens tillatte intervall.
-    /// </summary>
-    /// <param name="radiusKm">
-    /// Ønsket søkeradius i kilometer.
-    /// </param>
-    /// <returns>En gyldig søkeradius.</returns>
+    /*
+        Begrens søkeradius til portalens tillatte intervall.
+
+        radiusKm:
+        Ønsket søkeradius i kilometer.
+
+        Returnerer: En gyldig søkeradius.
+    */
     private static double NormalizeRadius(double radiusKm)
     {
         if (!double.IsFinite(radiusKm))
@@ -341,10 +358,7 @@ public class ResourceMatchingService
             return DefaultRadiusKm;
         }
 
-        return Math.Clamp(
-            radiusKm,
-            MinRadiusKm,
-            MaxRadiusKm);
+        return Math.Clamp(radiusKm, MinRadiusKm, MaxRadiusKm);
     }
 
     #endregion

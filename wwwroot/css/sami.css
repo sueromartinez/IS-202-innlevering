@@ -1,8 +1,16 @@
-/* =========================================================
-   SAMI – hjelpeassistenten
-   Bruker fargene fra app.css (navy og primary) med
-   reserveverdier, så widgeten ser lik ut på alle sider.
-   ========================================================= */
+/*
+    sami.css – utseende
+
+    Hva filen gjør: Stilark. @media-reglene tilpasser siden til mobil.
+
+    Oppgavekrav: 12
+*/
+
+/*
+    SAMI – hjelpeassistenten
+    Bruker fargene fra app.css (navy og primary) med
+    reserveverdier, så widgeten ser lik ut på alle sider.
+*/
 
 .sami {
     --sami-navy: var(--navy, #123047);
@@ -43,10 +51,7 @@
     white-space: nowrap;
 }
 
-
-/* -----------------------
-   KNAPPEN NEDE I HJØRNET
------------------------ */
+/* --- Knappen nede i hjørnet --- */
 
 .sami-launcher {
     display: flex;
@@ -119,10 +124,7 @@
     display: none;
 }
 
-
-/* -----------------------
-   HILSEN FØRSTE GANG
------------------------ */
+/* --- Hilsen første gang --- */
 
 .sami-hint {
     position: relative;
@@ -160,10 +162,7 @@
     background: var(--sami-wash);
 }
 
-
-/* -----------------------
-   PANELET
------------------------ */
+/* --- Panelet --- */
 
 .sami-panel {
     width: min(400px, calc(100vw - 32px));
@@ -236,10 +235,7 @@
     background: rgba(255, 255, 255, 0.1);
 }
 
-
-/* -----------------------
-   MELDINGER
------------------------ */
+/* --- Meldinger --- */
 
 .sami-messages {
     flex: 1;
@@ -339,10 +335,7 @@
     }
 }
 
-
-/* -----------------------
-   FORSLAG FRA SAMI
------------------------ */
+/* --- Forslag fra Sami --- */
 
 .sami-card {
     max-width: 92%;
@@ -408,7 +401,6 @@
 .sami-card-status.is-success { color: var(--sami-green); }
 .sami-card-status.is-error { color: #9d2f2f; }
 
-
 /* Utkast til ressurs: samme kort, men med en liste over feltene */
 .sami-draft-card {
     border-left-color: var(--sami-primary);
@@ -434,10 +426,7 @@
     overflow-wrap: anywhere;
 }
 
-
-/* -----------------------
-   FORSLAG TIL SPØRSMÅL
------------------------ */
+/* --- Forslag til spørsmål --- */
 
 .sami-starters {
     display: flex;
@@ -469,10 +458,7 @@
     background: var(--surface-soft);
 }
 
-
-/* -----------------------
-   SKRIVEFELT
------------------------ */
+/* --- Skrivefelt --- */
 
 .sami-composer {
     display: flex;
@@ -534,10 +520,7 @@
     line-height: 1.4;
 }
 
-
-/* -----------------------
-   MOBIL
------------------------ */
+/* --- Mobil --- */
 
 @media (max-width: 600px) {
     .sami {
@@ -572,10 +555,10 @@
     }
 }
 
-/* =========================================================
-   MØRK MODUS for Sami-chatten
-   Bruker fargevariablene fra theme.css, så Sami følger resten av siden
-   ========================================================= */
+/*
+    MØRK MODUS for Sami-chatten
+    Bruker fargevariablene fra theme.css, så Sami følger resten av siden
+*/
 html:root[data-theme="navy"] {
 
   /* Samis svar-bobler: mørk bakgrunn og lys tekst */

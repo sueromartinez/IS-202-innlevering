@@ -1,3 +1,14 @@
+/*
+    SmtpEmailCodeSender.cs – e-postene i innloggingen
+
+    Hva filen gjør: Sender den 6-sifrede tofaktorkoden, bekreftelseslenken etter registrering og
+    lenken for nytt passord. Sjekker at lenkene er gyldige http/https-adresser før de sendes.
+
+    På nettsiden: E-postene brukeren får når hen registrerer seg, logger inn med tofaktor eller
+    har glemt passordet.
+
+    Oppgavekrav: 8, 14
+*/
 
 using System.Net;
 using System.Net.Mail;
@@ -5,16 +16,11 @@ using System.Text.RegularExpressions;
 
 namespace FirstWebAppInDocker.Services;
 
-// ========================================
-// GRENSESNITT FOR E-POSTUTSENDING
-// ========================================
+// --- Grensesnitt for e-postutsending ---
 
 public interface IEmailCodeSender
 {
-    Task SendCodeAsync(
-        string email,
-        string code,
-        CancellationToken cancellationToken = default);
+    Task SendCodeAsync(string email, string code, CancellationToken cancellationToken = default);
 
     Task SendConfirmationAsync(
         string email,
@@ -28,23 +34,22 @@ public interface IEmailCodeSender
         CancellationToken cancellationToken = default);
 }
 
-// ========================================
-// SMTP E-POSTTJENESTE
-// ========================================
+// --- SMTP e-posttjeneste ---
 
 public sealed class SmtpEmailCodeSender : IEmailCodeSender
 {
+    #region Felt og konstruktør
+
     private readonly IConfiguration _configuration;
 
-    public SmtpEmailCodeSender(
-        IConfiguration configuration)
+    public SmtpEmailCodeSender(IConfiguration configuration)
     {
         _configuration = configuration;
     }
 
-    // ========================================
-    // SEND SEKSSIFRET INNLOGGINGSKODE
-    // ========================================
+    #endregion
+
+    #region Send e-post
 
     public async Task SendCodeAsync(
         string email,
@@ -53,13 +58,10 @@ public sealed class SmtpEmailCodeSender : IEmailCodeSender
     {
         if (!Regex.IsMatch(code, @"^[0-9]{6}$"))
         {
-            throw new ArgumentException(
-                "Sikkerhetskoden må inneholde seks sifre.",
-                nameof(code));
+            throw new ArgumentException("Sikkerhetskoden må inneholde seks sifre.", nameof(code));
         }
 
-        string subject =
-            "Din sikkerhetskode - Beredskapsportalen";
+        string subject = "Din sikkerhetskode - Beredskapsportalen";
 
         string body =
             "Hei!\n\n" +
@@ -73,28 +75,17 @@ public sealed class SmtpEmailCodeSender : IEmailCodeSender
             "kan du ignorere denne meldingen.\n\n" +
             "Hilsen Beredskapsportalen";
 
-        await SendEmailAsync(
-            email,
-            subject,
-            body,
-            cancellationToken);
+        await SendEmailAsync(email, subject, body, cancellationToken);
     }
-
-    // ========================================
-    // SEND BEKREFTELSE VED REGISTRERING
-    // ========================================
 
     public async Task SendConfirmationAsync(
         string email,
         string confirmationUrl,
         CancellationToken cancellationToken = default)
     {
-        ValidateWebUrl(
-            confirmationUrl,
-            nameof(confirmationUrl));
+        ValidateWebUrl(confirmationUrl, nameof(confirmationUrl));
 
-        string subject =
-            "Bekreft e-postadressen din - Beredskapsportalen";
+        string subject = "Bekreft e-postadressen din - Beredskapsportalen";
 
         string body =
             "Hei!\n\n" +
@@ -107,28 +98,17 @@ public sealed class SmtpEmailCodeSender : IEmailCodeSender
             "kan du ignorere denne e-posten.\n\n" +
             "Hilsen Beredskapsportalen";
 
-        await SendEmailAsync(
-            email,
-            subject,
-            body,
-            cancellationToken);
+        await SendEmailAsync(email, subject, body, cancellationToken);
     }
-
-    // ========================================
-    // NYTT: SEND LENKE FOR GLEMT PASSORD
-    // ========================================
 
     public async Task SendPasswordResetAsync(
         string email,
         string resetUrl,
         CancellationToken cancellationToken = default)
     {
-        ValidateWebUrl(
-            resetUrl,
-            nameof(resetUrl));
+        ValidateWebUrl(resetUrl, nameof(resetUrl));
 
-        string subject =
-            "Tilbakestill passordet ditt - Beredskapsportalen";
+        string subject = "Tilbakestill passordet ditt - Beredskapsportalen";
 
         string body =
             "Hei!\n\n" +
@@ -145,38 +125,22 @@ public sealed class SmtpEmailCodeSender : IEmailCodeSender
             "Ikke del denne lenken med andre.\n\n" +
             "Hilsen Beredskapsportalen";
 
-        await SendEmailAsync(
-            email,
-            subject,
-            body,
-            cancellationToken);
+        await SendEmailAsync(email, subject, body, cancellationToken);
     }
 
-    // ========================================
-    // VALIDER LENKER
-    // ========================================
+    #endregion
 
-    private static void ValidateWebUrl(
-        string url,
-        string parameterName)
+    #region Hjelpemetoder
+
+    private static void ValidateWebUrl(string url, string parameterName)
     {
-        if (!Uri.TryCreate(
-                url,
-                UriKind.Absolute,
-                out Uri? uri)
+        if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri)
             ||
-            (uri.Scheme != Uri.UriSchemeHttps
-             && uri.Scheme != Uri.UriSchemeHttp))
+            (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp))
         {
-            throw new ArgumentException(
-                "Ugyldig lenke.",
-                parameterName);
+            throw new ArgumentException("Ugyldig lenke.", parameterName);
         }
     }
-
-    // ========================================
-    // FELLES SMTP-UTSENDING
-    // ========================================
 
     private async Task SendEmailAsync(
         string email,
@@ -186,40 +150,28 @@ public sealed class SmtpEmailCodeSender : IEmailCodeSender
     {
         if (string.IsNullOrWhiteSpace(email))
         {
-            throw new ArgumentException(
-                "E-postadresse mangler.",
-                nameof(email));
+            throw new ArgumentException("E-postadresse mangler.", nameof(email));
         }
 
         string host =
             _configuration["Email:Smtp:Host"]
-            ?? throw new InvalidOperationException(
-                "SMTP-server er ikke konfigurert.");
+            ?? throw new InvalidOperationException("SMTP-server er ikke konfigurert.");
 
         string from =
             _configuration["Email:Smtp:From"]
-            ?? throw new InvalidOperationException(
-                "Avsenderadresse er ikke konfigurert.");
+            ?? throw new InvalidOperationException("Avsenderadresse er ikke konfigurert.");
 
-        int port =
-            _configuration.GetValue<int?>(
-                "Email:Smtp:Port") ?? 587;
+        int port = _configuration.GetValue<int?>("Email:Smtp:Port") ?? 587;
 
-        bool enableSsl =
-            _configuration.GetValue<bool?>(
-                "Email:Smtp:EnableSsl") ?? true;
+        bool enableSsl = _configuration.GetValue<bool?>("Email:Smtp:EnableSsl") ?? true;
 
-        string? username =
-            _configuration["Email:Smtp:Username"];
+        string? username = _configuration["Email:Smtp:Username"];
 
-        string? password =
-            _configuration["Email:Smtp:Password"];
+        string? password = _configuration["Email:Smtp:Password"];
 
-        using var message = new MailMessage
+        using MailMessage message = new MailMessage
         {
-            From = new MailAddress(
-                from,
-                "Beredskapsportalen"),
+            From = new MailAddress(from, "Beredskapsportalen"),
 
             Subject = subject,
 
@@ -230,7 +182,7 @@ public sealed class SmtpEmailCodeSender : IEmailCodeSender
 
         message.To.Add(new MailAddress(email));
 
-        using var smtp = new SmtpClient(host, port)
+        using SmtpClient smtp = new SmtpClient(host, port)
         {
             DeliveryMethod = SmtpDeliveryMethod.Network,
 
@@ -241,13 +193,11 @@ public sealed class SmtpEmailCodeSender : IEmailCodeSender
 
         if (!string.IsNullOrWhiteSpace(username))
         {
-            smtp.Credentials = new NetworkCredential(
-                username,
-                password ?? string.Empty);
+            smtp.Credentials = new NetworkCredential(username, password ?? string.Empty);
         }
 
-        await smtp.SendMailAsync(
-            message,
-            cancellationToken);
+        await smtp.SendMailAsync(message, cancellationToken);
     }
+
+    #endregion
 }

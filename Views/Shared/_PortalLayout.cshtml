@@ -1,3 +1,14 @@
+@*
+    _PortalLayout.cshtml – rammen rundt portalsidene
+
+    Hva filen gjør: Felles <head>, toppmeny og Sami-chat for sidene Koordinering, Tildelinger,
+    Rapport, Admin, Varsler og Forespørsler. Selve siden settes inn der det står @RenderBody().
+
+    På nettsiden: Toppmenyen, varselklokka og chatboblen som er like på alle disse sidene.
+
+    Oppgavekrav: 12, 18
+*@
+
 @using FirstWebAppInDocker.Data
 @*
     Felles layout for de nye sidene (matching, forespørsler,
@@ -29,11 +40,20 @@
     <partial name="_PortalHeader" />
 
     <main class="app-main">
+        @*
+            Her kommer innholdet fra den siden brukeren har åpnet.
+        *@
         @RenderBody()
     </main>
 
+    @*
+        Chatten til Sami legges inn på alle portalsidene.
+    *@
     <partial name="_Sami" />
 
+    @*
+        Sider kan legge til egne script (for eksempel kartet) her nederst.
+    *@
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

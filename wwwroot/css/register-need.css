@@ -1,3 +1,11 @@
+/*
+    register-need.css – utseende
+
+    Hva filen gjør: Stilark. @media-reglene tilpasser siden til mobil.
+
+    Oppgavekrav: 12
+*/
+
 /* Mobilvisning: Behov og registreringsknapp vises før kartet, uten faste minimumsbredder. */
 @media (max-width: 1024px) {
     .need-registration-page .page {

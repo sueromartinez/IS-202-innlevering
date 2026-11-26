@@ -1,3 +1,14 @@
+@*
+    Match/Need.cshtml – «Finn ressurser»
+
+    Hva filen gjør: Behovet øverst, ressurser sortert etter avstand (med valg av radius), kart
+    med behovet og ressursene, og listen over forespørsler som er sendt.
+
+    På nettsiden: Siden der offentlig aktør velger hvilke ressurser hen vil spørre.
+
+    Oppgavekrav: 10, 12, 22
+*@
+
 @model FirstWebAppInDocker.ViewModels.MatchNeedViewModel
 @using FirstWebAppInDocker.Services
 @*
@@ -218,6 +229,9 @@
         @if (!isResolved)
         {
             <div class="need-coord-hero-actions">
+                @*
+                    «Marker som løst» → MatchController.Resolve.
+                *@
                 <form asp-controller="Match" asp-action="Resolve" method="post"
                       onsubmit="return confirm('Markere behovet som løst? Bekreftede ressurser blir ledige igjen.');">
                     <input type="hidden" name="needId" value="@need.Id" />
@@ -260,7 +274,7 @@
 
     <p class="need-coord-next"><strong>@nextStep.Label</strong> @nextStep.Text</p>
 
-    @if (TempData["MatchMessage"] is string message)
+    @if (TempData["MatchSuccess"] is string message)
     {
         <div class="alert alert-success" role="status">@message</div>
     }
@@ -397,6 +411,10 @@
                                         <li><strong>Tilgjengelig</strong> @(candidate.Availability ?? "Ikke oppgitt")</li>
                                     </ul>
 
+                                    @*
+                                        Ett skjema per ressurs: «Send forespørsel» til akkurat
+                                        denne.
+                                    *@
                                     <form asp-controller="Match" asp-action="SendRequest" method="post" class="need-coord-resource-form">
                                         <input type="hidden" name="needId" value="@need.Id" />
                                         <input type="hidden" name="resourceId" value="@candidate.ResourceId" />
@@ -532,6 +550,9 @@
 
                                 @if (!isResolved && assignment.Status is AssignmentStatus.Requested or AssignmentStatus.Confirmed)
                                 {
+                                    @*
+                                        «Avbryt» en forespørsel som er sendt.
+                                    *@
                                     <form asp-controller="Match" asp-action="Cancel" method="post"
                                           onsubmit="return confirm('Er du sikker på at du vil avbryte denne forespørselen?');">
                                         <input type="hidden" name="assignmentId" value="@assignment.Id" />
@@ -563,7 +584,7 @@
         (function () {
             "use strict";
 
-            // ---------- FANER ----------
+            // --- Faner ---
             const tabs = Array.from(document.querySelectorAll("[data-need-tab]"));
             const panels = document.querySelectorAll("[data-need-panel]");
             let mapReady = null;
@@ -602,7 +623,7 @@
                 button.addEventListener("click", function () { activateTab("resources", true); });
             });
 
-            // ---------- MELDING TIL EIEREN ----------
+            // --- Melding til eieren ---
             document.querySelectorAll("[data-toggle-message]").forEach(function (button) {
                 button.addEventListener("click", function () {
                     const box = document.getElementById(button.dataset.toggleMessage);
@@ -629,7 +650,7 @@
                 });
             });
 
-            // ---------- KART ----------
+            // --- Kart ---
             const mapElement = document.getElementById("needCoordMap");
             if (!mapElement || typeof L === "undefined") return;
 
@@ -640,10 +661,15 @@
                 radiusKm: @Model.RadiusKm.ToString(System.Globalization.CultureInfo.InvariantCulture)
             };
 
+            @*
+                Ressursene sendes til JavaScript som JSON og tegnes som markører på kartet.
+            *@
             const candidates = @Json.Serialize(mapCandidates);
 
-            // Kartet må ha et sentrum før noe legges på det (ellers kaster Leaflet en feil).
-            // Zoom med musehjul eller to fingre på touchpaden når musen er over kartet.
+            /*
+                Kartet må ha et sentrum før noe legges på det (ellers kaster Leaflet en feil).
+                Zoom med musehjul eller to fingre på touchpaden når musen er over kartet.
+            */
             const map = L.map(mapElement, { scrollWheelZoom: true, wheelPxPerZoomLevel: 90 })
                 .setView([need.lat, need.lng], 10);
 
@@ -724,9 +750,11 @@
                 });
             });
 
-            // ---------- FULLSKJERM ----------
-            // Bruker nettleserens fullskjerm. Der den ikke finnes (f.eks. iPhone),
-            // fyller kartet hele vinduet i stedet.
+            /*
+                 FULLSKJERM
+                Bruker nettleserens fullskjerm. Der den ikke finnes (f.eks. iPhone),
+                fyller kartet hele vinduet i stedet.
+            */
             const expandIcon =
                 '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/></svg>';
             const collapseIcon =

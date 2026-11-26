@@ -1,4 +1,14 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿/*
+    HomeControllerTests.cs – automatiske tester
+
+    Hva filen gjør: Tester valideringen av skjemaet «Registrer ressurs» (navn, antall,
+    koordinater, periode, adresse). Bruker xUnit, en database i minnet (EF Core InMemory) og
+    Moq, så testene kjører raskt uten Docker.
+
+    Oppgavekrav: 6, 15
+*/
+
+using System.ComponentModel.DataAnnotations;
 using FirstWebAppInDocker.Models;
 using FirstWebAppInDocker.ViewModels;
 using Xunit;
@@ -39,8 +49,10 @@ public class ResourceValidationTests
         Assert.Contains(errors, error => error.MemberNames.Contains(nameof(model.StreetAddress)));
     }
 
-    // Oppretter en gyldig ressurs som
-    // brukes som utgangspunkt i testene.
+    /*
+        Oppretter en gyldig ressurs som
+        brukes som utgangspunkt i testene.
+    */
 
     private static RegisterResourceViewModel
         CreateValidResource()
@@ -66,10 +78,7 @@ public class ResourceValidationTests
         };
     }
 
-
-    // ========================================
-    // TEST 1 - GYLDIG RESSURS
-    // ========================================
+    // --- Test 1: gyldig ressurs ---
 
     [Fact]
     public void ValidResource_ShouldPassValidation()
@@ -82,17 +91,13 @@ public class ResourceValidationTests
             model,
             new ValidationContext(model),
             results,
-            validateAllProperties: true
-        );
+            validateAllProperties: true);
 
         Assert.True(isValid);
         Assert.Empty(results);
     }
 
-
-    // ========================================
-    // TEST 2 - MANGLENDE NAVN
-    // ========================================
+    // --- Test 2: manglende navn ---
 
     [Fact]
     public void MissingResourceName_ShouldFailValidation()
@@ -107,23 +112,14 @@ public class ResourceValidationTests
             model,
             new ValidationContext(model),
             results,
-            validateAllProperties: true
-        );
+            validateAllProperties: true);
 
         Assert.False(isValid);
 
-        Assert.Contains(
-            results,
-            result => result.MemberNames.Contains(
-                nameof(model.ResourceName)
-            )
-        );
+        Assert.Contains(results, result => result.MemberNames.Contains(nameof(model.ResourceName)));
     }
 
-
-    // ========================================
-    // TEST 3 - UGYLDIG ANTALL
-    // ========================================
+    // --- Test 3: ugyldig antall ---
 
     [Fact]
     public void QuantityZero_ShouldFailValidation()
@@ -138,23 +134,14 @@ public class ResourceValidationTests
             model,
             new ValidationContext(model),
             results,
-            validateAllProperties: true
-        );
+            validateAllProperties: true);
 
         Assert.False(isValid);
 
-        Assert.Contains(
-            results,
-            result => result.MemberNames.Contains(
-                nameof(model.Quantity)
-            )
-        );
+        Assert.Contains(results, result => result.MemberNames.Contains(nameof(model.Quantity)));
     }
 
-
-    // ========================================
-    // TEST 4 - UGYLDIG BREDDEGRAD
-    // ========================================
+    // --- Test 4: ugyldig breddegrad ---
 
     [Fact]
     public void InvalidLatitude_ShouldFailValidation()
@@ -163,22 +150,12 @@ public class ResourceValidationTests
 
         model.Latitude = 100;
 
-        var results = model.Validate(
-            new ValidationContext(model)
-        ).ToList();
+        var results = model.Validate(new ValidationContext(model)).ToList();
 
-        Assert.Contains(
-            results,
-            result => result.MemberNames.Contains(
-                nameof(model.Latitude)
-            )
-        );
+        Assert.Contains(results, result => result.MemberNames.Contains(nameof(model.Latitude)));
     }
 
-
-    // ========================================
-    // TEST 5 - UGYLDIG LENGDEGRAD
-    // ========================================
+    // --- Test 5: ugyldig lengdegrad ---
 
     [Fact]
     public void InvalidLongitude_ShouldFailValidation()
@@ -187,15 +164,8 @@ public class ResourceValidationTests
 
         model.Longitude = 200;
 
-        var results = model.Validate(
-            new ValidationContext(model)
-        ).ToList();
+        var results = model.Validate(new ValidationContext(model)).ToList();
 
-        Assert.Contains(
-            results,
-            result => result.MemberNames.Contains(
-                nameof(model.Longitude)
-            )
-        );
+        Assert.Contains(results, result => result.MemberNames.Contains(nameof(model.Longitude)));
     }
 }

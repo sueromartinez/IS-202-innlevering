@@ -1,3 +1,14 @@
+/*
+    HomeController.cs – forsiden og dashbordet
+
+    Hva filen gjør: Viser forsiden og dashbordet. Dashbordet har forskjellig innhold for hver
+    rolle.
+
+    På nettsiden: Forsiden med informasjon og innlogging, og «Oversikt»-siden man kommer til
+    etter innlogging.
+
+    Oppgavekrav: 13, 18, 19
+*/
 
 using System.Diagnostics;
 using FirstWebAppInDocker.Data;
@@ -10,75 +21,73 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FirstWebAppInDocker.Controllers;
 
-/// <summary>
-/// Håndterer forsiden, dashboardet
-/// og generell feilhåndtering.
-/// </summary>
+/*
+    Håndterer forsiden, dashboardet
+    og generell feilhåndtering.
+*/
 public class HomeController : Controller
 {
+    #region Felt og konstruktør
+
     private readonly ApplicationDbContext _context;
 
     private readonly UserManager<ApplicationUser>
         _userManager;
 
-    public HomeController(
-        ApplicationDbContext context,
-        UserManager<ApplicationUser> userManager
-    )
+    public HomeController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
     {
         _context = context;
         _userManager = userManager;
     }
 
-    // ========================================
-    // FORSIDE
-    // ========================================
+    #endregion
 
-    /// <summary>
-    /// Viser forsiden for besøkende.
-    ///
-    /// Brukere som allerede er innlogget
-    /// sendes direkte til Dashboard.
-    ///
-    /// Dette gjør at en gyldig innloggingscookie
-    /// også gjenkjennes når nettleseren åpnes
-    /// på nytt.
-    /// </summary>
+    #region Forside
+
+    /*
+        GET / – forsiden. Er man allerede innlogget, sendes man rett til dashbordet.
+
+        Viser forsiden for besøkende.
+
+        Brukere som allerede er innlogget
+        sendes direkte til Dashboard.
+
+        Dette gjør at en gyldig innloggingscookie
+        også gjenkjennes når nettleseren åpnes
+        på nytt.
+    */
     [HttpGet]
     public IActionResult Index()
     {
         if (User.Identity?.IsAuthenticated == true)
         {
-            return RedirectToAction(
-                nameof(Dashboard)
-            );
+            return RedirectToAction(nameof(Dashboard));
         }
 
         return View();
     }
 
-    // ========================================
-    // DASHBOARD
-    // ========================================
+    #endregion
 
-    /// <summary>
-    /// Viser dashboardet til en innlogget bruker.
-    ///
-    /// Ressursleverandører ser kun egne ressurser.
-    /// Eierskap bestemmes primært gjennom
-    /// ASP.NET Core Identity sin bruker-ID.
-    ///
-    /// Offentlige aktører får behov og
-    /// ressurser fra databasen.
-    /// </summary>
+    #region Dashbord
+
+    /*
+        GET /Home/Dashboard – krever innlogging. Rollen hentes fra Identity.
+
+        Viser dashboardet til en innlogget bruker.
+
+        Ressursleverandører ser kun egne ressurser.
+        Eierskap bestemmes primært gjennom
+        ASP.NET Core Identity sin bruker-ID.
+
+        Offentlige aktører får behov og
+        ressurser fra databasen.
+    */
     [Authorize]
     [HttpGet]
     public async Task<IActionResult> Dashboard()
     {
-        ApplicationUser? user =
-            await _userManager.GetUserAsync(
-                User
-            );
+        ApplicationUser? user = await _userManager.GetUserAsync(User);
 
         if (user is null)
         {
@@ -87,55 +96,40 @@ public class HomeController : Controller
 
         string userRole;
 
-        if (
-            User.IsInRole(
-                IdentitySeeder.AdminRole
-            )
-        )
+        if (User.IsInRole(IdentitySeeder.AdminRole))
         {
-            userRole =
-                IdentitySeeder.AdminRole;
+            userRole = IdentitySeeder.AdminRole;
         }
-        else if (
-            User.IsInRole(
-                IdentitySeeder.PublicActorRole
-            )
-        )
+        else if (User.IsInRole(IdentitySeeder.PublicActorRole))
         {
-            userRole =
-                IdentitySeeder.PublicActorRole;
+            userRole = IdentitySeeder.PublicActorRole;
         }
         else
         {
-            userRole =
-                IdentitySeeder.ResourceProviderRole;
+            userRole = IdentitySeeder.ResourceProviderRole;
         }
 
-        // Identity er sannhetskilden
-        // for innlogging og brukerroller.
+        /*
+            Identity er sannhetskilden
+            for innlogging og brukerroller.
+        */
 
         ViewBag.UserName =
-            string.IsNullOrWhiteSpace(
-                user.Name
-            )
+            string.IsNullOrWhiteSpace(user.Name)
                 ? user.Email
                 : user.Name;
 
-        ViewBag.UserRole =
-            userRole;
+        ViewBag.UserRole = userRole;
 
-        var model =
-            new DashboardViewModel();
+        DashboardViewModel model = new DashboardViewModel();
 
-        // ========================================
-        // PUBLIC ACTOR / ADMIN
-        // ========================================
+        // --- Public actor / admin ---
 
-        if (
-            userRole == IdentitySeeder.PublicActorRole
-            ||
-            userRole == IdentitySeeder.AdminRole
-        )
+        /*
+            Offentlig aktør og admin: alle uløste behov og alle ressurser, til tellerne og
+            kartet.
+        */
+        if (userRole == IdentitySeeder.PublicActorRole || userRole == IdentitySeeder.AdminRole)
         {
             model =
                 new DashboardViewModel
@@ -145,31 +139,23 @@ public class HomeController : Controller
                             .AsNoTracking()
                             // Løste behov skal ikke vises i kartet, tellerne eller listen.
                             .Where(need => need.Status != NeedStatus.Resolved)
-                            .OrderByDescending(
-                                need => need.CreatedAt
-                            )
+                            .OrderByDescending(need => need.CreatedAt)
                             .ToListAsync(),
 
                     Resources =
                         await _context.Resources
                             .AsNoTracking()
-                            .OrderByDescending(
-                                resource => resource.CreatedAt
-                            )
+                            .OrderByDescending(resource => resource.CreatedAt)
                             .ToListAsync()
                 };
         }
 
-        // ========================================
-        // RESOURCE PROVIDER
-        // ========================================
+        // --- Ressursleverandør ---
 
-        if (
-            userRole == IdentitySeeder.ResourceProviderRole
-        )
+        // Frivillig: bare egne ressurser, til listen og nivået/poengene.
+        if (userRole == IdentitySeeder.ResourceProviderRole)
         {
-            string? userEmail =
-                user.Email;
+            string? userEmail = user.Email;
 
             model =
                 new DashboardViewModel
@@ -186,8 +172,10 @@ public class HomeController : Controller
 
                                     ||
 
-                                    // Støtte for eldre ressurser
-                                    // uten OwnerUserId.
+                                    /*
+                                        Støtte for eldre ressurser
+                                        uten OwnerUserId.
+                                    */
                                     (
                                         resource.OwnerUserId
                                             == null
@@ -195,12 +183,9 @@ public class HomeController : Controller
                                         &&
 
                                         resource.OwnerEmail
-                                            == userEmail
-                                    )
+                                            == userEmail)
                             )
-                            .OrderByDescending(
-                                resource => resource.CreatedAt
-                            )
+                            .OrderByDescending(resource => resource.CreatedAt)
                             .ToListAsync()
                 };
         }
@@ -208,15 +193,12 @@ public class HomeController : Controller
         return View(model);
     }
 
-    // ========================================
-    // FEILSIDE
-    // ========================================
+    #endregion
 
-    [ResponseCache(
-        Duration = 0,
-        Location = ResponseCacheLocation.None,
-        NoStore = true
-    )]
+    #region Feilside
+
+    // GET /Home/Error
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {
         return View(
@@ -225,7 +207,8 @@ public class HomeController : Controller
                 RequestId =
                     Activity.Current?.Id
                     ?? HttpContext.TraceIdentifier
-            }
-        );
+            });
     }
+
+    #endregion
 }

@@ -1,4 +1,10 @@
 /*
+    theme.css – utseende
+
+    Hva filen gjør: Stilark. Fargene for lyst og mørkt tema og fargeblind modus.
+*/
+
+/*
   theme.css
   Fargesystem for hele portalen.
     - Lyseblått tema (standard)
@@ -24,7 +30,7 @@
   html:root[data-theme="navy"] = marineblått tema (mørk modus, settes av theme.js)
 */
 
-/* ---------- LYSEBLÅTT TEMA (standard) ---------- */
+/* --- Lyseblått tema (standard) --- */
 html:root {
     --background: #d2e7fb;                      /* sidebakgrunn */
     --surface: #e4f1fd;                         /* kort og bokser */
@@ -57,7 +63,7 @@ html:root {
     color-scheme: light;
 }
 
-/* ---------- MARINEBLÅTT TEMA (mørk modus) ---------- */
+/* --- Marineblått tema (mørk modus) --- */
 /* html:root[...] er mer spesifikk enn html:root, så dette vinner når temaet er satt */
 html:root[data-theme="navy"] {
     --background: #061727;
@@ -89,13 +95,13 @@ html:root[data-theme="navy"] {
     color-scheme: dark;
 }
 
-/* ---------- FOKUSRING (tastaturnavigasjon) ---------- */
+/* --- Fokusring (tastaturnavigasjon) --- */
 html :focus-visible {
     outline: 3px solid var(--focus);
     outline-offset: 2px;
 }
 
-/* ---------- KNAPP FOR TEMA ---------- */
+/* --- Knapp for tema --- */
 /* Rund knapp med sol- eller måneikon. theme.js legger den i menyen. */
 .theme-toggle {
     width: 38px;
@@ -132,22 +138,21 @@ html :focus-visible {
     z-index: 2000;
 }
 
-/* ---------- DEN BLÅ BOKSEN PÅ FORSIDEN ---------- */
+/* --- Den blå boksen på forsiden --- */
 /* I mørk modus blir den dypere, så den ikke lyser mot resten av siden. */
 html:root[data-theme="navy"] .network {
     background: linear-gradient(145deg, #17437f, #0f3163);
 }
 
-
-/* =====================================================================
-   MØRK MODUS: RETTELSER FOR SIDER MED FASTE FARGER
-   Alt her er pakket inn i html:root[data-theme="navy"], så det gjelder
-   bare i mørk modus. "&" betyr "html:root[data-theme="navy"]".
-   Hver gruppe bytter faste farger med fargevariablene fra toppen av filen.
-===================================================================== */
+/*
+    MØRK MODUS: RETTELSER FOR SIDER MED FASTE FARGER
+    Alt her er pakket inn i html:root[data-theme="navy"], så det gjelder
+    bare i mørk modus. "&" betyr "html:root[data-theme="navy"]".
+    Hver gruppe bytter faste farger med fargevariablene fra toppen av filen.
+*/
 html:root[data-theme="navy"] {
 
-    /* ---------- MENYEN ---------- */
+    /* --- Menyen --- */
     & .portal-top-navigation a,
     & .portal-top-navigation button,
     & .notification-bell {
@@ -161,7 +166,7 @@ html:root[data-theme="navy"] {
         background: var(--surface-soft);
     }
 
-    /* ---------- OVERSKRIFTER (lys tekst) ---------- */
+    /* --- Overskrifter (lys tekst) --- */
     & .brand,
     & .header-user-info strong,
     & .resource-top h1,
@@ -173,7 +178,7 @@ html:root[data-theme="navy"] {
         color: var(--heading);
     }
 
-    /* ---------- VANLIG TEKST ---------- */
+    /* --- Vanlig tekst --- */
     & body,
     & .form-group label,
     & .form-control,
@@ -183,7 +188,7 @@ html:root[data-theme="navy"] {
         color: var(--text);
     }
 
-    /* ---------- GRÅ TEKST ---------- */
+    /* --- Grå tekst --- */
     & .brand span,
     & .header-user-info span,
     & .resource-top p,
@@ -231,7 +236,7 @@ html:root[data-theme="navy"] {
         color: var(--warning-text) !important;
     }
 
-    /* ---------- BAKGRUNNER SOM VAR HVITE ---------- */
+    /* --- Bakgrunner som var hvite --- */
     & .resource-filters,
     & .filter-field select,
     & .filter-field input,
@@ -287,7 +292,7 @@ html:root[data-theme="navy"] {
         background: var(--surface-soft);
     }
 
-    /* ---------- LYSE KANTLINJER ---------- */
+    /* --- Lyse kantlinjer --- */
     & .provider-resource-card,
     & .resource-item,
     & .resource-card,
@@ -315,7 +320,7 @@ html:root[data-theme="navy"] {
         border-color: var(--border);
     }
 
-    /* ---------- STATUSMERKER OG MELDINGER ---------- */
+    /* --- Statusmerker og meldinger --- */
     /* Før: lyse pastellfarger. Nå: mørk bakgrunn med fargetekst.
        Rekkefølgen er viktig: grønn først, så gul og rød, siden de
        overstyrer hverandre når et element har flere klasser. */
@@ -383,7 +388,7 @@ html:root[data-theme="navy"] {
         background: var(--navy-light);
     }
 
-    /* ---------- TOPPBOKS PÅ PROFIL-SIDEN ---------- */
+    /* --- Toppboks på profil-siden --- */
     /* Var fast grønnblå. Følger nå det blå temaet. */
     & .profile-hero {
         background: linear-gradient(135deg, var(--navy-dark), var(--navy-light));
@@ -417,29 +422,28 @@ html:root:not([data-theme="navy"]) :is(.hero, .how-section, .login-section, .com
     background: transparent;
 }
 
+/*
+    FARGEBLIND MODUS
+    Slås på med øye-knappen ved siden av sol/måne (theme.js), og settes
+    som data-colorblind="on" på <html>. Virker sammen med begge temaene.
 
-/* =====================================================================
-   FARGEBLIND MODUS
-   Slås på med øye-knappen ved siden av sol/måne (theme.js), og settes
-   som data-colorblind="on" på <html>. Virker sammen med begge temaene.
+    Rød/grønn er den vanligste formen for fargeblindhet, og det er nettopp
+    fargene portalen bruker for akutt behov og tilgjengelig ressurs.
+    Her byttes de ut med farger som skilles godt også ved rød-grønn og
+    blå-gul fargeblindhet (testet med simulering):
+      - Akutt / feil / utilgjengelig  -> mørk oransje  (#c2410c)
+      - Planlagt                       -> lys gul       (#f5c518)
+      - Tilgjengelig / ok / bekreftet  -> mørk blå      (#0b4f8a)
+    De tre fargene har også ulik lyshet (mellom, lys, mørk), så de kan
+    skilles selv uten fargesyn. Testet med samme modell som RGBlind
+    (Machado m.fl. 2009).
+    Tekst og ikoner står fortsatt ved siden av fargene, så fargen er
+    aldri det eneste som forteller hva noe betyr.
 
-   Rød/grønn er den vanligste formen for fargeblindhet, og det er nettopp
-   fargene portalen bruker for akutt behov og tilgjengelig ressurs.
-   Her byttes de ut med farger som skilles godt også ved rød-grønn og
-   blå-gul fargeblindhet (testet med simulering):
-     - Akutt / feil / utilgjengelig  -> mørk oransje  (#c2410c)
-     - Planlagt                       -> lys gul       (#f5c518)
-     - Tilgjengelig / ok / bekreftet  -> mørk blå      (#0b4f8a)
-   De tre fargene har også ulik lyshet (mellom, lys, mørk), så de kan
-   skilles selv uten fargesyn. Testet med samme modell som RGBlind
-   (Machado m.fl. 2009).
-   Tekst og ikoner står fortsatt ved siden av fargene, så fargen er
-   aldri det eneste som forteller hva noe betyr.
-
-   Selektoren «html:root[data-colorblind="on"][data-theme]» er bevisst
-   litt mer spesifikk enn reglene for temaene og for hver side, så den
-   vinner uten at vi må endre de andre filene.
-===================================================================== */
+    Selektoren «html:root[data-colorblind="on"][data-theme]» er bevisst
+    litt mer spesifikk enn reglene for temaene og for hver side, så den
+    vinner uten at vi må endre de andre filene.
+*/
 
 html:root[data-colorblind="on"][data-theme] {
     --cb-acute: #c2410c;
@@ -477,8 +481,7 @@ html:root[data-colorblind="on"][data-theme="navy"] {
     --cb-bad-bg: rgba(255, 163, 107, 0.16);
 }
 
-
-/* ---------- STATUSMERKER: OK / TILGJENGELIG / BEKREFTET ---------- */
+/* --- Statusmerker: ok / tilgjengelig / bekreftet --- */
 html:root[data-colorblind="on"][data-theme] :is(
     .status-available,
     .status-confirmed,
@@ -509,8 +512,7 @@ html:root[data-colorblind="on"][data-theme] :is(
     background: var(--cb-ok);
 }
 
-
-/* ---------- STATUSMERKER: AKUTT / AVSLÅTT / UTILGJENGELIG ---------- */
+/* --- Statusmerker: akutt / avslått / utilgjengelig --- */
 html:root[data-colorblind="on"][data-theme] :is(
     .status-declined,
     .status-locked,
@@ -528,11 +530,12 @@ html:root[data-colorblind="on"][data-theme] :is(.danger-action, .resource-delete
     border-color: color-mix(in srgb, var(--cb-bad-text) 45%, transparent);
 }
 
-
-/* ---------- KARTMARKØRER ----------
-   Markørene lages i JavaScript med fargen skrevet rett inn i HTML-en.
-   Vi finner dem på fargekoden og bytter farge, så kartene endres med
-   en gang knappen trykkes, uten at kartene må tegnes på nytt. */
+/*
+    KARTMARKØRER
+     Markørene lages i JavaScript med fargen skrevet rett inn i HTML-en.
+     Vi finner dem på fargekoden og bytter farge, så kartene endres med
+     en gang knappen trykkes, uten at kartene må tegnes på nytt.
+*/
 html[data-colorblind="on"] :is([style*="background:#d34b4b"], [style*="background:#c63d3d"]) {
     background: var(--cb-acute, #c2410c) !important;
 }
@@ -557,12 +560,13 @@ html[data-colorblind="on"] svg[stroke="#23855b"] {
     stroke: var(--cb-ok, #1d6fb8);
 }
 
-
-/* ---------- TILGJENGELIGHET PÅ RESSURSER ----------
-   Fylte merker med symbol, så de kan skilles både på farge og form:
-     ✓ Tilgjengelig       mørkeblå  #174EA6, hvit tekst
-     × Ikke tilgjengelig  gul       #F4C430, nesten svart tekst
-     ? Ikke oppgitt       lys grå   #E5E7EB, nesten svart tekst */
+/*
+    TILGJENGELIGHET PÅ RESSURSER
+     Fylte merker med symbol, så de kan skilles både på farge og form:
+       ✓ Tilgjengelig       mørkeblå  #174EA6, hvit tekst
+       × Ikke tilgjengelig  gul       #F4C430, nesten svart tekst
+       ? Ikke oppgitt       lys grå   #E5E7EB, nesten svart tekst
+*/
 html:root[data-colorblind="on"][data-theme] :is(
     .status-available,
     .resource-state:not(.resource-state-busy):not(.resource-state-unavailable),
@@ -618,10 +622,11 @@ html:root[data-colorblind="on"][data-theme] .provider-resource-status.unspecifie
     content: "?";
 }
 
-
-/* ---------- PRIORITET: AKUTT OG PLANLAGT ----------
-   Merkene fylles helt med farge. De lyse, nesten like bakgrunnene
-   i vanlig modus kan ikke skilles på farge alene. */
+/*
+    PRIORITET: AKUTT OG PLANLAGT
+     Merkene fylles helt med farge. De lyse, nesten like bakgrunnene
+     i vanlig modus kan ikke skilles på farge alene.
+*/
 html:root[data-colorblind="on"][data-theme] :is(.priority-acute, .entry:not(.planned) .badge, .popup-type.urgent) {
     color: #ffffff;
     background: var(--cb-acute);
@@ -632,10 +637,12 @@ html:root[data-colorblind="on"][data-theme] :is(.priority-planned, .entry.planne
     background: var(--cb-planned);
 }
 
-/* ---------- BEHOVSKORT (Behov og Registrer behov) ----------
-   Kortene har fargen skrevet rett inn i sidens egen stil, med høy
-   spesifisitet (#needList), så her må vi bruke !important.
-   Kortet som er valgt i oversikten beholder sin blå markering. */
+/*
+    BEHOVSKORT (Behov og Registrer behov)
+     Kortene har fargen skrevet rett inn i sidens egen stil, med høy
+     spesifisitet (#needList), så her må vi bruke !important.
+     Kortet som er valgt i oversikten beholder sin blå markering.
+*/
 html[data-colorblind="on"] #needList > :is(.need-overview-entry, .need):not(.need-overview-entry.active) {
     border-left-color: var(--cb-acute, #c2410c) !important;
 }
@@ -659,8 +666,7 @@ html:root[data-colorblind="on"][data-theme] :is(.entry.planned, .need.planned) .
     color: #3d2e00;
 }
 
-
-/* ---------- RAPPORTER: DEKNINGSSTOLPER ---------- */
+/* --- Rapporter: dekningsstolper --- */
 html:root[data-colorblind="on"][data-theme] :is(.coverage-swatch.need, .coverage-bar.need) {
     background: var(--cb-acute);
 }
@@ -679,10 +685,11 @@ html:root[data-colorblind="on"][data-theme] .report-kpi.is-alert {
     box-shadow: inset 4px 0 0 var(--cb-acute);
 }
 
-
-/* ---------- KNAPPEN ----------
-   Samme runde knapp som sol/måne. Når modusen er på, er knappen fylt,
-   så man ser at den er aktiv. */
+/*
+    KNAPPEN
+     Samme runde knapp som sol/måne. Når modusen er på, er knappen fylt,
+     så man ser at den er aktiv.
+*/
 .colorblind-toggle[aria-pressed="true"] {
     border-color: var(--accent);
     color: #ffffff;
@@ -697,8 +704,7 @@ html:root[data-theme="navy"] .colorblind-toggle[aria-pressed="true"] {
     right: 60px;
 }
 
-
-/* ===== MØRK MODUS: rettelser (Sami, kantlinjer, Koordinering) ===== */
+/* --- MØRK MODUS: rettelser (Sami, kantlinjer, Koordinering) --- */
 
 /* Sami-ikonet blir hvitt, så det synes på mørk bakgrunn */
 html:root[data-theme="navy"] .sami-avatar { color: #fff; }

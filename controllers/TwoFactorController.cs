@@ -1,3 +1,16 @@
+/*
+    TwoFactorController.cs – tofaktor-innlogging
+
+    Hva filen gjør: Andre steg av innloggingen: riktig passord → en 6-sifret kode sendes på
+    e-post → brukeren skriver den inn → først da er man logget inn. Tofaktor slås på automatisk
+    når e-posten bekreftes.
+    Hvorfor e-post: enklest for brukerne og krever ingen ekstra app. En autentiseringsapp hadde
+    vært enda sikrere.
+
+    På nettsiden: Siden «Skriv inn kode» med knappen «Send ny kode».
+
+    Oppgavekrav: 8, 9, 14
+*/
 
 using System.Globalization;
 using FirstWebAppInDocker.Data;
@@ -10,47 +23,51 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FirstWebAppInDocker.Controllers;
 
-/// <summary>
-/// Håndterer e-postbasert tofaktorautentisering etter at
-/// brukerens passord er godkjent av ASP.NET Core Identity.
-/// </summary>
+/*
+    Håndterer e-postbasert tofaktorautentisering etter at
+    brukerens passord er godkjent av ASP.NET Core Identity.
+*/
 public class TwoFactorController : Controller
 {
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly SignInManager<ApplicationUser> _signInManager;
-    private readonly IEmailCodeSender _emailSender;
-    private readonly ILogger<TwoFactorController> _logger;
+    #region Felt og konstruktør
 
     private const long ResendCooldownSeconds = 60;
 
-    // Metadata om kodeutsending lagres i sesjonen.
-    // Selve sikkerhetskoden lagres aldri her.
-    private const string SentToUserKey =
-        "TwoFactorEmailSentToUser";
+    /*
+        I sesjonen lagrer vi bare når koden ble sendt, for å begrense hvor ofte den kan sendes.
+        Selve koden lagres aldri her.
+    */
+    private const string SentToUserKey = "TwoFactorEmailSentToUser";
 
-    private const string LastSentTimeKey =
-        "TwoFactorEmailLastSentUtc";
+    private const string LastSentTimeKey = "TwoFactorEmailLastSentUtc";
 
     // Samme nøkkel brukes av AccountController.
-    private const string PendingTwoFactorRememberMeKey =
-        "PendingTwoFactorRememberMe";
+    private const string PendingTwoFactorRememberMeKey = "PendingTwoFactorRememberMe";
 
-    /// <summary>
-    /// Oppretter kontrolleren med Identity, e-posttjenesten
-    /// og logging.
-    /// </summary>
-    /// <param name="userManager">
-    /// Administrerer Identity-brukere og tofaktortokener.
-    /// </param>
-    /// <param name="signInManager">
-    /// Håndterer autentisering og tofaktorinnlogging.
-    /// </param>
-    /// <param name="emailSender">
-    /// Sender sikkerhetskoder til brukerens e-postadresse.
-    /// </param>
-    /// <param name="logger">
-    /// Logger feil og relevante sikkerhetshendelser.
-    /// </param>
+    private readonly UserManager<ApplicationUser> _userManager;
+
+    private readonly SignInManager<ApplicationUser> _signInManager;
+
+    private readonly IEmailCodeSender _emailSender;
+
+    private readonly ILogger<TwoFactorController> _logger;
+
+    /*
+        Oppretter kontrolleren med Identity, e-posttjenesten
+        og logging.
+
+        userManager:
+        Administrerer Identity-brukere og tofaktortokener.
+
+        signInManager:
+        Håndterer autentisering og tofaktorinnlogging.
+
+        emailSender:
+        Sender sikkerhetskoder til brukerens e-postadresse.
+
+        logger:
+        Logger feil og relevante sikkerhetshendelser.
+    */
     public TwoFactorController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
@@ -63,33 +80,34 @@ public class TwoFactorController : Controller
         _logger = logger;
     }
 
+    #endregion
+
     #region Tofaktorinnlogging
 
-    /// <summary>
-    /// Viser tofaktorskjemaet og sender en sikkerhetskode
-    /// ved første besøk i den pågående innloggingsflyten.
-    /// </summary>
-    /// <returns>
-    /// Tofaktorskjemaet eller en omdirigering til forsiden.
-    /// </returns>
+    /*
+        GET /TwoFactor/Login
+        Viser tofaktorskjemaet og sender en sikkerhetskode
+        ved første besøk i den pågående innloggingsflyten.
+
+        Returnerer:
+        Tofaktorskjemaet eller en omdirigering til forsiden.
+    */
     [AllowAnonymous]
     [HttpGet]
-    [ResponseCache(
-        Location = ResponseCacheLocation.None,
-        NoStore = true)]
+    [ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
     public async Task<IActionResult> Login()
     {
-        // Identity oppretter en midlertidig tofaktorkontekst
-        // etter at brukeren har oppgitt riktig passord.
+        /*
+            Identity oppretter en midlertidig tofaktorkontekst
+            etter at brukeren har oppgitt riktig passord.
+        */
         ApplicationUser? user =
             await _signInManager
                 .GetTwoFactorAuthenticationUserAsync();
 
         if (user is null)
         {
-            return RedirectToAction(
-                "Index",
-                "Home");
+            return RedirectToAction("Index", "Home");
         }
 
         // Ikke send nye koder mens kontoen er låst.
@@ -104,14 +122,9 @@ public class TwoFactorController : Controller
         }
 
         // Forhindre ny utsending ved oppdatering av siden.
-        string? previouslySentTo =
-            HttpContext.Session.GetString(
-                SentToUserKey);
+        string? previouslySentTo = HttpContext.Session.GetString(SentToUserKey);
 
-        if (!string.Equals(
-            previouslySentTo,
-            user.Id,
-            StringComparison.Ordinal))
+        if (!string.Equals(previouslySentTo, user.Id, StringComparison.Ordinal))
         {
             await SendEmailCodeAsync(user);
         }
@@ -119,25 +132,23 @@ public class TwoFactorController : Controller
         return View(new TwoFactorLoginViewModel());
     }
 
-    /// <summary>
-    /// Validerer brukerens tofaktorkode gjennom Identity
-    /// og oppretter innloggingssesjonen ved godkjent kode.
-    /// </summary>
-    /// <param name="model">
-    /// Skjemadata som inneholder sikkerhetskoden.
-    /// </param>
-    /// <returns>
-    /// Dashboard ved godkjent innlogging, ellers
-    /// tofaktorskjemaet med en feilmelding.
-    /// </returns>
+    /*
+        POST /TwoFactor/Login
+        Validerer brukerens tofaktorkode gjennom Identity
+        og oppretter innloggingssesjonen ved godkjent kode.
+
+        model:
+        Skjemadata som inneholder sikkerhetskoden.
+
+        Returnerer:
+        Dashboard ved godkjent innlogging, ellers
+        tofaktorskjemaet med en feilmelding.
+    */
     [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [ResponseCache(
-        Location = ResponseCacheLocation.None,
-        NoStore = true)]
-    public async Task<IActionResult> Login(
-        TwoFactorLoginViewModel model)
+    [ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
+    public async Task<IActionResult> Login(TwoFactorLoginViewModel model)
     {
         ApplicationUser? user =
             await _signInManager
@@ -145,9 +156,7 @@ public class TwoFactorController : Controller
 
         if (user is null)
         {
-            return RedirectToAction(
-                "Index",
-                "Home");
+            return RedirectToAction("Index", "Home");
         }
 
         if (!ModelState.IsValid)
@@ -157,9 +166,7 @@ public class TwoFactorController : Controller
 
         if (string.IsNullOrWhiteSpace(model.Code))
         {
-            ModelState.AddModelError(
-                nameof(model.Code),
-                "Skriv inn sikkerhetskoden.");
+            ModelState.AddModelError(nameof(model.Code), "Skriv inn sikkerhetskoden.");
 
             return View(model);
         }
@@ -167,28 +174,29 @@ public class TwoFactorController : Controller
         // Bare bekreftede e-postadresser kan brukes.
         if (!await _userManager.IsEmailConfirmedAsync(user))
         {
-            ModelState.AddModelError(
-                string.Empty,
-                "E-postadressen er ikke bekreftet.");
+            ModelState.AddModelError(string.Empty, "E-postadressen er ikke bekreftet.");
 
             return View(model);
         }
 
-        // AccountController lagrer Husk meg-valget etter
-        // godkjent passord. Manglende verdi gir false.
+        /*
+            AccountController lagrer Husk meg-valget etter
+            godkjent passord. Manglende verdi gir false.
+        */
         bool rememberMe =
             string.Equals(
-                HttpContext.Session.GetString(
-                    PendingTwoFactorRememberMeKey),
+                HttpContext.Session.GetString(PendingTwoFactorRememberMeKey),
                 "true",
                 StringComparison.Ordinal);
 
-        // Identity validerer koden og håndterer
-        // mislykkede forsøk og kontolåsing.
-        //
-        // rememberClient er false fordi en ny
-        // innlogging fortsatt skal kreve tofaktor.
-        var result =
+        /*
+            Identity validerer koden og håndterer
+            mislykkede forsøk og kontolåsing.
+
+            rememberClient er false fordi en ny
+            innlogging fortsatt skal kreve tofaktor.
+        */
+        Microsoft.AspNetCore.Identity.SignInResult result =
             await _signInManager.TwoFactorSignInAsync(
                 TokenOptions.DefaultEmailProvider,
                 model.Code.Trim(),
@@ -227,9 +235,11 @@ public class TwoFactorController : Controller
             return View(model);
         }
 
-        // Identity har nå opprettet autentiseringscookien.
-        // Portalens eksisterende sesjonsdata opprettes
-        // først etter vellykket tofaktorinnlogging.
+        /*
+            Identity har nå opprettet autentiseringscookien.
+            Portalens eksisterende sesjonsdata opprettes
+            først etter vellykket tofaktorinnlogging.
+        */
         await CreateLegacySessionAsync(user);
 
         await this.AuditAsync(
@@ -238,29 +248,28 @@ public class TwoFactorController : Controller
             user.Id,
             user.Email);
 
-        return RedirectToAction(
-            "Dashboard",
-            "Home");
+        return RedirectToAction("Dashboard", "Home");
     }
 
     #endregion
 
-    #region Utsending av sikkerhetskoder
+    #region Send kode
 
-    /// <summary>
-    /// Sender en ny tofaktorkode når ventetiden mellom
-    /// utsendingene er utløpt.
-    /// </summary>
-    /// <returns>
-    /// Omdirigering til tofaktorskjemaet eller skjemaet
-    /// med en feilmelding.
-    /// </returns>
+    /*
+        POST /TwoFactor/ResendCode
+        «Send ny kode». Begrenset, så ingen kan bruke knappen til å fylle noens innboks.
+
+        Sender en ny tofaktorkode når ventetiden mellom
+        utsendingene er utløpt.
+
+        Returnerer:
+        Omdirigering til tofaktorskjemaet eller skjemaet
+        med en feilmelding.
+    */
     [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [ResponseCache(
-        Location = ResponseCacheLocation.None,
-        NoStore = true)]
+    [ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
     public async Task<IActionResult> ResendCode()
     {
         ApplicationUser? user =
@@ -269,9 +278,7 @@ public class TwoFactorController : Controller
 
         if (user is null)
         {
-            return RedirectToAction(
-                "Index",
-                "Home");
+            return RedirectToAction("Index", "Home");
         }
 
         if (await _userManager.IsLockedOutAsync(user))
@@ -281,13 +288,13 @@ public class TwoFactorController : Controller
                 "Kontoen er midlertidig låst. " +
                 "Du kan ikke be om en ny kode ennå.");
 
-            return View(
-                "Login",
-                new TwoFactorLoginViewModel());
+            return View("Login", new TwoFactorLoginViewModel());
         }
 
-        // Begrens gjentatte e-postutsendinger innenfor
-        // den samme innloggingssesjonen.
+        /*
+            Begrens gjentatte e-postutsendinger innenfor
+            den samme innloggingssesjonen.
+        */
         if (IsWithinCooldown(user))
         {
             ModelState.AddModelError(
@@ -295,47 +302,41 @@ public class TwoFactorController : Controller
                 "Du må vente minst 60 sekunder " +
                 "før du kan be om en ny kode.");
 
-            return View(
-                "Login",
-                new TwoFactorLoginViewModel());
+            return View("Login", new TwoFactorLoginViewModel());
         }
 
         bool sent = await SendEmailCodeAsync(user);
 
         if (!sent)
         {
-            return View(
-                "Login",
-                new TwoFactorLoginViewModel());
+            return View("Login", new TwoFactorLoginViewModel());
         }
 
-        // TempData brukes fordi meldingen skal overleve
-        // omdirigeringen tilbake til tofaktorskjemaet.
-        TempData["TwoFactorMessage"] =
-            "En sikkerhetskode er sendt til e-posten din.";
+        /*
+            TempData brukes fordi meldingen skal overleve
+            omdirigeringen tilbake til tofaktorskjemaet.
+        */
+        TempData["TwoFactorSuccess"] = "En sikkerhetskode er sendt til e-posten din.";
 
         return RedirectToAction(nameof(Login));
     }
 
-    /// <summary>
-    /// Genererer en tofaktorkode gjennom Identity og
-    /// sender den til brukerens bekreftede e-postadresse.
-    /// </summary>
-    /// <param name="user">
-    /// Brukeren som venter på tofaktorautentisering.
-    /// </param>
-    /// <returns>
-    /// True dersom e-posttjenesten godtok utsendingen,
-    /// ellers false.
-    /// </returns>
-    private async Task<bool> SendEmailCodeAsync(
-        ApplicationUser user)
-    {
-        string? email =
-            await _userManager.GetEmailAsync(user);
+    /*
+        Genererer en tofaktorkode gjennom Identity og
+        sender den til brukerens bekreftede e-postadresse.
 
-        if (string.IsNullOrWhiteSpace(email) ||
-            !await _userManager.IsEmailConfirmedAsync(user))
+        user:
+        Brukeren som venter på tofaktorautentisering.
+
+        Returnerer:
+        True dersom e-posttjenesten godtok utsendingen,
+        ellers false.
+    */
+    private async Task<bool> SendEmailCodeAsync(ApplicationUser user)
+    {
+        string? email = await _userManager.GetEmailAsync(user);
+
+        if (string.IsNullOrWhiteSpace(email) || !await _userManager.IsEmailConfirmedAsync(user))
         {
             ModelState.AddModelError(
                 string.Empty,
@@ -345,8 +346,10 @@ public class TwoFactorController : Controller
             return false;
         }
 
-        // Kontroller også kontolåsing her, slik at
-        // hjelpemetoden ikke kan sende koder til låste kontoer.
+        /*
+            Kontroller også kontolåsing her, slik at
+            hjelpemetoden ikke kan sende koder til låste kontoer.
+        */
         if (await _userManager.IsLockedOutAsync(user))
         {
             ModelState.AddModelError(
@@ -357,31 +360,25 @@ public class TwoFactorController : Controller
             return false;
         }
 
-        // Bruk den registrerte Identity-tokenleverandøren.
-        // Koden lagres ikke i sesjonen eller applikasjonsloggen.
+        /*
+            Bruk den registrerte Identity-tokenleverandøren.
+            Koden lagres ikke i sesjonen eller applikasjonsloggen.
+        */
         string code =
-            await _userManager.GenerateTwoFactorTokenAsync(
-                user,
-                TokenOptions.DefaultEmailProvider);
+            await _userManager.GenerateTwoFactorTokenAsync(user, TokenOptions.DefaultEmailProvider);
 
         if (string.IsNullOrWhiteSpace(code))
         {
-            _logger.LogWarning(
-                "Kunne ikke generere tofaktorkode for bruker {UserId}.",
-                user.Id);
+            _logger.LogWarning("Kunne ikke generere tofaktorkode for bruker {UserId}.", user.Id);
 
-            ModelState.AddModelError(
-                string.Empty,
-                "Kunne ikke generere sikkerhetskode.");
+            ModelState.AddModelError(string.Empty, "Kunne ikke generere sikkerhetskode.");
 
             return false;
         }
 
         try
         {
-            await _emailSender.SendCodeAsync(
-                email,
-                code);
+            await _emailSender.SendCodeAsync(email, code);
         }
         catch (Exception exception)
         {
@@ -399,11 +396,11 @@ public class TwoFactorController : Controller
             return false;
         }
 
-        // Registrer utsending først etter at e-posttjenesten
-        // har godtatt meldingen.
-        HttpContext.Session.SetString(
-            SentToUserKey,
-            user.Id);
+        /*
+            Registrer utsending først etter at e-posttjenesten
+            har godtatt meldingen.
+        */
+        HttpContext.Session.SetString(SentToUserKey, user.Id);
 
         HttpContext.Session.SetString(
             LastSentTimeKey,
@@ -414,35 +411,27 @@ public class TwoFactorController : Controller
         return true;
     }
 
-    /// <summary>
-    /// Kontrollerer om en kode ble sendt til samme bruker
-    /// i løpet av de siste 60 sekundene.
-    /// </summary>
-    /// <param name="user">
-    /// Brukeren som ber om en ny sikkerhetskode.
-    /// </param>
-    /// <returns>
-    /// True dersom ventetiden ikke er utløpt,
-    /// ellers false.
-    /// </returns>
-    private bool IsWithinCooldown(
-        ApplicationUser user)
-    {
-        string? sentToUser =
-            HttpContext.Session.GetString(
-                SentToUserKey);
+    /*
+        Kontrollerer om en kode ble sendt til samme bruker
+        i løpet av de siste 60 sekundene.
 
-        if (!string.Equals(
-            sentToUser,
-            user.Id,
-            StringComparison.Ordinal))
+        user:
+        Brukeren som ber om en ny sikkerhetskode.
+
+        Returnerer:
+        True dersom ventetiden ikke er utløpt,
+        ellers false.
+    */
+    private bool IsWithinCooldown(ApplicationUser user)
+    {
+        string? sentToUser = HttpContext.Session.GetString(SentToUserKey);
+
+        if (!string.Equals(sentToUser, user.Id, StringComparison.Ordinal))
         {
             return false;
         }
 
-        string? storedTime =
-            HttpContext.Session.GetString(
-                LastSentTimeKey);
+        string? storedTime = HttpContext.Session.GetString(LastSentTimeKey);
 
         if (!long.TryParse(
             storedTime,
@@ -453,11 +442,9 @@ public class TwoFactorController : Controller
             return false;
         }
 
-        long now =
-            DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-        long secondsSinceLastSend =
-            now - lastSentUnixTime;
+        long secondsSinceLastSend = now - lastSentUnixTime;
 
         return secondsSinceLastSend >= 0
             && secondsSinceLastSend < ResendCooldownSeconds;
@@ -465,23 +452,21 @@ public class TwoFactorController : Controller
 
     #endregion
 
-    #region Sesjonsdata
+    #region Hjelpemetoder
 
-    /// <summary>
-    /// Oppretter sesjonsverdiene som eksisterende dashboard-
-    /// og profilfunksjoner bruker etter vellykket innlogging.
-    /// </summary>
-    /// <param name="user">
-    /// Den ferdig autentiserte Identity-brukeren.
-    /// </param>
-    /// <returns>
-    /// En oppgave som fullføres når sesjonen er oppdatert.
-    /// </returns>
-    private async Task CreateLegacySessionAsync(
-        ApplicationUser user)
+    /*
+        Oppretter sesjonsverdiene som eksisterende dashboard-
+        og profilfunksjoner bruker etter vellykket innlogging.
+
+        user:
+        Den ferdig autentiserte Identity-brukeren.
+
+        Returnerer:
+        En oppgave som fullføres når sesjonen er oppdatert.
+    */
+    private async Task CreateLegacySessionAsync(ApplicationUser user)
     {
-        IList<string> roles =
-            await _userManager.GetRolesAsync(user);
+        IList<string> roles = await _userManager.GetRolesAsync(user);
 
         string role =
             roles.Contains(IdentitySeeder.AdminRole)
@@ -500,25 +485,19 @@ public class TwoFactorController : Controller
                 ? email
                 : user.Name;
 
-        // Fjern midlertidige tofaktoropplysninger og
-        // Husk meg-valget før ordinære sesjonsdata opprettes.
+        /*
+            Fjern midlertidige tofaktoropplysninger og
+            Husk meg-valget før ordinære sesjonsdata opprettes.
+        */
         HttpContext.Session.Clear();
 
-        HttpContext.Session.SetString(
-            "UserEmail",
-            email);
+        HttpContext.Session.SetString("UserEmail", email);
 
-        HttpContext.Session.SetString(
-            "UserName",
-            name);
+        HttpContext.Session.SetString("UserName", name);
 
-        HttpContext.Session.SetString(
-            "UserRole",
-            role);
+        HttpContext.Session.SetString("UserRole", role);
 
-        HttpContext.Session.SetString(
-            "ContactEmail",
-            email);
+        HttpContext.Session.SetString("ContactEmail", email);
 
         string phone =
             user.PhoneNumber
@@ -533,9 +512,7 @@ public class TwoFactorController : Controller
             "+46"
         })
         {
-            if (phone.StartsWith(
-                code,
-                StringComparison.Ordinal))
+            if (phone.StartsWith(code, StringComparison.Ordinal))
             {
                 countryCode = code;
                 phone = phone[code.Length..];
@@ -544,20 +521,15 @@ public class TwoFactorController : Controller
             }
         }
 
-        HttpContext.Session.SetString(
-            "PhoneCountryCode",
-            countryCode);
+        HttpContext.Session.SetString("PhoneCountryCode", countryCode);
 
         if (string.IsNullOrWhiteSpace(phone))
         {
-            HttpContext.Session.Remove(
-                "PhoneNumber");
+            HttpContext.Session.Remove("PhoneNumber");
         }
         else
         {
-            HttpContext.Session.SetString(
-                "PhoneNumber",
-                phone);
+            HttpContext.Session.SetString("PhoneNumber", phone);
         }
     }
 

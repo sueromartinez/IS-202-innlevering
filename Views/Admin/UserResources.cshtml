@@ -1,3 +1,8 @@
+@*
+    Admin/UserResources.cshtml
+
+    Hva filen gjør: Ressursene til én bruker, med mulighet til å slette.
+*@
 
 @model List<FirstWebAppInDocker.Models.Resource>
 
@@ -69,9 +74,7 @@
 }
 
 <style>
-    /* ========================================
-       TILBAKE-LENKE
-    ======================================== */
+    /* --- Tilbake-lenke --- */
 
     .admin-user-back {
         display: inline-flex;
@@ -88,9 +91,7 @@
         text-decoration: underline;
     }
 
-    /* ========================================
-       BRUKERINFORMASJON
-    ======================================== */
+    /* --- Brukerinformasjon --- */
 
     .admin-user-info {
         padding: 28px;
@@ -127,9 +128,7 @@
         overflow-wrap: anywhere;
     }
 
-    /* ========================================
-       RESSURSOVERSIKT
-    ======================================== */
+    /* --- Ressursoversikt --- */
 
     .admin-resource-heading {
         display: flex;
@@ -160,9 +159,7 @@
         gap: 18px;
     }
 
-    /* ========================================
-       RESSURSKORT
-    ======================================== */
+    /* --- Ressurskort --- */
 
     .admin-resource-card {
         padding: 24px 28px;
@@ -209,9 +206,7 @@
         color: #173954;
     }
 
-    /* ========================================
-       RESSURSDETALJER
-    ======================================== */
+    /* --- Ressursdetaljer --- */
 
     .admin-resource-details {
         margin-top: 18px;
@@ -241,9 +236,7 @@
         background: rgba(120, 169, 202, 0.08);
     }
 
-    /* ========================================
-       NYTT: RESSURSHANDLINGER
-    ======================================== */
+    /* --- Nytt: ressurshandlinger --- */
 
     .admin-resource-actions {
         display: flex;
@@ -268,9 +261,7 @@
         line-height: 1.6;
     }
 
-    /* ========================================
-       NYTT: SLETT-KNAPP
-    ======================================== */
+    /* --- Nytt: slett-knapp --- */
 
     .admin-delete-button {
         display: inline-flex;
@@ -315,9 +306,7 @@
         outline-offset: 3px;
     }
 
-    /* ========================================
-       NYTT: SLETTING BLOKKERT
-    ======================================== */
+    /* --- Nytt: sletting blokkert --- */
 
     .admin-delete-blocked {
         display: inline-flex;
@@ -336,9 +325,7 @@
         flex-shrink: 0;
     }
 
-    /* ========================================
-       INGEN RESSURSER
-    ======================================== */
+    /* --- Ingen ressurser --- */
 
     .admin-resource-empty {
         padding: 48px 24px;
@@ -363,9 +350,7 @@
         line-height: 1.6;
     }
 
-    /* ========================================
-       RESPONSIVE
-    ======================================== */
+    /* --- Responsivt --- */
 
     @@media (max-width: 650px) {
 
@@ -429,7 +414,7 @@
      NYTT: MELDINGER ETTER SLETTING
 ======================================== -->
 
-@if (TempData["AdminMessage"] is string message)
+@if (TempData["AdminSuccess"] is string message)
 {
     <div
         class="alert alert-success"

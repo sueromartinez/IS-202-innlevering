@@ -1,3 +1,11 @@
+/*
+    ClaudeChatClient.cs – snakker med Claude API
+
+    Hva filen gjør: Sender systemprompt, meldinger og verktøy til Claude API over HTTPS, og gjør
+    svaret (tekst og verktøykall) om til vårt format. API-nøkkelen leses fra ANTHROPIC_API_KEY i
+    .env og står aldri i koden eller i Git.
+*/
+
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -6,15 +14,17 @@ using Microsoft.Extensions.Options;
 
 namespace FirstWebAppInDocker.Services.Ai;
 
-/// <summary>
-/// Snakker med Claude via Anthropics Messages API.
-/// Aktiveres med "Sami:Provider": "Claude" og en API-nøkkel i
-/// miljøvariabelen ANTHROPIC_API_KEY (eller Sami:Claude:ApiKey).
-///
-/// API-nøkkelen ligger bare på serveren og sendes aldri til nettleseren.
-/// </summary>
+/*
+    Snakker med Claude via Anthropics Messages API.
+    Aktiveres med "Sami:Provider": "Claude" og en API-nøkkel i
+    miljøvariabelen ANTHROPIC_API_KEY (eller Sami:Claude:ApiKey).
+
+    API-nøkkelen ligger bare på serveren og sendes aldri til nettleseren.
+*/
 public class ClaudeChatClient : IChatModelClient
 {
+    #region Felt og konstruktør
+
     private const string ApiVersion = "2023-06-01";
 
     private readonly HttpClient _httpClient;
@@ -23,12 +33,10 @@ public class ClaudeChatClient : IChatModelClient
 
     private readonly string? _apiKey;
 
-
     public ClaudeChatClient(
         HttpClient httpClient,
         IOptions<SamiOptions> options,
-        IConfiguration configuration
-    )
+        IConfiguration configuration)
     {
         _settings = options.Value.Claude;
 
@@ -42,21 +50,27 @@ public class ClaudeChatClient : IChatModelClient
         _httpClient.Timeout = TimeSpan.FromSeconds(_settings.TimeoutSeconds);
     }
 
+    #endregion
+
+    #region Kall til Claude
 
     public async Task<ChatModelResponse> CompleteAsync(
         string systemPrompt,
         IReadOnlyList<ChatMessage> messages,
         IReadOnlyList<ChatToolDefinition> tools,
-        CancellationToken cancellationToken
-    )
+        CancellationToken cancellationToken)
     {
+        /*
+            Uten nøkkel: brukeren får "Sami er ikke tilgjengelig", og resten av portalen virker
+            som vanlig.
+        */
         if (string.IsNullOrWhiteSpace(_apiKey))
         {
             throw new ChatModelUnavailableException(
                 "Claude er valgt, men ANTHROPIC_API_KEY er ikke satt.");
         }
 
-        var body = new JsonObject
+        JsonObject body = new JsonObject
         {
             ["model"] = _settings.Model,
             ["max_tokens"] = _settings.MaxTokens,
@@ -70,11 +84,12 @@ public class ClaudeChatClient : IChatModelClient
             body["tools"] = BuildTools(tools);
         }
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, "v1/messages")
+        using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "v1/messages")
         {
             Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json")
         };
 
+        // API-nøkkelen sendes i en header.
         request.Headers.Add("x-api-key", _apiKey);
         request.Headers.Add("anthropic-version", ApiVersion);
 
@@ -102,8 +117,8 @@ public class ClaudeChatClient : IChatModelClient
                 await response.Content.ReadAsStreamAsync(cancellationToken),
                 cancellationToken: cancellationToken);
 
-        var text = new StringBuilder();
-        var toolCalls = new List<ChatToolCall>();
+        StringBuilder text = new StringBuilder();
+        List<ChatToolCall> toolCalls = new List<ChatToolCall>();
 
         foreach (JsonElement block in document.RootElement.GetProperty("content").EnumerateArray())
         {
@@ -113,6 +128,7 @@ public class ClaudeChatClient : IChatModelClient
             {
                 text.Append(block.GetProperty("text").GetString());
             }
+            // Modellen vil bruke et verktøy. Vi tar vare på navnet og hva det skal brukes med.
             else if (type == "tool_use")
             {
                 toolCalls.Add(new ChatToolCall
@@ -131,14 +147,17 @@ public class ClaudeChatClient : IChatModelClient
         };
     }
 
+    #endregion
 
-    /// <summary>
-    /// Claude krever at verktøysvar sendes som "tool_result"-blokker
-    /// i en brukermelding, rett etter meldingen med "tool_use".
-    /// </summary>
+    #region Hjelpemetoder
+
+    /*
+        Claude krever at verktøysvar sendes som "tool_result"-blokker
+        i en brukermelding, rett etter meldingen med "tool_use".
+    */
     private static JsonArray BuildMessages(IReadOnlyList<ChatMessage> messages)
     {
-        var result = new JsonArray();
+        JsonArray result = new JsonArray();
         JsonArray? pendingToolResults = null;
 
         foreach (ChatMessage message in messages)
@@ -173,7 +192,7 @@ public class ClaudeChatClient : IChatModelClient
             }
             else
             {
-                var content = new JsonArray();
+                JsonArray content = new JsonArray();
 
                 if (!string.IsNullOrWhiteSpace(message.Text))
                 {
@@ -206,10 +225,9 @@ public class ClaudeChatClient : IChatModelClient
         return result;
     }
 
-
     private static JsonArray BuildTools(IReadOnlyList<ChatToolDefinition> tools)
     {
-        var result = new JsonArray();
+        JsonArray result = new JsonArray();
 
         foreach (ChatToolDefinition tool in tools)
         {
@@ -223,4 +241,6 @@ public class ClaudeChatClient : IChatModelClient
 
         return result;
     }
+
+    #endregion
 }

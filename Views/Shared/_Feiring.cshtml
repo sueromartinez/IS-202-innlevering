@@ -1,3 +1,10 @@
+@*
+    _Feiring.cshtml – konfetti
+
+    Hva filen gjør: Konfetti-animasjon som vises når en ressurs er registrert. Startes av
+    TempData["ResourceCelebrate"] fra ResourceController.
+*@
+
 @* Popup etter ny ressurs: takk-melding, så fylles nivåbaren. Vises bare når controlleren har satt flagget. *@
 @if (TempData["ResourceCelebrate"] is true)
 {

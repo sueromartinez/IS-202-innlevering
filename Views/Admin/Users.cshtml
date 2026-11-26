@@ -1,3 +1,11 @@
+@*
+    Admin/Users.cshtml – brukeroversikt
+
+    Hva filen gjør: Knapper for å endre rolle, deaktivere og aktivere, og se ressursene til en
+    bruker.
+
+    Oppgavekrav: 4, 10
+*@
 
 @model List<FirstWebAppInDocker.ViewModels.AdminUserViewModel>
 @using FirstWebAppInDocker.Data
@@ -23,9 +31,7 @@
 }
 
 <style>
-    /* ========================================
-       KLIKKBART BRUKERNAVN
-    ======================================== */
+    /* --- Klikkbart brukernavn --- */
 
     .admin-user-link {
         display: inline-block;
@@ -64,9 +70,7 @@
         color: #64809a;
     }
 
-    /* ========================================
-       RESSURSLENKE I HANDLINGER
-    ======================================== */
+    /* --- Ressurslenke i handlinger --- */
 
     .admin-resource-link {
         display: inline-flex;
@@ -160,7 +164,7 @@
      MELDINGER
 ======================================== -->
 
-@if (TempData["AdminMessage"] is string message)
+@if (TempData["AdminSuccess"] is string message)
 {
     <div
         class="alert alert-success"

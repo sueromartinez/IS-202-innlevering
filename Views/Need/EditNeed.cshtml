@@ -1,3 +1,11 @@
+@*
+    EditNeed.cshtml – «Endre behov»
+
+    Hva filen gjør: Endre type, prioritet, antall, plassering, frist og kontakt for ett behov.
+
+    Oppgavekrav: 10, 11
+*@
+
 @using FirstWebAppInDocker.Models
 @model FirstWebAppInDocker.ViewModels.NeedItemViewModel
 
@@ -22,7 +30,6 @@
 <body>
 
 <partial name="_PortalHeader" />
-
 
 <main class="page">
 
@@ -103,7 +110,6 @@
 
         </section>
 
-
         <!-- KART -->
         <section class="card map-card">
             <p class="map-help">Klikk i kartet for å flytte behovet.</p>
@@ -113,7 +119,6 @@
     </div>
 
 </main>
-
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="~/js/kartverket.js" asp-append-version="true"></script>

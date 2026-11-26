@@ -1,3 +1,15 @@
+/*
+    AdminController.cs – administrasjon
+
+    Hva filen gjør: Alt admin kan gjøre: se brukere, endre rolle, deaktivere og aktivere
+    brukere, opprette offentlige aktører, se og slette ressursene til en bruker, og lese
+    aktivitetsloggen.
+
+    På nettsiden: Admin-sidene «Brukere», «Ressursene til bruker», «Ny offentlig aktør» og
+    «Aktivitetslogg».
+
+    Oppgavekrav: 4, 10, 14, 18
+*/
 
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
@@ -10,23 +22,31 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FirstWebAppInDocker.Controllers;
 
-/// <summary>
-/// Brukeradministrasjon. Kun for Admin.
-///
-/// Administrator kan:
-/// - Se alle brukere.
-/// - Opprette offentlige aktører.
-/// - Endre roller.
-/// - Deaktivere og reaktivere kontoer.
-/// - Se ressursene til en valgt bruker.
-/// - Slette ressurser uten tildelingshistorikk.
-///
-/// Brukerkontoer slettes ikke.
-/// Historikk over tildelinger skal beholdes.
-/// </summary>
+/*
+    Bare Admin. Skriver en vanlig bruker /Admin/Users i adressefeltet, sendes hen til «Ingen
+    tilgang».
+
+    Brukeradministrasjon. Kun for Admin.
+
+    Administrator kan:
+    - Se alle brukere.
+    - Opprette offentlige aktører.
+    - Endre roller.
+    - Deaktivere og reaktivere kontoer.
+    - Se ressursene til en valgt bruker.
+    - Slette ressurser uten tildelingshistorikk.
+
+    Brukerkontoer slettes ikke.
+    Historikk over tildelinger skal beholdes.
+*/
 [Authorize(Roles = IdentitySeeder.AdminRole)]
 public class AdminController : Controller
 {
+    #region Felt og konstruktør
+
+    private const int AuditPageSize = 50;
+
+    // De eneste rollene admin kan velge. Alt annet avvises.
     private static readonly string[] AllowedRoles =
     {
         IdentitySeeder.ResourceProviderRole,
@@ -43,23 +63,25 @@ public class AdminController : Controller
     public AdminController(
         UserManager<ApplicationUser> userManager,
         ApplicationDbContext? context = null,
-        ILogger<AdminController>? logger = null
-    )
+        ILogger<AdminController>? logger = null)
     {
         _userManager = userManager;
         _context = context;
         _logger = logger;
     }
 
-    // =========================================================
-    // BRUKEROVERSIKT
-    // =========================================================
+    #endregion
 
+    #region Brukere
+
+    /*
+        GET /Admin/Users – brukerlisten. Deaktiverte brukere er låst ute "for alltid" med
+        Identity sin innebygde låsefunksjon.
+    */
     [HttpGet]
     public async Task<IActionResult> Users()
     {
-        string? currentUserId =
-            _userManager.GetUserId(User);
+        string? currentUserId = _userManager.GetUserId(User);
 
         List<ApplicationUser> users =
             await _userManager.Users
@@ -67,12 +89,11 @@ public class AdminController : Controller
                 .OrderBy(user => user.Name)
                 .ToListAsync();
 
-        var model = new List<AdminUserViewModel>();
+        List<AdminUserViewModel> model = new List<AdminUserViewModel>();
 
         foreach (ApplicationUser user in users)
         {
-            IList<string> roles =
-                await _userManager.GetRolesAsync(user);
+            IList<string> roles = await _userManager.GetRolesAsync(user);
 
             bool isLocked =
                 user.LockoutEnd.HasValue
@@ -101,11 +122,9 @@ public class AdminController : Controller
 
                 IsDeactivated = isDeactivated,
 
-                IsTemporarilyLocked =
-                    isLocked && !isDeactivated,
+                IsTemporarilyLocked = isLocked && !isDeactivated,
 
-                IsCurrentUser =
-                    user.Id == currentUserId,
+                IsCurrentUser = user.Id == currentUserId,
 
                 CreatedAt = user.CreatedAt
             });
@@ -114,84 +133,183 @@ public class AdminController : Controller
         return View(model);
     }
 
-    // =========================================================
-    // SE RESSURSER TIL EN BRUKER
-    // =========================================================
-
-    [HttpGet]
-    public async Task<IActionResult> UserResources(
-        string userId
-    )
+    /*
+        POST /Admin/ChangeRole
+        Endre rolle. Admin kan ikke endre sin egen rolle, så ingen låser seg selv ute.
+    */
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ChangeRole(string userId, string role)
     {
-        if (string.IsNullOrWhiteSpace(userId))
+        if (!AllowedRoles.Contains(role))
         {
-            return BadRequest(
-                "Bruker-ID mangler."
-            );
+            return BadRequest();
         }
 
-        ApplicationUser? user =
-            await _userManager.FindByIdAsync(userId);
+        if (userId == _userManager.GetUserId(User))
+        {
+            TempData["AdminError"] = "Du kan ikke endre din egen rolle.";
+
+            return RedirectToAction(nameof(Users));
+        }
+
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
 
         if (user is null)
         {
-            return NotFound(
-                "Brukeren finnes ikke."
-            );
+            return NotFound();
         }
 
-        IList<string> roles =
-            await _userManager.GetRolesAsync(user);
+        IList<string> currentRoles = await _userManager.GetRolesAsync(user);
+
+        await _userManager.RemoveFromRolesAsync(user, currentRoles);
+
+        await _userManager.AddToRoleAsync(user, role);
+
+        // Gjør brukerens gamle innlogging ugyldig, så den nye rollen gjelder med en gang.
+        await _userManager.UpdateSecurityStampAsync(user);
+
+        await this.AuditAsync(
+            AuditActions.RoleChanged,
+            $"{user.Name} ({user.Email}): {string.Join(", ", currentRoles)} → {role}");
+
+        TempData["AdminSuccess"] = $"Rollen til {user.Name} ble endret.";
+
+        return RedirectToAction(nameof(Users));
+    }
+
+    /*
+        POST /Admin/Deactivate
+        Deaktiver bruker. Brukeren kastes ut og kommer ikke inn igjen, men dataene
+        beholdes.
+    */
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Deactivate(string userId)
+    {
+        if (userId == _userManager.GetUserId(User))
+        {
+            TempData["AdminError"] = "Du kan ikke deaktivere deg selv.";
+
+            return RedirectToAction(nameof(Users));
+        }
+
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
+
+        if (user is null)
+        {
+            return NotFound();
+        }
+
+        await _userManager.SetLockoutEnabledAsync(user, true);
+
+        await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
+
+        /*
+            Ugyldiggjør eksisterende innlogging
+            ved neste sikkerhetsstempelkontroll.
+        */
+
+        await _userManager.UpdateSecurityStampAsync(user);
+
+        await this.AuditAsync(
+            AuditActions.UserDeactivated,
+            $"{user.Name} ({user.Email}) ble deaktivert");
+
+        TempData["AdminSuccess"] = $"{user.Name} ble deaktivert.";
+
+        return RedirectToAction(nameof(Users));
+    }
+
+    // POST /Admin/Reactivate
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Reactivate(string userId)
+    {
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
+
+        if (user is null)
+        {
+            return NotFound();
+        }
+
+        await _userManager.SetLockoutEndDateAsync(user, null);
+
+        await _userManager.ResetAccessFailedCountAsync(user);
+
+        await this.AuditAsync(
+            AuditActions.UserReactivated,
+            $"{user.Name} ({user.Email}) ble reaktivert");
+
+        TempData["AdminSuccess"] = $"{user.Name} kan logge inn igjen.";
+
+        return RedirectToAction(nameof(Users));
+    }
+
+    #endregion
+
+    #region Ressursene til en bruker
+
+    /*
+        GET /Admin/UserResources
+        Ressursene til én bruker.
+    */
+    [HttpGet]
+    public async Task<IActionResult> UserResources(string userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return BadRequest("Bruker-ID mangler.");
+        }
+
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
+
+        if (user is null)
+        {
+            return NotFound("Brukeren finnes ikke.");
+        }
+
+        IList<string> roles = await _userManager.GetRolesAsync(user);
 
         string role =
             roles.FirstOrDefault()
             ?? "Ingen rolle";
 
-        // ========================================
-        // BRUKERINFORMASJON TIL VIEW
-        // ========================================
+        // --- Brukerinformasjon til view ---
 
-        ViewBag.ManagedUserId =
-            user.Id;
+        ViewBag.ManagedUserId = user.Id;
 
         ViewBag.ManagedUserName =
             string.IsNullOrWhiteSpace(user.Name)
                 ? "(uten navn)"
                 : user.Name;
 
-        ViewBag.ManagedUserEmail =
-            user.Email ?? string.Empty;
+        ViewBag.ManagedUserEmail = user.Email ?? string.Empty;
 
-        ViewBag.ManagedUserPhone =
-            user.PhoneNumber ?? string.Empty;
+        ViewBag.ManagedUserPhone = user.PhoneNumber ?? string.Empty;
 
-        ViewBag.ManagedUserRole =
-            role;
+        ViewBag.ManagedUserRole = role;
 
-        ViewBag.ManagedUserCreatedAt =
-            user.CreatedAt;
+        ViewBag.ManagedUserCreatedAt = user.CreatedAt;
 
         if (_context is null)
         {
-            throw new InvalidOperationException(
-                "Databasetilkoblingen er ikke tilgjengelig."
-            );
+            throw new InvalidOperationException("Databasetilkoblingen er ikke tilgjengelig.");
         }
 
-        // ========================================
-        // HENT RESSURSENE
-        // ========================================
+        // --- Hent ressursene ---
 
-        string? ownerEmail =
-            user.Email;
+        string? ownerEmail = user.Email;
 
-        // OwnerUserId er hovedkoblingen.
-        //
-        // Eldre ressurser kan mangle OwnerUserId.
-        // Da brukes OwnerEmail som reserve.
-        //
-        // Ressurser som tilhører en annen
-        // bruker-ID skal aldri tas med.
+        /*
+            OwnerUserId er hovedkoblingen.
+
+            Eldre ressurser kan mangle OwnerUserId.
+            Da brukes OwnerEmail som reserve.
+
+            Ressurser som tilhører en annen
+            bruker-ID skal aldri tas med.
+        */
 
         List<Resource> resources =
             await _context.Resources
@@ -207,81 +325,61 @@ public class AdminController : Controller
                         &&
                         ownerEmail != null
                         &&
-                        resource.OwnerEmail == ownerEmail
-                    )
+                        resource.OwnerEmail == ownerEmail)
                 )
-                .OrderByDescending(
-                    resource => resource.CreatedAt
-                )
+                .OrderByDescending(resource => resource.CreatedAt)
                 .ToListAsync();
 
         return View(resources);
     }
 
-    // =========================================================
-    // NYTT: SLETT RESSURS SOM ADMIN
-    // =========================================================
+    /*
+        POST /Admin/DeleteUserResource
+        Admin sletter en ressurs, med samme sperrer som for eieren (ikke opptatt, ikke
+        historikk).
 
-    /// <summary>
-    /// Sletter en ressurs som tilhører den
-    /// angitte brukeren.
-    ///
-    /// Sikkerhetskontroller:
-    ///
-    /// 1. Kun Admin har tilgang.
-    /// 2. POST med antiforgery-token.
-    /// 3. Brukeren må eksistere.
-    /// 4. Ressursen må tilhøre brukeren.
-    /// 5. Opptatte ressurser kan ikke slettes.
-    /// 6. Ressurser med tildelingshistorikk
-    ///    kan ikke slettes.
-    ///
-    /// Dette hindrer at vi mister historikk
-    /// gjennom cascade delete.
-    /// </summary>
+        Sletter en ressurs som tilhører den
+        angitte brukeren.
+
+        Sikkerhetskontroller:
+
+        1. Kun Admin har tilgang.
+        2. POST med antiforgery-token.
+        3. Brukeren må eksistere.
+        4. Ressursen må tilhøre brukeren.
+        5. Opptatte ressurser kan ikke slettes.
+        6. Ressurser med tildelingshistorikk
+           kan ikke slettes.
+
+        Dette hindrer at vi mister historikk
+        gjennom cascade delete.
+    */
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteUserResource(
-        string userId,
-        int resourceId
-    )
+    public async Task<IActionResult> DeleteUserResource(string userId, int resourceId)
     {
-        // ========================================
-        // KONTROLLER INNDATA
-        // ========================================
+        // --- Kontroller inndata ---
 
-        if (string.IsNullOrWhiteSpace(userId)
-            || resourceId <= 0)
+        if (string.IsNullOrWhiteSpace(userId) || resourceId <= 0)
         {
-            return BadRequest(
-                "Ugyldig bruker eller ressurs."
-            );
+            return BadRequest("Ugyldig bruker eller ressurs.");
         }
 
-        // ========================================
-        // KONTROLLER BRUKER
-        // ========================================
+        // --- Kontroller bruker ---
 
-        ApplicationUser? user =
-            await _userManager.FindByIdAsync(userId);
+        ApplicationUser? user = await _userManager.FindByIdAsync(userId);
 
         if (user is null)
         {
-            return NotFound(
-                "Brukeren finnes ikke."
-            );
+            return NotFound("Brukeren finnes ikke.");
         }
 
         if (_context is null)
         {
-            throw new InvalidOperationException(
-                "Databasetilkoblingen er ikke tilgjengelig."
-            );
+            throw new InvalidOperationException("Databasetilkoblingen er ikke tilgjengelig.");
         }
 
-        // ========================================
-        // FINN RESSURSEN OG KONTROLLER EIERSKAP
-        // ========================================
+        // --- Finn ressursen og kontroller eierskap ---
 
         Resource? resource =
             await _context.Resources
@@ -301,25 +399,21 @@ public class AdminController : Controller
                             &&
                             user.Email != null
                             &&
-                            item.OwnerEmail == user.Email
-                        )
-                    )
-                );
+                            item.OwnerEmail == user.Email)
+                    ));
 
         if (resource is null)
         {
-            // Ikke slett en ressurs som ikke
-            // eksisterer eller ikke tilhører
-            // den valgte brukeren.
+            /*
+                Ikke slett en ressurs som ikke
+                eksisterer eller ikke tilhører
+                den valgte brukeren.
+            */
 
-            return NotFound(
-                "Ressursen finnes ikke hos denne brukeren."
-            );
+            return NotFound("Ressursen finnes ikke hos denne brukeren.");
         }
 
-        // ========================================
-        // BESKYTT OPPTATTE RESSURSER
-        // ========================================
+        // --- Beskytt opptatte ressurser ---
 
         if (resource.Status == ResourceStatus.Busy)
         {
@@ -330,35 +424,32 @@ public class AdminController : Controller
 
             return RedirectToAction(
                 nameof(UserResources),
-                new { userId }
-            );
+                new { userId });
         }
 
-        // ========================================
-        // KONTROLLER TILDELINGSHISTORIKK
-        // ========================================
+        // --- Kontroller tildelingshistorikk ---
 
-        // Databaseoppsettet har cascade delete
-        // mellom Resource og NeedAssignment.
-        //
-        // Derfor må vi kontrollere at ingen
-        // tildelinger er knyttet til ressursen.
-        //
-        // Vi beskytter både:
-        // - Ventende forespørsler
-        // - Bekreftede tildelinger
-        // - Avslåtte forespørsler
-        // - Avbrutte forespørsler
-        //
-        // Alle disse kan være viktige
-        // for historikken i Beredskapsportalen.
+        /*
+            Databaseoppsettet har cascade delete
+            mellom Resource og NeedAssignment.
+
+            Derfor må vi kontrollere at ingen
+            tildelinger er knyttet til ressursen.
+
+            Vi beskytter både:
+            - Ventende forespørsler
+            - Bekreftede tildelinger
+            - Avslåtte forespørsler
+            - Avbrutte forespørsler
+
+            Alle disse kan være viktige
+            for historikken i Beredskapsportalen.
+        */
 
         bool hasAssignments =
             await _context.NeedAssignments
                 .AsNoTracking()
-                .AnyAsync(assignment =>
-                    assignment.ResourceId == resource.Id
-                );
+                .AnyAsync(assignment => assignment.ResourceId == resource.Id);
 
         if (hasAssignments)
         {
@@ -371,19 +462,14 @@ public class AdminController : Controller
 
             return RedirectToAction(
                 nameof(UserResources),
-                new { userId }
-            );
+                new { userId });
         }
 
-        // ========================================
-        // SLETT RESSURSEN
-        // ========================================
+        // --- Slett ressursen ---
 
-        int deletedResourceId =
-            resource.Id;
+        int deletedResourceId = resource.Id;
 
-        string deletedResourceName =
-            resource.ResourceName;
+        string deletedResourceName = resource.ResourceName;
 
         _context.Resources.Remove(resource);
 
@@ -393,21 +479,22 @@ public class AdminController : Controller
         }
         catch (DbUpdateException exception)
         {
-            // Dersom databasen avviser sletting,
-            // beholder vi ressursen og viser
-            // en forståelig feilmelding.
-            //
-            // Dette kan blant annet skje dersom
-            // en ny tilknytning oppstår samtidig
-            // som administrator forsøker å slette.
+            /*
+                Dersom databasen avviser sletting,
+                beholder vi ressursen og viser
+                en forståelig feilmelding.
+
+                Dette kan blant annet skje dersom
+                en ny tilknytning oppstår samtidig
+                som administrator forsøker å slette.
+            */
 
             _logger?.LogError(
                 exception,
                 "Administrator kunne ikke slette " +
                 "ressurs {ResourceId} for bruker {UserId}.",
                 deletedResourceId,
-                userId
-            );
+                userId);
 
             TempData["AdminError"] =
                 "Ressursen kunne ikke slettes. " +
@@ -416,85 +503,73 @@ public class AdminController : Controller
 
             return RedirectToAction(
                 nameof(UserResources),
-                new { userId }
-            );
+                new { userId });
         }
 
-        // ========================================
-        // LOGGFØR HANDLINGEN
-        // ========================================
+        // --- Loggfør handlingen ---
 
-        string? adminId =
-            _userManager.GetUserId(User);
+        string? adminId = _userManager.GetUserId(User);
 
         _logger?.LogInformation(
             "Administrator {AdminId} slettet " +
             "ressurs {ResourceId} for bruker {UserId}.",
             adminId,
             deletedResourceId,
-            userId
-        );
+            userId);
 
-        // ========================================
-        // VIS BEKREFTELSE
-        // ========================================
+        // --- Vis bekreftelse ---
 
         await this.AuditAsync(
             AuditActions.ResourceDeleted,
-            $"Administrator slettet ressurs #{deletedResourceId} «{deletedResourceName}» (eier {userId})"
-        );
+            $"Administrator slettet ressurs #{deletedResourceId} «{deletedResourceName}» (eier {userId})");
 
-        TempData["AdminMessage"] =
+        TempData["AdminSuccess"] =
             $"Ressursen «{deletedResourceName}» " +
             "ble slettet.";
 
         return RedirectToAction(
             nameof(UserResources),
-            new { userId }
-        );
+            new { userId });
     }
 
-    // =========================================================
-    // OPPRETT OFFENTLIG AKTØR
-    // =========================================================
+    #endregion
 
+    #region Opprett offentlig aktør
+
+    /*
+        GET /Admin/CreatePublicActor
+        Skjemaet for ny offentlig aktør. Offentlige aktører kan ikke registrere seg selv,
+        så vi vet at de som ser alle ressursene er godkjent av admin.
+    */
     [HttpGet]
     public IActionResult CreatePublicActor()
     {
-        return View(
-            new CreatePublicActorViewModel()
-        );
+        return View(new CreatePublicActorViewModel());
     }
 
+    // POST /Admin/CreatePublicActor
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> CreatePublicActor(
-        CreatePublicActorViewModel model
-    )
+    public async Task<IActionResult> CreatePublicActor(CreatePublicActorViewModel model)
     {
         if (!ModelState.IsValid)
         {
             return View(model);
         }
 
-        string email =
-            model.Email.Trim();
+        string email = model.Email.Trim();
 
-        if (
-            await _userManager.FindByEmailAsync(email)
-            is not null
-        )
+        if (await _userManager.FindByEmailAsync(email) is not null)
         {
             ModelState.AddModelError(
                 nameof(model.Email),
                 "Det finnes allerede en bruker " +
-                "med denne e-posten."
-            );
+                "med denne e-posten.");
 
             return View(model);
         }
 
-        var user = new ApplicationUser
+        ApplicationUser user = new ApplicationUser
         {
             UserName = email,
             Email = email,
@@ -503,219 +578,51 @@ public class AdminController : Controller
             CreatedAt = DateTime.UtcNow
         };
 
-        IdentityResult result =
-            await _userManager.CreateAsync(
-                user,
-                model.Password
-            );
+        IdentityResult result = await _userManager.CreateAsync(user, model.Password);
 
         if (!result.Succeeded)
         {
             foreach (IdentityError error in result.Errors)
             {
-                ModelState.AddModelError(
-                    string.Empty,
-                    error.Description
-                );
+                ModelState.AddModelError(string.Empty, error.Description);
             }
 
             return View(model);
         }
 
-        await _userManager.AddToRoleAsync(
-            user,
-            IdentitySeeder.PublicActorRole
-        );
+        await _userManager.AddToRoleAsync(user, IdentitySeeder.PublicActorRole);
 
         await this.AuditAsync(
             AuditActions.UserCreated,
-            $"Opprettet offentlig aktør {user.Name} ({user.Email})"
-        );
+            $"Opprettet offentlig aktør {user.Name} ({user.Email})");
 
-        TempData["AdminMessage"] =
-            $"{user.Name} ble opprettet som offentlig aktør.";
+        TempData["AdminSuccess"] = $"{user.Name} ble opprettet som offentlig aktør.";
 
         return RedirectToAction(nameof(Users));
     }
 
-    // =========================================================
-    // ENDRE ROLLE
-    // =========================================================
+    #endregion
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ChangeRole(
-        string userId,
-        string role
-    )
-    {
-        if (!AllowedRoles.Contains(role))
-        {
-            return BadRequest();
-        }
+    #region Aktivitetslogg
 
-        if (
-            userId == _userManager.GetUserId(User)
-        )
-        {
-            TempData["AdminError"] =
-                "Du kan ikke endre din egen rolle.";
-
-            return RedirectToAction(nameof(Users));
-        }
-
-        ApplicationUser? user =
-            await _userManager.FindByIdAsync(userId);
-
-        if (user is null)
-        {
-            return NotFound();
-        }
-
-        IList<string> currentRoles =
-            await _userManager.GetRolesAsync(user);
-
-        await _userManager.RemoveFromRolesAsync(
-            user,
-            currentRoles
-        );
-
-        await _userManager.AddToRoleAsync(
-            user,
-            role
-        );
-
-        // Ny innlogging kreves for å bruke ny rolle.
-        await _userManager.UpdateSecurityStampAsync(user);
-
-        await this.AuditAsync(
-            AuditActions.RoleChanged,
-            $"{user.Name} ({user.Email}): {string.Join(", ", currentRoles)} → {role}"
-        );
-
-        TempData["AdminMessage"] =
-            $"Rollen til {user.Name} ble endret.";
-
-        return RedirectToAction(nameof(Users));
-    }
-
-    // =========================================================
-    // DEAKTIVER BRUKER
-    // =========================================================
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Deactivate(
-        string userId
-    )
-    {
-        if (
-            userId == _userManager.GetUserId(User)
-        )
-        {
-            TempData["AdminError"] =
-                "Du kan ikke deaktivere deg selv.";
-
-            return RedirectToAction(nameof(Users));
-        }
-
-        ApplicationUser? user =
-            await _userManager.FindByIdAsync(userId);
-
-        if (user is null)
-        {
-            return NotFound();
-        }
-
-        await _userManager.SetLockoutEnabledAsync(
-            user,
-            true
-        );
-
-        await _userManager.SetLockoutEndDateAsync(
-            user,
-            DateTimeOffset.MaxValue
-        );
-
-        // Ugyldiggjør eksisterende innlogging
-        // ved neste sikkerhetsstempelkontroll.
-
-        await _userManager.UpdateSecurityStampAsync(user);
-
-        await this.AuditAsync(
-            AuditActions.UserDeactivated,
-            $"{user.Name} ({user.Email}) ble deaktivert"
-        );
-
-        TempData["AdminMessage"] =
-            $"{user.Name} ble deaktivert.";
-
-        return RedirectToAction(nameof(Users));
-    }
-
-    // =========================================================
-    // REAKTIVER BRUKER
-    // =========================================================
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Reactivate(
-        string userId
-    )
-    {
-        ApplicationUser? user =
-            await _userManager.FindByIdAsync(userId);
-
-        if (user is null)
-        {
-            return NotFound();
-        }
-
-        await _userManager.SetLockoutEndDateAsync(
-            user,
-            null
-        );
-
-        await _userManager.ResetAccessFailedCountAsync(
-            user
-        );
-
-        await this.AuditAsync(
-            AuditActions.UserReactivated,
-            $"{user.Name} ({user.Email}) ble reaktivert"
-        );
-
-        TempData["AdminMessage"] =
-            $"{user.Name} kan logge inn igjen.";
-
-        return RedirectToAction(nameof(Users));
-    }
-
-    // =========================================================
-    // AKTIVITETSLOGG (AUDIT-LOGG)
-    // =========================================================
-
-    private const int AuditPageSize = 50;
-
-    /// <summary>
-    /// Viser hvem som gjorde hva og når: innlogginger, endringer
-    /// på ressurser og behov, forespørsler, rolleendringer og eksport.
-    /// Loggen kan bare leses, ikke endres, fra portalen.
-    /// </summary>
+    /*
+        GET /Admin/AuditLog – aktivitetsloggen med filter og 50 rader per side. Bare den siden
+        som vises, hentes fra databasen.
+    */
     [HttpGet]
     public async Task<IActionResult> AuditLog(
         // Ikke «action»: det navnet er reservert for ruten i MVC.
         string? handling,
         string? q,
         int days = 7,
-        int page = 1
-    )
+        int page = 1)
     {
         if (_context is null)
         {
             return Problem("Databasen er ikke tilgjengelig.");
         }
 
+        // Bare faste valg for periode godtas.
         days = days is 1 or 7 or 30 or 365 ? days : 7;
         page = Math.Max(1, page);
 
@@ -771,4 +678,6 @@ public class AdminController : Controller
             ActionCounts = counts
         });
     }
+
+    #endregion
 }

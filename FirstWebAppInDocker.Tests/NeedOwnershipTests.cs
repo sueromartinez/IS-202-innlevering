@@ -1,3 +1,11 @@
+/*
+    NeedOwnershipTests.cs – automatiske tester
+
+    Hva filen gjør: Tester at man bare kan endre og slette egne behov. Bruker xUnit, en database
+    i minnet (EF Core InMemory) og Moq, så testene kjører raskt uten Docker.
+
+    Oppgavekrav: 6, 15
+*/
 
 using System.Security.Claims;
 using FirstWebAppInDocker.Controllers;
@@ -16,9 +24,7 @@ namespace FirstWebAppInDocker.Tests;
 
 public class NeedOwnershipTests
 {
-    // ========================================
-    // HJELPER - TESTDATABASE
-    // ========================================
+    // --- Hjelper: testdatabase ---
 
     private static ApplicationDbContext CreateDatabase()
     {
@@ -30,10 +36,7 @@ public class NeedOwnershipTests
         return new ApplicationDbContext(options);
     }
 
-
-    // ========================================
-    // HJELPER - IDENTITY-BRUKER
-    // ========================================
+    // --- Hjelper: identity-bruker ---
 
     private static ApplicationUser CreateUser(
         string id = "actor-123",
@@ -49,23 +52,23 @@ public class NeedOwnershipTests
         };
     }
 
+    /*
+        HJELPER - NEEDCONTROLLER MED IDENTITY
 
-    // ========================================
-    // HJELPER - NEEDCONTROLLER MED IDENTITY
-    //
-    // KORRIGERT:
-    // UserManager får riktig antall argumenter.
-    // ========================================
+        KORRIGERT:
+        UserManager får riktig antall argumenter.
+    */
 
     private static NeedController CreateController(
         ApplicationDbContext database,
         ApplicationUser user)
     {
-        var store =
-            new Mock<IUserStore<ApplicationUser>>();
+        var store = new Mock<IUserStore<ApplicationUser>>();
 
-        // UserManager har 9 konstruktørparametere:
-        // IUserStore + 8 øvrige parametere.
+        /*
+            UserManager har 9 konstruktørparametere:
+            IUserStore + 8 øvrige parametere.
+        */
         var userManager =
             new Mock<UserManager<ApplicationUser>>(
                 store.Object,
@@ -76,44 +79,27 @@ public class NeedOwnershipTests
                 null!,
                 null!,
                 null!,
-                null!
-            );
+                null!);
 
         userManager
-            .Setup(manager =>
-                manager.GetUserAsync(
-                    It.IsAny<ClaimsPrincipal>()
-                )
-            )
+            .Setup(manager => manager.GetUserAsync(It.IsAny<ClaimsPrincipal>()))
             .ReturnsAsync(user);
 
         var claims = new[]
         {
-            new Claim(
-                ClaimTypes.NameIdentifier,
-                user.Id
-            ),
+            new Claim(ClaimTypes.NameIdentifier, user.Id),
 
-            new Claim(
-                ClaimTypes.Role,
-                IdentitySeeder.PublicActorRole
-            )
+            new Claim(ClaimTypes.Role, IdentitySeeder.PublicActorRole)
         };
 
-        var identity = new ClaimsIdentity(
-            claims,
-            "TestAuthentication"
-        );
+        var identity = new ClaimsIdentity(claims, "TestAuthentication");
 
         var httpContext = new DefaultHttpContext
         {
             User = new ClaimsPrincipal(identity)
         };
 
-        return new NeedController(
-            database,
-            userManager.Object
-        )
+        return new NeedController(database, userManager.Object)
         {
             ControllerContext = new ControllerContext
             {
@@ -124,10 +110,7 @@ public class NeedOwnershipTests
         };
     }
 
-
-    // ========================================
-    // HJELPER - REGISTRERING AV BEHOV
-    // ========================================
+    // --- Hjelper: registrering av behov ---
 
     private static RegisterNeedsViewModel CreateRegistration()
     {
@@ -142,16 +125,12 @@ public class NeedOwnershipTests
                 Description = "Behov for reservekraft",
                 Latitude = 58.1467,
                 Longitude = 7.9956
-            }
-        );
+            });
 
         return model;
     }
 
-
-    // ========================================
-    // HJELPER - REDIGERING AV BEHOV
-    // ========================================
+    // --- Hjelper: redigering av behov ---
 
     private static NeedItemViewModel CreateEditModel(int id)
     {
@@ -167,10 +146,7 @@ public class NeedOwnershipTests
         };
     }
 
-
-    // ========================================
-    // HJELPER - LAGRET BEHOV
-    // ========================================
+    // --- Hjelper: lagret behov ---
 
     private static Need CreateStoredNeed(
         string ownerEmail,
@@ -191,11 +167,10 @@ public class NeedOwnershipTests
         };
     }
 
-
-    // ========================================
-    // TEST 1
-    // NYE BEHOV FÅR RIKTIG OWNERUSERID
-    // ========================================
+    /*
+        TEST 1
+        NYE BEHOV FÅR RIKTIG OWNERUSERID
+    */
 
     [Fact]
     public async Task RegisterNeed_ShouldSaveOwnerUserId()
@@ -204,155 +179,93 @@ public class NeedOwnershipTests
 
         var user = CreateUser();
 
-        var controller = CreateController(
-            database,
-            user
-        );
+        var controller = CreateController(database, user);
 
-        var result = await controller.RegisterNeed(
-            CreateRegistration()
-        );
+        var result = await controller.RegisterNeed(CreateRegistration());
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
-        Assert.Equal(
-            "NeedOverview",
-            redirect.ActionName
-        );
+        Assert.Equal("NeedOverview", redirect.ActionName);
 
         var need = await database.Needs.SingleAsync();
 
-        Assert.Equal(
-            user.Id,
-            need.OwnerUserId
-        );
+        Assert.Equal(user.Id, need.OwnerUserId);
 
-        Assert.Equal(
-            user.Email,
-            need.OwnerEmail
-        );
+        Assert.Equal(user.Email, need.OwnerEmail);
 
-        Assert.Equal(
-            "Behov for reservekraft",
-            need.Description
-        );
+        Assert.Equal("Behov for reservekraft", need.Description);
     }
 
-
-    // ========================================
-    // TEST 2
-    // E-POSTENDRING HINDRER IKKE REDIGERING
-    // ========================================
+    /*
+        TEST 2
+        E-POSTENDRING HINDRER IKKE REDIGERING
+    */
 
     [Fact]
     public async Task EditNeed_AfterEmailChange_ShouldSucceed()
     {
         using var database = CreateDatabase();
 
-        var user = CreateUser(
-            id: "actor-123",
-            email: "ny@example.com"
-        );
+        var user = CreateUser(id: "actor-123", email: "ny@example.com");
 
-        var need = CreateStoredNeed(
-            ownerEmail: "gammel@example.com",
-            ownerUserId: user.Id
-        );
+        var need = CreateStoredNeed(ownerEmail: "gammel@example.com", ownerUserId: user.Id);
 
         database.Needs.Add(need);
 
         await database.SaveChangesAsync();
 
-        var controller = CreateController(
-            database,
-            user
-        );
+        var controller = CreateController(database, user);
 
-        var result = await controller.EditNeed(
-            CreateEditModel(need.Id)
-        );
+        var result = await controller.EditNeed(CreateEditModel(need.Id));
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
-        Assert.Equal(
-            "NeedOverview",
-            redirect.ActionName
-        );
+        Assert.Equal("NeedOverview", redirect.ActionName);
 
         var updated = await database.Needs
             .SingleAsync(n => n.Id == need.Id);
 
-        Assert.Equal(
-            "Oppdatert behov",
-            updated.Description
-        );
+        Assert.Equal("Oppdatert behov", updated.Description);
 
-        Assert.Equal(
-            user.Id,
-            updated.OwnerUserId
-        );
+        Assert.Equal(user.Id, updated.OwnerUserId);
 
-        Assert.Equal(
-            "gammel@example.com",
-            updated.OwnerEmail
-        );
+        Assert.Equal("gammel@example.com", updated.OwnerEmail);
     }
 
-
-    // ========================================
-    // TEST 3
-    // E-POSTENDRING HINDRER IKKE SLETTING
-    // ========================================
+    /*
+        TEST 3
+        E-POSTENDRING HINDRER IKKE SLETTING
+    */
 
     [Fact]
     public async Task DeleteNeed_AfterEmailChange_ShouldSucceed()
     {
         using var database = CreateDatabase();
 
-        var user = CreateUser(
-            id: "actor-123",
-            email: "ny@example.com"
-        );
+        var user = CreateUser(id: "actor-123", email: "ny@example.com");
 
-        var need = CreateStoredNeed(
-            ownerEmail: "gammel@example.com",
-            ownerUserId: user.Id
-        );
+        var need = CreateStoredNeed(ownerEmail: "gammel@example.com", ownerUserId: user.Id);
 
         database.Needs.Add(need);
 
         await database.SaveChangesAsync();
 
-        var controller = CreateController(
-            database,
-            user
-        );
+        var controller = CreateController(database, user);
 
-        var result = await controller.DeleteNeed(
-            need.Id
-        );
+        var result = await controller.DeleteNeed(need.Id);
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
-        Assert.Equal(
-            "NeedOverview",
-            redirect.ActionName
-        );
+        Assert.Equal("NeedOverview", redirect.ActionName);
 
-        Assert.Empty(
-            await database.Needs.ToListAsync()
-        );
+        Assert.Empty(await database.Needs.ToListAsync());
     }
 
-
-    // ========================================
-    // TEST 4
-    // ANDRE KAN IKKE REDIGERE BEHOV
-    // SELV OM E-POSTEN ER LIK
-    // ========================================
+    /*
+        TEST 4
+        ANDRE KAN IKKE REDIGERE BEHOV
+        SELV OM E-POSTEN ER LIK
+    */
 
     [Fact]
     public async Task EditNeed_DifferentOwnerId_ShouldReturnNotFound()
@@ -361,46 +274,31 @@ public class NeedOwnershipTests
 
         var user = CreateUser();
 
-        var need = CreateStoredNeed(
-            ownerEmail: user.Email!,
-            ownerUserId: "another-user-456"
-        );
+        var need = CreateStoredNeed(ownerEmail: user.Email!, ownerUserId: "another-user-456");
 
         database.Needs.Add(need);
 
         await database.SaveChangesAsync();
 
-        var controller = CreateController(
-            database,
-            user
-        );
+        var controller = CreateController(database, user);
 
-        var result = await controller.EditNeed(
-            CreateEditModel(need.Id)
-        );
+        var result = await controller.EditNeed(CreateEditModel(need.Id));
 
         Assert.IsType<NotFoundResult>(result);
 
         var unchanged = await database.Needs
             .SingleAsync(n => n.Id == need.Id);
 
-        Assert.Equal(
-            "Eksisterende behov",
-            unchanged.Description
-        );
+        Assert.Equal("Eksisterende behov", unchanged.Description);
 
-        Assert.Equal(
-            "another-user-456",
-            unchanged.OwnerUserId
-        );
+        Assert.Equal("another-user-456", unchanged.OwnerUserId);
     }
 
-
-    // ========================================
-    // TEST 5
-    // ANDRE KAN IKKE SLETTE BEHOV
-    // SELV OM E-POSTEN ER LIK
-    // ========================================
+    /*
+        TEST 5
+        ANDRE KAN IKKE SLETTE BEHOV
+        SELV OM E-POSTEN ER LIK
+    */
 
     [Fact]
     public async Task DeleteNeed_DifferentOwnerId_ShouldReturnNotFound()
@@ -409,36 +307,25 @@ public class NeedOwnershipTests
 
         var user = CreateUser();
 
-        var need = CreateStoredNeed(
-            ownerEmail: user.Email!,
-            ownerUserId: "another-user-456"
-        );
+        var need = CreateStoredNeed(ownerEmail: user.Email!, ownerUserId: "another-user-456");
 
         database.Needs.Add(need);
 
         await database.SaveChangesAsync();
 
-        var controller = CreateController(
-            database,
-            user
-        );
+        var controller = CreateController(database, user);
 
-        var result = await controller.DeleteNeed(
-            need.Id
-        );
+        var result = await controller.DeleteNeed(need.Id);
 
         Assert.IsType<NotFoundResult>(result);
 
-        Assert.Single(
-            await database.Needs.ToListAsync()
-        );
+        Assert.Single(await database.Needs.ToListAsync());
     }
 
-
-    // ========================================
-    // TEST 6
-    // GAMLE BEHOV KOBLES TIL RIKTIG BRUKER
-    // ========================================
+    /*
+        TEST 6
+        GAMLE BEHOV KOBLES TIL RIKTIG BRUKER
+    */
 
     [Fact]
     public async Task NeedOverview_ShouldLinkOnlyMatchingLegacyNeeds()
@@ -450,33 +337,23 @@ public class NeedOwnershipTests
         var ownLegacyNeed = CreateStoredNeed(
             ownerEmail: user.Email!,
             ownerUserId: null,
-            description: "Mitt gamle behov"
-        );
+            description: "Mitt gamle behov");
 
         var otherLegacyNeed = CreateStoredNeed(
             ownerEmail: "other@example.com",
             ownerUserId: null,
-            description: "Annen brukers gamle behov"
-        );
+            description: "Annen brukers gamle behov");
 
         var alreadyOwnedNeed = CreateStoredNeed(
             ownerEmail: user.Email!,
             ownerUserId: "another-user-456",
-            description: "Allerede eid av en annen"
-        );
+            description: "Allerede eid av en annen");
 
-        database.Needs.AddRange(
-            ownLegacyNeed,
-            otherLegacyNeed,
-            alreadyOwnedNeed
-        );
+        database.Needs.AddRange(ownLegacyNeed, otherLegacyNeed, alreadyOwnedNeed);
 
         await database.SaveChangesAsync();
 
-        var controller = CreateController(
-            database,
-            user
-        );
+        var controller = CreateController(database, user);
 
         var result = await controller.NeedOverview();
 
@@ -491,27 +368,18 @@ public class NeedOwnershipTests
         var alreadyOwnedUpdated = await database.Needs
             .SingleAsync(n => n.Id == alreadyOwnedNeed.Id);
 
-        Assert.Equal(
-            user.Id,
-            ownUpdated.OwnerUserId
-        );
+        Assert.Equal(user.Id, ownUpdated.OwnerUserId);
 
-        Assert.Null(
-            otherUpdated.OwnerUserId
-        );
+        Assert.Null(otherUpdated.OwnerUserId);
 
-        Assert.Equal(
-            "another-user-456",
-            alreadyOwnedUpdated.OwnerUserId
-        );
+        Assert.Equal("another-user-456", alreadyOwnedUpdated.OwnerUserId);
     }
 
-
-    // ========================================
-    // TEST 7
-    // GAMMELT BEHOV FÅR PERMANENT EIERSKAP
-    // VED REDIGERING
-    // ========================================
+    /*
+        TEST 7
+        GAMMELT BEHOV FÅR PERMANENT EIERSKAP
+        VED REDIGERING
+    */
 
     [Fact]
     public async Task EditNeed_LegacyNeed_ShouldAssignOwnerUserId()
@@ -520,45 +388,30 @@ public class NeedOwnershipTests
 
         var user = CreateUser();
 
-        var legacyNeed = CreateStoredNeed(
-            ownerEmail: user.Email!,
-            ownerUserId: null
-        );
+        var legacyNeed = CreateStoredNeed(ownerEmail: user.Email!, ownerUserId: null);
 
         database.Needs.Add(legacyNeed);
 
         await database.SaveChangesAsync();
 
-        var controller = CreateController(
-            database,
-            user
-        );
+        var controller = CreateController(database, user);
 
-        var result = await controller.EditNeed(
-            CreateEditModel(legacyNeed.Id)
-        );
+        var result = await controller.EditNeed(CreateEditModel(legacyNeed.Id));
 
         Assert.IsType<RedirectToActionResult>(result);
 
         var updated = await database.Needs
             .SingleAsync(n => n.Id == legacyNeed.Id);
 
-        Assert.Equal(
-            user.Id,
-            updated.OwnerUserId
-        );
+        Assert.Equal(user.Id, updated.OwnerUserId);
 
-        Assert.Equal(
-            "Oppdatert behov",
-            updated.Description
-        );
+        Assert.Equal("Oppdatert behov", updated.Description);
     }
 
-
-    // ========================================
-    // TEST 8
-    // GAMLE BEHOV MED ANNEN E-POST AVVISES
-    // ========================================
+    /*
+        TEST 8
+        GAMLE BEHOV MED ANNEN E-POST AVVISES
+    */
 
     [Fact]
     public async Task EditNeed_LegacyNeedWithOtherEmail_ShouldReturnNotFound()
@@ -567,36 +420,23 @@ public class NeedOwnershipTests
 
         var user = CreateUser();
 
-        var legacyNeed = CreateStoredNeed(
-            ownerEmail: "other@example.com",
-            ownerUserId: null
-        );
+        var legacyNeed = CreateStoredNeed(ownerEmail: "other@example.com", ownerUserId: null);
 
         database.Needs.Add(legacyNeed);
 
         await database.SaveChangesAsync();
 
-        var controller = CreateController(
-            database,
-            user
-        );
+        var controller = CreateController(database, user);
 
-        var result = await controller.EditNeed(
-            CreateEditModel(legacyNeed.Id)
-        );
+        var result = await controller.EditNeed(CreateEditModel(legacyNeed.Id));
 
         Assert.IsType<NotFoundResult>(result);
 
         var unchanged = await database.Needs
             .SingleAsync(n => n.Id == legacyNeed.Id);
 
-        Assert.Null(
-            unchanged.OwnerUserId
-        );
+        Assert.Null(unchanged.OwnerUserId);
 
-        Assert.Equal(
-            "Eksisterende behov",
-            unchanged.Description
-        );
+        Assert.Equal("Eksisterende behov", unchanged.Description);
     }
 }

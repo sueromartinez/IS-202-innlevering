@@ -1,15 +1,27 @@
-/**
- * Felles kartoppsett for alle kart i Beredskapsportalen.
- *
- * Legger til en liten nedtrekksmeny øverst til høyre i kartet der
- * brukeren kan bytte mellom tre kart:
- *   - Vanlig kart      (OpenStreetMap)
- *   - Topografisk kart (Kartverket "topo")
- *   - Sjøkart          (Kartverket "sjokartraster")
- *   - Flybilder        (Norge i bilder, Kartverket/Geovekst)
- *
- * Bruk: kall addKartverketLayers(map) rett etter L.map(...).
- */
+/*
+    kartverket.js – felles kartoppsett
+
+    Hva filen gjør: addKartverketLayers(map) legger til en meny der man kan bytte mellom vanlig
+    kart (OpenStreetMap), topografisk kart, sjøkart og flybilder fra Kartverket. Brukes av alle
+    kartene, så oppsettet bare står ett sted.
+
+    På nettsiden: Kartvalget øverst til høyre i alle kartene.
+
+    Oppgavekrav: 11, 22
+*/
+
+/*
+    Felles kartoppsett for alle kart i Beredskapsportalen.
+
+    Legger til en liten nedtrekksmeny øverst til høyre i kartet der
+    brukeren kan bytte mellom tre kart:
+      - Vanlig kart      (OpenStreetMap)
+      - Topografisk kart (Kartverket "topo")
+      - Sjøkart          (Kartverket "sjokartraster")
+      - Flybilder        (Norge i bilder, Kartverket/Geovekst)
+
+    Bruk: kall addKartverketLayers(map) rett etter L.map(...).
+*/
 function addKartverketLayers(map) {
 
     // Vanlig kart fra OpenStreetMap
@@ -21,8 +33,10 @@ function addKartverketLayers(map) {
         }
     );
 
-
-    // Kart fra Kartverket. {layer} byttes ut med navnet på kartet.
+    /*
+        Kartet er delt opp i små bilder per zoomnivå og posisjon. Leaflet henter bare bildene
+        som vises på skjermen.
+    */
     const kartverketUrl =
         "https://cache.kartverket.no/v1/wmts/1.0.0/{layer}/default/webmercator/{z}/{y}/{x}.png";
 
@@ -34,9 +48,10 @@ function addKartverketLayers(map) {
     const topographicMap = L.tileLayer(kartverketUrl, { ...kartverketOptions, layer: "topo" });
     const seaMap = L.tileLayer(kartverketUrl, { ...kartverketOptions, layer: "sjokartraster" });
 
-
-        // Flybilder (satellitt/ortofoto) fra Esri, med stedsnavn og grenser oppå.
-    // Nyttig i en krise for å se terreng, bygninger, veier og vann slik de faktisk ser ut.
+        /*
+            Flybilder (satellitt/ortofoto) fra Esri, med stedsnavn og grenser oppå.
+            Nyttig i en krise for å se terreng, bygninger, veier og vann slik de faktisk ser ut.
+        */
     const aerialImagery = L.tileLayer(
         "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
         {
@@ -56,7 +71,6 @@ function addKartverketLayers(map) {
 
     const aerialMap = L.layerGroup([aerialImagery, aerialLabels]);
 
-
     // Kartene som kan velges i menyen
     const maps = {
         "Vanlig kart": normalMap,
@@ -65,14 +79,11 @@ function addKartverketLayers(map) {
         "Flybilder": aerialMap
     };
 
-
     // Vanlig kart vises når siden åpnes
     let activeMap = normalMap;
     activeMap.addTo(map);
 
-
     addMapMenuStyles();
-
 
     // Nedtrekksmeny øverst til høyre i kartet
     const MapMenu = L.Control.extend({
@@ -135,11 +146,10 @@ function addKartverketLayers(map) {
     new MapMenu().addTo(map);
 }
 
-
-/**
- * Stilen til menyen legges inn én gang fra JavaScript,
- * slik at den ser lik ut på alle sider med kart.
- */
+/*
+    Stilen til menyen legges inn én gang fra JavaScript,
+    slik at den ser lik ut på alle sider med kart.
+*/
 function addMapMenuStyles() {
     if (document.getElementById("kart-meny-styles")) {
         return;

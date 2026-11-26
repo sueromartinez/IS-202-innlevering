@@ -1,4 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿/*
+    20261104105859_CompleteResourceSchema.cs – migrasjon (autogenerert)
+
+    Hva filen gjør: Endring i databasen: legger til resten av kolonnene på Resources (trygt på
+    både nye og gamle databaser). Up() gjør endringen, Down() angrer den. Kjøres automatisk når
+    appen starter. Trenger ikke forklares linje for linje.
+
+    Oppgavekrav: 1, 7
+*/
+
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 

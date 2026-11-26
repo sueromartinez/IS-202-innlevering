@@ -1,7 +1,18 @@
+/*
+    NeedController.cs – behov
+
+    Hva filen gjør: Registrere, vise, endre og slette behov. Bare offentlige aktører og admin
+    har tilgang. Man kan registrere flere behov i samme skjema.
+
+    På nettsiden: Sidene «Registrer behov» (skjema + kart for hvert behov), «Behov» og «Endre
+    behov».
+
+    Oppgavekrav: 10, 11, 18, 20, 21, 22
+*/
 
 using FirstWebAppInDocker.Data;
-using FirstWebAppInDocker.Services;
 using FirstWebAppInDocker.Models;
+using FirstWebAppInDocker.Services;
 using FirstWebAppInDocker.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -10,47 +21,41 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FirstWebAppInDocker.Controllers;
 
-/// <summary>
-/// Håndterer registrering, oversikt, endring og sletting av behov.
-///
-/// ASP.NET Core Identity brukes til autentisering,
-/// rollebasert tilgang og permanent eierskap.
-///
-/// Nye behov kobles til OwnerUserId.
-/// Eldre behov kan kobles til Identity via OwnerEmail.
-/// </summary>
-[Authorize(
-    Roles =
-        IdentitySeeder.PublicActorRole
-        + ","
-        + IdentitySeeder.AdminRole
-)]
+/*
+    Frivillige slipper ikke inn i denne controlleren i det hele tatt.
+
+    Håndterer registrering, oversikt, endring og sletting av behov.
+
+    ASP.NET Core Identity brukes til autentisering,
+    rollebasert tilgang og permanent eierskap.
+
+    Nye behov kobles til OwnerUserId.
+    Eldre behov kan kobles til Identity via OwnerEmail.
+*/
+[Authorize(Roles = IdentitySeeder.PublicActorRole + "," + IdentitySeeder.AdminRole)]
 public class NeedController : Controller
 {
+    #region Felt og konstruktør
+
     private readonly ApplicationDbContext _context;
 
     private readonly UserManager<ApplicationUser> _userManager;
 
-
-    public NeedController(
-        ApplicationDbContext context,
-        UserManager<ApplicationUser> userManager)
+    public NeedController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
     {
         _context = context;
         _userManager = userManager;
     }
 
+    #endregion
 
-    // ========================================
-    // OVERSIKT
-    // ========================================
+    #region Behovsoversikt
 
-    /// <summary>
-    /// Viser alle registrerte behov, nyeste først.
-    ///
-    /// Knytter samtidig eventuelle eldre behov
-    /// til den innloggede brukerens Identity-ID.
-    /// </summary>
+    /*
+        GET /Need/NeedOverview
+        På nettsiden: «Behov», nyeste behov først. Alle offentlige aktører ser alle behov, men
+        kan bare endre sine egne.
+    */
     [HttpGet]
     public async Task<IActionResult> NeedOverview()
     {
@@ -61,16 +66,17 @@ public class NeedController : Controller
             return accessFailure;
         }
 
-        ApplicationUser? user =
-            await _userManager.GetUserAsync(User);
+        ApplicationUser? user = await _userManager.GetUserAsync(User);
 
         if (user is null)
         {
             return Challenge();
         }
 
-        // Oppgrader eventuelle eldre behov som
-        // ennå ikke har permanent bruker-ID.
+        /*
+            Oppgrader eventuelle eldre behov som
+            ennå ikke har permanent bruker-ID.
+        */
         await LinkLegacyNeedsToIdentityUserAsync(user);
 
         List<Need> needs = await _context.Needs
@@ -81,11 +87,11 @@ public class NeedController : Controller
         return View(needs);
     }
 
+    #endregion
 
-    // ========================================
-    // REGISTRER - GET
-    // ========================================
+    #region Registrer behov
 
+    // GET /Need/RegisterNeed
     [HttpGet]
     public async Task<IActionResult> RegisterNeed()
     {
@@ -96,13 +102,14 @@ public class NeedController : Controller
             return accessFailure;
         }
 
-        var model = new RegisterNeedsViewModel();
+        RegisterNeedsViewModel model = new RegisterNeedsViewModel();
 
-        ApplicationUser? currentUser =
-            await _userManager.GetUserAsync(User);
+        ApplicationUser? currentUser = await _userManager.GetUserAsync(User);
 
-        // Skjemaet starter med ett tomt behov.
-        // Kontaktpunktet fylles ut med brukerens eget navn og telefon.
+        /*
+            Navn og telefon fylles inn på forhånd fra profilen, så det går raskere å registrere
+            i en krise.
+        */
         model.Needs.Add(new NeedItemViewModel
         {
             ContactName = currentUser?.Name,
@@ -112,21 +119,16 @@ public class NeedController : Controller
         return View(model);
     }
 
+    /*
+        POST /Need/RegisterNeed
+        Registrerer ett eller flere behov.
 
-    // ========================================
-    // REGISTRER - POST
-    // ========================================
-
-    /// <summary>
-    /// Registrerer ett eller flere behov.
-    ///
-    /// Eierens permanente Identity-ID og e-post
-    /// hentes fra den innloggede brukeren.
-    /// </summary>
+        Eierens permanente Identity-ID og e-post
+        hentes fra den innloggede brukeren.
+    */
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> RegisterNeed(
-        RegisterNeedsViewModel model)
+    public async Task<IActionResult> RegisterNeed(RegisterNeedsViewModel model)
     {
         IActionResult? accessFailure = CheckAccess();
 
@@ -135,14 +137,9 @@ public class NeedController : Controller
             return accessFailure;
         }
 
-        ApplicationUser? user =
-            await _userManager.GetUserAsync(User);
+        ApplicationUser? user = await _userManager.GetUserAsync(User);
 
-        if (
-            user is null
-            ||
-            string.IsNullOrWhiteSpace(user.Email)
-        )
+        if (user is null || string.IsNullOrWhiteSpace(user.Email))
         {
             return Challenge();
         }
@@ -151,38 +148,28 @@ public class NeedController : Controller
         {
             model.Needs.Add(new NeedItemViewModel());
 
-            ModelState.AddModelError(
-                string.Empty,
-                "Legg til minst ett behov."
-            );
+            ModelState.AddModelError(string.Empty, "Legg til minst ett behov.");
 
             return View(model);
         }
 
-        // Kontroller at alle behov har
-        // ressurstype og kartplassering.
+        /*
+            Ekstra sjekk: hvert behov må ha en plassering i kartet og en type.
+            På nettsiden: feilmeldingen vises ved riktig behov fordi feltnavnet er
+            "Needs[i].Latitude".
+        */
         for (int i = 0; i < model.Needs.Count; i++)
         {
             NeedItemViewModel item = model.Needs[i];
 
-            if (
-                item.Latitude is null
-                ||
-                item.Longitude is null
-            )
+            if (item.Latitude is null || item.Longitude is null)
             {
-                ModelState.AddModelError(
-                    $"Needs[{i}].Latitude",
-                    "Velg plassering i kartet."
-                );
+                ModelState.AddModelError($"Needs[{i}].Latitude", "Velg plassering i kartet.");
             }
 
             if (!item.ResourceType.HasValue)
             {
-                ModelState.AddModelError(
-                    $"Needs[{i}].ResourceType",
-                    "Velg type behov."
-                );
+                ModelState.AddModelError($"Needs[{i}].ResourceType", "Velg type behov.");
             }
         }
 
@@ -191,9 +178,10 @@ public class NeedController : Controller
             return View(model);
         }
 
+        // Alle behovene lagres samtidig. Enten lagres alle, eller ingen.
         foreach (NeedItemViewModel item in model.Needs)
         {
-            var need = new Need
+            Need need = new Need
             {
                 ResourceType = item.ResourceType!.Value,
 
@@ -225,27 +213,20 @@ public class NeedController : Controller
 
         await _context.SaveChangesAsync();
 
-        await this.AuditAsync(
-            AuditActions.NeedCreated,
-            $"Registrerte {model.Needs.Count} behov.");
+        await this.AuditAsync(AuditActions.NeedCreated, $"Registrerte {model.Needs.Count} behov.");
 
-        TempData["NeedMessage"] =
-            $"{model.Needs.Count} behov ble registrert.";
+        TempData["NeedSuccess"] = $"{model.Needs.Count} behov ble registrert.";
 
-        return RedirectToAction(
-            nameof(NeedOverview)
-        );
+        return RedirectToAction(nameof(NeedOverview));
     }
 
+    #endregion
 
-    // ========================================
-    // ENDRE - GET
-    // ========================================
+    #region Endre og slette behov
 
-    /// <summary>
-    /// Viser skjemaet for å endre et behov.
-    /// Brukeren kan bare endre egne behov.
-    /// </summary>
+    /*
+        GET /Need/EditNeed/5 – bare eieren får åpne siden. Andre får "finnes ikke".
+    */
     [HttpGet]
     public async Task<IActionResult> EditNeed(int id)
     {
@@ -256,8 +237,7 @@ public class NeedController : Controller
             return accessFailure;
         }
 
-        ApplicationUser? user =
-            await _userManager.GetUserAsync(User);
+        ApplicationUser? user = await _userManager.GetUserAsync(User);
 
         if (user is null)
         {
@@ -271,7 +251,7 @@ public class NeedController : Controller
             return NotFound();
         }
 
-        var model = new NeedItemViewModel
+        NeedItemViewModel model = new NeedItemViewModel
         {
             Id = need.Id,
 
@@ -297,19 +277,14 @@ public class NeedController : Controller
         return View(model);
     }
 
-
-    // ========================================
-    // ENDRE - POST
-    // ========================================
-
-    /// <summary>
-    /// Lagrer endringer på et behov som
-    /// tilhører den innloggede brukeren.
-    /// </summary>
+    /*
+        POST /Need/EditNeed
+        Lagrer endringer på et behov som
+        tilhører den innloggede brukeren.
+    */
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> EditNeed(
-        NeedItemViewModel model)
+    public async Task<IActionResult> EditNeed(NeedItemViewModel model)
     {
         IActionResult? accessFailure = CheckAccess();
 
@@ -318,42 +293,28 @@ public class NeedController : Controller
             return accessFailure;
         }
 
-        ApplicationUser? user =
-            await _userManager.GetUserAsync(User);
+        ApplicationUser? user = await _userManager.GetUserAsync(User);
 
         if (user is null)
         {
             return Challenge();
         }
 
-        Need? need = await FindOwnNeedAsync(
-            model.Id,
-            user
-        );
+        Need? need = await FindOwnNeedAsync(model.Id, user);
 
         if (need is null)
         {
             return NotFound();
         }
 
-        if (
-            model.Latitude is null
-            ||
-            model.Longitude is null
-        )
+        if (model.Latitude is null || model.Longitude is null)
         {
-            ModelState.AddModelError(
-                nameof(model.Latitude),
-                "Velg plassering i kartet."
-            );
+            ModelState.AddModelError(nameof(model.Latitude), "Velg plassering i kartet.");
         }
 
         if (!model.ResourceType.HasValue)
         {
-            ModelState.AddModelError(
-                nameof(model.ResourceType),
-                "Velg type behov."
-            );
+            ModelState.AddModelError(nameof(model.ResourceType), "Velg type behov.");
         }
 
         if (!ModelState.IsValid)
@@ -386,23 +347,15 @@ public class NeedController : Controller
             AuditActions.NeedUpdated,
             $"Endret behov #{need.Id} ({EnumDisplay.Name(need.ResourceType)}).");
 
-        TempData["NeedMessage"] =
-            "Behovet ble oppdatert.";
+        TempData["NeedSuccess"] = "Behovet ble oppdatert.";
 
-        return RedirectToAction(
-            nameof(NeedOverview)
-        );
+        return RedirectToAction(nameof(NeedOverview));
     }
 
-
-    // ========================================
-    // SLETT - POST
-    // ========================================
-
-    /// <summary>
-    /// Sletter et behov som tilhører innlogget bruker.
-    /// Kun POST med antiforgery-token.
-    /// </summary>
+    /*
+        POST /Need/DeleteNeed
+        Slettingen fjerner også forespørslene som hører til behovet.
+    */
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteNeed(int id)
@@ -414,8 +367,7 @@ public class NeedController : Controller
             return accessFailure;
         }
 
-        ApplicationUser? user =
-            await _userManager.GetUserAsync(User);
+        ApplicationUser? user = await _userManager.GetUserAsync(User);
 
         if (user is null)
         {
@@ -429,29 +381,24 @@ public class NeedController : Controller
             return NotFound();
         }
 
-        string deletedText =
-            $"Slettet behov #{need.Id} ({EnumDisplay.Name(need.ResourceType)}).";
+        string deletedText = $"Slettet behov #{need.Id} ({EnumDisplay.Name(need.ResourceType)}).";
 
         _context.Needs.Remove(need);
 
         await _context.SaveChangesAsync();
 
-        await this.AuditAsync(
-            AuditActions.NeedDeleted,
-            deletedText);
+        await this.AuditAsync(AuditActions.NeedDeleted, deletedText);
 
-        TempData["NeedMessage"] =
-            "Behovet ble slettet.";
+        TempData["NeedSuccess"] = "Behovet ble slettet.";
 
-        return RedirectToAction(
-            nameof(NeedOverview)
-        );
+        return RedirectToAction(nameof(NeedOverview));
     }
 
+    #endregion
 
-    /// <summary>
-    /// Tom tekst lagres som null.
-    /// </summary>
+    #region Hjelpemetoder
+
+    // Tom tekst lagres som null.
     private static string? NormalizeText(string? value)
     {
         return string.IsNullOrWhiteSpace(value)
@@ -459,26 +406,21 @@ public class NeedController : Controller
             : value.Trim();
     }
 
+    /*
+        Eierskapssjekk: behovet må ha min bruker-ID, eller (for gamle behov) min e-post.
 
-    // ========================================
-    // HJELPEMETODE - FINN EGET BEHOV
-    // ========================================
+        Finner et behov dersom det tilhører brukeren.
 
-    /// <summary>
-    /// Finner et behov dersom det tilhører brukeren.
-    ///
-    /// Først kontrolleres OwnerUserId.
-    ///
-    /// Eldre behov uten OwnerUserId kan identifiseres
-    /// via OwnerEmail og kobles permanent til brukeren.
-    ///
-    /// Dersom et behov allerede har OwnerUserId
-    /// til en annen bruker, gir ikke lik e-post
-    /// tilgang til behovet.
-    /// </summary>
-    private async Task<Need?> FindOwnNeedAsync(
-        int id,
-        ApplicationUser user)
+        Først kontrolleres OwnerUserId.
+
+        Eldre behov uten OwnerUserId kan identifiseres
+        via OwnerEmail og kobles permanent til brukeren.
+
+        Dersom et behov allerede har OwnerUserId
+        til en annen bruker, gir ikke lik e-post
+        tilgang til behovet.
+    */
+    private async Task<Need?> FindOwnNeedAsync(int id, ApplicationUser user)
     {
         Need? need = await _context.Needs
             .FirstOrDefaultAsync(
@@ -488,12 +430,7 @@ public class NeedController : Controller
                     (
                         need.OwnerUserId == user.Id
                         ||
-                        (
-                            need.OwnerUserId == null
-                            &&
-                            need.OwnerEmail == user.Email
-                        )
-                    )
+                        (need.OwnerUserId == null && need.OwnerEmail == user.Email))
             );
 
         if (need is null)
@@ -512,23 +449,17 @@ public class NeedController : Controller
         return need;
     }
 
+    /*
+        Finner eldre behov som ble opprettet før
+        OwnerUserId ble innført.
 
-    // ========================================
-    // HJELPEMETODE - KOBLE ELDRE BEHOV
-    // ========================================
+        Dersom OwnerEmail samsvarer med brukerens
+        nåværende Identity-e-post, knyttes behovene
+        permanent til brukerens Identity-ID.
 
-    /// <summary>
-    /// Finner eldre behov som ble opprettet før
-    /// OwnerUserId ble innført.
-    ///
-    /// Dersom OwnerEmail samsvarer med brukerens
-    /// nåværende Identity-e-post, knyttes behovene
-    /// permanent til brukerens Identity-ID.
-    ///
-    /// Eksisterende e-postopplysninger beholdes.
-    /// </summary>
-    private async Task LinkLegacyNeedsToIdentityUserAsync(
-        ApplicationUser user)
+        Eksisterende e-postopplysninger beholdes.
+    */
+    private async Task LinkLegacyNeedsToIdentityUserAsync(ApplicationUser user)
     {
         if (string.IsNullOrWhiteSpace(user.Email))
         {
@@ -536,12 +467,7 @@ public class NeedController : Controller
         }
 
         List<Need> legacyNeeds = await _context.Needs
-            .Where(
-                need =>
-                    need.OwnerUserId == null
-                    &&
-                    need.OwnerEmail == user.Email
-            )
+            .Where(need => need.OwnerUserId == null && need.OwnerEmail == user.Email)
             .ToListAsync();
 
         if (legacyNeeds.Count == 0)
@@ -557,17 +483,10 @@ public class NeedController : Controller
         await _context.SaveChangesAsync();
     }
 
-
-    // ========================================
-    // HJELPEMETODE - TILGANGSKONTROLL
-    // ========================================
-
-    /// <summary>
-    /// Kontrollerer autentisering og rolle
-    /// gjennom ASP.NET Core Identity.
-    ///
-    /// Session brukes ikke som sikkerhetskontroll.
-    /// </summary>
+    /*
+        Ekstra rollesjekk. Returnerer ingenting hvis alt er i orden, ellers et ferdig svar (send
+        til innlogging, eller "ingen tilgang").
+    */
     private IActionResult? CheckAccess()
     {
         if (User.Identity?.IsAuthenticated != true)
@@ -575,13 +494,9 @@ public class NeedController : Controller
             return Challenge();
         }
 
-        bool isPublicActor = User.IsInRole(
-            IdentitySeeder.PublicActorRole
-        );
+        bool isPublicActor = User.IsInRole(IdentitySeeder.PublicActorRole);
 
-        bool isAdmin = User.IsInRole(
-            IdentitySeeder.AdminRole
-        );
+        bool isAdmin = User.IsInRole(IdentitySeeder.AdminRole);
 
         if (!isPublicActor && !isAdmin)
         {
@@ -590,4 +505,6 @@ public class NeedController : Controller
 
         return null;
     }
+
+    #endregion
 }

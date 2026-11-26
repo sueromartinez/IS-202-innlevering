@@ -1,4 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿/*
+    20261104083254_LinkResourceToIdentityUser.cs – migrasjon (autogenerert)
+
+    Hva filen gjør: Endring i databasen: kobler ressurser til eieren med OwnerUserId. Up() gjør
+    endringen, Down() angrer den. Kjøres automatisk når appen starter. Trenger ikke forklares
+    linje for linje.
+
+    Oppgavekrav: 1, 7
+*/
+
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 

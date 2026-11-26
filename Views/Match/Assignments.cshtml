@@ -1,3 +1,11 @@
+@*
+    Assignments.cshtml – «Tildelinger»
+
+    Hva filen gjør: Alle forespørsler gruppert per behov, med status og kontaktinfo til
+    ressursen.
+
+    Oppgavekrav: 10, 12
+*@
 
 @model List<FirstWebAppInDocker.ViewModels.MatchNeedViewModel>
 
@@ -66,9 +74,7 @@
 }
 
 <style>
-    /* ========================================
-       STATISTIKK
-    ======================================== */
+    /* --- Statistikk --- */
 
     .assignment-stats {
         display: grid;
@@ -97,9 +103,7 @@
         line-height: 1.1;
     }
 
-    /* ========================================
-       OVERSKRIFT FOR LISTEN
-    ======================================== */
+    /* --- Overskrift for listen --- */
 
     .assignment-section-heading {
         display: flex;
@@ -121,9 +125,7 @@
         font-size: 13px;
     }
 
-    /* ========================================
-       BEHOVSKORT
-    ======================================== */
+    /* --- Behovskort --- */
 
     .assignment-need-list {
         display: grid;
@@ -179,9 +181,7 @@
         color: #267447;
     }
 
-    /* ========================================
-       TILDELINGER INNE I HVERT BEHOV
-    ======================================== */
+    /* --- Tildelinger inne i hvert behov --- */
 
     .assignment-items {
         display: grid;
@@ -216,9 +216,7 @@
         font-size: 12px;
     }
 
-    /* ========================================
-       STATUSMERKER
-    ======================================== */
+    /* --- Statusmerker --- */
 
     .assignment-status {
         display: inline-flex;
@@ -255,9 +253,7 @@
         color: #245d85;
     }
 
-    /* ========================================
-       KONTAKT OG DATOER
-    ======================================== */
+    /* --- Kontakt og datoer --- */
 
     .assignment-info {
         display: flex;
@@ -303,9 +299,7 @@
         font-size: 12px;
     }
 
-    /* ========================================
-       TOMME LISTER
-    ======================================== */
+    /* --- Tomme lister --- */
 
     .assignment-empty {
         padding: 20px;
@@ -332,9 +326,7 @@
         line-height: 1.6;
     }
 
-    /* ========================================
-       KNAPPER OG HANDLINGER
-    ======================================== */
+    /* --- Knapper og handlinger --- */
 
     .assignment-need-actions {
         display: flex;
@@ -370,9 +362,7 @@
         outline-offset: 3px;
     }
 
-    /* ========================================
-       MOBIL
-    ======================================== */
+    /* --- Mobil --- */
 
     @@media (max-width: 700px) {
         .assignment-stats {

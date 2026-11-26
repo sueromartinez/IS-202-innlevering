@@ -1,3 +1,11 @@
+/*
+    NeedControllerTests.cs – automatiske tester
+
+    Hva filen gjør: Tester registrering, endring og sletting av behov. Bruker xUnit, en database
+    i minnet (EF Core InMemory) og Moq, så testene kjører raskt uten Docker.
+
+    Oppgavekrav: 6, 15
+*/
 
 using System.Reflection;
 using System.Security.Claims;
@@ -18,9 +26,7 @@ namespace FirstWebAppInDocker.Tests;
 
 public class NeedControllerTests
 {
-    // ========================================
-    // HJELPER - TESTDATABASE
-    // ========================================
+    // --- Hjelper: testdatabase ---
 
     private static ApplicationDbContext CreateDatabase()
     {
@@ -32,13 +38,12 @@ public class NeedControllerTests
         return new ApplicationDbContext(options);
     }
 
+    /*
+        HJELPER - CONTROLLER MED IDENTITY
 
-    // ========================================
-    // HJELPER - CONTROLLER MED IDENTITY
-    //
-    // Ingen Session brukes.
-    // Bruker og roller simuleres med Identity.
-    // ========================================
+        Ingen Session brukes.
+        Bruker og roller simuleres med Identity.
+    */
 
     private static NeedController CreateController(
         ApplicationDbContext database,
@@ -58,8 +63,7 @@ public class NeedControllerTests
                 CreatedAt = DateTime.UtcNow
             };
 
-        var store =
-            new Mock<IUserStore<ApplicationUser>>();
+        var store = new Mock<IUserStore<ApplicationUser>>();
 
         var userManager =
             new Mock<UserManager<ApplicationUser>>(
@@ -71,55 +75,32 @@ public class NeedControllerTests
                 null!,
                 null!,
                 null!,
-                null!
-            );
+                null!);
 
         userManager
-            .Setup(manager =>
-                manager.GetUserAsync(
-                    It.IsAny<ClaimsPrincipal>()
-                )
-            )
+            .Setup(manager => manager.GetUserAsync(It.IsAny<ClaimsPrincipal>()))
             .ReturnsAsync(currentUser);
 
         var claims = new List<Claim>();
 
         if (currentUser is not null)
         {
-            claims.Add(
-                new Claim(
-                    ClaimTypes.NameIdentifier,
-                    currentUser.Id
-                )
-            );
+            claims.Add(new Claim(ClaimTypes.NameIdentifier, currentUser.Id));
         }
 
         if (role is not null)
         {
-            claims.Add(
-                new Claim(
-                    ClaimTypes.Role,
-                    role
-                )
-            );
+            claims.Add(new Claim(ClaimTypes.Role, role));
         }
 
-        var identity = new ClaimsIdentity(
-            claims,
-            isAuthenticated
-                ? "TestAuthentication"
-                : null
-        );
+        var identity = new ClaimsIdentity(claims, isAuthenticated ? "TestAuthentication" : null);
 
         var httpContext = new DefaultHttpContext
         {
             User = new ClaimsPrincipal(identity)
         };
 
-        return new NeedController(
-            database,
-            userManager.Object
-        )
+        return new NeedController(database, userManager.Object)
         {
             ControllerContext = new ControllerContext
             {
@@ -130,10 +111,7 @@ public class NeedControllerTests
         };
     }
 
-
-    // ========================================
-    // HJELPER - GYLDIG BEHOV
-    // ========================================
+    // --- Hjelper: gyldig behov ---
 
     private static NeedItemViewModel CreateNeedItem(
         string description = "Reservekraft ved strømbrudd",
@@ -155,27 +133,18 @@ public class NeedControllerTests
         };
     }
 
+    // --- Hjelper: registreringsmodell ---
 
-    // ========================================
-    // HJELPER - REGISTRERINGSMODELL
-    // ========================================
-
-    private static RegisterNeedsViewModel CreateRegistration(
-        NeedItemViewModel? item = null)
+    private static RegisterNeedsViewModel CreateRegistration(NeedItemViewModel? item = null)
     {
         var model = new RegisterNeedsViewModel();
 
-        model.Needs.Add(
-            item ?? CreateNeedItem()
-        );
+        model.Needs.Add(item ?? CreateNeedItem());
 
         return model;
     }
 
-
-    // ========================================
-    // HJELPER - LAGRET BEHOV
-    // ========================================
+    // --- Hjelper: lagret behov ---
 
     private static Need CreateStoredNeed(
         string ownerEmail = "actor@example.com",
@@ -195,11 +164,10 @@ public class NeedControllerTests
         };
     }
 
-
-    // ========================================
-    // TEST 1
-    // CONTROLLER HAR RIKTIGE ROLLER
-    // ========================================
+    /*
+        TEST 1
+        CONTROLLER HAR RIKTIGE ROLLER
+    */
 
     [Fact]
     public void NeedController_ShouldHaveCorrectAuthorizeAttribute()
@@ -210,52 +178,29 @@ public class NeedControllerTests
         Assert.NotNull(attribute);
 
         var roles = attribute.Roles!
-            .Split(
-                ',',
-                StringSplitOptions.TrimEntries |
-                StringSplitOptions.RemoveEmptyEntries
-            );
+            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 
-        Assert.Contains(
-            IdentitySeeder.PublicActorRole,
-            roles
-        );
+        Assert.Contains(IdentitySeeder.PublicActorRole, roles);
 
-        Assert.Contains(
-            IdentitySeeder.AdminRole,
-            roles
-        );
+        Assert.Contains(IdentitySeeder.AdminRole, roles);
 
-        Assert.DoesNotContain(
-            IdentitySeeder.ResourceProviderRole,
-            roles
-        );
+        Assert.DoesNotContain(IdentitySeeder.ResourceProviderRole, roles);
     }
 
-
-    // ========================================
-    // TEST 2
-    // SKRIVEOPERASJONER KREVER POST
-    // OG ANTIFORGERY
-    // ========================================
+    /*
+        TEST 2
+        SKRIVEOPERASJONER KREVER POST
+        OG ANTIFORGERY
+    */
 
     [Fact]
     public void WriteActions_ShouldRequirePostAndAntiforgery()
     {
         var actions = new[]
         {
-            (
-                nameof(NeedController.RegisterNeed),
-                typeof(RegisterNeedsViewModel)
-            ),
-            (
-                nameof(NeedController.EditNeed),
-                typeof(NeedItemViewModel)
-            ),
-            (
-                nameof(NeedController.DeleteNeed),
-                typeof(int)
-            )
+            (nameof(NeedController.RegisterNeed), typeof(RegisterNeedsViewModel)),
+            (nameof(NeedController.EditNeed), typeof(NeedItemViewModel)),
+            (nameof(NeedController.DeleteNeed), typeof(int))
         };
 
         foreach (var (name, parameterType) in actions)
@@ -263,29 +208,21 @@ public class NeedControllerTests
             var method = typeof(NeedController)
                 .GetMethod(
                     name,
-                    new[] { parameterType }
-                );
+                    new[] { parameterType });
 
             Assert.NotNull(method);
 
-            Assert.NotNull(
-                method.GetCustomAttribute<HttpPostAttribute>()
-            );
+            Assert.NotNull(method.GetCustomAttribute<HttpPostAttribute>());
 
-            Assert.NotNull(
-                method.GetCustomAttribute<
-                    ValidateAntiForgeryTokenAttribute
-                >()
-            );
+            Assert.NotNull(method.GetCustomAttribute< ValidateAntiForgeryTokenAttribute >());
         }
     }
 
-
-    // ========================================
-    // TEST 3
-    // OFFENTLIG AKTØR KAN REGISTRERE
-    // FLERE BEHOV SAMTIDIG
-    // ========================================
+    /*
+        TEST 3
+        OFFENTLIG AKTØR KAN REGISTRERE
+        FLERE BEHOV SAMTIDIG
+    */
 
     [Fact]
     public async Task RegisterNeed_ShouldSaveMultipleNeeds()
@@ -295,94 +232,54 @@ public class NeedControllerTests
         var controller = CreateController(database);
 
         var model = CreateRegistration(
-            CreateNeedItem(
-                description: " Reservekraft ved strømbrudd "
-            )
-        );
+            CreateNeedItem(description: " Reservekraft ved strømbrudd "));
 
-        model.Needs.Add(
-            CreateNeedItem(
-                description: "Behov for ekstra aggregat"
-            )
-        );
+        model.Needs.Add(CreateNeedItem(description: "Behov for ekstra aggregat"));
 
         var result = await controller.RegisterNeed(model);
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
-        Assert.Equal(
-            "NeedOverview",
-            redirect.ActionName
-        );
+        Assert.Equal("NeedOverview", redirect.ActionName);
 
         var needs = await database.Needs.ToListAsync();
 
         Assert.Equal(2, needs.Count);
 
         // Eieren skal hentes fra Identity.
-        Assert.All(
-            needs,
-            need => Assert.Equal(
-                "actor@example.com",
-                need.OwnerEmail
-            )
-        );
+        Assert.All(needs, need => Assert.Equal("actor@example.com", need.OwnerEmail));
 
-        Assert.Contains(
-            needs,
-            need => need.Description ==
-                "Reservekraft ved strømbrudd"
-        );
+        Assert.Contains(needs, need => need.Description == "Reservekraft ved strømbrudd");
 
-        Assert.Contains(
-            needs,
-            need => need.Description ==
-                "Behov for ekstra aggregat"
-        );
+        Assert.Contains(needs, need => need.Description == "Behov for ekstra aggregat");
 
-        Assert.All(
-            needs,
-            need => Assert.Equal(
-                ResourceType.Generator,
-                need.ResourceType
-            )
-        );
+        Assert.All(needs, need => Assert.Equal(ResourceType.Generator, need.ResourceType));
     }
 
-
-    // ========================================
-    // TEST 4
-    // RESSURSLEVERANDØR KAN IKKE
-    // REGISTRERE BEHOV
-    // ========================================
+    /*
+        TEST 4
+        RESSURSLEVERANDØR KAN IKKE
+        REGISTRERE BEHOV
+    */
 
     [Fact]
     public async Task RegisterNeed_ResourceProvider_ShouldNotSave()
     {
         using var database = CreateDatabase();
 
-        var controller = CreateController(
-            database,
-            role: IdentitySeeder.ResourceProviderRole
-        );
+        var controller = CreateController(database, role: IdentitySeeder.ResourceProviderRole);
 
-        var result = await controller.RegisterNeed(
-            CreateRegistration()
-        );
+        var result = await controller.RegisterNeed(CreateRegistration());
 
         Assert.IsType<ForbidResult>(result);
 
-        Assert.Empty(
-            await database.Needs.ToListAsync()
-        );
+        Assert.Empty(await database.Needs.ToListAsync());
     }
 
-
-    // ========================================
-    // TEST 5
-    // MINST ETT BEHOV MÅ REGISTRERES
-    // ========================================
+    /*
+        TEST 5
+        MINST ETT BEHOV MÅ REGISTRERES
+    */
 
     [Fact]
     public async Task RegisterNeed_EmptyList_ShouldFail()
@@ -403,16 +300,13 @@ public class NeedControllerTests
 
         Assert.Single(model.Needs);
 
-        Assert.Empty(
-            await database.Needs.ToListAsync()
-        );
+        Assert.Empty(await database.Needs.ToListAsync());
     }
 
-
-    // ========================================
-    // TEST 6
-    // KARTPLASSERING ER PÅKREVD
-    // ========================================
+    /*
+        TEST 6
+        KARTPLASSERING ER PÅKREVD
+    */
 
     [Fact]
     public async Task RegisterNeed_WithoutLocation_ShouldFail()
@@ -421,12 +315,7 @@ public class NeedControllerTests
 
         var controller = CreateController(database);
 
-        var model = CreateRegistration(
-            CreateNeedItem(
-                latitude: null,
-                longitude: null
-            )
-        );
+        var model = CreateRegistration(CreateNeedItem(latitude: null, longitude: null));
 
         var result = await controller.RegisterNeed(model);
 
@@ -434,22 +323,15 @@ public class NeedControllerTests
 
         Assert.False(controller.ModelState.IsValid);
 
-        Assert.True(
-            controller.ModelState.ContainsKey(
-                "Needs[0].Latitude"
-            )
-        );
+        Assert.True(controller.ModelState.ContainsKey("Needs[0].Latitude"));
 
-        Assert.Empty(
-            await database.Needs.ToListAsync()
-        );
+        Assert.Empty(await database.Needs.ToListAsync());
     }
 
-
-    // ========================================
-    // TEST 7
-    // UGYLDIG MODELSTATE SKAL IKKE LAGRES
-    // ========================================
+    /*
+        TEST 7
+        UGYLDIG MODELSTATE SKAL IKKE LAGRES
+    */
 
     [Fact]
     public async Task RegisterNeed_InvalidModelState_ShouldNotSave()
@@ -458,10 +340,7 @@ public class NeedControllerTests
 
         var controller = CreateController(database);
 
-        controller.ModelState.AddModelError(
-            "Needs[0].Description",
-            "Beskrivelse er påkrevd."
-        );
+        controller.ModelState.AddModelError("Needs[0].Description", "Beskrivelse er påkrevd.");
 
         var model = CreateRegistration();
 
@@ -471,16 +350,13 @@ public class NeedControllerTests
 
         Assert.Same(model, view.Model);
 
-        Assert.Empty(
-            await database.Needs.ToListAsync()
-        );
+        Assert.Empty(await database.Needs.ToListAsync());
     }
 
-
-    // ========================================
-    // TEST 8
-    // OVERSIKTEN VISER NYESTE BEHOV FØRST
-    // ========================================
+    /*
+        TEST 8
+        OVERSIKTEN VISER NYESTE BEHOV FØRST
+    */
 
     [Fact]
     public async Task NeedOverview_ShouldShowNewestFirst()
@@ -489,13 +365,9 @@ public class NeedControllerTests
 
         var older = CreateStoredNeed(
             description: "Eldre behov",
-            createdAt: DateTime.UtcNow.AddDays(-2)
-        );
+            createdAt: DateTime.UtcNow.AddDays(-2));
 
-        var newer = CreateStoredNeed(
-            description: "Nyere behov",
-            createdAt: DateTime.UtcNow
-        );
+        var newer = CreateStoredNeed(description: "Nyere behov", createdAt: DateTime.UtcNow);
 
         database.Needs.AddRange(older, newer);
 
@@ -507,29 +379,19 @@ public class NeedControllerTests
 
         var view = Assert.IsType<ViewResult>(result);
 
-        var needs =
-            Assert.IsAssignableFrom<IEnumerable<Need>>(
-                view.Model
-            ).ToList();
+        var needs = Assert.IsAssignableFrom<IEnumerable<Need>>(view.Model).ToList();
 
         Assert.Equal(2, needs.Count);
 
-        Assert.Equal(
-            "Nyere behov",
-            needs[0].Description
-        );
+        Assert.Equal("Nyere behov", needs[0].Description);
 
-        Assert.Equal(
-            "Eldre behov",
-            needs[1].Description
-        );
+        Assert.Equal("Eldre behov", needs[1].Description);
     }
 
-
-    // ========================================
-    // TEST 9
-    // BRUKER KAN ENDRE EGET BEHOV
-    // ========================================
+    /*
+        TEST 9
+        BRUKER KAN ENDRE EGET BEHOV
+    */
 
     [Fact]
     public async Task EditNeed_OwnNeed_ShouldUpdate()
@@ -547,52 +409,35 @@ public class NeedControllerTests
         var model = CreateNeedItem(
             description: " Oppdatert beskrivelse ",
             id: need.Id,
-            quantity: 5
-        );
+            quantity: 5);
 
         var result = await controller.EditNeed(model);
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
-        Assert.Equal(
-            "NeedOverview",
-            redirect.ActionName
-        );
+        Assert.Equal("NeedOverview", redirect.ActionName);
 
         var updated = await database.Needs
             .SingleAsync(n => n.Id == need.Id);
 
-        Assert.Equal(
-            "Oppdatert beskrivelse",
-            updated.Description
-        );
+        Assert.Equal("Oppdatert beskrivelse", updated.Description);
 
-        Assert.Equal(
-            5,
-            updated.Quantity
-        );
+        Assert.Equal(5, updated.Quantity);
 
-        Assert.Equal(
-            "actor@example.com",
-            updated.OwnerEmail
-        );
+        Assert.Equal("actor@example.com", updated.OwnerEmail);
     }
 
-
-    // ========================================
-    // TEST 10
-    // BRUKER KAN IKKE ENDRE ANDRES BEHOV
-    // ========================================
+    /*
+        TEST 10
+        BRUKER KAN IKKE ENDRE ANDRES BEHOV
+    */
 
     [Fact]
     public async Task EditNeed_OtherUsersNeed_ShouldReturnNotFound()
     {
         using var database = CreateDatabase();
 
-        var need = CreateStoredNeed(
-            ownerEmail: "other@example.com"
-        );
+        var need = CreateStoredNeed(ownerEmail: "other@example.com");
 
         database.Needs.Add(need);
 
@@ -600,10 +445,7 @@ public class NeedControllerTests
 
         var controller = CreateController(database);
 
-        var model = CreateNeedItem(
-            description: "Forsøk på endring",
-            id: need.Id
-        );
+        var model = CreateNeedItem(description: "Forsøk på endring", id: need.Id);
 
         var result = await controller.EditNeed(model);
 
@@ -612,17 +454,13 @@ public class NeedControllerTests
         var unchanged = await database.Needs
             .SingleAsync(n => n.Id == need.Id);
 
-        Assert.Equal(
-            "Eksisterende behov",
-            unchanged.Description
-        );
+        Assert.Equal("Eksisterende behov", unchanged.Description);
     }
 
-
-    // ========================================
-    // TEST 11
-    // BRUKER KAN SLETTE EGET BEHOV
-    // ========================================
+    /*
+        TEST 11
+        BRUKER KAN SLETTE EGET BEHOV
+    */
 
     [Fact]
     public async Task DeleteNeed_OwnNeed_ShouldDelete()
@@ -639,33 +477,24 @@ public class NeedControllerTests
 
         var result = await controller.DeleteNeed(need.Id);
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
-        Assert.Equal(
-            "NeedOverview",
-            redirect.ActionName
-        );
+        Assert.Equal("NeedOverview", redirect.ActionName);
 
-        Assert.Empty(
-            await database.Needs.ToListAsync()
-        );
+        Assert.Empty(await database.Needs.ToListAsync());
     }
 
-
-    // ========================================
-    // TEST 12
-    // BRUKER KAN IKKE SLETTE ANDRES BEHOV
-    // ========================================
+    /*
+        TEST 12
+        BRUKER KAN IKKE SLETTE ANDRES BEHOV
+    */
 
     [Fact]
     public async Task DeleteNeed_OtherUsersNeed_ShouldReturnNotFound()
     {
         using var database = CreateDatabase();
 
-        var need = CreateStoredNeed(
-            ownerEmail: "other@example.com"
-        );
+        var need = CreateStoredNeed(ownerEmail: "other@example.com");
 
         database.Needs.Add(need);
 
@@ -677,109 +506,76 @@ public class NeedControllerTests
 
         Assert.IsType<NotFoundResult>(result);
 
-        Assert.Single(
-            await database.Needs.ToListAsync()
-        );
+        Assert.Single(await database.Needs.ToListAsync());
     }
 
-
-    // ========================================
-    // TEST 13 OG 14
-    // PUBLICACTOR OG ADMIN KAN REGISTRERE
-    // ========================================
+    /*
+        TEST 13 OG 14
+        PUBLICACTOR OG ADMIN KAN REGISTRERE
+    */
 
     [Theory]
     [InlineData("PublicActor")]
     [InlineData("Admin")]
-    public async Task RegisterNeed_AllowedRoles_ShouldSave(
-        string role)
+    public async Task RegisterNeed_AllowedRoles_ShouldSave(string role)
     {
         using var database = CreateDatabase();
 
-        var controller = CreateController(
-            database,
-            role: role
-        );
+        var controller = CreateController(database, role: role);
 
-        var result = await controller.RegisterNeed(
-            CreateRegistration()
-        );
+        var result = await controller.RegisterNeed(CreateRegistration());
 
-        var redirect =
-            Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
 
-        Assert.Equal(
-            "NeedOverview",
-            redirect.ActionName
-        );
+        Assert.Equal("NeedOverview", redirect.ActionName);
 
         var savedNeed = await database.Needs.SingleAsync();
 
-        Assert.Equal(
-            "actor@example.com",
-            savedNeed.OwnerEmail
-        );
+        Assert.Equal("actor@example.com", savedNeed.OwnerEmail);
     }
 
-
-    // ========================================
-    // TEST 15
-    // UINNLOGGET BRUKER SKAL AVVISES
-    // ========================================
+    /*
+        TEST 15
+        UINNLOGGET BRUKER SKAL AVVISES
+    */
 
     [Fact]
     public async Task RegisterNeed_Unauthenticated_ShouldChallenge()
     {
         using var database = CreateDatabase();
 
-        var controller = CreateController(
-            database,
-            isAuthenticated: false
-        );
+        var controller = CreateController(database, isAuthenticated: false);
 
-        var result = await controller.RegisterNeed(
-            CreateRegistration()
-        );
+        var result = await controller.RegisterNeed(CreateRegistration());
 
         Assert.IsType<ChallengeResult>(result);
 
-        Assert.Empty(
-            await database.Needs.ToListAsync()
-        );
+        Assert.Empty(await database.Needs.ToListAsync());
     }
 
-
-    // ========================================
-    // TEST 16
-    // MANGLENDE IDENTITY-BRUKER SKAL AVVISES
-    // ========================================
+    /*
+        TEST 16
+        MANGLENDE IDENTITY-BRUKER SKAL AVVISES
+    */
 
     [Fact]
     public async Task RegisterNeed_WithoutIdentityUser_ShouldChallenge()
     {
         using var database = CreateDatabase();
 
-        var controller = CreateController(
-            database,
-            returnNoUser: true
-        );
+        var controller = CreateController(database, returnNoUser: true);
 
-        var result = await controller.RegisterNeed(
-            CreateRegistration()
-        );
+        var result = await controller.RegisterNeed(CreateRegistration());
 
         Assert.IsType<ChallengeResult>(result);
 
-        Assert.Empty(
-            await database.Needs.ToListAsync()
-        );
+        Assert.Empty(await database.Needs.ToListAsync());
     }
 
-
-    // ========================================
-    // TEST 17
-    // MANGLENDE RESSURSTYPE SKAL AVVISES
-    // ========================================
+    /*
+        TEST 17
+        MANGLENDE RESSURSTYPE SKAL AVVISES
+    */
 
     [Fact]
     public async Task RegisterNeed_MissingResourceType_ShouldFail()
@@ -788,11 +584,7 @@ public class NeedControllerTests
 
         var controller = CreateController(database);
 
-        var model = CreateRegistration(
-            CreateNeedItem(
-                resourceType: null
-            )
-        );
+        var model = CreateRegistration(CreateNeedItem(resourceType: null));
 
         var result = await controller.RegisterNeed(model);
 
@@ -800,22 +592,15 @@ public class NeedControllerTests
 
         Assert.False(controller.ModelState.IsValid);
 
-        Assert.True(
-            controller.ModelState.ContainsKey(
-                "Needs[0].ResourceType"
-            )
-        );
+        Assert.True(controller.ModelState.ContainsKey("Needs[0].ResourceType"));
 
-        Assert.Empty(
-            await database.Needs.ToListAsync()
-        );
+        Assert.Empty(await database.Needs.ToListAsync());
     }
 
-
-    // ========================================
-    // TEST 18
-    // RESSURSLEVERANDØR KAN IKKE ENDRE BEHOV
-    // ========================================
+    /*
+        TEST 18
+        RESSURSLEVERANDØR KAN IKKE ENDRE BEHOV
+    */
 
     [Fact]
     public async Task EditNeed_ResourceProvider_ShouldForbid()
@@ -828,15 +613,9 @@ public class NeedControllerTests
 
         await database.SaveChangesAsync();
 
-        var controller = CreateController(
-            database,
-            role: IdentitySeeder.ResourceProviderRole
-        );
+        var controller = CreateController(database, role: IdentitySeeder.ResourceProviderRole);
 
-        var model = CreateNeedItem(
-            description: "Uautorisert endring",
-            id: need.Id
-        );
+        var model = CreateNeedItem(description: "Uautorisert endring", id: need.Id);
 
         var result = await controller.EditNeed(model);
 
@@ -845,18 +624,14 @@ public class NeedControllerTests
         var unchanged = await database.Needs
             .SingleAsync(n => n.Id == need.Id);
 
-        Assert.Equal(
-            "Eksisterende behov",
-            unchanged.Description
-        );
+        Assert.Equal("Eksisterende behov", unchanged.Description);
     }
 
-
-    // ========================================
-    // TEST 19
-    // MANGLENDE IDENTITY-BRUKER KAN IKKE
-    // SLETTE BEHOV
-    // ========================================
+    /*
+        TEST 19
+        MANGLENDE IDENTITY-BRUKER KAN IKKE
+        SLETTE BEHOV
+    */
 
     [Fact]
     public async Task DeleteNeed_WithoutIdentityUser_ShouldChallenge()
@@ -869,17 +644,12 @@ public class NeedControllerTests
 
         await database.SaveChangesAsync();
 
-        var controller = CreateController(
-            database,
-            returnNoUser: true
-        );
+        var controller = CreateController(database, returnNoUser: true);
 
         var result = await controller.DeleteNeed(need.Id);
 
         Assert.IsType<ChallengeResult>(result);
 
-        Assert.Single(
-            await database.Needs.ToListAsync()
-        );
+        Assert.Single(await database.Needs.ToListAsync());
     }
 }

@@ -1,27 +1,33 @@
+/*
+    RegisterNeedsViewModel.cs – skjemaet «Registrer behov»
+
+    Hva filen gjør: En liste med behov (NeedItemViewModel), så flere behov kan registreres i ett
+    skjema. NeedItemViewModel brukes også når ett behov endres.
+
+    Oppgavekrav: 18, 21
+*/
+
 using System.ComponentModel.DataAnnotations;
 using FirstWebAppInDocker.Models;
 
 namespace FirstWebAppInDocker.ViewModels;
 
-/// <summary>
-/// Skjemaet for å registrere behov.
-/// Inneholder en liste, slik at flere behov kan sendes inn samtidig.
-/// </summary>
+/*
+    Skjemaet for å registrere behov.
+    Inneholder en liste, slik at flere behov kan sendes inn samtidig.
+*/
 public class RegisterNeedsViewModel
 {
     public List<NeedItemViewModel> Needs { get; init; } = new();
 }
 
-
-/// <summary>
-/// Ett behov i skjemaet.
-/// Brukes både ved registrering og ved endring.
-/// </summary>
+/*
+    Ett behov i skjemaet.
+    Brukes både ved registrering og ved endring.
+*/
 public class NeedItemViewModel
 {
-    /// <summary>
-    /// Id til behovet som endres. Er 0 ved registrering.
-    /// </summary>
+    // Id til behovet som endres. Er 0 ved registrering.
     public int Id { get; init; }
 
     [Required(ErrorMessage = "Velg type behov")]

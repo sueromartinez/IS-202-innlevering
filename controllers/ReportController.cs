@@ -1,3 +1,15 @@
+/*
+    ReportController.cs – situasjonsrapport og eksport
+
+    Hva filen gjør: Lager situasjonsrapporten, utskriftsvennlig ressursliste og eksport til
+    CSV/JSON. Kan også be Sami skrive en kort oppsummering.
+
+    På nettsiden: Siden «Rapporter» med nøkkeltall, knappen for Sami-oppsummering, ressurslisten
+    per kommune og knappene «Last ned CSV/JSON».
+
+    Oppgavekrav: 10, 19, 20
+*/
+
 using FirstWebAppInDocker.Data;
 using FirstWebAppInDocker.Models;
 using FirstWebAppInDocker.Services;
@@ -9,42 +21,42 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FirstWebAppInDocker.Controllers;
 
-/// <summary>
-/// Rapporter for offentlige aktører og administratorer:
-/// - Situasjonsrapport med nøkkeltall og mangler,
-///   og en kort oppsummering skrevet av Sami.
-/// - Utskriftsvennlig ressursliste per kommune.
-/// - Eksport av ressurslisten som CSV (Excel) eller JSON (andre systemer).
-///
-/// Frivillige har ikke tilgang, fordi listene viser alle ressurser
-/// med kontaktinformasjon.
-/// </summary>
+/*
+    Rapporter for offentlige aktører og administratorer:
+    - Situasjonsrapport med nøkkeltall og mangler,
+      og en kort oppsummering skrevet av Sami.
+    - Utskriftsvennlig ressursliste per kommune.
+    - Eksport av ressurslisten som CSV (Excel) eller JSON (andre systemer).
+
+    Frivillige har ikke tilgang, fordi listene viser alle ressurser
+    med kontaktinformasjon.
+*/
 [Authorize(Roles = IdentitySeeder.PublicActorRole + "," + IdentitySeeder.AdminRole)]
 public class ReportController : Controller
 {
+    #region Felt og konstruktør
+
     private readonly ReportService _reports;
 
     private readonly IChatModelClient _chatModel;
 
     private readonly ILogger<ReportController> _logger;
 
-
     public ReportController(
         ReportService reports,
         IChatModelClient chatModel,
-        ILogger<ReportController> logger
-    )
+        ILogger<ReportController> logger)
     {
         _reports = reports;
         _chatModel = chatModel;
         _logger = logger;
     }
 
+    #endregion
 
-    // =========================================================
-    // SITUASJONSRAPPORT
-    // =========================================================
+    #region Situasjonsrapport
 
+    // GET /Report
     [HttpGet]
     public async Task<IActionResult> Index()
     {
@@ -53,12 +65,12 @@ public class ReportController : Controller
         return View(model);
     }
 
-
-    /// <summary>
-    /// Sami skriver en kort oppsummering av tallene.
-    /// Kalles fra knappen på rapportsiden. Tallene regnes ut på nytt
-    /// her, så modellen aldri får tall fra nettleseren.
-    /// </summary>
+    /*
+        POST /Report/Summary
+        Sami skriver oppsummeringen. Sami får bare ferdige tall, ikke tilgang til
+        databasen. Da kan ikke Sami finne på tall, og vi sender minst mulig data til en ekstern
+        tjeneste.
+    */
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Summary(CancellationToken cancellationToken)
@@ -112,22 +124,24 @@ public class ReportController : Controller
         }
     }
 
+    #endregion
 
-    // =========================================================
-    // RESSURSLISTE TIL UTSKRIFT
-    // =========================================================
+    #region Ressursliste og eksport
 
+    /*
+        GET /Report/Resources
+        Ressurslisten, filtrert på kommune og type, laget for utskrift.
+    */
     [HttpGet]
     public async Task<IActionResult> Resources(
         string? kommune,
         ResourceType? type,
-        bool onlyAvailable = false
-    )
+        bool onlyAvailable = false)
     {
         List<ResourceReportRow> rows =
             await _reports.GetResourceRowsAsync(kommune, type, onlyAvailable);
 
-        var model = new ResourceReportViewModel
+        ResourceReportViewModel model = new ResourceReportViewModel
         {
             Municipality = string.IsNullOrWhiteSpace(kommune) ? null : kommune.Trim(),
             Type = type,
@@ -147,22 +161,16 @@ public class ReportController : Controller
         return View(model);
     }
 
-
-    // =========================================================
-    // EKSPORT
-    // =========================================================
-
-    /// <summary>
-    /// GET /Report/Export?format=csv|json&amp;kommune=...&amp;type=...
-    /// Samme filtre som utskriftssiden.
-    /// </summary>
+    /*
+        GET /Report/Export
+        Laster ned en fil (CSV kan åpnes i Excel). Eksporten skrives i aktivitetsloggen.
+    */
     [HttpGet]
     public async Task<IActionResult> Export(
         string format,
         string? kommune,
         ResourceType? type,
-        bool onlyAvailable = false
-    )
+        bool onlyAvailable = false)
     {
         bool json = string.Equals(format, "json", StringComparison.OrdinalIgnoreCase);
         bool csv = string.Equals(format, "csv", StringComparison.OrdinalIgnoreCase);
@@ -177,8 +185,7 @@ public class ReportController : Controller
 
         DateTime now = DateTime.UtcNow;
 
-        string scope =
-            string.IsNullOrWhiteSpace(kommune) ? "alle-kommuner" : Slug(kommune);
+        string scope = string.IsNullOrWhiteSpace(kommune) ? "alle-kommuner" : Slug(kommune);
 
         string fileName = $"ressurser-{scope}-{now:yyyy-MM-dd}.{(json ? "json" : "csv")}";
 
@@ -195,16 +202,17 @@ public class ReportController : Controller
             : File(ReportService.ToCsv(rows), "text/csv; charset=utf-8", fileName);
     }
 
+    #endregion
 
-    /// <summary>
-    /// «Kristiansand S» → «kristiansand-s», trygt i filnavn.
-    /// </summary>
+    #region Hjelpemetoder
+
+    // Lager et trygt filnavn, der æ, ø og å byttes ut.
     public static string Slug(string value)
     {
         string lower = value.Trim().ToLowerInvariant()
             .Replace("æ", "ae").Replace("ø", "o").Replace("å", "a");
 
-        var chars = lower.Select(c => char.IsAsciiLetterOrDigit(c) ? c : '-').ToArray();
+        char[] chars = lower.Select(c => char.IsAsciiLetterOrDigit(c) ? c : '-').ToArray();
 
         string slug = new string(chars);
 
@@ -217,4 +225,6 @@ public class ReportController : Controller
 
         return slug.Length == 0 ? "kommune" : slug;
     }
+
+    #endregion
 }
