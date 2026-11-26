@@ -1,4 +1,4 @@
-# Beredskapsportalen
+# Beredskapsportal
 
 Beredskapsportalen er en webapplikasjon utviklet som en del av et akademisk prosjekt, støttet av Heimevernet og Kartverket. Løsningen er bygget med ASP.NET Core MVC og bruker MariaDB som database. Entity Framework Core benyttes for kommunikasjon mellom applikasjonen og databasen. Docker brukes for å starte applikasjonen og databasen lokalt.
 
@@ -143,7 +143,7 @@ Følgende roller opprettes automatisk ved oppstart:
 - PublicActor
 - ResourceProvider
 
-## Standardbruker Offentlig
+## Standardbruker offentlig aktør
 
 Ved oppstart opprettes en offentlig testbruker automatisk dersom brukeren ikke allerede finnes.
 
@@ -158,29 +158,29 @@ Testbrukeren opprettes gjennom `IdentitySeeder.cs`.
 
 Passordet er ment for testing og utvikling, og skal ikke brukes i et produksjonsmiljø.
 
-En administratorkonto opprettes også ved oppstart (e-post og passord kan settes i `.env`). Se «Testbrukere» under «Roller».
+## Standardbruker frivillig
 
-# Standarbruker Frivillig
 | Felt | Verdi |
 |---|---|
 | E-post | frivillig@beredskap.no |
 | Passord | Test123! |
-| Navn | Kari Frivillig|
-| Rolle |Frivillig |
+| Navn | Kari Frivillig |
+| Rolle | ResourceProvider |
 
-Testbrukeren opprettes gjennom `IdentitySeeder.cs`.
+Testbrukeren opprettes gjennom `DemoDataSeeder.cs`.
 
 Passordet er ment for testing og utvikling, og skal ikke brukes i et produksjonsmiljø.
 
-# Standarbruker Administrator
- Felt | Verdi |
+## Standardbruker administrator
+
+| Felt | Verdi |
 |---|---|
 | E-post | admin@beredskap.no |
-| Passord |Admin123! |
-| Navn | Admin|
-| Rolle |Administrator |
+| Passord | Admin123! |
+| Navn | Administrator |
+| Rolle | Admin |
 
-Testbrukeren opprettes gjennom `IdentitySeeder.cs`.
+Administratorkontoen opprettes gjennom `IdentitySeeder.cs`.
 
 Passordet er ment for testing og utvikling, og skal ikke brukes i et produksjonsmiljø.
 
@@ -194,6 +194,31 @@ Nye brukere kan registrere seg gjennom registreringsfunksjonen i applikasjonen.
 4. Brukeren opprettes.
 
 Nye brukere registreres som ressursleverandører.
+
+# Roller
+
+| Rolle | Kan gjøre |
+|---|---|
+| Ressursleverandør / frivillig | Registrere og endre egne ressurser, se forespørsler og bekrefte/avslå, se behov de kan hjelpe med |
+| Offentlig aktør | Registrere behov, se alle ressurser, matche ressurser med behov, markere behov som løst |
+| Admin | Alt en offentlig aktør kan, pluss å opprette offentlige aktører, endre roller og deaktivere brukere |
+
+Offentlige aktører kan ikke registrere seg selv. De opprettes av admin under **Brukere**.
+Brukere deaktiveres i stedet for å slettes, slik at historikken beholdes.
+
+
+# Matching og statusflyt
+
+1. Offentlig aktør trykker **Finn ressurser** på et behov. Systemet viser tilgjengelige ressurser sortert etter avstand (Haversine).
+2. **Send forespørsel** → behovet får status *Vurderes*, og eieren av ressursen får varsel i portalen (klokken), på e-post og simulert SMS.
+3. Eieren bekrefter under **Forespørsler** → behovet blir *Tildelt*, ressursen *Opptatt*.
+4. **Marker behovet som løst** → behovet blir *Løst*, ressursen blir tilgjengelig igjen.
+
+E-post fanges av **Mailpit** og kan leses på http://localhost:8025. SMS logges bare i konsollen.
+
+## Frist og kontaktpunkt
+
+Et behov kan få **frist** og **kontaktpunkt** (kontaktperson og telefon). Kontaktpunktet vises til den frivillige først etter at hen har bekreftet.
 
 # Testing
 
@@ -227,43 +252,7 @@ Før koden pushes bør gruppemedlemmene:
 4. Kontrollere at endringene ikke påvirker eksisterende funksjonalitet.
 5. Opprette en Pull Request for gjennomgang og integrering i `main`.
 
-# Roller
-
-| Rolle | Kan gjøre |
-|---|---|
-| Ressursleverandør / frivillig | Registrere og endre egne ressurser, se forespørsler og bekrefte/avslå, se behov de kan hjelpe med |
-| Offentlig aktør | Registrere behov, se alle ressurser, matche ressurser med behov, markere behov som løst |
-| Admin | Alt en offentlig aktør kan, pluss å opprette offentlige aktører, endre roller og deaktivere brukere |
-
-Offentlige aktører kan ikke registrere seg selv. De opprettes av admin under **Brukere**.
-Brukere deaktiveres i stedet for å slettes, slik at historikken beholdes.
-
-## Testbrukere (bare lokalt)
-
-| Rolle | E-post | Passord |
-|---|---|---|
-| Admin | admin@beredskap.no | Admin123! (kan endres i `.env`) |
-| Offentlig aktør | offentlig@beredskap.no | Test123! |
-| Frivillig | frivillig@beredskap.no | Test123! |
-| Bedrift | entreprenor@beredskap.no | Test123! |
-
-Frivillig- og bedriftsbrukeren, ressursene og behovene er demodata som opprettes når databasen er tom
-(kun i Development). Slå av med miljøvariabelen `Seed__DemoData=false`.
-
----
-
-# Matching og statusflyt
-
-1. Offentlig aktør trykker **Finn ressurser** på et behov. Systemet viser tilgjengelige ressurser sortert etter avstand (Haversine).
-2. **Send forespørsel** → behovet får status *Vurderes*, og eieren av ressursen får varsel i portalen (klokken), på e-post og simulert SMS.
-3. Eieren bekrefter under **Forespørsler** → behovet blir *Tildelt*, ressursen *Opptatt*.
-4. **Marker behovet som løst** → behovet blir *Løst*, ressursen blir tilgjengelig igjen.
-
-E-post fanges av **Mailpit** og kan leses på http://localhost:8025. SMS logges bare i konsollen.
-
-## Frist og kontaktpunkt
-
-Et behov kan få **frist** og **kontaktpunkt** (kontaktperson og telefon). Kontaktpunktet vises til den frivillige først etter at hen har bekreftet.
+## Om applikasjonens funksjoner 
 
 ## Fargeblind modus
 
