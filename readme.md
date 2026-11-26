@@ -143,7 +143,7 @@ Følgende roller opprettes automatisk ved oppstart:
 - PublicActor
 - ResourceProvider
 
-## Standardbruker
+## Standardbruker Offentlig
 
 Ved oppstart opprettes en offentlig testbruker automatisk dersom brukeren ikke allerede finnes.
 
@@ -159,6 +159,30 @@ Testbrukeren opprettes gjennom `IdentitySeeder.cs`.
 Passordet er ment for testing og utvikling, og skal ikke brukes i et produksjonsmiljø.
 
 En administratorkonto opprettes også ved oppstart (e-post og passord kan settes i `.env`). Se «Testbrukere» under «Roller».
+
+# Standarbruker Frivillig
+| Felt | Verdi |
+|---|---|
+| E-post | frivillig@beredskap.no |
+| Passord | Test123! |
+| Navn | Kari Frivillig|
+| Rolle |Frivillig |
+
+Testbrukeren opprettes gjennom `IdentitySeeder.cs`.
+
+Passordet er ment for testing og utvikling, og skal ikke brukes i et produksjonsmiljø.
+
+# Standarbruker Administrator
+ Felt | Verdi |
+|---|---|
+| E-post | admin@beredskap.no |
+| Passord |Admin123! |
+| Navn | Admin|
+| Rolle |Administrator |
+
+Testbrukeren opprettes gjennom `IdentitySeeder.cs`.
+
+Passordet er ment for testing og utvikling, og skal ikke brukes i et produksjonsmiljø.
 
 # Opprette bruker
 
